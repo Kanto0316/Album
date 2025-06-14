@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Album Image</title>
+  <style>
+    .container { width: 100%; max-width: 600px; margin: 0 auto; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 2rem; background: #fafafa; display: flex; flex-direction: column; align-items: center; }
+    /* Recherche */
+    #searchContainer { width: 100%; max-width: 600px; margin: 0 auto 1rem; }
+    #searchInput { width: 100%; padding: 0.5rem 1rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    /* Albums */
+    #albumList { list-style: none; padding: 0; width: 100%; max-width: 600px; margin: 0 auto; }
+    #albumList li { background: #fff; margin: 1rem 0; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; position: relative; }
+    #albumList li:hover { background: #f5f5f5; }
+    .album-header { display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; position: relative; }
+    .album-title { flex: 1; text-align: center; font-size: 1.2rem; font-weight: 600; color: #333; cursor: pointer; }
+    .delete-album-btn { position: absolute; right: 0; background: none; border: none; color: #e53e3e; font-size: 1.2rem; cursor: pointer; padding: 0 0.5rem; }
+    .delete-album-btn:hover { color: #c53030; }
+    .image-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .image-container img { max-width: 120px; border-radius: 4px; cursor: pointer; transition: transform 0.2s; }
+    .image-container img:hover { transform: scale(1.05); }
+    .album-footer { display: flex; justify-content: space-between; font-size: 0.875rem; color: #888; }
+    /* Floating button */
+    #fab { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: #7e3af2; color: white; font-size: 2.5rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
+    #fab:hover { background: #6938ef; }
+    /* Modals */
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 10; }
+    .modal { background: white; padding: 1.5rem; border-radius: 8px; width: 90%; max-width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center; }
+    .modal h2 { margin-bottom: 1rem; color: #444; }
+    .modal input { width: 100%; padding: 0.6rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    .modal button { padding: 0.6rem 1.2rem; margin: 0 0.4rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background 0.2s ease; }
+    .btn-primary { background: #7e3af2; color: white; }
+    .btn-primary:hover { background: #6938ef; }
+    .btn-cancel { background: #ccc; color: #333; }
+    .btn-cancel:hover { background: #b3b3b3; }
+    .btn-danger { background: #e53e3e; color: white; }
+    .btn-danger:hover { background: #c53030; }
+    /* Album view */
+    #albumView { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fafafa; display: none; flex-direction: column; align-items: center; z-index: 5; }
+    #albumView header { display: flex; align-items: center; justify-content: center; position: relative; width: 100%; padding: 1rem; background: #7e3af2; color: white; }
+    #backBtn { position: absolute; left: 1rem; font-size: 2rem; cursor: pointer; }
+    #albumViewTitle { font-size: 1.2rem; margin: 0; }
+    #albumContent { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
+    .img-wrapper { position: relative; width: 7cm; height: 7cm; }
+    .img-wrapper img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; transition: transform 0.2s ease; }
+    .img-wrapper .navBtn { position: absolute; top: 50%; transform: translateY(-50%); background: white; border: 1px solid #ccc; box-shadow: 0 2px 6px rgba(0,0,0,0.1); font-size: 1.8rem; cursor: pointer; color: #7e3af2; padding: 0.4rem; border-radius: 4px; }
+    .img-wrapper .prev { left: 0; transform: translate(-100%, -50%); }
+    .img-wrapper .next { right: 0; transform: translate(100%, -50%); }
+    .img-wrapper .navBtn:disabled { color: #ccc; cursor: default; }
+    #imageIndex { font-size: 0.9rem; color: #555; margin: 0.5rem 0; }
+    #zoomControl { width: 7cm; display: flex; justify-content: center; margin-bottom: 1rem; }
+    #zoomRange { width: 100%; }
+    #deleteBtn { padding: 0.5rem 1rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; transition: background 0.2s ease; margin-bottom: 2rem; }
+    #deleteBtn:hover { background: #c53030; }
+    /* Footer */
+    #appFooter { width: 100%; max-width: 600px; text-align: center; margin: 2rem auto 0; padding: 0.5rem 0; color: #666; font-size: 0.75rem; background: #eee; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="searchContainer">
+    <input type="text" id="searchInput" placeholder="Recherche...">
+  </div>
+
+  <!-- Liste des albums -->
+  <ul id="albumList"></ul>
+  </div>
+
+  <!-- Modals -->
+  <div id="modalOverlay" class="overlay">
+    <div class="modal">
+      <h2>Créer un nouvel album</h2>
+      <input type="text" id="albumNameInput" placeholder="Nom de l'album">
+      <div>
+        <button id="createAlbumBtn" class="btn-primary">Créer</button>
+        <button id="cancelBtn" class="btn-cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="renameOverlay" class="overlay">
+    <div class="modal">
+      <h2>Changer le nom d'album</h2>
+      <input type="text" id="renameInput" placeholder="Nouveau nom">
+      <div>
+        <button id="renameOk" class="btn-primary">OK</button>
+        <button id="renameCancel" class="btn-cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="deleteAlbumOverlay" class="overlay">
+    <div class="modal">
+      <h2 id="deleteAlbumText">Voulez-vous supprimer l'album ?</h2>
+      <button id="deleteAlbumOk" class="btn-danger">OK</button>
+      <button id="deleteAlbumCancel" class="btn-cancel">Annuler</button>
+    </div>
+  </div>
+
+  <div id="confirmOverlay" class="overlay">
+    <div class="modal">
+      <h2>Voulez-vous supprimer cette image ?</h2>
+      <button id="confirmOk" class="btn-danger">OK</button>
+      <button id="confirmCancel" class="btn-cancel">Annuler</button>
+    </div>
+  </div>
+
+  <!-- Album view -->
+  <div id="albumView">
+    <header>
+      <span id="backBtn">←</span>
+      <h2 id="albumViewTitle"></h2>
+    </header>
+    <div id="albumContent"><div class="img-wrapper"></div></div>
+    <div id="imageIndex"></div>
+    <div id="zoomControl"><input type="range" id="zoomRange" min="50" max="200" value="100"></div>
+    <button id="deleteBtn">Supprimer</button>
+  </div>
+
+  <button id="fab">+</button>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+
+  <div id="appFooter">@ 2025 Kanto Fifaliana.</div>
+
+  <script>
+    const fab = document.getElementById('fab');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const deleteAlbumOverlay = document.getElementById('deleteAlbumOverlay');
+    const renameOverlay = document.getElementById('renameOverlay');
+    const albumNameInput = document.getElementById('albumNameInput');
+    const renameInput = document.getElementById('renameInput');
+    const createAlbumBtn = document.getElementById('createAlbumBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const deleteAlbumOk = document.getElementById('deleteAlbumOk');
+    const deleteAlbumCancel = document.getElementById('deleteAlbumCancel');
+    const deleteAlbumText = document.getElementById('deleteAlbumText');
+    const renameOk = document.getElementById('renameOk');
+    const renameCancel = document.getElementById('renameCancel');
+    const albumList = document.getElementById('albumList');
+    const fileInput = document.getElementById('fileInput');
+    const albumView = document.getElementById('albumView');
+    const albumViewTitle = document.getElementById('albumViewTitle');
+    const backBtn = document.getElementById('backBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    const confirmOk = document.getElementById('confirmOk');
+    const confirmCancel = document.getElementById('confirmCancel');
+    const zoomRange = document.getElementById('zoomRange');
+    const imageIndex = document.getElementById('imageIndex');
+
+    let currentContainer = null;
+    let albumImages = [];
+    let currentIndex = 0;
+    let currentLi = null;
+    let currentTitleEl = null;
+
+    // Recherche
+    document.getElementById('searchInput').addEventListener('input', e => {
+      const term = e.target.value.toLowerCase();
+      document.querySelectorAll('#albumList li').forEach(li => {
+        const name = li.querySelector('.album-title').textContent.toLowerCase();
+        li.style.display = name.includes(term) ? 'flex' : 'none';
+      });
+    });
+
+    // Créer album
+    fab.addEventListener('click', () => {
+      modalOverlay.style.display = 'flex';
+      albumNameInput.value = '';
+      albumNameInput.focus();
+    });
+    cancelBtn.addEventListener('click', () => { modalOverlay.style.display = 'none'; });
+    createAlbumBtn.addEventListener('click', () => {
+      const name = albumNameInput.value.trim();
+      if (!name) return;
+      modalOverlay.style.display = 'none';
+      const d = new Date();
+      const datePart = d.toLocaleDateString('fr-FR');
+      const timePart = d.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+      const createdAt = `${datePart} ${timePart}`;
+      const li = document.createElement('li');
+      currentLi = li; // Ensure currentLi is set
+      li.dataset.createdAt = createdAt;
+      li.innerHTML = `
+        <div class="album-header">
+          <span class="album-title">${name}</span>
+          <button class="delete-album-btn">×</button>
+        </div>
+        <div class="image-container"></div>
+        <div class="album-footer">
+          <span class="album-count">Image : 0</span>
+          <span class="album-created">Créé le ${createdAt}.</span>
+        </div>
+      `;
+      albumList.appendChild(li);
+      currentContainer = li.querySelector('.image-container');
+      fileInput.click();
+    });
+
+    // Liste interactions
+    albumList.addEventListener('click', e => {
+      const titleEl = e.target.closest('.album-title');
+      if (titleEl) {
+        currentTitleEl = titleEl;
+        renameInput.value = titleEl.textContent;
+        renameOverlay.style.display = 'flex';
+        return;
+      }
+      if (e.target.classList.contains('delete-album-btn')) {
+        currentLi = e.target.closest('li');
+        deleteAlbumText.textContent = `Voulez-vous supprimer ${currentLi.querySelector('.album-title').textContent} ?`;
+        deleteAlbumOverlay.style.display = 'flex';
+        return;
+      }
+      const li = e.target.closest('li');
+      if (!li) return;
+      currentLi = li;
+      currentContainer = li.querySelector('.image-container');
+      const imgs = Array.from(currentContainer.querySelectorAll('img'));
+      if (e.target.tagName === 'IMG') {
+        albumImages = imgs;
+        currentIndex = imgs.indexOf(e.target);
+        showImageView(li.querySelector('.album-title').textContent);
+      } else {
+        fileInput.click();
+      }
+    });
+
+    // Renommer album
+    renameOk.addEventListener('click', () => {
+      const newName = renameInput.value.trim();
+      if (newName && currentTitleEl) {
+        currentTitleEl.textContent = newName;
+      }
+      renameOverlay.style.display = 'none';
+    });
+    renameCancel.addEventListener('click', () => { renameOverlay.style.display = 'none'; });
+
+    // Supprimer album
+    deleteAlbumOk.addEventListener('click', () => {
+      if (currentLi) currentLi.remove();
+      deleteAlbumOverlay.style.display = 'none';
+    });
+    deleteAlbumCancel.addEventListener('click', () => { deleteAlbumOverlay.style.display = 'none'; });
+
+    // Ajout images
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0 && currentContainer) {
+        Array.from(fileInput.files).forEach(file => {
+          const exists = Array.from(currentContainer.querySelectorAll('img')).some(img => img.dataset.name === file.name);
+          if (!exists) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.dataset.name = file.name;
+            currentContainer.appendChild(img);
+          }
+        });
+        updateTimestamp();
+        fileInput.value = '';
+      }
+    });
+
+    // Supprimer image
+    confirmOk.addEventListener('click', () => {
+      if (albumImages[currentIndex]) albumImages[currentIndex].remove();
+      closeAlbumView();
+      updateTimestamp();
+    });
+    confirmCancel.addEventListener('click', () => { confirmOverlay.style.display = 'none'; });
+
+    function updateTimestamp() {
+      if (!currentLi || !currentContainer) return;
+      const count = currentContainer.querySelectorAll('img').length;
+      const created = currentLi.dataset.createdAt || '';
+      const countEl = currentLi.querySelector('.album-count');
+      const createdEl = currentLi.querySelector('.album-created');
+      if (countEl) countEl.textContent = `Image : ${count}`;
+      if (createdEl) createdEl.textContent = `Créé le ${created}.`;
+    }
+
+    // Vue détail image
+    backBtn.addEventListener('click', closeAlbumView);
+    deleteBtn.addEventListener('click', () => { confirmOverlay.style.display = 'flex'; });
+
+    function closeAlbumView() {
+      confirmOverlay.style.display = 'none';
+      albumView.style.display = 'none';
+      albumList.style.display = 'block';
+      fab.style.display = 'flex';
+    }
+
+    function showImageView(title) {
+      albumViewTitle.textContent = title;
+      albumList.style.display = 'none';
+      fab.style.display = 'none';
+      albumView.style.display = 'flex';
+      zoomRange.value = 100;
+      updateView();
+    }
+
+    function updateView() {
+      const wrapper = document.querySelector('.img-wrapper');
+      const total = albumImages.length;
+      wrapper.innerHTML = `
+        <img src="${albumImages[currentIndex].src}" alt="">
+        <button class="navBtn prev" ${currentIndex === 0 ? 'disabled' : ''}>◀</button>
+        <button class="navBtn next" ${currentIndex === total - 1 ? 'disabled' : ''}>▶</button>
+      `;
+      imageIndex.textContent = `${currentIndex + 1}/${total}`;
+      const imgEl = wrapper.querySelector('img');
+      zoomRange.oninput = () => { imgEl.style.transform = `scale(${zoomRange.value/100})`; };
+      wrapper.querySelector('.prev').onclick = () => { if (currentIndex > 0) { currentIndex--; updateView(); } };
+      wrapper.querySelector('.next').onclick = () => { if (currentIndex < total - 1) { currentIndex++; updateView(); } };
+    }
+  </script>
+</body>
+</html>
