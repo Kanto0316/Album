@@ -20,12 +20,23 @@
       max-width: 100%;
       box-sizing: border-box;
       margin: 0 auto 1rem;
+      position: relative;
+    }
+    #searchContainer::before {
+      content: "\1F50D"; /* loupe */
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      color: #888;
+      pointer-events: none;
     }
     #searchInput {
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
-      padding: 0.5rem 1rem;
+      padding: 0.5rem 1rem 0.5rem 2rem;
       background-color: #f5f5f5;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -82,7 +93,7 @@
 <body>
   <div class="container">
     <div id="searchContainer">
-      <input type="text" id="searchInput" placeholder="Recherche...">
+      <input type="text" id="searchInput" aria-label="Recherche">
     </div>
 
   <!-- Liste des albums -->
