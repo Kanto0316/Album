@@ -456,6 +456,72 @@ let currentTitleEl = null;
       wrapper.querySelector('.next').onclick = () => { if (currentIndex < total - 1) { currentIndex++; updateView(); } };
     }
   </script>
+  <script type="module">
+    // index.html (extrait - partie script Firebase + Firestore)
+
+    import { initializeApp } from "firebase/app";
+    import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+    import { getAnalytics } from "firebase/analytics";
+
+    // Configuration Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDUNQi44ZB1V5P_H3Y7sP_W9y7H0UMPtDg",
+      authDomain: "album-afec9.firebaseapp.com",
+      projectId: "album-afec9",
+      storageBucket: "album-afec9.firebasestorage.app",
+      messagingSenderId: "583008062800",
+      appId: "1:583008062800:web:e68b3175e796ff2742f055",
+      measurementId: "G-13696TSXV1"
+    };
+
+    // Initialisation Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+
+    // Référencer la collection "albums"
+    const albumsCollection = collection(db, "albums");
+
+    // 🔄 Mise à jour en temps réel de l'affichage des albums
+    onSnapshot(albumsCollection, (snapshot) => {
+      const albums = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderAlbums(albums); // Fonction à définir pour affichage
+    });
+
+    // 📤 Ajouter un nouvel album avec images en base64
+    async function ajouterAlbum(nomAlbum, listeImagesBase64, nomUtilisateur) {
+      try {
+        await addDoc(albumsCollection, {
+          nom: nomAlbum,
+          images: listeImagesBase64,
+          createdAt: serverTimestamp(),
+          createdBy: nomUtilisateur
+        });
+      } catch (e) {
+        console.error("Erreur ajout album:", e);
+      }
+    }
+
+    // Exemple d'appel :
+    // ajouterAlbum("Voyage Plage", ["data:image/png;base64,...", "data:image/jpeg;base64,..."], "PC");
+
+    // Fonction d'affichage (à compléter selon ton HTML/CSS)
+    function renderAlbums(albums) {
+      const container = document.getElementById("albumList");
+      container.innerHTML = "";
+      albums.forEach(album => {
+        const div = document.createElement("div");
+        div.innerHTML = `<h2>${album.nom}</h2>`;
+        album.images.forEach(img => {
+          const image = document.createElement("img");
+          image.src = img;
+          image.style.width = "100px";
+          div.appendChild(image);
+        });
+        container.appendChild(div);
+      });
+    }
+  </script>
   <footer style="text-align:center; font-size:14px; color:#666; margin-top:auto;">
     © 2025 Kanto Studio – Tous droits réservés.
   </footer>
