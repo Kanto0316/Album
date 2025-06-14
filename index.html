@@ -460,7 +460,7 @@ let currentTitleEl = null;
     // index.html (extrait - partie script Firebase + Firestore)
 
     import { initializeApp } from "firebase/app";
-    import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+    import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, getDocs } from "firebase/firestore";
     import { getAnalytics } from "firebase/analytics";
 
     // Configuration Firebase
@@ -481,6 +481,14 @@ let currentTitleEl = null;
 
     // Référencer la collection "albums"
     const albumsCollection = collection(db, "albums");
+
+    // 👉 Charger les albums existants dès l'initialisation
+    getDocs(albumsCollection)
+      .then((snapshot) => {
+        const albums = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        renderAlbums(albums);
+      })
+      .catch((e) => console.error("Erreur chargement albums:", e));
 
     // 🔄 Écoute en temps réel de la collection "albums"
     onSnapshot(albumsCollection, (snapshot) => {
