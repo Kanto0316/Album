@@ -56,6 +56,8 @@
     .album-footer { display: flex; justify-content: space-between; font-size: 0.875rem; color: #888; }
     /* Floating button */
     #fab { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: #7e3af2; color: white; font-size: 2.5rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
+    #searchFab { position: fixed; bottom: 90px; right: 24px; width: 50px; height: 50px; border-radius: 50%; background: #7e3af2; color: white; font-size: 1.8rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
+    #searchFab:hover { background: #6938ef; }
     #fab:hover { background: #6938ef; }
     /* Modals */
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 10; }
@@ -92,9 +94,6 @@
 </head>
 <body>
   <div class="container">
-    <div id="searchContainer">
-      <input type="text" id="searchInput" aria-label="Recherche">
-    </div>
 
   <!-- Liste des albums -->
   <ul id="albumList"></ul>
@@ -138,6 +137,17 @@
       <button id="confirmCancel" class="btn-cancel">Annuler</button>
     </div>
   </div>
+  <div id="searchOverlay" class="overlay">
+    <div class="modal">
+      <div id="searchContainer">
+        <input type="text" id="searchInput" aria-label="Recherche" placeholder="Recherche">
+      </div>
+      <div>
+        <button id="searchClose" class="btn-cancel">Fermer</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Album view -->
   <div id="albumView">
@@ -150,6 +160,7 @@
     <div id="zoomControl"><input type="range" id="zoomRange" min="50" max="200" value="100"></div>
     <button id="deleteBtn">Supprimer</button>
   </div>
+  <button id="searchFab">🔍</button>
 
   <button id="fab">+</button>
   <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
@@ -171,8 +182,10 @@
     const renameCancel = document.getElementById('renameCancel');
     const albumList = document.getElementById('albumList');
     const fileInput = document.getElementById('fileInput');
-    const searchContainer = document.getElementById('searchContainer');
-    const containerEl = document.querySelector('.container');
+      const searchFab = document.getElementById("searchFab");
+      const searchOverlay = document.getElementById("searchOverlay");
+      const searchClose = document.getElementById("searchClose");
+      const searchInput = document.getElementById("searchInput");
     const albumView = document.getElementById('albumView');
     const albumViewTitle = document.getElementById('albumViewTitle');
     const backBtn = document.getElementById('backBtn');
@@ -183,18 +196,6 @@
     const zoomRange = document.getElementById('zoomRange');
     const imageIndex = document.getElementById('imageIndex');
 
-    function repositionSearch() {
-      const firstAlbum = albumList.querySelector('li');
-      if (firstAlbum) {
-        firstAlbum.insertBefore(searchContainer, firstAlbum.firstChild);
-      } else {
-        containerEl.insertBefore(searchContainer, albumList);
-      }
-    }
-
-    repositionSearch();
-
-    let currentContainer = null;
     let albumImages = [];
     let currentIndex = 0;
     let currentLi = null;
@@ -207,6 +208,13 @@
         const name = li.querySelector('.album-title').textContent.toLowerCase();
         li.style.display = name.includes(term) ? 'flex' : 'none';
       });
+    });
+    searchFab.addEventListener("click", () => {
+      searchOverlay.style.display = "flex";
+      searchInput.focus();
+    });
+    searchClose.addEventListener("click", () => {
+      searchOverlay.style.display = "none";
     });
 
     // Créer album
@@ -239,7 +247,6 @@
         </div>
       `;
       albumList.appendChild(li);
-      repositionSearch();
       currentContainer = li.querySelector('.image-container');
       fileInput.click();
     });
@@ -287,7 +294,6 @@
     deleteAlbumOk.addEventListener('click', () => {
       if (currentLi) currentLi.remove();
       deleteAlbumOverlay.style.display = 'none';
-      repositionSearch();
     });
     deleteAlbumCancel.addEventListener('click', () => { deleteAlbumOverlay.style.display = 'none'; });
 
