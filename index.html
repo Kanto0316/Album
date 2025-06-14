@@ -533,5 +533,36 @@ let currentTitleEl = null;
   <footer style="text-align:center; font-size:14px; color:#666; margin-top:auto;">
     © 2025 Kanto Studio – Tous droits réservés.
   </footer>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const statusEl = document.createElement('div');
+    statusEl.id = 'firestoreStatus';
+    statusEl.textContent = '📡 Connexion en attente de données Firestore...';
+    document.body.appendChild(statusEl);
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDUNQi44ZB1V5P_H3Y7sP_W9y7H0UMPtDg",
+      authDomain: "album-afec9.firebaseapp.com",
+      projectId: "album-afec9",
+      storageBucket: "album-afec9.firebasestorage.app",
+      messagingSenderId: "583008062800",
+      appId: "1:583008062800:web:e68b3175e796ff2742f055",
+      measurementId: "G-13696TSXV1"
+    };
+
+    const app = initializeApp(firebaseConfig, 'syncCheck');
+    const db = getFirestore(app);
+    const albumsRef = collection(db, 'albums');
+
+    onSnapshot(albumsRef, snapshot => {
+      statusEl.textContent = `✅ Firestore synchronisé. ${snapshot.docs.length} album(s) détecté(s).`;
+      console.log('Albums reçus:', snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, err => {
+      console.error('Erreur Firestore:', err);
+      statusEl.textContent = '❌ Erreur de connexion à Firestore';
+    });
+  </script>
 </body>
 </html>
