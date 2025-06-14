@@ -109,6 +109,17 @@
     .btn-cancel:hover { background: #b3b3b3; }
     .btn-danger { background: #e53e3e; color: white; }
     .btn-danger:hover { background: #c53030; }
+    #addTestAlbumBtn {
+      background: #7e3af2;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+    #addTestAlbumBtn:hover { background: #6938ef; }
     /* Album view */
     #albumView { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fafafa; display: none; flex-direction: column; align-items: center; z-index: 5; }
     #albumView header { display: flex; align-items: center; justify-content: center; position: relative; width: 100%; padding: 1rem; background: #7e3af2; color: white; }
@@ -132,6 +143,7 @@
 </head>
   <body>
     <div class="container">
+      <button id="addTestAlbumBtn">Ajouter un album test</button>
       <div id="welcomeBox"></div>
 
   <!-- Liste des albums -->
@@ -529,6 +541,22 @@ let currentTitleEl = null;
         container.appendChild(div);
       });
     }
+
+    // Bouton temporaire pour ajouter un album de test
+    const testBtn = document.getElementById('addTestAlbumBtn');
+    testBtn.addEventListener('click', async () => {
+      const nomUtilisateur = localStorage.getItem('userName') || 'Anonyme';
+      try {
+        await addDoc(albumsCollection, {
+          nom: 'Album Test',
+          images: ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...'],
+          createdAt: new Date(),
+          createdBy: nomUtilisateur
+        });
+      } catch (e) {
+        console.error('Erreur ajout album test:', e);
+      }
+    });
   </script>
   <footer style="text-align:center; font-size:14px; color:#666; margin-top:auto;">
     © 2025 Kanto Studio – Tous droits réservés.
