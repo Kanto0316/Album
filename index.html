@@ -68,8 +68,8 @@
 <body>
   <div class="container">
     <div id="searchContainer">
-    <input type="text" id="searchInput" placeholder="Recherche...">
-  </div>
+      <input type="text" id="searchInput" placeholder="Recherche...">
+    </div>
 
   <!-- Liste des albums -->
   <ul id="albumList"></ul>
@@ -146,6 +146,8 @@
     const renameCancel = document.getElementById('renameCancel');
     const albumList = document.getElementById('albumList');
     const fileInput = document.getElementById('fileInput');
+    const searchContainer = document.getElementById('searchContainer');
+    const containerEl = document.querySelector('.container');
     const albumView = document.getElementById('albumView');
     const albumViewTitle = document.getElementById('albumViewTitle');
     const backBtn = document.getElementById('backBtn');
@@ -155,6 +157,17 @@
     const confirmCancel = document.getElementById('confirmCancel');
     const zoomRange = document.getElementById('zoomRange');
     const imageIndex = document.getElementById('imageIndex');
+
+    function repositionSearch() {
+      const firstAlbum = albumList.querySelector('li');
+      if (firstAlbum) {
+        firstAlbum.insertBefore(searchContainer, firstAlbum.firstChild);
+      } else {
+        containerEl.insertBefore(searchContainer, albumList);
+      }
+    }
+
+    repositionSearch();
 
     let currentContainer = null;
     let albumImages = [];
@@ -201,6 +214,7 @@
         </div>
       `;
       albumList.appendChild(li);
+      repositionSearch();
       currentContainer = li.querySelector('.image-container');
       fileInput.click();
     });
@@ -248,6 +262,7 @@
     deleteAlbumOk.addEventListener('click', () => {
       if (currentLi) currentLi.remove();
       deleteAlbumOverlay.style.display = 'none';
+      repositionSearch();
     });
     deleteAlbumCancel.addEventListener('click', () => { deleteAlbumOverlay.style.display = 'none'; });
 
