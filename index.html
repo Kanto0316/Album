@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>App Album Image</title>
   <style>
-    .container {
+.container {
       width: 100%;
       max-width: 600px;
       margin: 0 auto;
@@ -13,6 +13,19 @@
       flex-direction: column;
       align-items: center;
       flex: 1;
+    }
+
+    #welcomeBox {
+      display: none;
+      padding: 1rem 2rem;
+      font-size: 1.5rem;
+      background: #7e3af2;
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      margin-top: auto;
+      margin-bottom: auto;
+      text-align: center;
     }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -120,6 +133,7 @@
   <body>
     <p id="greeting" style="align-self:flex-start;color:#444;font-size:0.9rem;margin-bottom:1rem;"></p>
     <div class="container">
+      <div id="welcomeBox"></div>
 
   <!-- Liste des albums -->
   <ul id="albumList"></ul>
@@ -222,7 +236,8 @@
   const nameInput = document.getElementById('nameInput');
   const nameOk = document.getElementById('nameOk');
   const greeting = document.getElementById('greeting');
-      const searchFab = document.getElementById("searchFab");
+  const welcomeBox = document.getElementById('welcomeBox');
+  const searchFab = document.getElementById("searchFab");
       const searchOverlay = document.getElementById("searchOverlay");
       const searchClose = document.getElementById("searchClose");
       const searchInput = document.getElementById("searchInput");
@@ -239,7 +254,17 @@
   let albumImages = [];
   let currentIndex = 0;
   let currentLi = null;
-  let currentTitleEl = null;
+let currentTitleEl = null;
+
+  function updateWelcomeBox() {
+    const user = localStorage.getItem('userName');
+    if (albumList.children.length === 0 && user) {
+      welcomeBox.textContent = user;
+      welcomeBox.style.display = 'flex';
+    } else {
+      welcomeBox.style.display = 'none';
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', () => {
     const stored = localStorage.getItem('userName');
@@ -249,6 +274,7 @@
     } else {
       greeting.textContent = `Bonjour, ${stored}`;
     }
+    updateWelcomeBox();
   });
 
   nameOk.addEventListener('click', () => {
@@ -257,6 +283,7 @@
       localStorage.setItem('userName', n);
       greeting.textContent = `Bonjour, ${n}`;
       nameOverlay.style.display = 'none';
+      updateWelcomeBox();
     }
   });
 
@@ -308,6 +335,7 @@
       albumList.appendChild(li);
       currentContainer = li.querySelector('.image-container');
       fileInput.click();
+      updateWelcomeBox();
     });
 
     // Liste interactions
@@ -350,10 +378,11 @@
     renameCancel.addEventListener('click', () => { renameOverlay.style.display = 'none'; });
 
     // Supprimer album
-    deleteAlbumOk.addEventListener('click', () => {
-      if (currentLi) currentLi.remove();
-      deleteAlbumOverlay.style.display = 'none';
-    });
+  deleteAlbumOk.addEventListener('click', () => {
+    if (currentLi) currentLi.remove();
+    deleteAlbumOverlay.style.display = 'none';
+    updateWelcomeBox();
+  });
     deleteAlbumCancel.addEventListener('click', () => { deleteAlbumOverlay.style.display = 'none'; });
 
     // Ajout images
