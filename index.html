@@ -54,11 +54,26 @@
     .image-container img { max-width: 120px; border-radius: 4px; cursor: pointer; transition: transform 0.2s; }
     .image-container img:hover { transform: scale(1.05); }
     .album-footer { display: flex; justify-content: space-between; font-size: 0.875rem; color: #888; }
-    /* Floating button */
-    #fab { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: #7e3af2; color: white; font-size: 2.5rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
-    #searchFab { position: fixed; bottom: 90px; right: 24px; width: 50px; height: 50px; border-radius: 50%; background: #7e3af2; color: white; font-size: 1.8rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; }
-    #searchFab:hover { background: #6938ef; }
-    #fab:hover { background: #6938ef; }
+    /* Floating buttons */
+    .fab {
+      position: fixed;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #7e3af2;
+      color: white;
+      font-size: 2.5rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fab:hover { background: #6938ef; }
+    #fab { bottom: 24px; }
+    #searchFab { bottom: 90px; }
     /* Modals */
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 10; }
     .modal { background: white; padding: 1.5rem; border-radius: 8px; width: 90%; max-width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center; }
@@ -160,9 +175,9 @@
     <div id="zoomControl"><input type="range" id="zoomRange" min="50" max="200" value="100"></div>
     <button id="deleteBtn">Supprimer</button>
   </div>
-  <button id="searchFab">🔍</button>
+  <button id="searchFab" class="fab">🔍</button>
 
-  <button id="fab">+</button>
+  <button id="fab" class="fab">+</button>
   <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
 
 
