@@ -482,10 +482,10 @@ let currentTitleEl = null;
     // Référencer la collection "albums"
     const albumsCollection = collection(db, "albums");
 
-    // 🔄 Mise à jour en temps réel de l'affichage des albums
+    // 🔄 Écoute en temps réel de la collection "albums"
     onSnapshot(albumsCollection, (snapshot) => {
-      const albums = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderAlbums(albums); // Fonction à définir pour affichage
+      const albums = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      renderAlbums(albums);
     });
 
     // 📤 Ajouter un nouvel album avec images en base64
