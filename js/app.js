@@ -365,7 +365,7 @@
                 </div>
               </td>
               <td><input class="cell-input" data-field="qteHorsBtrs" type="number" min="0" step="1" value="${detail.qteHorsBtrs}" placeholder="N/A" /></td>
-              <td><span class="readonly-value">${detail.qtePosee}</span></td>
+              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" max="${detail.qteSortie}" step="1" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input" data-field="qteRetour" type="number" min="0" max="${detail.qteSortie}" step="1" value="${detail.qteRetour}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
@@ -397,10 +397,21 @@
             }
           }
 
+          if (fieldName === "qtePosee") {
+            const qteSortie = Number(currentDetail.qteSortie) || 0;
+            const qtePosee = Number(nextValue) || 0;
+            if (qtePosee > qteSortie) {
+              nextValue = String(qteSortie);
+              UiService.showToast("La Qté posée ne peut pas dépasser la Qté Sortie.");
+            }
+          }
+
           if (fieldName === "qteSortie") {
             const qteSortie = Number(nextValue) || 0;
             if ((Number(currentDetail.qteRetour) || 0) > qteSortie) {
               UiService.showToast("La Qté Retour a été ajustée à la Qté Sortie.");
+            } else if ((Number(currentDetail.qtePosee) || 0) > qteSortie) {
+              UiService.showToast("La Qté posée a été ajustée à la Qté Sortie.");
             }
           }
 

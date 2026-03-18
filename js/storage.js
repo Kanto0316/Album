@@ -168,6 +168,9 @@
       if (sanitizeNumber(detail.qteRetour) > detail.qteSortie) {
         detail.qteRetour = detail.qteSortie;
       }
+      if (sanitizeNumber(detail.qtePosee) > detail.qteSortie) {
+        detail.qtePosee = detail.qteSortie;
+      }
     }
     if ("unite" in changes) {
       detail.unite = sanitizeText(changes.unite, false) || "m";
@@ -177,12 +180,20 @@
     }
     if ("qteRetour" in changes) {
       detail.qteRetour = Math.min(sanitizeNumber(changes.qteRetour), sanitizeNumber(detail.qteSortie));
+      detail.qtePosee = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qteRetour));
+    }
+    if ("qtePosee" in changes) {
+      detail.qtePosee = Math.min(sanitizeNumber(changes.qtePosee), sanitizeNumber(detail.qteSortie));
+      detail.qteRetour = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qtePosee));
     }
     if ("observation" in changes) {
       detail.observation = sanitizeText(changes.observation, false);
     }
 
-    detail.qtePosee = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qteRetour));
+    if (!("qteRetour" in changes) && !("qtePosee" in changes)) {
+      detail.qtePosee = Math.min(sanitizeNumber(detail.qtePosee), sanitizeNumber(detail.qteSortie));
+      detail.qteRetour = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qtePosee));
+    }
     detail.dateModification = now();
     item.dateModification = detail.dateModification;
     site.dateModification = detail.dateModification;
