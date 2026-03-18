@@ -333,6 +333,10 @@ button {
   max-width: 28rem;
 }
 
+.search-panel--inline {
+  padding-inline: 0;
+}
+
 .table-wrapper {
   overflow-x: auto;
 }

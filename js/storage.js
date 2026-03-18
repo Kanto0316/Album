@@ -20,6 +20,10 @@
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   }
 
+  function sanitizeDigits(value) {
+    return String(value || "").replace(/\D/g, "");
+  }
+
   function now() {
     return new Date().toISOString();
   }
@@ -79,7 +83,10 @@
       return null;
     }
     const timestamp = now();
-    const cleanNumber = sanitizeText(numberValue, true).replace(/^OUT-/, "");
+    const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ""));
+    if (!cleanNumber) {
+      return null;
+    }
     const item = {
       id: uid(),
       numero: `OUT-${cleanNumber}`,
@@ -129,7 +136,7 @@
       unite: sanitizeText(payload.unite || "m", false) || "m",
       qteHorsBtrs: "",
       qteRetour: 0,
-      qtePosee: sanitizeNumber(payload.qteSortie),
+      qtePosee: 0,
       observation: "",
       dateCreation: timestamp,
       dateModification: timestamp,

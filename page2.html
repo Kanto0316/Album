@@ -37,7 +37,15 @@
           </div>
           <label class="input-group">
             <span>Numéro</span>
-            <input id="itemNumberInput" name="itemNumber" type="text" maxlength="40" placeholder="001" />
+            <input
+              id="itemNumberInput"
+              name="itemNumber"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="40"
+              placeholder="001"
+            />
           </label>
           <p id="itemFormError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions">

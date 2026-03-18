@@ -185,6 +185,13 @@
       itemNumberInput.focus();
     });
 
+    itemNumberInput.addEventListener("input", () => {
+      const digitsOnly = itemNumberInput.value.replace(/\D/g, "");
+      if (itemNumberInput.value !== digitsOnly) {
+        itemNumberInput.value = digitsOnly;
+      }
+    });
+
     itemForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const value = itemNumberInput.value.trim();
@@ -192,7 +199,15 @@
         itemFormError.textContent = "Veuillez remplir ce champ";
         return;
       }
-      StorageService.createItem(siteId, value);
+      if (!/^\d+$/.test(value)) {
+        itemFormError.textContent = "Veuillez saisir des chiffres uniquement.";
+        return;
+      }
+      const createdItem = StorageService.createItem(siteId, value);
+      if (!createdItem) {
+        itemFormError.textContent = "Veuillez saisir des chiffres uniquement.";
+        return;
+      }
       itemDialog.close();
       UiService.showToast("Numéro OUT ajouté.");
       renderItems();
