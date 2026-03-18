@@ -18,17 +18,9 @@
 
       <main class="page-content page-content--wide">
         <section class="surface-card form-card">
-          <div class="section-heading">
-            <div>
-              <h2>Ajouter une ligne</h2>
-              <p>Enregistrement local automatique après création et modification.</p>
-            </div>
-          </div>
-
           <form id="detailForm" class="responsive-form" novalidate>
             <label class="input-group">
-              <span>Code</span>
-              <input id="codeInput" name="code" type="text" maxlength="40" required />
+              <input id="codeInput" name="code" type="text" maxlength="40" required aria-label="Code" />
             </label>
             <label class="input-group input-group--wide">
               <span>Désignation</span>
@@ -52,13 +44,6 @@
           </form>
         </section>
 
-        <section class="surface-card search-panel">
-          <label class="input-group">
-            <span>Recherche</span>
-            <input id="detailSearchInput" type="text" placeholder="Rechercher..." autocomplete="off" />
-          </label>
-        </section>
-
         <section class="surface-card table-card">
           <div class="section-heading">
             <div>
@@ -66,6 +51,12 @@
               <p id="detailCount">0 ligne</p>
             </div>
             <button type="button" id="exportDetailsButton" class="btn btn-success">Exporter</button>
+          </div>
+          <div class="search-panel search-panel--inline">
+            <label class="input-group">
+              <span>Recherche</span>
+              <input id="detailSearchInput" type="text" placeholder="Rechercher..." autocomplete="off" />
+            </label>
           </div>
           <div class="table-wrapper">
             <table class="data-table">
