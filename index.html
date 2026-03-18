@@ -1,1 +1,59 @@
- 
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Suivi Matériel</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body data-page="home">
+    <div class="app-shell">
+      <header class="app-header">
+        <h1>Suivi Matériel</h1>
+      </header>
+
+      <main class="page-content">
+        <section class="search-panel surface-card">
+          <label class="input-group">
+            <span class="sr-only">Recherche</span>
+            <input id="searchInput" type="search" placeholder="Recherche..." autocomplete="off" />
+          </label>
+        </section>
+
+        <section class="section-heading">
+          <div>
+            <h2>Sites enregistrés</h2>
+            <p id="siteCount">0 site</p>
+          </div>
+        </section>
+
+        <section id="siteList" class="list-grid" aria-live="polite"></section>
+      </main>
+
+      <button id="openCreateSite" class="fab" type="button" aria-label="Créer un site">+</button>
+
+      <dialog id="siteDialog" class="modal-card">
+        <form method="dialog" class="modal-content" id="siteForm">
+          <div class="modal-header">
+            <h2>Entrer nom du site</h2>
+            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
+          </div>
+          <label class="input-group">
+            <span>Nom du site</span>
+            <input id="siteNameInput" name="siteName" type="text" maxlength="80" />
+          </label>
+          <p id="siteFormError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-success">Créer</button>
+          </div>
+        </form>
+      </dialog>
+
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
