@@ -222,6 +222,104 @@
     const detailFormError = requireElement("detailFormError");
     const detailCount = requireElement("detailCount");
     const detailTableBody = requireElement("detailTableBody");
+    const detailSearchInput = requireElement("detailSearchInput");
+    const exportButton = requireElement("exportDetailsButton");
+
+    function getSearchQuery() {
+      return detailSearchInput ? detailSearchInput.value.trim().toLowerCase() : "";
+    }
+
+    function getFilteredDetails(details) {
+      const query = getSearchQuery();
+      if (!query) {
+        return details;
+      }
+      return details.filter((detail) => String(detail.designation || "").toLowerCase().includes(query));
+    }
+
+    function updateCount(filteredCount, totalCount) {
+      if (filteredCount === totalCount) {
+        setCountText(detailCount, totalCount, "ligne", "lignes");
+        return;
+      }
+      detailCount.textContent = `${filteredCount} ligne${filteredCount > 1 ? "s" : ""} affichée${filteredCount > 1 ? "s" : ""} / ${totalCount}`;
+    }
+
+    function buildExcelContent(title, details) {
+      const rows = details
+        .map(
+          (detail) => `
+            <tr>
+              <td>${escapeHtml(detail.champ)}</td>
+              <td>${escapeHtml(detail.code)}</td>
+              <td>${escapeHtml(detail.designation)}</td>
+              <td>${escapeHtml(detail.qteSortie)}</td>
+              <td>${escapeHtml(detail.unite)}</td>
+              <td>${escapeHtml(detail.qteHorsBtrs)}</td>
+              <td>${escapeHtml(detail.qtePosee)}</td>
+              <td>${escapeHtml(detail.qteRetour)}</td>
+              <td>${escapeHtml(UiService.formatDate(detail.dateCreation))}</td>
+              <td>${escapeHtml(UiService.formatDate(detail.dateModification))}</td>
+              <td>${escapeHtml(detail.observation)}</td>
+            </tr>
+          `,
+        )
+        .join("");
+
+      return `<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>${escapeHtml(title)}</title>
+  </head>
+  <body>
+    <table>
+      <thead>
+        <tr>
+          <th>Champ</th>
+          <th>Code</th>
+          <th>Désignation</th>
+          <th>Qté Sortie</th>
+          <th>Unité</th>
+          <th>Qté hors BTRS</th>
+          <th>Qté posée</th>
+          <th>Qté Retour</th>
+          <th>Date création</th>
+          <th>Date modification</th>
+          <th>Observation</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body>
+</html>`;
+    }
+
+    function exportDetails() {
+      const currentItem = StorageService.getItem(siteId, itemId);
+      if (!currentItem) {
+        UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
+        return;
+      }
+
+      const filteredDetails = getFilteredDetails(currentItem.details);
+      if (!filteredDetails.length) {
+        UiService.showToast("Aucune ligne à exporter.");
+        return;
+      }
+
+      const fileName = `${site.nom} · ${currentItem.numero}.xls`;
+      const workbook = buildExcelContent(`${site.nom} · ${currentItem.numero}`, filteredDetails);
+      const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+      UiService.showToast("Export Excel lancé.");
+    }
 
     function renderTable() {
       const nextItem = StorageService.getItem(siteId, itemId);
@@ -230,14 +328,15 @@
         return;
       }
 
-      setCountText(detailCount, nextItem.details.length, "ligne", "lignes");
+      const filteredDetails = getFilteredDetails(nextItem.details);
+      updateCount(filteredDetails.length, nextItem.details.length);
 
-      if (!nextItem.details.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">Aucune ligne enregistrée.</div></td></tr>`;
+      if (!filteredDetails.length) {
+        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${nextItem.details.length ? "Aucune désignation ne correspond à votre recherche." : "Aucune ligne enregistrée."}</div></td></tr>`;
         return;
       }
 
-      detailTableBody.innerHTML = nextItem.details
+      detailTableBody.innerHTML = filteredDetails
         .map(
           (detail) => `
             <tr data-detail-id="${detail.id}">
@@ -252,7 +351,7 @@
               </td>
               <td><input class="cell-input" data-field="qteHorsBtrs" type="number" min="0" step="1" value="${detail.qteHorsBtrs}" placeholder="N/A" /></td>
               <td><span class="readonly-value">${detail.qtePosee}</span></td>
-              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" max="${detail.qteSortie}" step="1" value="${detail.qteRetour}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td><textarea class="cell-textarea" data-field="observation">${escapeHtml(detail.observation)}</textarea></td>
@@ -266,8 +365,32 @@
         field.addEventListener("change", (event) => {
           const row = event.target.closest("tr");
           const fieldName = event.target.dataset.field;
+          const currentDetail = nextItem.details.find((detail) => detail.id === row.dataset.detailId);
+
+          if (!currentDetail) {
+            return;
+          }
+
+          let nextValue = event.target.value;
+
+          if (fieldName === "qteRetour") {
+            const qteSortie = Number(currentDetail.qteSortie) || 0;
+            const qteRetour = Number(nextValue) || 0;
+            if (qteRetour > qteSortie) {
+              nextValue = String(qteSortie);
+              UiService.showToast("La Qté Retour ne peut pas dépasser la Qté Sortie.");
+            }
+          }
+
+          if (fieldName === "qteSortie") {
+            const qteSortie = Number(nextValue) || 0;
+            if ((Number(currentDetail.qteRetour) || 0) > qteSortie) {
+              UiService.showToast("La Qté Retour a été ajustée à la Qté Sortie.");
+            }
+          }
+
           StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
-            [fieldName]: event.target.value,
+            [fieldName]: nextValue,
           });
           renderTable();
         });
@@ -280,6 +403,14 @@
           renderTable();
         });
       });
+    }
+
+    if (detailSearchInput) {
+      detailSearchInput.addEventListener("input", renderTable);
+    }
+
+    if (exportButton) {
+      exportButton.addEventListener("click", exportDetails);
     }
 
     detailForm.addEventListener("submit", (event) => {

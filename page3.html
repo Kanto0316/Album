@@ -52,12 +52,20 @@
           </form>
         </section>
 
+        <section class="surface-card search-panel">
+          <label class="input-group">
+            <span>Recherche</span>
+            <input id="detailSearchInput" type="text" placeholder="Rechercher..." autocomplete="off" />
+          </label>
+        </section>
+
         <section class="surface-card table-card">
           <div class="section-heading">
             <div>
               <h2>Tableau des données</h2>
               <p id="detailCount">0 ligne</p>
             </div>
+            <button type="button" id="exportDetailsButton" class="btn btn-success">Exporter</button>
           </div>
           <div class="table-wrapper">
             <table class="data-table">

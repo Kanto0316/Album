@@ -158,6 +158,9 @@
     }
     if ("qteSortie" in changes) {
       detail.qteSortie = sanitizeNumber(changes.qteSortie);
+      if (sanitizeNumber(detail.qteRetour) > detail.qteSortie) {
+        detail.qteRetour = detail.qteSortie;
+      }
     }
     if ("unite" in changes) {
       detail.unite = sanitizeText(changes.unite, false) || "m";
@@ -166,7 +169,7 @@
       detail.qteHorsBtrs = changes.qteHorsBtrs === "" ? "" : sanitizeNumber(changes.qteHorsBtrs);
     }
     if ("qteRetour" in changes) {
-      detail.qteRetour = sanitizeNumber(changes.qteRetour);
+      detail.qteRetour = Math.min(sanitizeNumber(changes.qteRetour), sanitizeNumber(detail.qteSortie));
     }
     if ("observation" in changes) {
       detail.observation = sanitizeText(changes.observation, false);
