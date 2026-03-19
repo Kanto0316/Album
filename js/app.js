@@ -48,7 +48,6 @@
               <td>${escapeHtml(detail.designation)}</td>
               <td>${escapeHtml(detail.qteSortie)}</td>
               <td>${escapeHtml(detail.unite)}</td>
-              <td>${escapeHtml(detail.qteHorsBtrs)}</td>
               <td>${escapeHtml(detail.qtePosee)}</td>
               <td>${escapeHtml(detail.qteRetour)}</td>
               <td>${escapeHtml(detail.observation)}</td>
@@ -72,7 +71,6 @@
           <th>Désignation</th>
           <th>Qté Sortie</th>
           <th>Unité</th>
-          <th>Qté hors BTRS</th>
           <th>Qté posée</th>
           <th>Qté Retour</th>
           <th>Observation</th>
