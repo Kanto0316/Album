@@ -102,7 +102,7 @@
 
     const timestamp = now();
     const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ""));
-    if (!cleanNumber) {
+    if (cleanNumber.length < 4) {
       return null;
     }
 
