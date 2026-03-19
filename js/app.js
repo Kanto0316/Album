@@ -229,26 +229,8 @@
     const itemNumberInput = requireElement("itemNumberInput");
     const itemFormError = requireElement("itemFormError");
     const openExportItems = requireElement("openExportItems");
-    const exportItemsPanel = requireElement("exportItemsPanel");
-    const siteExportMenu = requireElement("siteExportMenu");
 
     siteTitle.textContent = site.nom;
-
-    function closeExportMenu() {
-      if (!exportItemsPanel || !openExportItems) {
-        return;
-      }
-      exportItemsPanel.hidden = true;
-      openExportItems.setAttribute("aria-expanded", "false");
-    }
-
-    function openExportMenu() {
-      if (!exportItemsPanel || !openExportItems) {
-        return;
-      }
-      exportItemsPanel.hidden = false;
-      openExportItems.setAttribute("aria-expanded", "true");
-    }
 
     function formatSiteExportUnit(unit) {
       const normalizedUnit = String(unit || "").trim().toLowerCase();
@@ -258,14 +240,7 @@
       return normalizedUnit || "m";
     }
 
-    function shouldExportSiteDetail(detail, mode) {
-      if (mode === "returns-only") {
-        return Number(detail.qteRetour) !== 0;
-      }
-      return true;
-    }
-
-    function buildSiteExportRows(mode) {
+    function buildSiteExportRows() {
       const currentSite = StorageService.getSite(siteId);
       if (!currentSite) {
         return [];
@@ -276,7 +251,7 @@
           return [];
         }
 
-        return item.details.filter((detail) => shouldExportSiteDetail(detail, mode)).map((detail) => ({
+        return item.details.map((detail) => ({
           out: item.numero,
           champ: detail.champ,
           code: detail.code,
@@ -290,20 +265,16 @@
       });
     }
 
-    function exportItems(mode) {
+    function exportItems() {
       const currentSite = StorageService.getSite(siteId);
       if (!currentSite) {
         UiService.navigate("index.html");
         return;
       }
 
-      const rows = buildSiteExportRows(mode);
+      const rows = buildSiteExportRows();
       if (!rows.length) {
-        UiService.showToast(
-          mode === "returns-only"
-            ? "Aucune ligne avec Qté Retour différente de 0."
-            : "Aucun sous-élément avec des données à exporter.",
-        );
+        UiService.showToast("Aucun sous-élément avec des données à exporter.");
         return;
       }
 
@@ -377,27 +348,8 @@
       }
     });
 
-    if (openExportItems && exportItemsPanel) {
-      openExportItems.addEventListener("click", () => {
-        if (exportItemsPanel.hidden) {
-          openExportMenu();
-          return;
-        }
-        closeExportMenu();
-      });
-
-      exportItemsPanel.querySelectorAll("[data-export-mode]").forEach((button) => {
-        button.addEventListener("click", () => {
-          closeExportMenu();
-          exportItems(button.dataset.exportMode);
-        });
-      });
-
-      document.addEventListener("click", (event) => {
-        if (!siteExportMenu.contains(event.target)) {
-          closeExportMenu();
-        }
-      });
+    if (openExportItems) {
+      openExportItems.addEventListener("click", exportItems);
     }
 
     itemForm.addEventListener("submit", (event) => {
