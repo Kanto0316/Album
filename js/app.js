@@ -26,6 +26,112 @@
     });
   }
 
+  function downloadExcelFile(fileName, title, workbook) {
+    const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+    UiService.showToast(`${title} lancé.`);
+  }
+
+  function buildDetailExcelContent(title, details) {
+    const rows = details
+      .map(
+        (detail) => `
+            <tr>
+              <td>${escapeHtml(detail.champ)}</td>
+              <td>${escapeHtml(detail.code)}</td>
+              <td>${escapeHtml(detail.designation)}</td>
+              <td>${escapeHtml(detail.qteSortie)}</td>
+              <td>${escapeHtml(detail.unite)}</td>
+              <td>${escapeHtml(detail.qteHorsBtrs)}</td>
+              <td>${escapeHtml(detail.qtePosee)}</td>
+              <td>${escapeHtml(detail.qteRetour)}</td>
+              <td>${escapeHtml(detail.observation)}</td>
+            </tr>
+          `,
+      )
+      .join("");
+
+    return `<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>${escapeHtml(title)}</title>
+  </head>
+  <body>
+    <table>
+      <thead>
+        <tr>
+          <th>Champ</th>
+          <th>Code</th>
+          <th>Désignation</th>
+          <th>Qté Sortie</th>
+          <th>Unité</th>
+          <th>Qté hors BTRS</th>
+          <th>Qté posée</th>
+          <th>Qté Retour</th>
+          <th>Observation</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </body>
+</html>`;
+  }
+
+  function buildSiteExcelContent(title, rows) {
+    const bodyRows = rows
+      .map(
+        (row) => `
+          <tr>
+            <td>${escapeHtml(row.out)}</td>
+            <td>${escapeHtml(row.champ)}</td>
+            <td>${escapeHtml(row.code)}</td>
+            <td>${escapeHtml(row.designation)}</td>
+            <td>${escapeHtml(row.qteSortie)}</td>
+            <td>${escapeHtml(row.unite)}</td>
+            <td>${escapeHtml(row.qteHorsBtrs)}</td>
+            <td>${escapeHtml(row.qtePosee)}</td>
+            <td>${escapeHtml(row.qteRetour)}</td>
+            <td>${escapeHtml(row.observation)}</td>
+          </tr>
+        `,
+      )
+      .join("");
+
+    return `<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>${escapeHtml(title)}</title>
+  </head>
+  <body>
+    <table>
+      <thead>
+        <tr>
+          <th>OUT</th>
+          <th>Champ</th>
+          <th>Code</th>
+          <th>Désignation</th>
+          <th>Qté Sortie</th>
+          <th>Unité</th>
+          <th>Qté hors BTRS</th>
+          <th>Qté posée</th>
+          <th>Qté Retour</th>
+          <th>Observation</th>
+        </tr>
+      </thead>
+      <tbody>${bodyRows}</tbody>
+    </table>
+  </body>
+</html>`;
+  }
+
   function initHomePage() {
     const searchInput = requireElement("searchInput");
     const siteList = requireElement("siteList");
@@ -124,8 +230,77 @@
     const itemForm = requireElement("itemForm");
     const itemNumberInput = requireElement("itemNumberInput");
     const itemFormError = requireElement("itemFormError");
+    const openExportItems = requireElement("openExportItems");
+    const exportItemsPanel = requireElement("exportItemsPanel");
+    const siteExportMenu = requireElement("siteExportMenu");
 
     siteTitle.textContent = site.nom;
+
+    function closeExportMenu() {
+      if (!exportItemsPanel || !openExportItems) {
+        return;
+      }
+      exportItemsPanel.hidden = true;
+      openExportItems.setAttribute("aria-expanded", "false");
+    }
+
+    function openExportMenu() {
+      if (!exportItemsPanel || !openExportItems) {
+        return;
+      }
+      exportItemsPanel.hidden = false;
+      openExportItems.setAttribute("aria-expanded", "true");
+    }
+
+    function buildSiteExportRows(mode) {
+      const currentSite = StorageService.getSite(siteId);
+      if (!currentSite) {
+        return [];
+      }
+
+      return currentSite.items.flatMap((item) => {
+        if (!item.details.length) {
+          return [];
+        }
+
+        return item.details
+          .filter((detail) => (mode === "returns-only" ? Number(detail.qteRetour) !== 0 : true))
+          .map((detail) => ({
+            out: item.numero,
+            champ: detail.champ,
+            code: detail.code,
+            designation: detail.designation,
+            qteSortie: detail.qteSortie,
+            unite: detail.unite,
+            qteHorsBtrs: detail.qteHorsBtrs,
+            qtePosee: detail.qtePosee,
+            qteRetour: detail.qteRetour,
+            observation: detail.observation,
+          }));
+      });
+    }
+
+    function exportItems(mode) {
+      const currentSite = StorageService.getSite(siteId);
+      if (!currentSite) {
+        UiService.navigate("index.html");
+        return;
+      }
+
+      const rows = buildSiteExportRows(mode);
+      if (!rows.length) {
+        UiService.showToast(
+          mode === "returns-only"
+            ? "Aucune ligne avec Qté Retour différente de 0."
+            : "Aucun sous-élément avec des données à exporter.",
+        );
+        return;
+      }
+
+      const title = `${currentSite.nom}.SUIVI MATERIEL`;
+      const workbook = buildSiteExcelContent(title, rows);
+      downloadExcelFile(`${title}.xls`, "Export Excel", workbook);
+    }
 
     function renderItems() {
       const nextSite = StorageService.getSite(siteId);
@@ -192,6 +367,29 @@
       }
     });
 
+    if (openExportItems && exportItemsPanel) {
+      openExportItems.addEventListener("click", () => {
+        if (exportItemsPanel.hidden) {
+          openExportMenu();
+          return;
+        }
+        closeExportMenu();
+      });
+
+      exportItemsPanel.querySelectorAll("[data-export-mode]").forEach((button) => {
+        button.addEventListener("click", () => {
+          closeExportMenu();
+          exportItems(button.dataset.exportMode);
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!siteExportMenu.contains(event.target)) {
+          closeExportMenu();
+        }
+      });
+    }
+
     itemForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const value = itemNumberInput.value.trim();
@@ -239,6 +437,7 @@
     const detailTableBody = requireElement("detailTableBody");
     const detailSearchInput = requireElement("detailSearchInput");
     const exportButton = requireElement("exportDetailsButton");
+    const designationInput = requireElement("designationInput");
 
     function getSearchQuery() {
       return detailSearchInput ? detailSearchInput.value.trim().toLowerCase() : "";
@@ -260,56 +459,6 @@
       detailCount.textContent = `${filteredCount} ligne${filteredCount > 1 ? "s" : ""} affichée${filteredCount > 1 ? "s" : ""} / ${totalCount}`;
     }
 
-    function buildExcelContent(title, details) {
-      const rows = details
-        .map(
-          (detail) => `
-            <tr>
-              <td>${escapeHtml(detail.champ)}</td>
-              <td>${escapeHtml(detail.code)}</td>
-              <td>${escapeHtml(detail.designation)}</td>
-              <td>${escapeHtml(detail.qteSortie)}</td>
-              <td>${escapeHtml(detail.unite)}</td>
-              <td>${escapeHtml(detail.qteHorsBtrs)}</td>
-              <td>${escapeHtml(detail.qtePosee)}</td>
-              <td>${escapeHtml(detail.qteRetour)}</td>
-              <td>${escapeHtml(UiService.formatDate(detail.dateCreation))}</td>
-              <td>${escapeHtml(UiService.formatDate(detail.dateModification))}</td>
-              <td>${escapeHtml(detail.observation)}</td>
-            </tr>
-          `,
-        )
-        .join("");
-
-      return `<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>${escapeHtml(title)}</title>
-  </head>
-  <body>
-    <table>
-      <thead>
-        <tr>
-          <th>Champ</th>
-          <th>Code</th>
-          <th>Désignation</th>
-          <th>Qté Sortie</th>
-          <th>Unité</th>
-          <th>Qté hors BTRS</th>
-          <th>Qté posée</th>
-          <th>Qté Retour</th>
-          <th>Date création</th>
-          <th>Date modification</th>
-          <th>Observation</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </body>
-</html>`;
-    }
-
     function exportDetails() {
       const currentItem = StorageService.getItem(siteId, itemId);
       if (!currentItem) {
@@ -324,16 +473,8 @@
       }
 
       const fileName = `${site.nom} · ${currentItem.numero}.xls`;
-      const workbook = buildExcelContent(`${site.nom} · ${currentItem.numero}`, filteredDetails);
-      const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
-      UiService.showToast("Export Excel lancé.");
+      const workbook = buildDetailExcelContent(`${site.nom} · ${currentItem.numero}`, filteredDetails);
+      downloadExcelFile(fileName, "Export Excel", workbook);
     }
 
     function renderTable() {
@@ -347,7 +488,7 @@
       updateCount(filteredDetails.length, nextItem.details.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${nextItem.details.length ? "Aucune désignation ne correspond à votre recherche." : "Aucune ligne enregistrée."}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="10"><div class="empty-state">${nextItem.details.length ? "Aucune désignation ne correspond à votre recherche." : "Aucune ligne enregistrée."}</div></td></tr>`;
         return;
       }
 
@@ -360,13 +501,12 @@
               <td><input class="cell-input" data-field="designation" value="${escapeHtml(detail.designation)}" /></td>
               <td>
                 <div>
-                  <input class="cell-input" data-field="qteSortie" type="number" min="0" step="1" value="${detail.qteSortie}" />
+                  <input class="cell-input" data-field="qteSortie" type="number" min="0" step="1" value="${escapeHtml(detail.qteSortie)}" />
                   <small class="meta-value">${escapeHtml(detail.unite)}</small>
                 </div>
               </td>
-              <td><input class="cell-input" data-field="qteHorsBtrs" type="number" min="0" step="1" value="${detail.qteHorsBtrs}" placeholder="N/A" /></td>
-              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" max="${detail.qteSortie}" step="1" value="${detail.qtePosee}" /></td>
-              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" max="${detail.qteSortie}" step="1" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" max="${escapeHtml(detail.qteSortie)}" step="1" value="${detail.qtePosee}" /></td>
+              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" max="${escapeHtml(detail.qteSortie)}" step="1" value="${detail.qteRetour}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td><textarea class="cell-textarea" data-field="observation">${escapeHtml(detail.observation)}</textarea></td>
@@ -431,6 +571,12 @@
       });
     }
 
+    if (designationInput) {
+      designationInput.addEventListener("input", () => {
+        designationInput.value = designationInput.value.toUpperCase();
+      });
+    }
+
     if (detailSearchInput) {
       detailSearchInput.addEventListener("input", renderTable);
     }
@@ -444,8 +590,8 @@
       const formData = new FormData(detailForm);
       const payload = Object.fromEntries(formData.entries());
 
-      if (!payload.code || !payload.designation || payload.qteSortie === "") {
-        detailFormError.textContent = "Veuillez remplir tous les champs obligatoires.";
+      if (!payload.designation) {
+        detailFormError.textContent = "Veuillez remplir le champ Désignation.";
         return;
       }
 
