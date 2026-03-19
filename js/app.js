@@ -10,7 +10,7 @@
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
+      .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
 
@@ -128,6 +128,135 @@
 </html>`;
   }
 
+  function ensureIdentityOverlay() {
+    if (document.getElementById("identityGate")) {
+      return document.getElementById("identityGate");
+    }
+
+    const overlay = document.createElement("section");
+    overlay.id = "identityGate";
+    overlay.className = "identity-gate";
+    overlay.innerHTML = `
+      <div class="identity-gate__backdrop"></div>
+      <div class="identity-card surface-card">
+        <h2>Saisissez votre nom</h2>
+        <p class="identity-card__text">Ce nom est unique dans Firebase. La première connexion doit se faire avec Internet actif.</p>
+        <form id="identityForm" class="identity-form" novalidate>
+          <label class="input-group">
+            <span>Nom d'utilisateur</span>
+            <input id="identityNameInput" type="text" maxlength="24" autocomplete="name" placeholder="Ex: Admin" />
+          </label>
+          <p id="identityFormError" class="form-error" aria-live="polite"></p>
+          <button type="submit" class="btn btn-success">Continuer</button>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function ensureSessionBanner() {
+    if (document.getElementById("sessionBanner")) {
+      return document.getElementById("sessionBanner");
+    }
+
+    const header = document.querySelector(".app-header");
+    if (!header) {
+      return null;
+    }
+
+    const banner = document.createElement("div");
+    banner.id = "sessionBanner";
+    banner.className = "session-banner";
+    banner.innerHTML = `
+      <div>
+        <strong id="sessionUserName">Hors ligne</strong>
+        <small id="sessionSyncStatus">Synchronisation inactive</small>
+      </div>
+      <button id="logoutButton" type="button" class="btn btn-ghost">Changer de nom</button>
+    `;
+    header.appendChild(banner);
+    const logoutButton = document.getElementById("logoutButton");
+    if (logoutButton) {
+      logoutButton.addEventListener("click", () => {
+        StorageService.clearSession();
+        UiService.navigate("index.html");
+      });
+    }
+    return banner;
+  }
+
+  function updateSessionBanner(status) {
+    const banner = ensureSessionBanner();
+    const userName = document.getElementById("sessionUserName");
+    const syncStatus = document.getElementById("sessionSyncStatus");
+    if (!banner || !userName || !syncStatus) {
+      return;
+    }
+
+    if (!status.currentUser) {
+      banner.hidden = true;
+      return;
+    }
+
+    banner.hidden = false;
+    userName.textContent = status.currentUser.displayName;
+    if (!status.isOnline) {
+      syncStatus.textContent = "Mode hors ligne local actif";
+      return;
+    }
+    if (status.hasPendingWrite || !status.isConnected) {
+      syncStatus.textContent = "Synchronisation en attente";
+      return;
+    }
+    syncStatus.textContent = "Synchronisé avec Firebase";
+  }
+
+  async function guardIdentity() {
+    await StorageService.init();
+    const currentUser = StorageService.getCurrentUser();
+    const currentPage = document.body.dataset.page;
+
+    StorageService.onSyncStatusChange(updateSessionBanner);
+
+    if (currentUser) {
+      return currentUser;
+    }
+
+    if (currentPage !== "home") {
+      UiService.navigate("index.html");
+      return null;
+    }
+
+    const overlay = ensureIdentityOverlay();
+    const form = document.getElementById("identityForm");
+    const input = document.getElementById("identityNameInput");
+    const error = document.getElementById("identityFormError");
+    overlay.hidden = false;
+
+    return new Promise((resolve) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        error.textContent = "";
+        const result = await StorageService.registerUser(input.value);
+        if (!result.ok) {
+          error.textContent = result.message;
+          return;
+        }
+        overlay.hidden = true;
+        UiService.showToast(`Bienvenue ${result.user.displayName}.`);
+        updateSessionBanner({
+          isOnline: navigator.onLine,
+          isConnected: navigator.onLine,
+          hasPendingWrite: false,
+          currentUser: result.user,
+        });
+        resolve(result.user);
+      }, { once: false });
+      input.focus();
+    });
+  }
+
   function initHomePage() {
     const searchInput = requireElement("searchInput");
     const siteList = requireElement("siteList");
@@ -139,7 +268,10 @@
 
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
-      const sites = StorageService.getSites().filter((site) => site.nom.includes(query));
+      const sites = StorageService.getSites().filter((site) => {
+        const haystack = [site.nom, site.ownerName].filter(Boolean).join(" ").toUpperCase();
+        return haystack.includes(query);
+      });
       setCountText(siteCount, sites.length, "site", "sites");
 
       if (!sites.length) {
@@ -157,6 +289,7 @@
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
+                  ${site.ownerName ? `<span>Utilisateur : ${escapeHtml(site.ownerName)}</span>` : ""}
                   <span>Créé le ${UiService.formatDate(site.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
                   <small>${site.items.length} sous-élément(s)</small>
@@ -228,7 +361,7 @@
     const itemFormError = requireElement("itemFormError");
     const openExportItems = requireElement("openExportItems");
 
-    siteTitle.textContent = site.nom;
+    siteTitle.textContent = site.ownerName ? `${site.nom} · ${site.ownerName}` : site.nom;
 
     function formatSiteExportUnit(unit) {
       const normalizedUnit = String(unit || "").trim().toLowerCase();
@@ -518,6 +651,7 @@
           StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
             [fieldName]: nextValue,
           });
+
           renderTable();
         });
       });
@@ -531,11 +665,24 @@
       });
     }
 
-    if (designationInput) {
-      designationInput.addEventListener("input", () => {
-        designationInput.value = designationInput.value.toUpperCase();
+    detailForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      detailFormError.textContent = "";
+      if (!designationInput.value.trim()) {
+        detailFormError.textContent = "Veuillez remplir la désignation.";
+        return;
+      }
+      StorageService.createDetail(siteId, itemId, {
+        code: requireElement("codeInput").value,
+        designation: designationInput.value,
+        qteSortie: requireElement("qteSortieInput").value,
+        unite: requireElement("uniteInput").value,
       });
-    }
+      detailForm.reset();
+      requireElement("uniteInput").value = "m";
+      UiService.showToast("Ligne ajoutée.");
+      renderTable();
+    });
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener("input", renderTable);
@@ -545,42 +692,28 @@
       exportButton.addEventListener("click", exportDetails);
     }
 
-    detailForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const formData = new FormData(detailForm);
-      const payload = Object.fromEntries(formData.entries());
-
-      if (!payload.designation) {
-        detailFormError.textContent = "Veuillez remplir le champ Désignation.";
-        return;
-      }
-
-      StorageService.createDetail(siteId, itemId, payload);
-      detailForm.reset();
-      requireElement("uniteInput").value = "m";
-      detailFormError.textContent = "";
-      UiService.showToast("Ligne enregistrée.");
-      renderTable();
-    });
-
     renderTable();
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
-    const page = document.body.dataset.page;
+    const user = await guardIdentity();
+    if (!user) {
+      return;
+    }
 
+    const page = document.body.dataset.page;
     if (page === "home") {
       initHomePage();
-      return;
     }
     if (page === "site-detail") {
       initSiteDetailPage();
-      return;
     }
     if (page === "item-detail") {
       initItemDetailPage();
     }
-  });
+  }
+
+  bootstrap();
 })();
