@@ -361,9 +361,13 @@
         itemFormError.textContent = "Veuillez saisir des chiffres uniquement.";
         return;
       }
+      if (value.length < 4) {
+        itemFormError.textContent = "Veuillez saisir au moins 4 chiffres.";
+        return;
+      }
       const createdItem = StorageService.createItem(siteId, value);
       if (!createdItem) {
-        itemFormError.textContent = "Veuillez saisir des chiffres uniquement.";
+        itemFormError.textContent = "Veuillez saisir au moins 4 chiffres.";
         return;
       }
       itemDialog.close();
