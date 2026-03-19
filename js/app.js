@@ -128,11 +128,6 @@
 </html>`;
   }
 
-  async function guardIdentity() {
-    await StorageService.init();
-    return null;
-  }
-
   function initHomePage() {
     const searchInput = requireElement("searchInput");
     const siteList = requireElement("siteList");
@@ -570,7 +565,7 @@
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
-    await guardIdentity();
+    await StorageService.init();
 
     const page = document.body.dataset.page;
     if (page === "home") {
