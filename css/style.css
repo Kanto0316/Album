@@ -120,6 +120,10 @@ button {
   z-index: 10;
 }
 
+.header-menu__panel[hidden] {
+  display: none;
+}
+
 .header-menu__option {
   border: 0;
   border-radius: var(--radius-sm);
