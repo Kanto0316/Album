@@ -3,6 +3,7 @@
   const SESSION_KEY = "suivi-materiel-session";
   const LAST_USER_KEY = "suivi-materiel-last-user";
   const PENDING_KEY = "suivi-materiel-pending-write";
+  const PENDING_OWNERS_KEY = "suivi-materiel-pending-owners";
   const CONNECTION_KEY = "suivi-materiel-connection";
   const MAX_NAME_LENGTH = 24;
   const INACTIVITY_MS = 1000 * 60 * 60 * 24 * 90;
@@ -28,6 +29,7 @@
     listeners: [],
     syncListeners: [],
     pendingWrite: false,
+    pendingOwners: [],
     initialized: false,
     isConnected: navigator.onLine,
     activePageOnlineRequired: false,
@@ -132,10 +134,46 @@
     };
   }
 
-  function setPendingWrite(value) {
-    state.pendingWrite = value;
-    localStorage.setItem(PENDING_KEY, value ? "1" : "0");
+  function persistPendingOwners() {
+    writeJson(PENDING_OWNERS_KEY, state.pendingOwners);
+    state.pendingWrite = state.pendingOwners.length > 0;
+    localStorage.setItem(PENDING_KEY, state.pendingWrite ? "1" : "0");
     emitSyncStatus();
+  }
+
+  function setPendingWrite(value) {
+    state.pendingWrite = Boolean(value);
+    if (!state.pendingWrite) {
+      state.pendingOwners = [];
+      localStorage.removeItem(PENDING_OWNERS_KEY);
+      localStorage.setItem(PENDING_KEY, "0");
+      emitSyncStatus();
+      return;
+    }
+    persistPendingOwners();
+  }
+
+  function enqueuePendingOwner(ownerKey) {
+    if (!ownerKey || state.pendingOwners.includes(ownerKey)) {
+      persistPendingOwners();
+      return;
+    }
+    state.pendingOwners.push(ownerKey);
+    persistPendingOwners();
+  }
+
+  function dequeuePendingOwner(ownerKey) {
+    state.pendingOwners = state.pendingOwners.filter((entry) => entry !== ownerKey);
+    persistPendingOwners();
+  }
+
+  async function flushPendingOwners() {
+    if (!state.currentUser || !state.firebaseReady || !navigator.onLine) {
+      return;
+    }
+    for (const ownerKey of [...state.pendingOwners]) {
+      await flushOwnerState(ownerKey);
+    }
   }
 
   function setConnectionState(isConnected) {
@@ -157,9 +195,13 @@
 
   function clearSession() {
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(PENDING_OWNERS_KEY);
+    localStorage.removeItem(PENDING_KEY);
     state.currentUser = null;
     state.data = [];
     state.allUsers = {};
+    state.pendingOwners = [];
+    state.pendingWrite = false;
     detachListeners();
     emitSyncStatus();
   }
@@ -298,7 +340,7 @@
 
   async function flushOwnerState(ownerKey) {
     if (!state.firebaseReady || !navigator.onLine) {
-      setPendingWrite(true);
+      enqueuePendingOwner(ownerKey);
       return;
     }
     const activeUser = state.currentUser;
@@ -310,7 +352,7 @@
       ? clone(state.allUsers[ownerKey]?.profile || { displayName: ownerKey, normalizedName: ownerKey })
       : { displayName: activeUser.displayName, normalizedName: activeUser.normalizedName };
     const timestamp = now();
-    setPendingWrite(true);
+    enqueuePendingOwner(ownerKey);
     await state.database.ref(getUserDataPath(ownerKey)).set({
       sites: ownerSites,
       updatedAt: timestamp,
@@ -326,7 +368,7 @@
       activeUser.lastActivity = timestamp;
       saveSession(activeUser);
     }
-    setPendingWrite(false);
+    dequeuePendingOwner(ownerKey);
   }
 
   function scheduleFlush(ownerKey) {
@@ -335,8 +377,12 @@
       return Promise.resolve();
     }
     const nextOwnerKey = ownerKey || state.currentUser.userKey;
+    state.currentUser.lastActivity = now();
+    saveSession(state.currentUser);
+    touchCurrentUserActivity().catch(() => {});
+    enqueuePendingOwner(nextOwnerKey);
     return flushOwnerState(nextOwnerKey).catch(() => {
-      setPendingWrite(true);
+      enqueuePendingOwner(nextOwnerKey);
     });
   }
 
@@ -356,9 +402,9 @@
     const connectedRef = state.database.ref(".info/connected");
     const connectedHandler = connectedRef.on("value", (snapshot) => {
       setConnectionState(Boolean(snapshot.val()));
-      if (snapshot.val() && state.pendingWrite && !state.currentUser?.isAdmin) {
-        flushOwnerState(state.currentUser.userKey).catch(() => {
-          setPendingWrite(true);
+      if (snapshot.val() && state.pendingWrite) {
+        flushPendingOwners().catch(() => {
+          persistPendingOwners();
         });
       }
     });
@@ -479,7 +525,8 @@
       return state.currentUser;
     }
     state.initialized = true;
-    state.pendingWrite = localStorage.getItem(PENDING_KEY) === "1";
+    state.pendingOwners = readJson(PENDING_OWNERS_KEY, []);
+    state.pendingWrite = state.pendingOwners.length > 0 || localStorage.getItem(PENDING_KEY) === "1";
     state.isConnected = localStorage.getItem(CONNECTION_KEY) !== "0";
     initializeFirebase();
 
@@ -487,9 +534,9 @@
       emitSyncStatus();
       if (state.currentUser) {
         attachUserListener();
-        if (state.pendingWrite && !state.currentUser.isAdmin) {
-          flushOwnerState(state.currentUser.userKey).catch(() => {
-            setPendingWrite(true);
+        if (state.pendingWrite) {
+          flushPendingOwners().catch(() => {
+            persistPendingOwners();
           });
         }
       }
