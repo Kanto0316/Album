@@ -95,7 +95,6 @@
             <td>${escapeHtml(row.designation)}</td>
             <td>${escapeHtml(row.qteSortie)}</td>
             <td>${escapeHtml(row.unite)}</td>
-            <td>${escapeHtml(row.qteHorsBtrs)}</td>
             <td>${escapeHtml(row.qtePosee)}</td>
             <td>${escapeHtml(row.qteRetour)}</td>
             <td>${escapeHtml(row.observation)}</td>
@@ -120,7 +119,6 @@
           <th>Désignation</th>
           <th>Qté Sortie</th>
           <th>Unité</th>
-          <th>Qté hors BTRS</th>
           <th>Qté posée</th>
           <th>Qté Retour</th>
           <th>Observation</th>
@@ -252,6 +250,21 @@
       openExportItems.setAttribute("aria-expanded", "true");
     }
 
+    function formatSiteExportUnit(unit) {
+      const normalizedUnit = String(unit || "").trim().toLowerCase();
+      if (normalizedUnit === "pcs") {
+        return "pcs";
+      }
+      return normalizedUnit || "m";
+    }
+
+    function shouldExportSiteDetail(detail, mode) {
+      if (mode === "returns-only") {
+        return Number(detail.qteRetour) !== 0;
+      }
+      return true;
+    }
+
     function buildSiteExportRows(mode) {
       const currentSite = StorageService.getSite(siteId);
       if (!currentSite) {
@@ -263,20 +276,17 @@
           return [];
         }
 
-        return item.details
-          .filter((detail) => (mode === "returns-only" ? Number(detail.qteRetour) !== 0 : true))
-          .map((detail) => ({
-            out: item.numero,
-            champ: detail.champ,
-            code: detail.code,
-            designation: detail.designation,
-            qteSortie: detail.qteSortie,
-            unite: detail.unite,
-            qteHorsBtrs: detail.qteHorsBtrs,
-            qtePosee: detail.qtePosee,
-            qteRetour: detail.qteRetour,
-            observation: detail.observation,
-          }));
+        return item.details.filter((detail) => shouldExportSiteDetail(detail, mode)).map((detail) => ({
+          out: item.numero,
+          champ: detail.champ,
+          code: detail.code,
+          designation: detail.designation,
+          qteSortie: detail.qteSortie,
+          unite: formatSiteExportUnit(detail.unite),
+          qtePosee: detail.qtePosee,
+          qteRetour: detail.qteRetour,
+          observation: detail.observation,
+        }));
       });
     }
 
