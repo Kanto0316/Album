@@ -326,6 +326,7 @@
     const itemNumberInput = requireElement("itemNumberInput");
     const itemFormError = requireElement("itemFormError");
     const openExportItems = requireElement("openExportItems");
+    const itemSearchInput = requireElement("itemSearchInput");
 
     siteTitle.textContent = site.nom;
 
@@ -387,14 +388,20 @@
         return;
       }
 
-      setCountText(itemCount, nextSite.items.length, "élément", "éléments");
+      const query = itemSearchInput.value.trim().toUpperCase();
+      const filteredItems = nextSite.items.filter((item) => item.numero.toUpperCase().includes(query));
 
-      if (!nextSite.items.length) {
-        UiService.renderEmptyState(itemList, "Aucun sous-élément pour cette liste.");
+      setCountText(itemCount, filteredItems.length, "élément", "éléments");
+
+      if (!filteredItems.length) {
+        UiService.renderEmptyState(
+          itemList,
+          query ? "Aucun N° OUT ne correspond à votre recherche." : "Aucun sous-élément pour cette liste.",
+        );
         return;
       }
 
-      itemList.innerHTML = nextSite.items
+      itemList.innerHTML = filteredItems
         .map(
           (item) => `
             <article class="list-card">
@@ -448,6 +455,8 @@
     if (openExportItems) {
       openExportItems.addEventListener("click", exportItems);
     }
+
+    itemSearchInput.addEventListener("input", renderItems);
 
     itemForm.addEventListener("submit", (event) => {
       event.preventDefault();
