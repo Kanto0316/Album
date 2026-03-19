@@ -136,6 +136,74 @@
     const siteForm = requireElement("siteForm");
     const siteNameInput = requireElement("siteNameInput");
     const siteFormError = requireElement("siteFormError");
+    const homeMenuButton = requireElement("homeMenuButton");
+    const homeMenuPanel = requireElement("homeMenuPanel");
+    const importDataButton = requireElement("importDataButton");
+    const exportDataButton = requireElement("exportDataButton");
+    const importDataInput = requireElement("importDataInput");
+
+    function formatExportFileName() {
+      const now = new Date();
+      const datePart = now.toISOString().replace(/[:]/g, "-").replace(/\..+/, "").replace("T", "_");
+      return `Exporter.${datePart}.su`;
+    }
+
+    function closeHomeMenu() {
+      if (!homeMenuPanel || !homeMenuButton) {
+        return;
+      }
+      homeMenuPanel.hidden = true;
+      homeMenuButton.setAttribute("aria-expanded", "false");
+    }
+
+    function openHomeMenu() {
+      if (!homeMenuPanel || !homeMenuButton) {
+        return;
+      }
+      homeMenuPanel.hidden = false;
+      homeMenuButton.setAttribute("aria-expanded", "true");
+    }
+
+    function downloadSuFile(fileName, content) {
+      const blob = new Blob([content], { type: "application/octet-stream" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+    }
+
+    async function handleImportFile(event) {
+      const [file] = Array.from(event.target.files || []);
+      if (!file) {
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const payload = JSON.parse(text);
+        const imported = StorageService.importData(payload);
+        if (!imported) {
+          UiService.showToast("Fichier .su invalide.");
+          return;
+        }
+        renderSites();
+        UiService.showToast("Données importées.");
+      } catch (error) {
+        UiService.showToast("Importation impossible.");
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function exportAllData() {
+      const payload = StorageService.exportData();
+      const serialized = JSON.stringify(payload, null, 2);
+      downloadSuFile(formatExportFileName(), serialized);
+      UiService.showToast("Exportation lancée.");
+    }
 
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
@@ -183,6 +251,37 @@
           renderSites();
         });
       });
+    }
+
+    if (homeMenuButton && homeMenuPanel) {
+      homeMenuButton.addEventListener("click", () => {
+        if (homeMenuPanel.hidden) {
+          openHomeMenu();
+          return;
+        }
+        closeHomeMenu();
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".header-menu")) {
+          closeHomeMenu();
+        }
+      });
+    }
+
+    if (exportDataButton) {
+      exportDataButton.addEventListener("click", () => {
+        closeHomeMenu();
+        exportAllData();
+      });
+    }
+
+    if (importDataButton && importDataInput) {
+      importDataButton.addEventListener("click", () => {
+        closeHomeMenu();
+        importDataInput.click();
+      });
+      importDataInput.addEventListener("change", handleImportFile);
     }
 
     requireElement("openCreateSite").addEventListener("click", () => {

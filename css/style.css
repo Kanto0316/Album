@@ -83,6 +83,56 @@ button {
   gap: 1rem;
 }
 
+.app-header--home {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.header-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.header-menu__trigger span {
+  transform: translateY(-0.08em);
+}
+
+.header-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  min-width: 15rem;
+  padding: 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.25rem;
+  z-index: 10;
+}
+
+.header-menu__option {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+}
+
+.header-menu__option:hover {
+  background: var(--surface-muted);
+}
+
 .eyebrow {
   margin: 0 0 0.25rem;
   color: rgba(255, 255, 255, 0.8);

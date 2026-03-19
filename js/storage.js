@@ -57,6 +57,43 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
   }
 
+  function normalizeImportedData(payload) {
+    if (!Array.isArray(payload)) {
+      return null;
+    }
+
+    return payload.map((site) => ({
+      id: sanitizeText(site.id || uid(), false) || uid(),
+      nom: sanitizeText(site.nom, true),
+      dateCreation: site.dateCreation || now(),
+      dateModification: site.dateModification || site.dateCreation || now(),
+      items: Array.isArray(site.items)
+        ? site.items.map((item) => ({
+            id: sanitizeText(item.id || uid(), false) || uid(),
+            numero: `OUT-${sanitizeDigits(String(item.numero || '').replace(/^OUT-/i, ''))}`,
+            dateCreation: item.dateCreation || now(),
+            dateModification: item.dateModification || item.dateCreation || now(),
+            details: Array.isArray(item.details)
+              ? item.details.map((detail, index) => ({
+                  id: sanitizeText(detail.id || uid(), false) || uid(),
+                  champ: sanitizeNumber(detail.champ) || index + 1,
+                  code: sanitizeText(detail.code, true),
+                  designation: sanitizeText(detail.designation, true),
+                  qteSortie: detail.qteSortie === '' ? '' : sanitizeNumber(detail.qteSortie),
+                  unite: sanitizeText(detail.unite || 'm', false) || 'm',
+                  qteHorsBtrs: detail.qteHorsBtrs === '' ? '' : sanitizeNumber(detail.qteHorsBtrs),
+                  qteRetour: sanitizeNumber(detail.qteRetour),
+                  qtePosee: sanitizeNumber(detail.qtePosee),
+                  observation: sanitizeText(detail.observation, false),
+                  dateCreation: detail.dateCreation || now(),
+                  dateModification: detail.dateModification || detail.dateCreation || now(),
+                }))
+              : [],
+          }))
+        : [],
+    }));
+  }
+
   async function init() {
     if (state.initialized) {
       return null;
@@ -238,6 +275,27 @@
     persist();
   }
 
+  function exportData() {
+    return {
+      format: 'suivi-materiel-export',
+      version: 1,
+      exportedAt: now(),
+      data: clone(state.data),
+    };
+  }
+
+  function importData(payload) {
+    const source = payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
+    const normalized = normalizeImportedData(source);
+    if (!normalized) {
+      return false;
+    }
+
+    state.data = normalized;
+    persist();
+    return true;
+  }
+
   window.StorageService = {
     init,
     getSites,
@@ -250,5 +308,7 @@
     createDetail,
     updateDetail,
     removeDetail,
+    exportData,
+    importData,
   };
 })();
