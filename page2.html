@@ -22,6 +22,15 @@
             <h2>Sous-éléments</h2>
             <p id="itemCount">0 élément</p>
           </div>
+          <div class="export-menu" id="siteExportMenu">
+            <button type="button" id="openExportItems" class="btn btn-success" aria-haspopup="true" aria-expanded="false">
+              Exporter
+            </button>
+            <div class="export-menu__panel" id="exportItemsPanel" hidden>
+              <button type="button" class="export-menu__option" data-export-mode="all">Tous</button>
+              <button type="button" class="export-menu__option" data-export-mode="returns-only">Les retour Seulement</button>
+            </div>
+          </div>
         </section>
 
         <section id="itemList" class="list-grid" aria-live="polite"></section>
