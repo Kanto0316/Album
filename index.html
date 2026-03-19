@@ -8,8 +8,28 @@
   </head>
   <body data-page="home">
     <div class="app-shell">
-      <header class="app-header">
+      <header class="app-header app-header--home">
         <h1>Suivi Matériel</h1>
+        <div class="header-menu">
+          <button
+            id="homeMenuButton"
+            class="icon-button header-menu__trigger"
+            type="button"
+            aria-label="Plus d'options"
+            aria-haspopup="menu"
+            aria-expanded="false"
+          >
+            <span aria-hidden="true">⋯</span>
+          </button>
+          <div id="homeMenuPanel" class="header-menu__panel" role="menu" hidden>
+            <button id="importDataButton" class="header-menu__option" type="button" role="menuitem">
+              Importer les données
+            </button>
+            <button id="exportDataButton" class="header-menu__option" type="button" role="menuitem">
+              Exporter les données
+            </button>
+          </div>
+        </div>
       </header>
 
       <main class="page-content">
@@ -29,6 +49,8 @@
 
         <section id="siteList" class="list-grid" aria-live="polite"></section>
       </main>
+
+      <input id="importDataInput" type="file" accept=".su" hidden />
 
       <button id="openCreateSite" class="fab" type="button" aria-label="Créer un site">+</button>
 
