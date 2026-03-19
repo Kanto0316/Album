@@ -456,3 +456,77 @@ button {
 .export-menu__option:hover {
   background: var(--surface-muted);
 }
+
+.identity-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.identity-gate[hidden] {
+  display: none;
+}
+
+.identity-gate__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.identity-card {
+  position: relative;
+  width: min(92vw, 28rem);
+  padding: 1.4rem;
+  z-index: 1;
+}
+
+.identity-card h2 {
+  margin-top: 0;
+}
+
+.identity-card__text {
+  margin: 0.35rem 0 1rem;
+  color: var(--text-muted);
+}
+
+.identity-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.session-banner {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.session-banner small {
+  display: block;
+  margin-top: 0.2rem;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.session-banner[hidden] {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .session-banner {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.9rem;
+    justify-content: space-between;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+  }
+}
