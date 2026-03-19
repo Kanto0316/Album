@@ -1,11 +1,7 @@
 (function () {
   const STORAGE_KEY = "suivi-materiel-local-data";
-  const LEGACY_SESSION_KEY = "suivi-materiel-session";
-  const LEGACY_CACHE_PREFIX = "suivi-materiel-cache:";
-
   const state = {
     data: [],
-    syncListeners: [],
     initialized: false,
   };
 
@@ -47,73 +43,18 @@
   function readData() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
+      if (!raw) {
+        return [];
       }
-      return migrateLegacyData();
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       return [];
     }
-  }
-
-  function migrateLegacyData() {
-    try {
-      const sessionRaw = localStorage.getItem(LEGACY_SESSION_KEY);
-      if (sessionRaw) {
-        const session = JSON.parse(sessionRaw);
-        const legacyRaw = localStorage.getItem(`${LEGACY_CACHE_PREFIX}${session?.userKey || ""}`);
-        if (legacyRaw) {
-          const parsed = JSON.parse(legacyRaw);
-          if (Array.isArray(parsed)) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-            return parsed;
-          }
-        }
-      }
-
-      for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index);
-        if (!key || !key.startsWith(LEGACY_CACHE_PREFIX)) {
-          continue;
-        }
-        const legacyRaw = localStorage.getItem(key);
-        if (!legacyRaw) {
-          continue;
-        }
-        const parsed = JSON.parse(legacyRaw);
-        if (Array.isArray(parsed)) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-          return parsed;
-        }
-      }
-    } catch (error) {
-      return [];
-    }
-    return [];
   }
 
   function persist() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-    emitSyncStatus();
-  }
-
-  function emitSyncStatus() {
-    const status = {
-      isOnline: false,
-      isConnected: false,
-      hasPendingWrite: false,
-      currentUser: null,
-    };
-    state.syncListeners.forEach((listener) => listener(status));
-  }
-
-  function onSyncStatusChange(listener) {
-    state.syncListeners.push(listener);
-    emitSyncStatus();
-    return function unsubscribe() {
-      state.syncListeners = state.syncListeners.filter((entry) => entry !== listener);
-    };
   }
 
   async function init() {
@@ -122,25 +63,7 @@
     }
     state.initialized = true;
     state.data = readData();
-    emitSyncStatus();
     return null;
-  }
-
-  async function registerUser() {
-    return { ok: true, user: null };
-  }
-
-  function getCurrentUser() {
-    return null;
-  }
-
-  function isAdminSession() {
-    return false;
-  }
-
-  function clearSession() {
-    state.data = [];
-    persist();
   }
 
   function getSites() {
@@ -317,11 +240,6 @@
 
   window.StorageService = {
     init,
-    registerUser,
-    getCurrentUser,
-    isAdminSession,
-    onSyncStatusChange,
-    clearSession,
     getSites,
     getSite,
     createSite,
