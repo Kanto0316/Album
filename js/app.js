@@ -674,6 +674,18 @@
     renderTable();
   }
 
+  function registerOfflineSupport() {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Le support hors connexion reste optionnel si l'enregistrement échoue.
+      });
+    });
+  }
+
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
@@ -691,5 +703,6 @@
     }
   }
 
+  registerOfflineSupport();
   bootstrap();
 })();
