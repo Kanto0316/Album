@@ -223,6 +223,19 @@ button {
   font-size: 0.92rem;
 }
 
+
+.section-heading--title-only {
+  justify-content: flex-start;
+}
+
+.section-heading--meta {
+  padding: 1rem;
+}
+
+.section-heading--meta p {
+  margin: 0;
+}
+
 .input-group {
   display: flex;
   flex-direction: column;
