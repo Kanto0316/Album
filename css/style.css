@@ -198,6 +198,18 @@ button {
   gap: 1rem;
 }
 
+.section-heading--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  padding: 0.85rem 1rem;
+  margin: -0.25rem -0.25rem 0;
+  border-radius: var(--radius-md);
+  background: rgba(244, 247, 251, 0.96);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(31, 42, 55, 0.08);
+}
+
 .section-heading h2,
 .modal-header h2 {
   margin: 0;
