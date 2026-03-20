@@ -140,6 +140,7 @@
     const homeMenuPanel = requireElement("homeMenuPanel");
     const importDataButton = requireElement("importDataButton");
     const exportDataButton = requireElement("exportDataButton");
+    const quitButton = requireElement("quitButton");
     const importDataInput = requireElement("importDataInput");
 
     function formatExportFileName() {
@@ -282,6 +283,13 @@
         importDataInput.click();
       });
       importDataInput.addEventListener("change", handleImportFile);
+    }
+
+    if (quitButton) {
+      quitButton.addEventListener("click", () => {
+        closeHomeMenu();
+        window.confirm("Voulez vous vraiment quiter?");
+      });
     }
 
     requireElement("openCreateSite").addEventListener("click", () => {
