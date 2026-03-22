@@ -211,6 +211,23 @@
       UiService.showToast("Exportation lancée.");
     }
 
+    function openImportFilePicker(mode) {
+      if (!importDataInput) {
+        return;
+      }
+
+      closeHomeMenu();
+      importMode = mode;
+      importDataInput.value = "";
+
+      if (typeof importDataInput.showPicker === "function") {
+        importDataInput.showPicker();
+        return;
+      }
+
+      importDataInput.click();
+    }
+
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
       const sites = StorageService.getSites().filter((site) => site.nom.toUpperCase().includes(query));
@@ -284,18 +301,14 @@
 
     if (importDataButton && importDataInput) {
       importDataButton.addEventListener("click", () => {
-        closeHomeMenu();
-        importMode = "replace";
-        importDataInput.click();
+        openImportFilePicker("replace");
       });
       importDataInput.addEventListener("change", handleImportFile);
     }
 
     if (mergeDataButton && importDataInput) {
       mergeDataButton.addEventListener("click", () => {
-        closeHomeMenu();
-        importMode = "merge";
-        importDataInput.click();
+        openImportFilePicker("merge");
       });
     }
 
