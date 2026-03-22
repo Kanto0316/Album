@@ -140,7 +140,6 @@
     const homeMenuPanel = requireElement("homeMenuPanel");
     const importDataButton = requireElement("importDataButton");
     const exportDataButton = requireElement("exportDataButton");
-    const importDataInput = requireElement("importDataInput");
 
     function formatExportFileName() {
       const now = new Date();
@@ -175,10 +174,10 @@
       window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
     }
 
-    async function handleImportFile(event) {
-      const sourceInput = event.target;
-      const [file] = Array.from(sourceInput.files || []);
+    async function handleImportFile(fileInput) {
+      const [file] = Array.from(fileInput.files || []);
       if (!file) {
+        fileInput.remove();
         return;
       }
 
@@ -195,7 +194,8 @@
       } catch (error) {
         UiService.showToast("Importation impossible.");
       } finally {
-        sourceInput.value = "";
+        fileInput.value = "";
+        fileInput.remove();
       }
     }
 
@@ -208,23 +208,28 @@
 
     function openImportFilePicker() {
       closeHomeMenu();
-      if (!importDataInput) {
-        UiService.showToast("Importation impossible.");
-        return;
-      }
 
-      importDataInput.value = "";
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = ".su,.json,application/json";
+      fileInput.hidden = true;
+      fileInput.tabIndex = -1;
+      fileInput.setAttribute("aria-hidden", "true");
+      fileInput.addEventListener("change", () => {
+        handleImportFile(fileInput);
+      }, { once: true });
+      document.body.appendChild(fileInput);
 
       try {
-        if (typeof importDataInput.showPicker === "function") {
-          importDataInput.showPicker();
+        if (typeof fileInput.showPicker === "function") {
+          fileInput.showPicker();
           return;
         }
       } catch (error) {
         // Certains navigateurs refusent showPicker sur certains contextes.
       }
 
-      importDataInput.click();
+      fileInput.click();
     }
 
     function renderSites() {
@@ -298,7 +303,6 @@
       });
     }
 
-    importDataInput.addEventListener("change", handleImportFile);
 
     if (importDataButton) {
       importDataButton.addEventListener("click", () => {
