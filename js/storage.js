@@ -94,6 +94,124 @@
     }));
   }
 
+  function getLatestTimestamp(...values) {
+    const timestamps = values
+      .filter(Boolean)
+      .map((value) => new Date(value).getTime())
+      .filter((value) => Number.isFinite(value));
+
+    if (!timestamps.length) {
+      return now();
+    }
+
+    return new Date(Math.max(...timestamps)).toISOString();
+  }
+
+  function getEarliestTimestamp(...values) {
+    const timestamps = values
+      .filter(Boolean)
+      .map((value) => new Date(value).getTime())
+      .filter((value) => Number.isFinite(value));
+
+    if (!timestamps.length) {
+      return now();
+    }
+
+    return new Date(Math.min(...timestamps)).toISOString();
+  }
+
+  function detailSignature(detail) {
+    return [
+      sanitizeNumber(detail.champ),
+      sanitizeText(detail.code, true),
+      sanitizeText(detail.designation, true),
+      detail.qteSortie === '' ? '' : sanitizeNumber(detail.qteSortie),
+      sanitizeText(detail.unite || 'm', false) || 'm',
+    ].join('|');
+  }
+
+  function mergeDetailRecords(existingDetail, incomingDetail) {
+    const useIncoming = new Date(incomingDetail.dateModification || 0).getTime()
+      >= new Date(existingDetail.dateModification || 0).getTime();
+    const preferredDetail = useIncoming ? incomingDetail : existingDetail;
+
+    return {
+      ...existingDetail,
+      ...preferredDetail,
+      id: existingDetail.id || incomingDetail.id || uid(),
+      dateCreation: getEarliestTimestamp(existingDetail.dateCreation, incomingDetail.dateCreation),
+      dateModification: getLatestTimestamp(existingDetail.dateModification, incomingDetail.dateModification),
+    };
+  }
+
+  function mergeItemRecords(existingItem, incomingItem) {
+    const mergedDetails = clone(existingItem.details || []);
+
+    (incomingItem.details || []).forEach((incomingDetail) => {
+      const matchingIndex = mergedDetails.findIndex(
+        (existingDetail) =>
+          existingDetail.id === incomingDetail.id || detailSignature(existingDetail) === detailSignature(incomingDetail),
+      );
+
+      if (matchingIndex >= 0) {
+        mergedDetails[matchingIndex] = mergeDetailRecords(mergedDetails[matchingIndex], incomingDetail);
+        return;
+      }
+
+      mergedDetails.push(clone(incomingDetail));
+    });
+
+    const useIncoming = new Date(incomingItem.dateModification || 0).getTime()
+      >= new Date(existingItem.dateModification || 0).getTime();
+    const preferredItem = useIncoming ? incomingItem : existingItem;
+
+    return {
+      ...existingItem,
+      ...preferredItem,
+      id: existingItem.id || incomingItem.id || uid(),
+      numero: sanitizeText(preferredItem.numero || existingItem.numero, true),
+      dateCreation: getEarliestTimestamp(existingItem.dateCreation, incomingItem.dateCreation),
+      dateModification: getLatestTimestamp(existingItem.dateModification, incomingItem.dateModification),
+      details: mergedDetails.map((detail, index) => ({
+        ...detail,
+        champ: index + 1,
+      })),
+    };
+  }
+
+  function mergeSiteRecords(existingSite, incomingSite) {
+    const mergedItems = clone(existingSite.items || []);
+
+    (incomingSite.items || []).forEach((incomingItem) => {
+      const matchingIndex = mergedItems.findIndex(
+        (existingItem) => existingItem.id === incomingItem.id || existingItem.numero === incomingItem.numero,
+      );
+
+      if (matchingIndex >= 0) {
+        mergedItems[matchingIndex] = mergeItemRecords(mergedItems[matchingIndex], incomingItem);
+        return;
+      }
+
+      mergedItems.push(clone(incomingItem));
+    });
+
+    const useIncoming = new Date(incomingSite.dateModification || 0).getTime()
+      >= new Date(existingSite.dateModification || 0).getTime();
+    const preferredSite = useIncoming ? incomingSite : existingSite;
+
+    return {
+      ...existingSite,
+      ...preferredSite,
+      id: existingSite.id || incomingSite.id || uid(),
+      nom: sanitizeText(preferredSite.nom || existingSite.nom, true),
+      dateCreation: getEarliestTimestamp(existingSite.dateCreation, incomingSite.dateCreation),
+      dateModification: getLatestTimestamp(existingSite.dateModification, incomingSite.dateModification),
+      items: mergedItems.sort(
+        (left, right) => new Date(right.dateModification || 0).getTime() - new Date(left.dateModification || 0).getTime(),
+      ),
+    };
+  }
+
   async function init() {
     if (state.initialized) {
       return null;
@@ -296,6 +414,35 @@
     return true;
   }
 
+  function mergeImportData(payload) {
+    const source = payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
+    const normalized = normalizeImportedData(source);
+    if (!normalized) {
+      return false;
+    }
+
+    const mergedSites = clone(state.data);
+
+    normalized.forEach((incomingSite) => {
+      const matchingIndex = mergedSites.findIndex(
+        (existingSite) => existingSite.id === incomingSite.id || existingSite.nom === incomingSite.nom,
+      );
+
+      if (matchingIndex >= 0) {
+        mergedSites[matchingIndex] = mergeSiteRecords(mergedSites[matchingIndex], incomingSite);
+        return;
+      }
+
+      mergedSites.push(clone(incomingSite));
+    });
+
+    state.data = mergedSites.sort(
+      (left, right) => new Date(right.dateModification || 0).getTime() - new Date(left.dateModification || 0).getTime(),
+    );
+    persist();
+    return true;
+  }
+
   window.StorageService = {
     init,
     getSites,
@@ -310,5 +457,6 @@
     removeDetail,
     exportData,
     importData,
+    mergeImportData,
   };
 })();

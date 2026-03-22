@@ -139,9 +139,11 @@
     const homeMenuButton = requireElement("homeMenuButton");
     const homeMenuPanel = requireElement("homeMenuPanel");
     const importDataButton = requireElement("importDataButton");
+    const mergeDataButton = requireElement("mergeDataButton");
     const exportDataButton = requireElement("exportDataButton");
     const quitButton = requireElement("quitButton");
     const importDataInput = requireElement("importDataInput");
+    let importMode = "replace";
 
     function formatExportFileName() {
       const now = new Date();
@@ -185,16 +187,19 @@
       try {
         const text = await file.text();
         const payload = JSON.parse(text);
-        const imported = StorageService.importData(payload);
+        const action =
+          importMode === "merge" ? StorageService.mergeImportData : StorageService.importData;
+        const imported = action(payload);
         if (!imported) {
           UiService.showToast("Fichier .su invalide.");
           return;
         }
         renderSites();
-        UiService.showToast("Données importées.");
+        UiService.showToast(importMode === "merge" ? "Données fusionnées." : "Données importées.");
       } catch (error) {
         UiService.showToast("Importation impossible.");
       } finally {
+        importMode = "replace";
         event.target.value = "";
       }
     }
@@ -280,9 +285,18 @@
     if (importDataButton && importDataInput) {
       importDataButton.addEventListener("click", () => {
         closeHomeMenu();
+        importMode = "replace";
         importDataInput.click();
       });
       importDataInput.addEventListener("change", handleImportFile);
+    }
+
+    if (mergeDataButton && importDataInput) {
+      mergeDataButton.addEventListener("click", () => {
+        closeHomeMenu();
+        importMode = "merge";
+        importDataInput.click();
+      });
     }
 
     if (quitButton) {
