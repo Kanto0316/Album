@@ -51,6 +51,16 @@ button {
   border: 0;
 }
 
+.file-picker-input {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .app-shell {
   height: 100vh;
   display: flex;
