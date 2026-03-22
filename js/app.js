@@ -142,15 +142,8 @@
     const mergeDataButton = requireElement("mergeDataButton");
     const exportDataButton = requireElement("exportDataButton");
     const quitButton = requireElement("quitButton");
-    let importMode = "replace";
-
-    function setImportMode(mode) {
-      importMode = mode === "merge" ? "merge" : "replace";
-    }
-
-    function resetImportMode() {
-      setImportMode("replace");
-    }
+    const importDataInput = requireElement("importDataInput");
+    const mergeDataInput = requireElement("mergeDataInput");
 
     function formatExportFileName() {
       const now = new Date();
@@ -189,14 +182,10 @@
       const sourceInput = event.target;
       const [file] = Array.from(sourceInput.files || []);
       if (!file) {
-        resetImportMode();
-        if (sourceInput.dataset.ephemeral === "true") {
-          sourceInput.remove();
-        }
         return;
       }
 
-      const activeImportMode = sourceInput.dataset.importMode === "merge" ? "merge" : importMode;
+      const activeImportMode = sourceInput.dataset.importMode === "merge" ? "merge" : "replace";
 
       try {
         const text = await file.text();
@@ -214,10 +203,6 @@
         UiService.showToast("Importation impossible.");
       } finally {
         sourceInput.value = "";
-        resetImportMode();
-        if (sourceInput.dataset.ephemeral === "true") {
-          sourceInput.remove();
-        }
       }
     }
 
@@ -230,36 +215,24 @@
 
     function openImportFilePicker(mode) {
       closeHomeMenu();
-      setImportMode(mode);
+      const picker = mode === "merge" ? mergeDataInput : importDataInput;
+      if (!picker) {
+        UiService.showToast("Importation impossible.");
+        return;
+      }
 
-      const importDataInput = document.createElement("input");
-      importDataInput.type = "file";
-      importDataInput.accept = ".su";
-      importDataInput.dataset.importMode = importMode;
-      importDataInput.dataset.ephemeral = "true";
-      importDataInput.className = "sr-only";
-      document.body.appendChild(importDataInput);
-
-      importDataInput.addEventListener("change", handleImportFile, { once: true });
-      importDataInput.addEventListener(
-        "cancel",
-        () => {
-          resetImportMode();
-          importDataInput.remove();
-        },
-        { once: true },
-      );
+      picker.value = "";
 
       try {
-        if (typeof importDataInput.showPicker === "function") {
-          importDataInput.showPicker();
+        if (typeof picker.showPicker === "function") {
+          picker.showPicker();
           return;
         }
       } catch (error) {
-        // Certains navigateurs refusent showPicker sur un input fichier masqué.
+        // Certains navigateurs refusent showPicker sur certains contextes.
       }
 
-      importDataInput.click();
+      picker.click();
     }
 
     function renderSites() {
@@ -332,6 +305,12 @@
         exportAllData();
       });
     }
+
+    [importDataInput, mergeDataInput].forEach((input) => {
+      if (input) {
+        input.addEventListener("change", handleImportFile);
+      }
+    });
 
     if (importDataButton) {
       importDataButton.addEventListener("click", () => {
