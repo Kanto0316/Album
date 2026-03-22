@@ -142,14 +142,10 @@
     const mergeDataButton = requireElement("mergeDataButton");
     const exportDataButton = requireElement("exportDataButton");
     const quitButton = requireElement("quitButton");
-    const importDataInput = requireElement("importDataInput");
     let importMode = "replace";
 
     function setImportMode(mode) {
       importMode = mode === "merge" ? "merge" : "replace";
-      if (importDataInput) {
-        importDataInput.dataset.importMode = importMode;
-      }
     }
 
     function resetImportMode() {
@@ -190,13 +186,17 @@
     }
 
     async function handleImportFile(event) {
-      const [file] = Array.from(event.target.files || []);
+      const sourceInput = event.target;
+      const [file] = Array.from(sourceInput.files || []);
       if (!file) {
         resetImportMode();
+        if (sourceInput.dataset.ephemeral === "true") {
+          sourceInput.remove();
+        }
         return;
       }
 
-      const activeImportMode = event.target.dataset.importMode === "merge" ? "merge" : importMode;
+      const activeImportMode = sourceInput.dataset.importMode === "merge" ? "merge" : importMode;
 
       try {
         const text = await file.text();
@@ -213,8 +213,11 @@
       } catch (error) {
         UiService.showToast("Importation impossible.");
       } finally {
-        event.target.value = "";
+        sourceInput.value = "";
         resetImportMode();
+        if (sourceInput.dataset.ephemeral === "true") {
+          sourceInput.remove();
+        }
       }
     }
 
@@ -226,13 +229,26 @@
     }
 
     function openImportFilePicker(mode) {
-      if (!importDataInput) {
-        return;
-      }
-
       closeHomeMenu();
       setImportMode(mode);
-      importDataInput.value = "";
+
+      const importDataInput = document.createElement("input");
+      importDataInput.type = "file";
+      importDataInput.accept = ".su";
+      importDataInput.dataset.importMode = importMode;
+      importDataInput.dataset.ephemeral = "true";
+      importDataInput.className = "sr-only";
+      document.body.appendChild(importDataInput);
+
+      importDataInput.addEventListener("change", handleImportFile, { once: true });
+      importDataInput.addEventListener(
+        "cancel",
+        () => {
+          resetImportMode();
+          importDataInput.remove();
+        },
+        { once: true },
+      );
 
       try {
         if (typeof importDataInput.showPicker === "function") {
@@ -317,21 +333,16 @@
       });
     }
 
-    if (importDataButton && importDataInput) {
+    if (importDataButton) {
       importDataButton.addEventListener("click", () => {
         openImportFilePicker("replace");
       });
     }
 
-    if (mergeDataButton && importDataInput) {
+    if (mergeDataButton) {
       mergeDataButton.addEventListener("click", () => {
         openImportFilePicker("merge");
       });
-    }
-
-    if (importDataInput) {
-      importDataInput.addEventListener("change", handleImportFile);
-      importDataInput.addEventListener("cancel", resetImportMode);
     }
 
     if (quitButton) {
