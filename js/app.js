@@ -145,6 +145,17 @@
     const importDataInput = requireElement("importDataInput");
     let importMode = "replace";
 
+    function setImportMode(mode) {
+      importMode = mode === "merge" ? "merge" : "replace";
+      if (importDataInput) {
+        importDataInput.dataset.importMode = importMode;
+      }
+    }
+
+    function resetImportMode() {
+      setImportMode("replace");
+    }
+
     function formatExportFileName() {
       const now = new Date();
       const datePart = now.toISOString().replace(/[:]/g, "-").replace(/\..+/, "").replace("T", "_");
@@ -181,26 +192,29 @@
     async function handleImportFile(event) {
       const [file] = Array.from(event.target.files || []);
       if (!file) {
+        resetImportMode();
         return;
       }
+
+      const activeImportMode = event.target.dataset.importMode === "merge" ? "merge" : importMode;
 
       try {
         const text = await file.text();
         const payload = JSON.parse(text);
         const action =
-          importMode === "merge" ? StorageService.mergeImportData : StorageService.importData;
+          activeImportMode === "merge" ? StorageService.mergeImportData : StorageService.importData;
         const imported = action(payload);
         if (!imported) {
           UiService.showToast("Fichier .su invalide.");
           return;
         }
         renderSites();
-        UiService.showToast(importMode === "merge" ? "Données fusionnées." : "Données importées.");
+        UiService.showToast(activeImportMode === "merge" ? "Données fusionnées." : "Données importées.");
       } catch (error) {
         UiService.showToast("Importation impossible.");
       } finally {
-        importMode = "replace";
         event.target.value = "";
+        resetImportMode();
       }
     }
 
@@ -217,12 +231,16 @@
       }
 
       closeHomeMenu();
-      importMode = mode;
+      setImportMode(mode);
       importDataInput.value = "";
 
-      if (typeof importDataInput.showPicker === "function") {
-        importDataInput.showPicker();
-        return;
+      try {
+        if (typeof importDataInput.showPicker === "function") {
+          importDataInput.showPicker();
+          return;
+        }
+      } catch (error) {
+        // Certains navigateurs refusent showPicker sur un input fichier masqué.
       }
 
       importDataInput.click();
@@ -303,13 +321,17 @@
       importDataButton.addEventListener("click", () => {
         openImportFilePicker("replace");
       });
-      importDataInput.addEventListener("change", handleImportFile);
     }
 
     if (mergeDataButton && importDataInput) {
       mergeDataButton.addEventListener("click", () => {
         openImportFilePicker("merge");
       });
+    }
+
+    if (importDataInput) {
+      importDataInput.addEventListener("change", handleImportFile);
+      importDataInput.addEventListener("cancel", resetImportMode);
     }
 
     if (quitButton) {
