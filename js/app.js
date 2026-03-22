@@ -596,7 +596,7 @@
             <tr data-detail-id="${detail.id}">
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input" data-field="code" value="${escapeHtml(detail.code)}" /></td>
-              <td><input class="cell-input" data-field="designation" value="${escapeHtml(detail.designation)}" /></td>
+              <td><textarea class="cell-textarea cell-textarea--designation" data-field="designation">${escapeHtml(detail.designation)}</textarea></td>
               <td>
                 <div>
                   <input class="cell-input" data-field="qteSortie" type="number" min="0" step="1" value="${escapeHtml(detail.qteSortie)}" />

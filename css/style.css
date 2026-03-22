@@ -474,6 +474,13 @@ button {
   resize: vertical;
 }
 
+.cell-textarea--designation {
+  min-width: 12rem;
+  min-height: 4.25rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .readonly-value,
 .meta-value {
   display: inline-block;
