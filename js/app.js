@@ -139,11 +139,8 @@
     const homeMenuButton = requireElement("homeMenuButton");
     const homeMenuPanel = requireElement("homeMenuPanel");
     const importDataButton = requireElement("importDataButton");
-    const mergeDataButton = requireElement("mergeDataButton");
     const exportDataButton = requireElement("exportDataButton");
-    const quitButton = requireElement("quitButton");
     const importDataInput = requireElement("importDataInput");
-    const mergeDataInput = requireElement("mergeDataInput");
 
     function formatExportFileName() {
       const now = new Date();
@@ -185,20 +182,16 @@
         return;
       }
 
-      const activeImportMode = sourceInput.dataset.importMode === "merge" ? "merge" : "replace";
-
       try {
         const text = await file.text();
         const payload = JSON.parse(text);
-        const action =
-          activeImportMode === "merge" ? StorageService.mergeImportData : StorageService.importData;
-        const imported = action(payload);
+        const imported = StorageService.importData(payload);
         if (!imported) {
           UiService.showToast("Fichier .su invalide.");
           return;
         }
         renderSites();
-        UiService.showToast(activeImportMode === "merge" ? "Données fusionnées." : "Données importées.");
+        UiService.showToast("Données importées.");
       } catch (error) {
         UiService.showToast("Importation impossible.");
       } finally {
@@ -213,26 +206,25 @@
       UiService.showToast("Exportation lancée.");
     }
 
-    function openImportFilePicker(mode) {
+    function openImportFilePicker() {
       closeHomeMenu();
-      const picker = mode === "merge" ? mergeDataInput : importDataInput;
-      if (!picker) {
+      if (!importDataInput) {
         UiService.showToast("Importation impossible.");
         return;
       }
 
-      picker.value = "";
+      importDataInput.value = "";
 
       try {
-        if (typeof picker.showPicker === "function") {
-          picker.showPicker();
+        if (typeof importDataInput.showPicker === "function") {
+          importDataInput.showPicker();
           return;
         }
       } catch (error) {
         // Certains navigateurs refusent showPicker sur certains contextes.
       }
 
-      picker.click();
+      importDataInput.click();
     }
 
     function renderSites() {
@@ -306,28 +298,11 @@
       });
     }
 
-    [importDataInput, mergeDataInput].forEach((input) => {
-      if (input) {
-        input.addEventListener("change", handleImportFile);
-      }
-    });
+    importDataInput.addEventListener("change", handleImportFile);
 
     if (importDataButton) {
       importDataButton.addEventListener("click", () => {
-        openImportFilePicker("replace");
-      });
-    }
-
-    if (mergeDataButton) {
-      mergeDataButton.addEventListener("click", () => {
-        openImportFilePicker("merge");
-      });
-    }
-
-    if (quitButton) {
-      quitButton.addEventListener("click", () => {
-        closeHomeMenu();
-        window.confirm("Voulez vous vraiment quiter?");
+        openImportFilePicker();
       });
     }
 
