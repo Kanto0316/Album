@@ -142,7 +142,6 @@
     const mergeDataButton = requireElement("mergeDataButton");
     const exportDataButton = requireElement("exportDataButton");
     const quitButton = requireElement("quitButton");
-    const importDataInput = requireElement("importDataInput");
     let importMode = "replace";
 
     function formatExportFileName() {
@@ -179,8 +178,10 @@
     }
 
     async function handleImportFile(event) {
+      const input = event.target;
       const [file] = Array.from(event.target.files || []);
       if (!file) {
+        input.remove();
         return;
       }
 
@@ -200,7 +201,8 @@
         UiService.showToast("Importation impossible.");
       } finally {
         importMode = "replace";
-        event.target.value = "";
+        input.value = "";
+        input.remove();
       }
     }
 
@@ -209,6 +211,37 @@
       const serialized = JSON.stringify(payload, null, 2);
       downloadSuFile(formatExportFileName(), serialized);
       UiService.showToast("Exportation lancée.");
+    }
+
+    function openImportFilePicker(mode) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".su";
+      input.className = "sr-only";
+      input.tabIndex = -1;
+      input.setAttribute("aria-hidden", "true");
+      input.addEventListener("change", handleImportFile, { once: true });
+      document.body.appendChild(input);
+
+      importMode = mode;
+      if (homeMenuPanel) {
+        homeMenuPanel.hidden = true;
+      }
+      if (homeMenuButton) {
+        homeMenuButton.setAttribute("aria-expanded", "false");
+      }
+
+      if (typeof input.showPicker === "function") {
+        try {
+          input.showPicker();
+          return;
+        } catch (error) {
+          input.click();
+          return;
+        }
+      }
+
+      input.click();
     }
 
     function renderSites() {
@@ -282,20 +315,15 @@
       });
     }
 
-    if (importDataButton && importDataInput) {
+    if (importDataButton) {
       importDataButton.addEventListener("click", () => {
-        closeHomeMenu();
-        importMode = "replace";
-        importDataInput.click();
+        openImportFilePicker("replace");
       });
-      importDataInput.addEventListener("change", handleImportFile);
     }
 
-    if (mergeDataButton && importDataInput) {
+    if (mergeDataButton) {
       mergeDataButton.addEventListener("click", () => {
-        closeHomeMenu();
-        importMode = "merge";
-        importDataInput.click();
+        openImportFilePicker("merge");
       });
     }
 
