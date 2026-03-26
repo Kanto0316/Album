@@ -272,8 +272,18 @@
       });
 
       siteList.querySelectorAll("[data-site-delete]").forEach((button) => {
+        const allowed = StorageService.canDeleteSite(button.dataset.siteDelete);
+        if (!allowed) {
+          button.disabled = true;
+          button.title = "Vous pouvez supprimer uniquement vos propres données.";
+        }
+
         button.addEventListener("click", () => {
-          StorageService.removeSite(button.dataset.siteDelete);
+          const removed = StorageService.removeSite(button.dataset.siteDelete);
+          if (!removed) {
+            UiService.showToast("Suppression autorisée uniquement pour le créateur.");
+            return;
+          }
           UiService.showToast("Site supprimé.");
           renderSites();
         });
@@ -332,6 +342,7 @@
       renderSites();
     });
 
+    StorageService.onChange(renderSites);
     renderSites();
   }
 
@@ -456,8 +467,18 @@
       });
 
       itemList.querySelectorAll("[data-item-delete]").forEach((button) => {
+        const allowed = StorageService.canDeleteItem(siteId, button.dataset.itemDelete);
+        if (!allowed) {
+          button.disabled = true;
+          button.title = "Vous pouvez supprimer uniquement vos propres données.";
+        }
+
         button.addEventListener("click", () => {
-          StorageService.removeItem(siteId, button.dataset.itemDelete);
+          const removed = StorageService.removeItem(siteId, button.dataset.itemDelete);
+          if (!removed) {
+            UiService.showToast("Suppression autorisée uniquement pour le créateur.");
+            return;
+          }
           UiService.showToast("Élément supprimé.");
           renderItems();
         });
@@ -509,6 +530,7 @@
       renderItems();
     });
 
+    StorageService.onChange(renderItems);
     renderItems();
   }
 
@@ -662,8 +684,18 @@
       });
 
       detailTableBody.querySelectorAll("[data-detail-delete]").forEach((button) => {
+        const allowed = StorageService.canDeleteDetail(siteId, itemId, button.dataset.detailDelete);
+        if (!allowed) {
+          button.disabled = true;
+          button.title = "Vous pouvez supprimer uniquement vos propres données.";
+        }
+
         button.addEventListener("click", () => {
-          StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
+          const removed = StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
+          if (!removed) {
+            UiService.showToast("Suppression autorisée uniquement pour le créateur.");
+            return;
+          }
           UiService.showToast("Ligne supprimée.");
           renderTable();
         });
@@ -697,6 +729,7 @@
       exportButton.addEventListener("click", exportDetails);
     }
 
+    StorageService.onChange(renderTable);
     renderTable();
   }
 

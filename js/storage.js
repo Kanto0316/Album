@@ -1,12 +1,35 @@
 (function () {
   const STORAGE_KEY = "suivi-materiel-local-data";
+  const OFFLINE_QUEUE_KEY = "suivi-materiel-offline-queue";
+  const PAGE1_PATH = "pages/page1/sites";
+  const PAGE2_PATH = "pages/page2/items";
+  const PAGE3_PATH = "pages/page3/details";
+
   const state = {
-    data: [],
     initialized: false,
+    authReady: false,
+    uid: null,
+    online: true,
+    cache: {
+      sites: {},
+      items: {},
+      details: {},
+    },
+    listeners: [],
+    unsubscribers: [],
+    offlineQueue: [],
   };
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function now() {
+    return new Date().toISOString();
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
   function safeTrim(value) {
@@ -20,6 +43,10 @@
     return uppercase ? cleaned.toUpperCase() : cleaned;
   }
 
+  function sanitizeDigits(value) {
+    return String(value || "").replace(/\D/g, "");
+  }
+
   function sanitizeNumber(value) {
     if (value === "" || value === null || value === undefined) {
       return "";
@@ -28,177 +55,337 @@
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   }
 
-  function sanitizeDigits(value) {
-    return String(value || "").replace(/\D/g, "");
+  function persistLocalSnapshot() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cache));
   }
 
-  function now() {
-    return new Date().toISOString();
-  }
-
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
-
-  function readData() {
+  function readLocalSnapshot() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return [];
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (!parsed || typeof parsed !== "object") {
+        return;
       }
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      state.cache.sites = parsed.sites && typeof parsed.sites === "object" ? parsed.sites : {};
+      state.cache.items = parsed.items && typeof parsed.items === "object" ? parsed.items : {};
+      state.cache.details = parsed.details && typeof parsed.details === "object" ? parsed.details : {};
     } catch (error) {
-      return [];
+      state.cache.sites = {};
+      state.cache.items = {};
+      state.cache.details = {};
     }
   }
 
-  function persist() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+  function persistOfflineQueue() {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(state.offlineQueue));
   }
 
-  function normalizeImportedData(payload) {
-    if (!Array.isArray(payload)) {
+  function readOfflineQueue() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
+      state.offlineQueue = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      state.offlineQueue = [];
+    }
+  }
+
+  function notifyChange() {
+    persistLocalSnapshot();
+    state.listeners.forEach((listener) => listener());
+  }
+
+  function onChange(listener) {
+    state.listeners.push(listener);
+    return function unsubscribe() {
+      state.listeners = state.listeners.filter((entry) => entry !== listener);
+    };
+  }
+
+  function mapSites() {
+    return Object.values(state.cache.sites)
+      .map((site) => ({ ...site, items: mapItems(site.id) }))
+      .sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime());
+  }
+
+  function mapItems(siteId) {
+    const siteItems = state.cache.items[siteId] || {};
+    return Object.values(siteItems)
+      .map((item) => ({ ...item, details: mapDetails(siteId, item.id) }))
+      .sort((a, b) => new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime());
+  }
+
+  function mapDetails(siteId, itemId) {
+    const itemDetails = ((state.cache.details[siteId] || {})[itemId]) || {};
+    return Object.values(itemDetails)
+      .sort((a, b) => Number(a.champ) - Number(b.champ));
+  }
+
+  function getSites() {
+    return clone(mapSites());
+  }
+
+  function getSite(siteId) {
+    const site = state.cache.sites[siteId];
+    if (!site) {
       return null;
     }
-
-    return payload.map((site) => ({
-      id: sanitizeText(site.id || uid(), false) || uid(),
-      nom: sanitizeText(site.nom, true),
-      dateCreation: site.dateCreation || now(),
-      dateModification: site.dateModification || site.dateCreation || now(),
-      items: Array.isArray(site.items)
-        ? site.items.map((item) => ({
-            id: sanitizeText(item.id || uid(), false) || uid(),
-            numero: `OUT-${sanitizeDigits(String(item.numero || '').replace(/^OUT-/i, ''))}`,
-            dateCreation: item.dateCreation || now(),
-            dateModification: item.dateModification || item.dateCreation || now(),
-            details: Array.isArray(item.details)
-              ? item.details.map((detail, index) => ({
-                  id: sanitizeText(detail.id || uid(), false) || uid(),
-                  champ: sanitizeNumber(detail.champ) || index + 1,
-                  code: sanitizeText(detail.code, true),
-                  designation: sanitizeText(detail.designation, true),
-                  qteSortie: detail.qteSortie === '' ? '' : sanitizeNumber(detail.qteSortie),
-                  unite: sanitizeText(detail.unite || 'm', false) || 'm',
-                  qteHorsBtrs: detail.qteHorsBtrs === '' ? '' : sanitizeNumber(detail.qteHorsBtrs),
-                  qteRetour: sanitizeNumber(detail.qteRetour),
-                  qtePosee: sanitizeNumber(detail.qtePosee),
-                  observation: sanitizeText(detail.observation, false),
-                  dateCreation: detail.dateCreation || now(),
-                  dateModification: detail.dateModification || detail.dateCreation || now(),
-                }))
-              : [],
-          }))
-        : [],
-    }));
+    return clone({ ...site, items: mapItems(siteId) });
   }
 
-  function getLatestTimestamp(...values) {
-    const timestamps = values
-      .filter(Boolean)
-      .map((value) => new Date(value).getTime())
-      .filter((value) => Number.isFinite(value));
+  function getItem(siteId, itemId) {
+    const item = (state.cache.items[siteId] || {})[itemId];
+    if (!item) {
+      return null;
+    }
+    return clone({ ...item, details: mapDetails(siteId, itemId) });
+  }
 
-    if (!timestamps.length) {
-      return now();
+  function hasFirebase() {
+    return !!(window.firebase && window.firebase.database && window.firebase.auth);
+  }
+
+  function queueOperation(operation) {
+    state.offlineQueue.push(operation);
+    persistOfflineQueue();
+  }
+
+  async function writeOperation(operation, saveOfflineOnError) {
+    if (!hasFirebase() || !state.authReady || !state.online) {
+      if (saveOfflineOnError) {
+        queueOperation(operation);
+      }
+      return;
     }
 
-    return new Date(Math.max(...timestamps)).toISOString();
+    try {
+      const db = window.firebase.database();
+      const updates = {};
+      operation.forEach((entry) => {
+        updates[entry.path] = entry.value;
+      });
+      await db.ref().update(updates);
+    } catch (error) {
+      if (saveOfflineOnError) {
+        queueOperation(operation);
+      }
+    }
+  }
+
+  async function flushOfflineQueue() {
+    if (!state.offlineQueue.length || !state.authReady || !hasFirebase()) {
+      return;
+    }
+
+    const pending = [...state.offlineQueue];
+    state.offlineQueue = [];
+    persistOfflineQueue();
+
+    for (const operation of pending) {
+      await writeOperation(operation, true);
+    }
+  }
+
+  function canDelete(record) {
+    return !!record && record.ownerId === state.uid;
+  }
+
+  async function initFirebaseSync() {
+    if (!hasFirebase()) {
+      state.online = false;
+      return;
+    }
+
+    const firebase = window.firebase;
+    const config = {
+      apiKey: "AIzaSyDUNQi44ZB1V5P_H3Y7sP_W9y7H0UMPtDg",
+      authDomain: "album-afec9.firebaseapp.com",
+      databaseURL: "https://album-afec9-default-rtdb.firebaseio.com",
+      projectId: "album-afec9",
+      storageBucket: "album-afec9.firebasestorage.app",
+      messagingSenderId: "583008062800",
+      appId: "1:583008062800:web:e68b3175e796ff2742f055",
+      measurementId: "G-13696TSXV1",
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(config);
+    }
+
+    try {
+      await firebase.auth().signInAnonymously();
+      state.uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+      state.authReady = true;
+      state.online = true;
+    } catch (error) {
+      state.authReady = false;
+      state.online = false;
+      return;
+    }
+
+    const db = firebase.database();
+
+    const unsubSite = db.ref(PAGE1_PATH).on("value", (snapshot) => {
+      state.cache.sites = snapshot.val() || {};
+      notifyChange();
+    });
+
+    const unsubItem = db.ref(PAGE2_PATH).on("value", (snapshot) => {
+      state.cache.items = snapshot.val() || {};
+      notifyChange();
+    });
+
+    const unsubDetail = db.ref(PAGE3_PATH).on("value", (snapshot) => {
+      state.cache.details = snapshot.val() || {};
+      notifyChange();
+    });
+
+    state.unsubscribers.push(() => db.ref(PAGE1_PATH).off("value", unsubSite));
+    state.unsubscribers.push(() => db.ref(PAGE2_PATH).off("value", unsubItem));
+    state.unsubscribers.push(() => db.ref(PAGE3_PATH).off("value", unsubDetail));
+
+    window.addEventListener("online", () => {
+      state.online = true;
+      flushOfflineQueue();
+    });
+
+    window.addEventListener("offline", () => {
+      state.online = false;
+    });
+
+    await flushOfflineQueue();
   }
 
   async function init() {
     if (state.initialized) {
-      return null;
+      return;
     }
     state.initialized = true;
-    state.data = readData();
-    return null;
-  }
-
-  function getSites() {
-    return clone(state.data);
-  }
-
-  function getSite(siteId) {
-    return clone(state.data.find((site) => site.id === siteId) || null);
+    readLocalSnapshot();
+    readOfflineQueue();
+    notifyChange();
+    await initFirebaseSync();
   }
 
   function createSite(name) {
     const siteName = sanitizeText(name, true);
-    const timestamp = now();
-    const site = {
-      id: uid(),
-      nom: siteName,
-      dateCreation: timestamp,
-      dateModification: timestamp,
-      items: [],
-    };
-    state.data.unshift(site);
-    persist();
-    return clone(site);
-  }
-
-  function removeSite(siteId) {
-    state.data = state.data.filter((site) => site.id !== siteId);
-    persist();
-  }
-
-  function createItem(siteId, numberValue) {
-    const site = state.data.find((entry) => entry.id === siteId);
-    if (!site) {
+    if (!siteName) {
       return null;
     }
 
     const timestamp = now();
+    const siteId = uid();
+    const site = {
+      id: siteId,
+      nom: siteName,
+      dateCreation: timestamp,
+      dateModification: timestamp,
+      ownerId: state.uid,
+    };
+
+    state.cache.sites[siteId] = site;
+    notifyChange();
+
+    writeOperation([
+      { path: `${PAGE1_PATH}/${siteId}`, value: site },
+    ], true);
+
+    return clone(site);
+  }
+
+  function removeSite(siteId) {
+    const site = state.cache.sites[siteId];
+    if (!canDelete(site)) {
+      return false;
+    }
+
+    delete state.cache.sites[siteId];
+    delete state.cache.items[siteId];
+    delete state.cache.details[siteId];
+    notifyChange();
+
+    writeOperation([
+      { path: `${PAGE1_PATH}/${siteId}`, value: null },
+      { path: `${PAGE2_PATH}/${siteId}`, value: null },
+      { path: `${PAGE3_PATH}/${siteId}`, value: null },
+    ], true);
+
+    return true;
+  }
+
+  function createItem(siteId, numberValue) {
+    const site = state.cache.sites[siteId];
+    if (!site) {
+      return null;
+    }
+
     const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ""));
     if (cleanNumber.length < 4) {
       return null;
     }
 
+    const timestamp = now();
+    const itemId = uid();
     const item = {
-      id: uid(),
+      id: itemId,
       numero: `OUT-${cleanNumber}`,
       dateCreation: timestamp,
       dateModification: timestamp,
-      details: [],
+      ownerId: state.uid,
     };
 
-    site.items.unshift(item);
-    site.dateModification = timestamp;
-    persist();
+    if (!state.cache.items[siteId]) {
+      state.cache.items[siteId] = {};
+    }
+    state.cache.items[siteId][itemId] = item;
+    state.cache.sites[siteId].dateModification = timestamp;
+    notifyChange();
+
+    writeOperation([
+      { path: `${PAGE2_PATH}/${siteId}/${itemId}`, value: item },
+      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
+    ], true);
+
     return clone(item);
   }
 
-  function getItem(siteId, itemId) {
-    const site = state.data.find((entry) => entry.id === siteId);
-    if (!site) {
-      return null;
-    }
-    return clone(site.items.find((item) => item.id === itemId) || null);
-  }
-
   function removeItem(siteId, itemId) {
-    const site = state.data.find((entry) => entry.id === siteId);
-    if (!site) {
-      return;
+    const item = ((state.cache.items[siteId] || {})[itemId]);
+    if (!canDelete(item)) {
+      return false;
     }
-    site.items = site.items.filter((item) => item.id !== itemId);
-    site.dateModification = now();
-    persist();
+
+    if (state.cache.items[siteId]) {
+      delete state.cache.items[siteId][itemId];
+    }
+    if (state.cache.details[siteId]) {
+      delete state.cache.details[siteId][itemId];
+    }
+    const timestamp = now();
+    if (state.cache.sites[siteId]) {
+      state.cache.sites[siteId].dateModification = timestamp;
+    }
+    notifyChange();
+
+    writeOperation([
+      { path: `${PAGE2_PATH}/${siteId}/${itemId}`, value: null },
+      { path: `${PAGE3_PATH}/${siteId}/${itemId}`, value: null },
+      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
+    ], true);
+
+    return true;
   }
 
   function createDetail(siteId, itemId, payload) {
-    const site = state.data.find((entry) => entry.id === siteId);
-    const item = site && site.items.find((entry) => entry.id === itemId);
-    if (!site || !item) {
+    const item = ((state.cache.items[siteId] || {})[itemId]);
+    if (!item) {
       return null;
     }
 
     const timestamp = now();
+    const details = ((state.cache.details[siteId] || {})[itemId]) || {};
+    const detailId = uid();
     const detail = {
-      id: uid(),
-      champ: item.details.length + 1,
+      id: detailId,
+      champ: Object.keys(details).length + 1,
       code: sanitizeText(payload.code, true),
       designation: sanitizeText(payload.designation, true),
       qteSortie: payload.qteSortie === "" ? "" : sanitizeNumber(payload.qteSortie),
@@ -209,20 +396,37 @@
       observation: "",
       dateCreation: timestamp,
       dateModification: timestamp,
+      ownerId: state.uid,
     };
 
-    item.details.push(detail);
-    item.dateModification = timestamp;
-    site.dateModification = timestamp;
-    persist();
+    if (!state.cache.details[siteId]) {
+      state.cache.details[siteId] = {};
+    }
+    if (!state.cache.details[siteId][itemId]) {
+      state.cache.details[siteId][itemId] = {};
+    }
+
+    state.cache.details[siteId][itemId][detailId] = detail;
+    if (state.cache.items[siteId] && state.cache.items[siteId][itemId]) {
+      state.cache.items[siteId][itemId].dateModification = timestamp;
+    }
+    if (state.cache.sites[siteId]) {
+      state.cache.sites[siteId].dateModification = timestamp;
+    }
+    notifyChange();
+
+    writeOperation([
+      { path: `${PAGE3_PATH}/${siteId}/${itemId}/${detailId}`, value: detail },
+      { path: `${PAGE2_PATH}/${siteId}/${itemId}/dateModification`, value: timestamp },
+      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
+    ], true);
+
     return clone(detail);
   }
 
   function updateDetail(siteId, itemId, detailId, changes) {
-    const site = state.data.find((entry) => entry.id === siteId);
-    const item = site && site.items.find((entry) => entry.id === itemId);
-    const detail = item && item.details.find((entry) => entry.id === detailId);
-    if (!site || !item || !detail) {
+    const detail = ((((state.cache.details[siteId] || {})[itemId]) || {})[detailId]);
+    if (!detail) {
       return null;
     }
 
@@ -264,64 +468,148 @@
       detail.qteRetour = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qtePosee));
     }
 
-    detail.dateModification = now();
-    item.dateModification = detail.dateModification;
-    site.dateModification = detail.dateModification;
-    persist();
+    const timestamp = now();
+    detail.dateModification = timestamp;
+    if (state.cache.items[siteId] && state.cache.items[siteId][itemId]) {
+      state.cache.items[siteId][itemId].dateModification = timestamp;
+    }
+    if (state.cache.sites[siteId]) {
+      state.cache.sites[siteId].dateModification = timestamp;
+    }
+    notifyChange();
+
+    writeOperation([
+      { path: `${PAGE3_PATH}/${siteId}/${itemId}/${detailId}`, value: detail },
+      { path: `${PAGE2_PATH}/${siteId}/${itemId}/dateModification`, value: timestamp },
+      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
+    ], true);
+
     return clone(detail);
   }
 
+  function reindexDetails(siteId, itemId) {
+    const detailsMap = ((state.cache.details[siteId] || {})[itemId]) || {};
+    const ordered = Object.values(detailsMap).sort((a, b) => Number(a.champ) - Number(b.champ));
+    ordered.forEach((detail, index) => {
+      detail.champ = index + 1;
+    });
+    return ordered;
+  }
+
   function removeDetail(siteId, itemId, detailId) {
-    const site = state.data.find((entry) => entry.id === siteId);
-    const item = site && site.items.find((entry) => entry.id === itemId);
-    if (!site || !item) {
-      return;
+    const detail = ((((state.cache.details[siteId] || {})[itemId]) || {})[detailId]);
+    if (!canDelete(detail)) {
+      return false;
     }
 
-    item.details = item.details
-      .filter((detail) => detail.id !== detailId)
-      .map((detail, index) => ({ ...detail, champ: index + 1 }));
+    if (state.cache.details[siteId] && state.cache.details[siteId][itemId]) {
+      delete state.cache.details[siteId][itemId][detailId];
+    }
 
     const timestamp = now();
-    item.dateModification = timestamp;
-    site.dateModification = timestamp;
-    persist();
+    const ordered = reindexDetails(siteId, itemId);
+
+    if (state.cache.items[siteId] && state.cache.items[siteId][itemId]) {
+      state.cache.items[siteId][itemId].dateModification = timestamp;
+    }
+    if (state.cache.sites[siteId]) {
+      state.cache.sites[siteId].dateModification = timestamp;
+    }
+
+    notifyChange();
+
+    const operations = [
+      { path: `${PAGE3_PATH}/${siteId}/${itemId}/${detailId}`, value: null },
+      { path: `${PAGE2_PATH}/${siteId}/${itemId}/dateModification`, value: timestamp },
+      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
+    ];
+
+    ordered.forEach((entry) => {
+      operations.push({ path: `${PAGE3_PATH}/${siteId}/${itemId}/${entry.id}/champ`, value: entry.champ });
+    });
+
+    writeOperation(operations, true);
+    return true;
   }
 
   function exportData() {
     return {
-      format: 'suivi-materiel-export',
-      version: 1,
+      format: "suivi-materiel-export",
+      version: 2,
       exportedAt: now(),
-      data: clone(state.data),
+      data: getSites(),
     };
   }
 
   function importData(payload) {
-    const source = payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload;
-    const normalized = normalizeImportedData(source);
-    if (!normalized) {
+    const source = payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
+    if (!Array.isArray(source)) {
       return false;
     }
 
-    state.data = normalized;
-    persist();
+    source.forEach((sitePayload) => {
+      const createdSite = createSite(sitePayload.nom || "SANS NOM");
+      if (!createdSite) {
+        return;
+      }
+      (sitePayload.items || []).forEach((itemPayload) => {
+        const itemNumber = sanitizeDigits(String(itemPayload.numero || ""));
+        const createdItem = createItem(createdSite.id, itemNumber.length >= 4 ? itemNumber : "0000");
+        if (!createdItem) {
+          return;
+        }
+
+        (itemPayload.details || []).forEach((detailPayload) => {
+          const createdDetail = createDetail(createdSite.id, createdItem.id, {
+            code: detailPayload.code,
+            designation: detailPayload.designation,
+            qteSortie: detailPayload.qteSortie,
+            unite: detailPayload.unite || "m",
+          });
+
+          if (createdDetail) {
+            updateDetail(createdSite.id, createdItem.id, createdDetail.id, {
+              qteRetour: detailPayload.qteRetour,
+              qtePosee: detailPayload.qtePosee,
+              observation: detailPayload.observation,
+            });
+          }
+        });
+      });
+    });
+
     return true;
+  }
+
+  function canDeleteSite(siteId) {
+    return canDelete(state.cache.sites[siteId]);
+  }
+
+  function canDeleteItem(siteId, itemId) {
+    return canDelete(((state.cache.items[siteId] || {})[itemId]));
+  }
+
+  function canDeleteDetail(siteId, itemId, detailId) {
+    return canDelete(((((state.cache.details[siteId] || {})[itemId]) || {})[detailId]));
   }
 
   window.StorageService = {
     init,
+    onChange,
     getSites,
     getSite,
+    getItem,
     createSite,
     removeSite,
     createItem,
-    getItem,
     removeItem,
     createDetail,
     updateDetail,
     removeDetail,
     exportData,
     importData,
+    canDeleteSite,
+    canDeleteItem,
+    canDeleteDetail,
   };
 })();
