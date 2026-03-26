@@ -3,25 +3,18 @@ import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/1
 import {
   getFirestore,
   collection,
-  doc,
-  getDoc,
+  query,
+  orderBy,
   onSnapshot,
-  writeBatch,
-  setDoc,
   addDoc,
-  deleteField,
+  updateDoc,
+  doc,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 (() => {
-  const STORAGE_KEY = "suivi-materiel-local-data";
-  const OFFLINE_QUEUE_KEY = "suivi-materiel-offline-queue";
-  const PAGE1_PATH = "pages/page1/sites";
-  const PAGE2_PATH = "pages/page2/items";
-  const PAGE3_PATH = "pages/page3/details";
-
   const state = {
     initialized: false,
-    online: true,
     cache: {
       sites: {},
       items: {},
@@ -29,12 +22,9 @@ import {
     },
     listeners: [],
     unsubscribers: [],
-    offlineQueue: [],
-    firebaseListenersAttached: false,
-    networkListenersAttached: false,
-    firebaseReady: false,
     db: null,
     auth: null,
+    firebaseReady: false,
   };
 
   function clone(value) {
@@ -43,10 +33,6 @@ import {
 
   function now() {
     return new Date().toISOString();
-  }
-
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
   function safeTrim(value) {
@@ -72,41 +58,7 @@ import {
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   }
 
-  function persistLocalSnapshot() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cache));
-  }
-
-  function readLocalSnapshot() {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      if (!parsed || typeof parsed !== "object") {
-        return;
-      }
-      state.cache.sites = parsed.sites && typeof parsed.sites === "object" ? parsed.sites : {};
-      state.cache.items = parsed.items && typeof parsed.items === "object" ? parsed.items : {};
-      state.cache.details = parsed.details && typeof parsed.details === "object" ? parsed.details : {};
-    } catch (error) {
-      state.cache.sites = {};
-      state.cache.items = {};
-      state.cache.details = {};
-    }
-  }
-
-  function persistOfflineQueue() {
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(state.offlineQueue));
-  }
-
-  function readOfflineQueue() {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
-      state.offlineQueue = Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      state.offlineQueue = [];
-    }
-  }
-
   function notifyChange() {
-    persistLocalSnapshot();
     state.listeners.forEach((listener) => listener());
   }
 
@@ -132,8 +84,7 @@ import {
 
   function mapDetails(siteId, itemId) {
     const itemDetails = ((state.cache.details[siteId] || {})[itemId]) || {};
-    return Object.values(itemDetails)
-      .sort((a, b) => Number(a.champ) - Number(b.champ));
+    return Object.values(itemDetails).sort((a, b) => Number(a.champ) - Number(b.champ));
   }
 
   function getSites() {
@@ -156,35 +107,15 @@ import {
     return clone({ ...item, details: mapDetails(siteId, itemId) });
   }
 
-  function hasFirebase() {
-    return !!state.db;
-  }
-
   async function ensureFirebaseAuth() {
-    if (!state.auth) {
-      console.warn("[Firestore] Auth module unavailable.");
-      return false;
-    }
-    if (state.auth.currentUser) {
-      return true;
-    }
-
-    try {
+    if (!state.auth.currentUser) {
       await signInAnonymously(state.auth);
       console.log("[Firestore] Anonymous auth success.");
-      return true;
-    } catch (error) {
-      console.error("Firebase anonymous sign-in failed. Continuing without auth:", error);
-      return false;
     }
+    return state.auth.currentUser;
   }
 
-  function queueOperation(operation) {
-    state.offlineQueue.push(operation);
-    persistOfflineQueue();
-  }
-
-  async function logDebugEvent(event, payload) {
+  async function addDebugLog(event, payload) {
     if (!state.db) {
       return;
     }
@@ -195,202 +126,78 @@ import {
         createdAt: now(),
       });
     } catch (error) {
-      console.error("[Firestore] addDoc debug_logs failed:", error);
-    }
-  }
-
-  async function writeOperation(operation, saveOfflineOnError) {
-    console.log("[Firestore] writeOperation called:", operation);
-    if (!hasFirebase() || !state.online) {
-      console.warn("[Firestore] Firebase unavailable or offline. Operation queued:", {
-        hasFirebase: hasFirebase(),
-        online: state.online,
-      });
-      if (saveOfflineOnError) {
-        queueOperation(operation);
-      }
-      return false;
-    }
-
-    try {
-      await logDebugEvent("write_operation_received", { operationCount: operation.length });
-      const batch = writeBatch(state.db);
-      const docs = {
-        page1_sites: doc(state.db, "app_data", "page1_sites"),
-        page2_items: doc(state.db, "app_data", "page2_items"),
-        page3_details: doc(state.db, "app_data", "page3_details"),
-      };
-
-      const upsertsByDoc = {};
-      const deletesByDoc = {};
-
-      operation.forEach((entry) => {
-        const parsed = resolveOperationTarget(entry.path);
-        if (!parsed) {
-          return;
-        }
-
-        const { docId, fieldPath } = parsed;
-        if (entry.value === null) {
-          if (!deletesByDoc[docId]) {
-            deletesByDoc[docId] = {};
-          }
-          if (fieldPath) {
-            deletesByDoc[docId][fieldPath] = deleteField();
-          } else {
-            deletesByDoc[docId].__clearAll = true;
-          }
-          return;
-        }
-
-        if (!upsertsByDoc[docId]) {
-          upsertsByDoc[docId] = {};
-        }
-        if (fieldPath) {
-          upsertsByDoc[docId][fieldPath] = clone(entry.value);
-        } else {
-          Object.assign(upsertsByDoc[docId], clone(entry.value));
-        }
-      });
-
-      Object.entries(upsertsByDoc).forEach(([docId, payload]) => {
-        batch.set(docs[docId], payload, { merge: true });
-      });
-
-      Object.entries(deletesByDoc).forEach(([docId, payload]) => {
-        if (payload.__clearAll) {
-          batch.set(docs[docId], {});
-          return;
-        }
-        batch.set(docs[docId], payload, { merge: true });
-      });
-
-      await batch.commit();
-      console.log("[Firestore] Batch write committed successfully.");
-      await logDebugEvent("write_operation_success", { operationCount: operation.length });
-      return true;
-    } catch (error) {
-      if (error && error.code === "permission-denied") {
-        console.error("[Firestore] Permission denied. Check Firestore rules for write access.", error);
-      }
-      console.error("Firestore write failed:", error);
-      await logDebugEvent("write_operation_failed", {
-        operationCount: operation.length,
-        message: error?.message || "Unknown error",
-        code: error?.code || null,
-      });
-      if (saveOfflineOnError) {
-        queueOperation(operation);
-      }
-      return false;
-    }
-  }
-
-  async function flushOfflineQueue() {
-    if (!state.offlineQueue.length || !hasFirebase()) {
-      return;
-    }
-
-    const pending = [...state.offlineQueue];
-    state.offlineQueue = [];
-    persistOfflineQueue();
-
-    for (const operation of pending) {
-      await writeOperation(operation, true);
-    }
-  }
-
-  function canDelete(record) {
-    return !!record;
-  }
-
-  function toPathSegments(path) {
-    return String(path || "")
-      .split("/")
-      .map((segment) => safeTrim(segment))
-      .filter(Boolean);
-  }
-
-  function resolveOperationTarget(path) {
-    const segments = toPathSegments(path);
-    if (segments.length < 3 || segments[0] !== "pages") {
-      return null;
-    }
-
-    const pageName = segments[1];
-    const dataName = segments[2];
-    const tail = segments.slice(3);
-
-    if (pageName === "page1" && dataName === "sites") {
-      return { docId: "page1_sites", fieldPath: tail.join(".") };
-    }
-    if (pageName === "page2" && dataName === "items") {
-      return { docId: "page2_items", fieldPath: tail.join(".") };
-    }
-    if (pageName === "page3" && dataName === "details") {
-      return { docId: "page3_details", fieldPath: tail.join(".") };
-    }
-    return null;
-  }
-
-  async function ensureFirestoreDocuments() {
-    console.log("[Firestore] Ensuring target documents exist in collection 'app_data'.");
-    await Promise.all([
-      setDoc(doc(state.db, "app_data", "page1_sites"), {}, { merge: true }),
-      setDoc(doc(state.db, "app_data", "page2_items"), {}, { merge: true }),
-      setDoc(doc(state.db, "app_data", "page3_details"), {}, { merge: true }),
-    ]);
-  }
-
-
-  async function hydrateCacheFromFirestore() {
-    if (state.offlineQueue.length) {
-      return;
-    }
-
-    try {
-      const [sitesSnapshot, itemsSnapshot, detailsSnapshot] = await Promise.all([
-        getDoc(doc(state.db, "app_data", "page1_sites")),
-        getDoc(doc(state.db, "app_data", "page2_items")),
-        getDoc(doc(state.db, "app_data", "page3_details")),
-      ]);
-
-      state.cache.sites = sitesSnapshot.exists ? (sitesSnapshot.data() || {}) : {};
-      state.cache.items = itemsSnapshot.exists ? (itemsSnapshot.data() || {}) : {};
-      state.cache.details = detailsSnapshot.exists ? (detailsSnapshot.data() || {}) : {};
-      notifyChange();
-    } catch (error) {
-      console.error("Firestore hydration failed:", error);
+      console.error("[Firestore] debug_logs addDoc failed:", error);
     }
   }
 
   function attachRealtimeListeners() {
-    if (state.firebaseListenersAttached) {
-      return;
-    }
+    state.unsubscribers.forEach((unsubscribe) => unsubscribe());
+    state.unsubscribers = [];
 
-    const unsubSite = onSnapshot(doc(state.db, "app_data", "page1_sites"), (snapshot) => {
-      console.log("[Firestore] Realtime update received: page1_sites");
-      state.cache.sites = snapshot.exists ? (snapshot.data() || {}) : {};
-      notifyChange();
-    });
+    const sitesQuery = query(collection(state.db, "sites"), orderBy("dateCreation", "desc"));
+    const itemsQuery = query(collection(state.db, "items"), orderBy("dateCreation", "desc"));
+    const detailsQuery = query(collection(state.db, "details"), orderBy("champ", "asc"));
 
-    const unsubItem = onSnapshot(doc(state.db, "app_data", "page2_items"), (snapshot) => {
-      console.log("[Firestore] Realtime update received: page2_items");
-      state.cache.items = snapshot.exists ? (snapshot.data() || {}) : {};
-      notifyChange();
-    });
+    const unsubSites = onSnapshot(
+      sitesQuery,
+      (snapshot) => {
+        const sites = {};
+        snapshot.forEach((siteDoc) => {
+          sites[siteDoc.id] = { id: siteDoc.id, ...siteDoc.data() };
+        });
+        state.cache.sites = sites;
+        console.log("[Firestore] onSnapshot sites updated:", snapshot.size);
+        notifyChange();
+      },
+      (error) => {
+        console.error("[Firestore] onSnapshot sites failed:", error);
+      },
+    );
 
-    const unsubDetail = onSnapshot(doc(state.db, "app_data", "page3_details"), (snapshot) => {
-      console.log("[Firestore] Realtime update received: page3_details");
-      state.cache.details = snapshot.exists ? (snapshot.data() || {}) : {};
-      notifyChange();
-    });
+    const unsubItems = onSnapshot(
+      itemsQuery,
+      (snapshot) => {
+        const grouped = {};
+        snapshot.forEach((itemDoc) => {
+          const entry = { id: itemDoc.id, ...itemDoc.data() };
+          if (!grouped[entry.siteId]) {
+            grouped[entry.siteId] = {};
+          }
+          grouped[entry.siteId][itemDoc.id] = entry;
+        });
+        state.cache.items = grouped;
+        console.log("[Firestore] onSnapshot items updated:", snapshot.size);
+        notifyChange();
+      },
+      (error) => {
+        console.error("[Firestore] onSnapshot items failed:", error);
+      },
+    );
 
-    state.unsubscribers.push(unsubSite);
-    state.unsubscribers.push(unsubItem);
-    state.unsubscribers.push(unsubDetail);
-    state.firebaseListenersAttached = true;
+    const unsubDetails = onSnapshot(
+      detailsQuery,
+      (snapshot) => {
+        const grouped = {};
+        snapshot.forEach((detailDoc) => {
+          const entry = { id: detailDoc.id, ...detailDoc.data() };
+          if (!grouped[entry.siteId]) {
+            grouped[entry.siteId] = {};
+          }
+          if (!grouped[entry.siteId][entry.itemId]) {
+            grouped[entry.siteId][entry.itemId] = {};
+          }
+          grouped[entry.siteId][entry.itemId][detailDoc.id] = entry;
+        });
+        state.cache.details = grouped;
+        console.log("[Firestore] onSnapshot details updated:", snapshot.size);
+        notifyChange();
+      },
+      (error) => {
+        console.error("[Firestore] onSnapshot details failed:", error);
+      },
+    );
+
+    state.unsubscribers.push(unsubSites, unsubItems, unsubDetails);
   }
 
   async function initFirebaseSync() {
@@ -405,55 +212,17 @@ import {
     };
 
     if (!getApps().length) {
-      console.log("[Firestore] Initializing Firebase app.");
-      state.app = initializeApp(config);
-    } else {
-      state.app = getApps()[0];
-      console.log("[Firestore] Firebase app already initialized.");
+      initializeApp(config);
+      console.log("[Firestore] Firebase app initialized.");
     }
 
-    try {
-      state.auth = getAuth(state.app);
-      state.db = getFirestore(state.app);
-      state.firebaseReady = true;
-      console.log("[Firestore] Firebase initialized (v9 modular).");
-      console.log("[Firestore] Firestore instance created.");
+    state.auth = getAuth();
+    state.db = getFirestore();
 
-      const authenticated = await ensureFirebaseAuth();
-      if (!authenticated) {
-        console.warn("[Firestore] No authenticated user. Firestore rules may block writes.");
-      }
-
-      await ensureFirestoreDocuments();
-      state.online = true;
-      await hydrateCacheFromFirestore();
-      attachRealtimeListeners();
-
-      if (!state.networkListenersAttached) {
-        window.addEventListener("online", () => {
-          state.online = true;
-          console.log("[Firestore] Browser online event detected.");
-          initFirebaseSync();
-          flushOfflineQueue();
-        });
-
-        window.addEventListener("offline", () => {
-          state.online = false;
-          console.warn("[Firestore] Browser offline mode detected.");
-        });
-        state.networkListenersAttached = true;
-      }
-
-      await flushOfflineQueue();
-    } catch (error) {
-      state.online = false;
-      state.firebaseReady = false;
-      if (error && error.code === "permission-denied") {
-        console.error("[Firestore] Firestore blocked by rules. Allow authenticated writes in rules.", error);
-      } else {
-        console.error("[Firestore] initFirebaseSync failed:", error);
-      }
-    }
+    await ensureFirebaseAuth();
+    state.firebaseReady = true;
+    attachRealtimeListeners();
+    console.log("[Firestore] Realtime sync ready (Firestore only).");
   }
 
   async function init() {
@@ -461,11 +230,13 @@ import {
       return;
     }
     state.initialized = true;
-    readLocalSnapshot();
-    readOfflineQueue();
-    notifyChange();
-    console.log("[Storage] Local cache initialized, starting Firebase sync.");
-    await initFirebaseSync();
+
+    try {
+      await initFirebaseSync();
+    } catch (error) {
+      console.error("[Firestore] init failed:", error);
+      throw error;
+    }
   }
 
   function buildSite(name) {
@@ -475,80 +246,74 @@ import {
     }
 
     const timestamp = now();
-    const siteId = uid();
-    const site = {
-      id: siteId,
+    return {
       nom: siteName,
       dateCreation: timestamp,
       dateModification: timestamp,
+      ownerId: state.auth?.currentUser?.uid || null,
     };
-    return site;
   }
 
-  function createSite(name) {
+  async function createSite(name) {
     const site = buildSite(name);
-    if (!site) {
+    if (!site || !state.db) {
       return null;
     }
 
-    state.cache.sites[site.id] = site;
-    notifyChange();
-
-    writeOperation([
-      { path: `${PAGE1_PATH}/${site.id}`, value: site },
-    ], true);
-
-    return clone(site);
+    try {
+      console.log("[Firestore] addDoc site payload:", site);
+      await addDebugLog("create_site_attempt", site);
+      const ref = await addDoc(collection(state.db, "sites"), site);
+      await addDebugLog("create_site_success", { siteId: ref.id });
+      return { id: ref.id, ...site };
+    } catch (error) {
+      console.error("[Firestore] createSite failed:", error);
+      await addDebugLog("create_site_failed", { message: error?.message || "Unknown" });
+      return null;
+    }
   }
 
   async function createSiteWithSyncStatus(name) {
-    const site = buildSite(name);
-    if (!site) {
-      return null;
-    }
-
-    state.cache.sites[site.id] = site;
-    notifyChange();
-
-    let savedToFirestore = false;
-    try {
-      savedToFirestore = await writeOperation([
-        { path: `${PAGE1_PATH}/${site.id}`, value: site },
-      ], true);
-      console.log("[Firestore] createSiteWithSyncStatus result:", { siteId: site.id, savedToFirestore });
-    } catch (error) {
-      console.error("[Firestore] Unexpected error while creating site:", error);
-    }
-
+    const site = await createSite(name);
     return {
-      site: clone(site),
-      savedToFirestore,
+      site,
+      savedToFirestore: !!site,
     };
   }
 
-  function removeSite(siteId) {
-    const site = state.cache.sites[siteId];
-    if (!canDelete(site)) {
+  async function removeSite(siteId) {
+    if (!state.db || !state.cache.sites[siteId]) {
       return false;
     }
 
-    delete state.cache.sites[siteId];
-    delete state.cache.items[siteId];
-    delete state.cache.details[siteId];
-    notifyChange();
+    try {
+      const batch = writeBatch(state.db);
+      batch.delete(doc(state.db, "sites", siteId));
 
-    writeOperation([
-      { path: `${PAGE1_PATH}/${siteId}`, value: null },
-      { path: `${PAGE2_PATH}/${siteId}`, value: null },
-      { path: `${PAGE3_PATH}/${siteId}`, value: null },
-    ], true);
+      Object.values(state.cache.items[siteId] || {}).forEach((item) => {
+        batch.delete(doc(state.db, "items", item.id));
+      });
 
-    return true;
+      const siteDetails = state.cache.details[siteId] || {};
+      Object.values(siteDetails).forEach((detailByItem) => {
+        Object.values(detailByItem).forEach((detail) => {
+          batch.delete(doc(state.db, "details", detail.id));
+        });
+      });
+
+      console.log("[Firestore] removeSite batch commit:", { siteId });
+      await batch.commit();
+      await addDebugLog("remove_site_success", { siteId });
+      return true;
+    } catch (error) {
+      console.error("[Firestore] removeSite failed:", error);
+      await addDebugLog("remove_site_failed", { siteId, message: error?.message || "Unknown" });
+      return false;
+    }
   }
 
-  function createItem(siteId, numberValue) {
-    const site = state.cache.sites[siteId];
-    if (!site) {
+  async function createItem(siteId, numberValue) {
+    if (!state.db || !state.cache.sites[siteId]) {
       return null;
     }
 
@@ -558,67 +323,64 @@ import {
     }
 
     const timestamp = now();
-    const itemId = uid();
     const item = {
-      id: itemId,
+      siteId,
       numero: `OUT-${cleanNumber}`,
       dateCreation: timestamp,
       dateModification: timestamp,
+      ownerId: state.auth?.currentUser?.uid || null,
     };
 
-    if (!state.cache.items[siteId]) {
-      state.cache.items[siteId] = {};
+    try {
+      console.log("[Firestore] addDoc item payload:", item);
+      const itemRef = await addDoc(collection(state.db, "items"), item);
+      await updateDoc(doc(state.db, "sites", siteId), { dateModification: timestamp });
+      return { id: itemRef.id, ...item };
+    } catch (error) {
+      console.error("[Firestore] createItem failed:", error);
+      await addDebugLog("create_item_failed", { siteId, message: error?.message || "Unknown" });
+      return null;
     }
-    state.cache.items[siteId][itemId] = item;
-    state.cache.sites[siteId].dateModification = timestamp;
-    notifyChange();
-
-    writeOperation([
-      { path: `${PAGE2_PATH}/${siteId}/${itemId}`, value: item },
-      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
-    ], true);
-
-    return clone(item);
   }
 
-  function removeItem(siteId, itemId) {
-    const item = ((state.cache.items[siteId] || {})[itemId]);
-    if (!canDelete(item)) {
+  async function removeItem(siteId, itemId) {
+    if (!state.db || !((state.cache.items[siteId] || {})[itemId])) {
       return false;
     }
 
-    if (state.cache.items[siteId]) {
-      delete state.cache.items[siteId][itemId];
-    }
-    if (state.cache.details[siteId]) {
-      delete state.cache.details[siteId][itemId];
-    }
-    const timestamp = now();
-    if (state.cache.sites[siteId]) {
-      state.cache.sites[siteId].dateModification = timestamp;
-    }
-    notifyChange();
+    try {
+      const batch = writeBatch(state.db);
+      batch.delete(doc(state.db, "items", itemId));
 
-    writeOperation([
-      { path: `${PAGE2_PATH}/${siteId}/${itemId}`, value: null },
-      { path: `${PAGE3_PATH}/${siteId}/${itemId}`, value: null },
-      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
-    ], true);
+      Object.values((state.cache.details[siteId] || {})[itemId] || {}).forEach((detail) => {
+        batch.delete(doc(state.db, "details", detail.id));
+      });
 
-    return true;
+      const timestamp = now();
+      batch.update(doc(state.db, "sites", siteId), { dateModification: timestamp });
+
+      console.log("[Firestore] removeItem batch commit:", { siteId, itemId });
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error("[Firestore] removeItem failed:", error);
+      await addDebugLog("remove_item_failed", { siteId, itemId, message: error?.message || "Unknown" });
+      return false;
+    }
   }
 
-  function createDetail(siteId, itemId, payload) {
+  async function createDetail(siteId, itemId, payload) {
     const item = ((state.cache.items[siteId] || {})[itemId]);
-    if (!item) {
+    if (!state.db || !item) {
       return null;
     }
 
     const timestamp = now();
     const details = ((state.cache.details[siteId] || {})[itemId]) || {};
-    const detailId = uid();
+
     const detail = {
-      id: detailId,
+      siteId,
+      itemId,
       champ: Object.keys(details).length + 1,
       code: sanitizeText(payload.code, true),
       designation: sanitizeText(payload.designation, true),
@@ -630,139 +392,100 @@ import {
       observation: "",
       dateCreation: timestamp,
       dateModification: timestamp,
+      ownerId: state.auth?.currentUser?.uid || null,
     };
 
-    if (!state.cache.details[siteId]) {
-      state.cache.details[siteId] = {};
+    try {
+      console.log("[Firestore] addDoc detail payload:", detail);
+      const detailRef = await addDoc(collection(state.db, "details"), detail);
+      const batch = writeBatch(state.db);
+      batch.update(doc(state.db, "items", itemId), { dateModification: timestamp });
+      batch.update(doc(state.db, "sites", siteId), { dateModification: timestamp });
+      await batch.commit();
+      return { id: detailRef.id, ...detail };
+    } catch (error) {
+      console.error("[Firestore] createDetail failed:", error);
+      await addDebugLog("create_detail_failed", { siteId, itemId, message: error?.message || "Unknown" });
+      return null;
     }
-    if (!state.cache.details[siteId][itemId]) {
-      state.cache.details[siteId][itemId] = {};
-    }
-
-    state.cache.details[siteId][itemId][detailId] = detail;
-    if (state.cache.items[siteId] && state.cache.items[siteId][itemId]) {
-      state.cache.items[siteId][itemId].dateModification = timestamp;
-    }
-    if (state.cache.sites[siteId]) {
-      state.cache.sites[siteId].dateModification = timestamp;
-    }
-    notifyChange();
-
-    writeOperation([
-      { path: `${PAGE3_PATH}/${siteId}/${itemId}/${detailId}`, value: detail },
-      { path: `${PAGE2_PATH}/${siteId}/${itemId}/dateModification`, value: timestamp },
-      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
-    ], true);
-
-    return clone(detail);
   }
 
-  function updateDetail(siteId, itemId, detailId, changes) {
+  async function updateDetail(siteId, itemId, detailId, changes) {
     const detail = ((((state.cache.details[siteId] || {})[itemId]) || {})[detailId]);
-    if (!detail) {
+    if (!state.db || !detail) {
       return null;
     }
 
-    if ("code" in changes) {
-      detail.code = sanitizeText(changes.code, true);
-    }
-    if ("designation" in changes) {
-      detail.designation = sanitizeText(changes.designation, false);
-    }
+    const next = clone(detail);
+    if ("code" in changes) next.code = sanitizeText(changes.code, true);
+    if ("designation" in changes) next.designation = sanitizeText(changes.designation, false);
+
     if ("qteSortie" in changes) {
-      detail.qteSortie = sanitizeNumber(changes.qteSortie);
-      if (sanitizeNumber(detail.qteRetour) > detail.qteSortie) {
-        detail.qteRetour = detail.qteSortie;
-      }
-      if (sanitizeNumber(detail.qtePosee) > detail.qteSortie) {
-        detail.qtePosee = detail.qteSortie;
-      }
+      next.qteSortie = sanitizeNumber(changes.qteSortie);
+      if (sanitizeNumber(next.qteRetour) > next.qteSortie) next.qteRetour = next.qteSortie;
+      if (sanitizeNumber(next.qtePosee) > next.qteSortie) next.qtePosee = next.qteSortie;
     }
-    if ("unite" in changes) {
-      detail.unite = sanitizeText(changes.unite, false) || "m";
-    }
-    if ("qteHorsBtrs" in changes) {
-      detail.qteHorsBtrs = changes.qteHorsBtrs === "" ? "" : sanitizeNumber(changes.qteHorsBtrs);
-    }
+    if ("unite" in changes) next.unite = sanitizeText(changes.unite, false) || "m";
+    if ("qteHorsBtrs" in changes) next.qteHorsBtrs = changes.qteHorsBtrs === "" ? "" : sanitizeNumber(changes.qteHorsBtrs);
     if ("qteRetour" in changes) {
-      detail.qteRetour = Math.min(sanitizeNumber(changes.qteRetour), sanitizeNumber(detail.qteSortie));
-      detail.qtePosee = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qteRetour));
+      next.qteRetour = Math.min(sanitizeNumber(changes.qteRetour), sanitizeNumber(next.qteSortie));
+      next.qtePosee = Math.max(0, sanitizeNumber(next.qteSortie) - sanitizeNumber(next.qteRetour));
     }
     if ("qtePosee" in changes) {
-      detail.qtePosee = Math.min(sanitizeNumber(changes.qtePosee), sanitizeNumber(detail.qteSortie));
-      detail.qteRetour = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qtePosee));
+      next.qtePosee = Math.min(sanitizeNumber(changes.qtePosee), sanitizeNumber(next.qteSortie));
+      next.qteRetour = Math.max(0, sanitizeNumber(next.qteSortie) - sanitizeNumber(next.qtePosee));
     }
-    if ("observation" in changes) {
-      detail.observation = sanitizeText(changes.observation, false);
-    }
+    if ("observation" in changes) next.observation = sanitizeText(changes.observation, false);
 
     if (!("qteRetour" in changes) && !("qtePosee" in changes)) {
-      detail.qtePosee = Math.min(sanitizeNumber(detail.qtePosee), sanitizeNumber(detail.qteSortie));
-      detail.qteRetour = Math.max(0, sanitizeNumber(detail.qteSortie) - sanitizeNumber(detail.qtePosee));
+      next.qtePosee = Math.min(sanitizeNumber(next.qtePosee), sanitizeNumber(next.qteSortie));
+      next.qteRetour = Math.max(0, sanitizeNumber(next.qteSortie) - sanitizeNumber(next.qtePosee));
     }
 
     const timestamp = now();
-    detail.dateModification = timestamp;
-    if (state.cache.items[siteId] && state.cache.items[siteId][itemId]) {
-      state.cache.items[siteId][itemId].dateModification = timestamp;
-    }
-    if (state.cache.sites[siteId]) {
-      state.cache.sites[siteId].dateModification = timestamp;
-    }
-    notifyChange();
+    next.dateModification = timestamp;
 
-    writeOperation([
-      { path: `${PAGE3_PATH}/${siteId}/${itemId}/${detailId}`, value: detail },
-      { path: `${PAGE2_PATH}/${siteId}/${itemId}/dateModification`, value: timestamp },
-      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
-    ], true);
-
-    return clone(detail);
+    try {
+      console.log("[Firestore] updateDoc detail payload:", { detailId, next });
+      const batch = writeBatch(state.db);
+      batch.update(doc(state.db, "details", detailId), next);
+      batch.update(doc(state.db, "items", itemId), { dateModification: timestamp });
+      batch.update(doc(state.db, "sites", siteId), { dateModification: timestamp });
+      await batch.commit();
+      return next;
+    } catch (error) {
+      console.error("[Firestore] updateDetail failed:", error);
+      await addDebugLog("update_detail_failed", { siteId, itemId, detailId, message: error?.message || "Unknown" });
+      return null;
+    }
   }
 
-  function reindexDetails(siteId, itemId) {
-    const detailsMap = ((state.cache.details[siteId] || {})[itemId]) || {};
-    const ordered = Object.values(detailsMap).sort((a, b) => Number(a.champ) - Number(b.champ));
-    ordered.forEach((detail, index) => {
-      detail.champ = index + 1;
-    });
-    return ordered;
-  }
-
-  function removeDetail(siteId, itemId, detailId) {
+  async function removeDetail(siteId, itemId, detailId) {
     const detail = ((((state.cache.details[siteId] || {})[itemId]) || {})[detailId]);
-    if (!canDelete(detail)) {
+    if (!state.db || !detail) {
       return false;
     }
 
-    if (state.cache.details[siteId] && state.cache.details[siteId][itemId]) {
-      delete state.cache.details[siteId][itemId][detailId];
+    try {
+      const batch = writeBatch(state.db);
+      batch.delete(doc(state.db, "details", detailId));
+
+      const ordered = mapDetails(siteId, itemId).filter((entry) => entry.id !== detailId);
+      ordered.forEach((entry, index) => {
+        batch.update(doc(state.db, "details", entry.id), { champ: index + 1 });
+      });
+
+      const timestamp = now();
+      batch.update(doc(state.db, "items", itemId), { dateModification: timestamp });
+      batch.update(doc(state.db, "sites", siteId), { dateModification: timestamp });
+      console.log("[Firestore] removeDetail batch commit:", { siteId, itemId, detailId });
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error("[Firestore] removeDetail failed:", error);
+      await addDebugLog("remove_detail_failed", { siteId, itemId, detailId, message: error?.message || "Unknown" });
+      return false;
     }
-
-    const timestamp = now();
-    const ordered = reindexDetails(siteId, itemId);
-
-    if (state.cache.items[siteId] && state.cache.items[siteId][itemId]) {
-      state.cache.items[siteId][itemId].dateModification = timestamp;
-    }
-    if (state.cache.sites[siteId]) {
-      state.cache.sites[siteId].dateModification = timestamp;
-    }
-
-    notifyChange();
-
-    const operations = [
-      { path: `${PAGE3_PATH}/${siteId}/${itemId}/${detailId}`, value: null },
-      { path: `${PAGE2_PATH}/${siteId}/${itemId}/dateModification`, value: timestamp },
-      { path: `${PAGE1_PATH}/${siteId}/dateModification`, value: timestamp },
-    ];
-
-    ordered.forEach((entry) => {
-      operations.push({ path: `${PAGE3_PATH}/${siteId}/${itemId}/${entry.id}/champ`, value: entry.champ });
-    });
-
-    writeOperation(operations, true);
-    return true;
   }
 
   function exportData() {
@@ -780,20 +503,17 @@ import {
       return false;
     }
 
-    source.forEach((sitePayload) => {
-      const createdSite = createSite(sitePayload.nom || "SANS NOM");
-      if (!createdSite) {
-        return;
-      }
-      (sitePayload.items || []).forEach((itemPayload) => {
-        const itemNumber = sanitizeDigits(String(itemPayload.numero || ""));
-        const createdItem = createItem(createdSite.id, itemNumber.length >= 4 ? itemNumber : "0000");
-        if (!createdItem) {
-          return;
-        }
+    source.forEach(async (sitePayload) => {
+      const createdSite = await createSite(sitePayload.nom || "SANS NOM");
+      if (!createdSite) return;
 
-        (itemPayload.details || []).forEach((detailPayload) => {
-          const createdDetail = createDetail(createdSite.id, createdItem.id, {
+      for (const itemPayload of (sitePayload.items || [])) {
+        const itemNumber = sanitizeDigits(String(itemPayload.numero || ""));
+        const createdItem = await createItem(createdSite.id, itemNumber.length >= 4 ? itemNumber : "0000");
+        if (!createdItem) continue;
+
+        for (const detailPayload of (itemPayload.details || [])) {
+          const createdDetail = await createDetail(createdSite.id, createdItem.id, {
             code: detailPayload.code,
             designation: detailPayload.designation,
             qteSortie: detailPayload.qteSortie,
@@ -801,17 +521,24 @@ import {
           });
 
           if (createdDetail) {
-            updateDetail(createdSite.id, createdItem.id, createdDetail.id, {
+            await updateDetail(createdSite.id, createdItem.id, createdDetail.id, {
               qteRetour: detailPayload.qteRetour,
               qtePosee: detailPayload.qtePosee,
               observation: detailPayload.observation,
             });
           }
-        });
-      });
+        }
+      }
     });
 
     return true;
+  }
+
+  function canDelete(record) {
+    if (!record) return false;
+    const currentUid = state.auth?.currentUser?.uid;
+    if (!record.ownerId || !currentUid) return true;
+    return record.ownerId === currentUid;
   }
 
   function canDeleteSite(siteId) {
