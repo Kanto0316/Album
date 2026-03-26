@@ -329,16 +329,24 @@
 
     searchInput.addEventListener("input", renderSites);
 
-    siteForm.addEventListener("submit", (event) => {
+    siteForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const name = siteNameInput.value.trim();
       if (!name) {
         siteFormError.textContent = "Veuillez remplir ce champ";
         return;
       }
-      StorageService.createSite(name);
+      const creationResult = await StorageService.createSiteWithSyncStatus(name);
+      if (!creationResult) {
+        siteFormError.textContent = "Nom du site invalide.";
+        return;
+      }
       siteDialog.close();
-      UiService.showToast("Site créé avec succès.");
+      UiService.showToast(
+        creationResult.savedToFirestore
+          ? "Site créé et enregistré dans Firestore (page 1)."
+          : "Site créé en local. Échec d'enregistrement Firestore (page 1).",
+      );
       renderSites();
     });
 

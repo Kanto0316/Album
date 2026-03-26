@@ -175,7 +175,7 @@
       if (saveOfflineOnError) {
         queueOperation(operation);
       }
-      return;
+      return false;
     }
 
     try {
@@ -233,11 +233,13 @@
       });
 
       await batch.commit();
+      return true;
     } catch (error) {
       console.error("Firestore write failed:", error);
       if (saveOfflineOnError) {
         queueOperation(operation);
       }
+      return false;
     }
   }
 
@@ -399,7 +401,7 @@
     await initFirebaseSync();
   }
 
-  function createSite(name) {
+  function buildSite(name) {
     const siteName = sanitizeText(name, true);
     if (!siteName) {
       return null;
@@ -413,15 +415,42 @@
       dateCreation: timestamp,
       dateModification: timestamp,
     };
+    return site;
+  }
 
-    state.cache.sites[siteId] = site;
+  function createSite(name) {
+    const site = buildSite(name);
+    if (!site) {
+      return null;
+    }
+
+    state.cache.sites[site.id] = site;
     notifyChange();
 
     writeOperation([
-      { path: `${PAGE1_PATH}/${siteId}`, value: site },
+      { path: `${PAGE1_PATH}/${site.id}`, value: site },
     ], true);
 
     return clone(site);
+  }
+
+  async function createSiteWithSyncStatus(name) {
+    const site = buildSite(name);
+    if (!site) {
+      return null;
+    }
+
+    state.cache.sites[site.id] = site;
+    notifyChange();
+
+    const savedToFirestore = await writeOperation([
+      { path: `${PAGE1_PATH}/${site.id}`, value: site },
+    ], true);
+
+    return {
+      site: clone(site),
+      savedToFirestore,
+    };
   }
 
   function removeSite(siteId) {
@@ -731,6 +760,7 @@
     getSite,
     getItem,
     createSite,
+    createSiteWithSyncStatus,
     removeSite,
     createItem,
     removeItem,
