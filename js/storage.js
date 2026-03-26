@@ -149,18 +149,19 @@
 
   async function ensureFirebaseAuth(firebase) {
     if (!hasFirebaseAuth()) {
-      return;
+      return true;
     }
 
     if (firebase.auth().currentUser) {
-      return;
+      return true;
     }
 
     try {
       await firebase.auth().signInAnonymously();
+      return true;
     } catch (error) {
-      state.online = false;
-      console.error("Firebase anonymous sign-in failed:", error);
+      console.error("Firebase anonymous sign-in failed. Continuing without auth:", error);
+      return false;
     }
   }
 
@@ -233,6 +234,7 @@
 
       await batch.commit();
     } catch (error) {
+      console.error("Firestore write failed:", error);
       if (saveOfflineOnError) {
         queueOperation(operation);
       }
@@ -364,9 +366,6 @@
     }
 
     await ensureFirebaseAuth(firebase);
-    if (hasFirebaseAuth() && !firebase.auth().currentUser) {
-      return;
-    }
     const firestore = firebase.firestore();
     await ensureFirestoreDocuments(firestore);
     state.online = true;
