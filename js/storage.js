@@ -140,7 +140,7 @@
   }
 
   function hasFirebase() {
-    return !!(window.firebase && window.firebase.database);
+    return !!(window.firebase && window.firebase.firestore);
   }
 
   function hasFirebaseAuth() {
@@ -178,12 +178,60 @@
     }
 
     try {
-      const db = window.firebase.database();
-      const updates = {};
+      const firestore = window.firebase.firestore();
+      const fieldValue = window.firebase.firestore.FieldValue;
+      const batch = firestore.batch();
+      const docs = {
+        page1_sites: firestore.collection("app_data").doc("page1_sites"),
+        page2_items: firestore.collection("app_data").doc("page2_items"),
+        page3_details: firestore.collection("app_data").doc("page3_details"),
+      };
+
+      const upsertsByDoc = {};
+      const deletesByDoc = {};
+
       operation.forEach((entry) => {
-        updates[entry.path] = entry.value;
+        const parsed = resolveOperationTarget(entry.path);
+        if (!parsed) {
+          return;
+        }
+
+        const { docId, fieldPath } = parsed;
+        if (entry.value === null) {
+          if (!deletesByDoc[docId]) {
+            deletesByDoc[docId] = {};
+          }
+          if (fieldPath) {
+            deletesByDoc[docId][fieldPath] = fieldValue.delete();
+          } else {
+            deletesByDoc[docId].__clearAll = true;
+          }
+          return;
+        }
+
+        if (!upsertsByDoc[docId]) {
+          upsertsByDoc[docId] = {};
+        }
+        if (fieldPath) {
+          upsertsByDoc[docId][fieldPath] = clone(entry.value);
+        } else {
+          Object.assign(upsertsByDoc[docId], clone(entry.value));
+        }
       });
-      await db.ref().update(updates);
+
+      Object.entries(upsertsByDoc).forEach(([docId, payload]) => {
+        batch.set(docs[docId], payload, { merge: true });
+      });
+
+      Object.entries(deletesByDoc).forEach(([docId, payload]) => {
+        if (payload.__clearAll) {
+          batch.set(docs[docId], {});
+          return;
+        }
+        batch.update(docs[docId], payload);
+      });
+
+      await batch.commit();
     } catch (error) {
       if (saveOfflineOnError) {
         queueOperation(operation);
@@ -209,29 +257,66 @@
     return !!record;
   }
 
-  function attachRealtimeListeners(db) {
+  function toPathSegments(path) {
+    return String(path || "")
+      .split("/")
+      .map((segment) => safeTrim(segment))
+      .filter(Boolean);
+  }
+
+  function resolveOperationTarget(path) {
+    const segments = toPathSegments(path);
+    if (segments.length < 3 || segments[0] !== "pages") {
+      return null;
+    }
+
+    const pageName = segments[1];
+    const dataName = segments[2];
+    const tail = segments.slice(3);
+
+    if (pageName === "page1" && dataName === "sites") {
+      return { docId: "page1_sites", fieldPath: tail.join(".") };
+    }
+    if (pageName === "page2" && dataName === "items") {
+      return { docId: "page2_items", fieldPath: tail.join(".") };
+    }
+    if (pageName === "page3" && dataName === "details") {
+      return { docId: "page3_details", fieldPath: tail.join(".") };
+    }
+    return null;
+  }
+
+  async function ensureFirestoreDocuments(firestore) {
+    await Promise.all([
+      firestore.collection("app_data").doc("page1_sites").set({}, { merge: true }),
+      firestore.collection("app_data").doc("page2_items").set({}, { merge: true }),
+      firestore.collection("app_data").doc("page3_details").set({}, { merge: true }),
+    ]);
+  }
+
+  function attachRealtimeListeners(firestore) {
     if (state.firebaseListenersAttached) {
       return;
     }
 
-    const unsubSite = db.ref(PAGE1_PATH).on("value", (snapshot) => {
-      state.cache.sites = snapshot.val() || {};
+    const unsubSite = firestore.collection("app_data").doc("page1_sites").onSnapshot((snapshot) => {
+      state.cache.sites = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
-    const unsubItem = db.ref(PAGE2_PATH).on("value", (snapshot) => {
-      state.cache.items = snapshot.val() || {};
+    const unsubItem = firestore.collection("app_data").doc("page2_items").onSnapshot((snapshot) => {
+      state.cache.items = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
-    const unsubDetail = db.ref(PAGE3_PATH).on("value", (snapshot) => {
-      state.cache.details = snapshot.val() || {};
+    const unsubDetail = firestore.collection("app_data").doc("page3_details").onSnapshot((snapshot) => {
+      state.cache.details = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
-    state.unsubscribers.push(() => db.ref(PAGE1_PATH).off("value", unsubSite));
-    state.unsubscribers.push(() => db.ref(PAGE2_PATH).off("value", unsubItem));
-    state.unsubscribers.push(() => db.ref(PAGE3_PATH).off("value", unsubDetail));
+    state.unsubscribers.push(unsubSite);
+    state.unsubscribers.push(unsubItem);
+    state.unsubscribers.push(unsubDetail);
     state.firebaseListenersAttached = true;
   }
 
@@ -245,7 +330,6 @@
     const config = {
       apiKey: "AIzaSyDUNQi44ZB1V5P_H3Y7sP_W9y7H0UMPtDg",
       authDomain: "album-afec9.firebaseapp.com",
-      databaseURL: "https://album-afec9-default-rtdb.firebaseio.com",
       projectId: "album-afec9",
       storageBucket: "album-afec9.firebasestorage.app",
       messagingSenderId: "583008062800",
@@ -261,9 +345,10 @@
     if (hasFirebaseAuth() && !firebase.auth().currentUser) {
       return;
     }
-    const db = firebase.database();
+    const firestore = firebase.firestore();
+    await ensureFirestoreDocuments(firestore);
     state.online = true;
-    attachRealtimeListeners(db);
+    attachRealtimeListeners(firestore);
 
     if (!state.networkListenersAttached) {
       window.addEventListener("online", () => {
