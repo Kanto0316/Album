@@ -7,8 +7,6 @@
 
   const state = {
     initialized: false,
-    authReady: false,
-    uid: null,
     online: true,
     cache: {
       sites: {},
@@ -19,8 +17,6 @@
     unsubscribers: [],
     offlineQueue: [],
     firebaseListenersAttached: false,
-    authPromise: null,
-    authRetryTimeoutId: null,
     networkListenersAttached: false,
   };
 
@@ -144,7 +140,7 @@
   }
 
   function hasFirebase() {
-    return !!(window.firebase && window.firebase.database && window.firebase.auth);
+    return !!(window.firebase && window.firebase.database);
   }
 
   function queueOperation(operation) {
@@ -153,7 +149,7 @@
   }
 
   async function writeOperation(operation, saveOfflineOnError) {
-    if (!hasFirebase() || !state.authReady || !state.online) {
+    if (!hasFirebase() || !state.online) {
       if (saveOfflineOnError) {
         queueOperation(operation);
       }
@@ -175,7 +171,7 @@
   }
 
   async function flushOfflineQueue() {
-    if (!state.offlineQueue.length || !state.authReady || !hasFirebase()) {
+    if (!state.offlineQueue.length || !hasFirebase()) {
       return;
     }
 
@@ -189,7 +185,7 @@
   }
 
   function canDelete(record) {
-    return !!record && record.ownerId === state.uid;
+    return !!record;
   }
 
   function attachRealtimeListeners(db) {
@@ -218,34 +214,6 @@
     state.firebaseListenersAttached = true;
   }
 
-  async function ensureFirebaseAuth(firebase) {
-    if (state.authReady) {
-      return true;
-    }
-
-    if (!state.authPromise) {
-      state.authPromise = firebase
-        .auth()
-        .signInAnonymously()
-        .then(() => {
-          state.uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
-          state.authReady = true;
-          state.online = true;
-          return true;
-        })
-        .catch(() => {
-          state.authReady = false;
-          state.online = false;
-          return false;
-        })
-        .finally(() => {
-          state.authPromise = null;
-        });
-    }
-
-    return state.authPromise;
-  }
-
   async function initFirebaseSync() {
     if (!hasFirebase()) {
       state.online = false;
@@ -268,22 +236,8 @@
       firebase.initializeApp(config);
     }
 
-    const authenticated = await ensureFirebaseAuth(firebase);
-    if (!authenticated) {
-      if (state.authRetryTimeoutId) {
-        window.clearTimeout(state.authRetryTimeoutId);
-      }
-      state.authRetryTimeoutId = window.setTimeout(() => {
-        initFirebaseSync();
-      }, 5000);
-      return;
-    }
-    if (state.authRetryTimeoutId) {
-      window.clearTimeout(state.authRetryTimeoutId);
-      state.authRetryTimeoutId = null;
-    }
-
     const db = firebase.database();
+    state.online = true;
     attachRealtimeListeners(db);
 
     if (!state.networkListenersAttached) {
@@ -326,7 +280,6 @@
       nom: siteName,
       dateCreation: timestamp,
       dateModification: timestamp,
-      ownerId: state.uid,
     };
 
     state.cache.sites[siteId] = site;
@@ -377,7 +330,6 @@
       numero: `OUT-${cleanNumber}`,
       dateCreation: timestamp,
       dateModification: timestamp,
-      ownerId: state.uid,
     };
 
     if (!state.cache.items[siteId]) {
@@ -444,7 +396,6 @@
       observation: "",
       dateCreation: timestamp,
       dateModification: timestamp,
-      ownerId: state.uid,
     };
 
     if (!state.cache.details[siteId]) {
