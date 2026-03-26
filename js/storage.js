@@ -158,6 +158,7 @@
 
     try {
       await firebase.auth().signInAnonymously();
+      console.log("[Firestore] Anonymous auth success.");
       return true;
     } catch (error) {
       console.error("Firebase anonymous sign-in failed. Continuing without auth:", error);
@@ -171,7 +172,12 @@
   }
 
   async function writeOperation(operation, saveOfflineOnError) {
+    console.log("[Firestore] writeOperation called:", operation);
     if (!hasFirebase() || !state.online) {
+      console.warn("[Firestore] Firebase unavailable or offline. Operation queued:", {
+        hasFirebase: hasFirebase(),
+        online: state.online,
+      });
       if (saveOfflineOnError) {
         queueOperation(operation);
       }
@@ -233,8 +239,12 @@
       });
 
       await batch.commit();
+      console.log("[Firestore] Batch write committed successfully.");
       return true;
     } catch (error) {
+      if (error && error.code === "permission-denied") {
+        console.error("[Firestore] Permission denied. Check Firestore rules for write access.", error);
+      }
       console.error("Firestore write failed:", error);
       if (saveOfflineOnError) {
         queueOperation(operation);
@@ -291,6 +301,7 @@
   }
 
   async function ensureFirestoreDocuments(firestore) {
+    console.log("[Firestore] Ensuring target documents exist in collection 'app_data'.");
     await Promise.all([
       firestore.collection("app_data").doc("page1_sites").set({}, { merge: true }),
       firestore.collection("app_data").doc("page2_items").set({}, { merge: true }),
@@ -326,16 +337,19 @@
     }
 
     const unsubSite = firestore.collection("app_data").doc("page1_sites").onSnapshot((snapshot) => {
+      console.log("[Firestore] Realtime update received: page1_sites");
       state.cache.sites = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
     const unsubItem = firestore.collection("app_data").doc("page2_items").onSnapshot((snapshot) => {
+      console.log("[Firestore] Realtime update received: page2_items");
       state.cache.items = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
     const unsubDetail = firestore.collection("app_data").doc("page3_details").onSnapshot((snapshot) => {
+      console.log("[Firestore] Realtime update received: page3_details");
       state.cache.details = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
@@ -348,9 +362,11 @@
 
   async function initFirebaseSync() {
     if (!hasFirebase()) {
+      console.error("[Firestore] Firebase SDK not found. Verify script imports and loading order.");
       state.online = false;
       return;
     }
+    console.log("[Firestore] SDK mode detected: compat (namespace firebase.*).");
 
     const firebase = window.firebase;
     const config = {
@@ -364,30 +380,48 @@
     };
 
     if (!firebase.apps.length) {
+      console.log("[Firestore] Initializing Firebase app.");
       firebase.initializeApp(config);
+    } else {
+      console.log("[Firestore] Firebase app already initialized.");
     }
 
-    await ensureFirebaseAuth(firebase);
-    const firestore = firebase.firestore();
-    await ensureFirestoreDocuments(firestore);
-    state.online = true;
-    await hydrateCacheFromFirestore(firestore);
-    attachRealtimeListeners(firestore);
+    try {
+      const authenticated = await ensureFirebaseAuth(firebase);
+      if (!authenticated) {
+        console.warn("[Firestore] No authenticated user. Firestore rules may block writes.");
+      }
 
-    if (!state.networkListenersAttached) {
-      window.addEventListener("online", () => {
-        state.online = true;
-        initFirebaseSync();
-        flushOfflineQueue();
-      });
+      const firestore = firebase.firestore();
+      console.log("[Firestore] Firestore instance created.");
+      await ensureFirestoreDocuments(firestore);
+      state.online = true;
+      await hydrateCacheFromFirestore(firestore);
+      attachRealtimeListeners(firestore);
 
-      window.addEventListener("offline", () => {
-        state.online = false;
-      });
-      state.networkListenersAttached = true;
+      if (!state.networkListenersAttached) {
+        window.addEventListener("online", () => {
+          state.online = true;
+          initFirebaseSync();
+          flushOfflineQueue();
+        });
+
+        window.addEventListener("offline", () => {
+          state.online = false;
+          console.warn("[Firestore] Browser offline mode detected.");
+        });
+        state.networkListenersAttached = true;
+      }
+
+      await flushOfflineQueue();
+    } catch (error) {
+      state.online = false;
+      if (error && error.code === "permission-denied") {
+        console.error("[Firestore] Firestore blocked by rules. Allow authenticated writes in rules.", error);
+      } else {
+        console.error("[Firestore] initFirebaseSync failed:", error);
+      }
     }
-
-    await flushOfflineQueue();
   }
 
   async function init() {
@@ -398,6 +432,7 @@
     readLocalSnapshot();
     readOfflineQueue();
     notifyChange();
+    console.log("[Storage] Local cache initialized, starting Firebase sync.");
     await initFirebaseSync();
   }
 
@@ -443,9 +478,15 @@
     state.cache.sites[site.id] = site;
     notifyChange();
 
-    const savedToFirestore = await writeOperation([
-      { path: `${PAGE1_PATH}/${site.id}`, value: site },
-    ], true);
+    let savedToFirestore = false;
+    try {
+      savedToFirestore = await writeOperation([
+        { path: `${PAGE1_PATH}/${site.id}`, value: site },
+      ], true);
+      console.log("[Firestore] createSiteWithSyncStatus result:", { siteId: site.id, savedToFirestore });
+    } catch (error) {
+      console.error("[Firestore] Unexpected error while creating site:", error);
+    }
 
     return {
       site: clone(site),

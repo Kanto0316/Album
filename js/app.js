@@ -332,13 +332,19 @@
     siteForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const name = siteNameInput.value.trim();
+      console.log("[UI] Submit create site clicked.", { name });
       if (!name) {
         siteFormError.textContent = "Veuillez remplir ce champ";
         return;
       }
-      const creationResult = await StorageService.createSiteWithSyncStatus(name);
+      let creationResult = null;
+      try {
+        creationResult = await StorageService.createSiteWithSyncStatus(name);
+      } catch (error) {
+        console.error("[UI] createSiteWithSyncStatus failed:", error);
+      }
       if (!creationResult) {
-        siteFormError.textContent = "Nom du site invalide.";
+        siteFormError.textContent = "Nom du site invalide ou erreur de synchronisation.";
         return;
       }
       siteDialog.close();
@@ -754,19 +760,24 @@
   }
 
   async function bootstrap() {
-    UiService.bindDialogCloser();
-    setupBackButtons();
-    await StorageService.init();
+    try {
+      UiService.bindDialogCloser();
+      setupBackButtons();
+      await StorageService.init();
 
-    const page = document.body.dataset.page;
-    if (page === "home") {
-      initHomePage();
-    }
-    if (page === "site-detail") {
-      initSiteDetailPage();
-    }
-    if (page === "item-detail") {
-      initItemDetailPage();
+      const page = document.body.dataset.page;
+      console.log("[App] bootstrap page:", page);
+      if (page === "home") {
+        initHomePage();
+      }
+      if (page === "site-detail") {
+        initSiteDetailPage();
+      }
+      if (page === "item-detail") {
+        initItemDetailPage();
+      }
+    } catch (error) {
+      console.error("[App] Bootstrap failed:", error);
     }
   }
 
