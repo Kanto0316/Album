@@ -143,6 +143,27 @@
     return !!(window.firebase && window.firebase.database);
   }
 
+  function hasFirebaseAuth() {
+    return !!(window.firebase && window.firebase.auth);
+  }
+
+  async function ensureFirebaseAuth(firebase) {
+    if (!hasFirebaseAuth()) {
+      return;
+    }
+
+    if (firebase.auth().currentUser) {
+      return;
+    }
+
+    try {
+      await firebase.auth().signInAnonymously();
+    } catch (error) {
+      state.online = false;
+      console.error("Firebase anonymous sign-in failed:", error);
+    }
+  }
+
   function queueOperation(operation) {
     state.offlineQueue.push(operation);
     persistOfflineQueue();
@@ -236,6 +257,10 @@
       firebase.initializeApp(config);
     }
 
+    await ensureFirebaseAuth(firebase);
+    if (hasFirebaseAuth() && !firebase.auth().currentUser) {
+      return;
+    }
     const db = firebase.database();
     state.online = true;
     attachRealtimeListeners(db);
