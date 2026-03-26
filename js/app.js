@@ -1,8 +1,13 @@
 (function () {
-  const { StorageService, UiService } = window;
+  let StorageService = null;
+  let UiService = null;
 
   function requireElement(id) {
-    return document.getElementById(id);
+    const element = document.getElementById(id);
+    if (!element) {
+      console.error(`[App] Élément introuvable: #${id}`);
+    }
+    return element;
   }
 
   function escapeHtml(value) {
@@ -308,6 +313,7 @@
 
     if (exportDataButton) {
       exportDataButton.addEventListener("click", () => {
+        console.log("[UI] Click exportDataButton");
         closeHomeMenu();
         exportAllData();
       });
@@ -316,11 +322,13 @@
 
     if (importDataButton) {
       importDataButton.addEventListener("click", () => {
+        console.log("[UI] Click importDataButton");
         openImportFilePicker();
       });
     }
 
     requireElement("openCreateSite").addEventListener("click", () => {
+      console.log("[UI] Click openCreateSite");
       siteForm.reset();
       siteFormError.textContent = "";
       siteDialog.showModal();
@@ -500,6 +508,7 @@
     }
 
     requireElement("openCreateItem").addEventListener("click", () => {
+      console.log("[UI] Click openCreateItem");
       itemForm.reset();
       itemFormError.textContent = "";
       itemDialog.showModal();
@@ -521,6 +530,7 @@
 
     itemForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      console.log("[UI] Submit create item clicked.");
       const value = itemNumberInput.value.trim();
       if (!value) {
         itemFormError.textContent = "Veuillez remplir ce champ";
@@ -718,6 +728,7 @@
 
     detailForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      console.log("[UI] Submit detailForm clicked.");
       detailFormError.textContent = "";
       if (!designationInput.value.trim()) {
         detailFormError.textContent = "Veuillez remplir la désignation.";
@@ -750,6 +761,17 @@
 
   async function bootstrap() {
     try {
+      StorageService = window.StorageService;
+      UiService = window.UiService;
+      console.log("[App] Services détectés:", {
+        hasStorageService: !!StorageService,
+        hasUiService: !!UiService,
+        readyState: document.readyState,
+      });
+      if (!StorageService || !UiService) {
+        throw new Error("StorageService ou UiService indisponible. Vérifiez l'ordre des scripts.");
+      }
+
       UiService.bindDialogCloser();
       setupBackButtons();
       await StorageService.init();
@@ -770,5 +792,12 @@
     }
   }
 
-  bootstrap();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("[App] DOMContentLoaded déclenché, démarrage bootstrap.");
+      bootstrap();
+    }, { once: true });
+  } else {
+    bootstrap();
+  }
 })();
