@@ -294,6 +294,28 @@
     ]);
   }
 
+
+  async function hydrateCacheFromFirestore(firestore) {
+    if (state.offlineQueue.length) {
+      return;
+    }
+
+    try {
+      const [sitesSnapshot, itemsSnapshot, detailsSnapshot] = await Promise.all([
+        firestore.collection("app_data").doc("page1_sites").get(),
+        firestore.collection("app_data").doc("page2_items").get(),
+        firestore.collection("app_data").doc("page3_details").get(),
+      ]);
+
+      state.cache.sites = sitesSnapshot.exists ? (sitesSnapshot.data() || {}) : {};
+      state.cache.items = itemsSnapshot.exists ? (itemsSnapshot.data() || {}) : {};
+      state.cache.details = detailsSnapshot.exists ? (detailsSnapshot.data() || {}) : {};
+      notifyChange();
+    } catch (error) {
+      console.error("Firestore hydration failed:", error);
+    }
+  }
+
   function attachRealtimeListeners(firestore) {
     if (state.firebaseListenersAttached) {
       return;
@@ -348,6 +370,7 @@
     const firestore = firebase.firestore();
     await ensureFirestoreDocuments(firestore);
     state.online = true;
+    await hydrateCacheFromFirestore(firestore);
     attachRealtimeListeners(firestore);
 
     if (!state.networkListenersAttached) {
