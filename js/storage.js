@@ -1,4 +1,18 @@
-(function () {
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  writeBatch,
+  setDoc,
+  addDoc,
+  deleteField,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+(() => {
   const STORAGE_KEY = "suivi-materiel-local-data";
   const OFFLINE_QUEUE_KEY = "suivi-materiel-offline-queue";
   const PAGE1_PATH = "pages/page1/sites";
@@ -18,6 +32,9 @@
     offlineQueue: [],
     firebaseListenersAttached: false,
     networkListenersAttached: false,
+    firebaseReady: false,
+    db: null,
+    auth: null,
   };
 
   function clone(value) {
@@ -140,24 +157,20 @@
   }
 
   function hasFirebase() {
-    return !!(window.firebase && window.firebase.firestore);
+    return !!state.db;
   }
 
-  function hasFirebaseAuth() {
-    return !!(window.firebase && window.firebase.auth);
-  }
-
-  async function ensureFirebaseAuth(firebase) {
-    if (!hasFirebaseAuth()) {
-      return true;
+  async function ensureFirebaseAuth() {
+    if (!state.auth) {
+      console.warn("[Firestore] Auth module unavailable.");
+      return false;
     }
-
-    if (firebase.auth().currentUser) {
+    if (state.auth.currentUser) {
       return true;
     }
 
     try {
-      await firebase.auth().signInAnonymously();
+      await signInAnonymously(state.auth);
       console.log("[Firestore] Anonymous auth success.");
       return true;
     } catch (error) {
@@ -169,6 +182,21 @@
   function queueOperation(operation) {
     state.offlineQueue.push(operation);
     persistOfflineQueue();
+  }
+
+  async function logDebugEvent(event, payload) {
+    if (!state.db) {
+      return;
+    }
+    try {
+      await addDoc(collection(state.db, "debug_logs"), {
+        event,
+        payload: clone(payload),
+        createdAt: now(),
+      });
+    } catch (error) {
+      console.error("[Firestore] addDoc debug_logs failed:", error);
+    }
   }
 
   async function writeOperation(operation, saveOfflineOnError) {
@@ -185,13 +213,12 @@
     }
 
     try {
-      const firestore = window.firebase.firestore();
-      const fieldValue = window.firebase.firestore.FieldValue;
-      const batch = firestore.batch();
+      await logDebugEvent("write_operation_received", { operationCount: operation.length });
+      const batch = writeBatch(state.db);
       const docs = {
-        page1_sites: firestore.collection("app_data").doc("page1_sites"),
-        page2_items: firestore.collection("app_data").doc("page2_items"),
-        page3_details: firestore.collection("app_data").doc("page3_details"),
+        page1_sites: doc(state.db, "app_data", "page1_sites"),
+        page2_items: doc(state.db, "app_data", "page2_items"),
+        page3_details: doc(state.db, "app_data", "page3_details"),
       };
 
       const upsertsByDoc = {};
@@ -209,7 +236,7 @@
             deletesByDoc[docId] = {};
           }
           if (fieldPath) {
-            deletesByDoc[docId][fieldPath] = fieldValue.delete();
+            deletesByDoc[docId][fieldPath] = deleteField();
           } else {
             deletesByDoc[docId].__clearAll = true;
           }
@@ -235,17 +262,23 @@
           batch.set(docs[docId], {});
           return;
         }
-        batch.update(docs[docId], payload);
+        batch.set(docs[docId], payload, { merge: true });
       });
 
       await batch.commit();
       console.log("[Firestore] Batch write committed successfully.");
+      await logDebugEvent("write_operation_success", { operationCount: operation.length });
       return true;
     } catch (error) {
       if (error && error.code === "permission-denied") {
         console.error("[Firestore] Permission denied. Check Firestore rules for write access.", error);
       }
       console.error("Firestore write failed:", error);
+      await logDebugEvent("write_operation_failed", {
+        operationCount: operation.length,
+        message: error?.message || "Unknown error",
+        code: error?.code || null,
+      });
       if (saveOfflineOnError) {
         queueOperation(operation);
       }
@@ -300,26 +333,26 @@
     return null;
   }
 
-  async function ensureFirestoreDocuments(firestore) {
+  async function ensureFirestoreDocuments() {
     console.log("[Firestore] Ensuring target documents exist in collection 'app_data'.");
     await Promise.all([
-      firestore.collection("app_data").doc("page1_sites").set({}, { merge: true }),
-      firestore.collection("app_data").doc("page2_items").set({}, { merge: true }),
-      firestore.collection("app_data").doc("page3_details").set({}, { merge: true }),
+      setDoc(doc(state.db, "app_data", "page1_sites"), {}, { merge: true }),
+      setDoc(doc(state.db, "app_data", "page2_items"), {}, { merge: true }),
+      setDoc(doc(state.db, "app_data", "page3_details"), {}, { merge: true }),
     ]);
   }
 
 
-  async function hydrateCacheFromFirestore(firestore) {
+  async function hydrateCacheFromFirestore() {
     if (state.offlineQueue.length) {
       return;
     }
 
     try {
       const [sitesSnapshot, itemsSnapshot, detailsSnapshot] = await Promise.all([
-        firestore.collection("app_data").doc("page1_sites").get(),
-        firestore.collection("app_data").doc("page2_items").get(),
-        firestore.collection("app_data").doc("page3_details").get(),
+        getDoc(doc(state.db, "app_data", "page1_sites")),
+        getDoc(doc(state.db, "app_data", "page2_items")),
+        getDoc(doc(state.db, "app_data", "page3_details")),
       ]);
 
       state.cache.sites = sitesSnapshot.exists ? (sitesSnapshot.data() || {}) : {};
@@ -331,24 +364,24 @@
     }
   }
 
-  function attachRealtimeListeners(firestore) {
+  function attachRealtimeListeners() {
     if (state.firebaseListenersAttached) {
       return;
     }
 
-    const unsubSite = firestore.collection("app_data").doc("page1_sites").onSnapshot((snapshot) => {
+    const unsubSite = onSnapshot(doc(state.db, "app_data", "page1_sites"), (snapshot) => {
       console.log("[Firestore] Realtime update received: page1_sites");
       state.cache.sites = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
-    const unsubItem = firestore.collection("app_data").doc("page2_items").onSnapshot((snapshot) => {
+    const unsubItem = onSnapshot(doc(state.db, "app_data", "page2_items"), (snapshot) => {
       console.log("[Firestore] Realtime update received: page2_items");
       state.cache.items = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
     });
 
-    const unsubDetail = firestore.collection("app_data").doc("page3_details").onSnapshot((snapshot) => {
+    const unsubDetail = onSnapshot(doc(state.db, "app_data", "page3_details"), (snapshot) => {
       console.log("[Firestore] Realtime update received: page3_details");
       state.cache.details = snapshot.exists ? (snapshot.data() || {}) : {};
       notifyChange();
@@ -361,14 +394,6 @@
   }
 
   async function initFirebaseSync() {
-    if (!hasFirebase()) {
-      console.error("[Firestore] Firebase SDK not found. Verify script imports and loading order.");
-      state.online = false;
-      return;
-    }
-    console.log("[Firestore] SDK mode detected: compat (namespace firebase.*).");
-
-    const firebase = window.firebase;
     const config = {
       apiKey: "AIzaSyDUNQi44ZB1V5P_H3Y7sP_W9y7H0UMPtDg",
       authDomain: "album-afec9.firebaseapp.com",
@@ -379,29 +404,35 @@
       measurementId: "G-13696TSXV1",
     };
 
-    if (!firebase.apps.length) {
+    if (!getApps().length) {
       console.log("[Firestore] Initializing Firebase app.");
-      firebase.initializeApp(config);
+      state.app = initializeApp(config);
     } else {
+      state.app = getApps()[0];
       console.log("[Firestore] Firebase app already initialized.");
     }
 
     try {
-      const authenticated = await ensureFirebaseAuth(firebase);
+      state.auth = getAuth(state.app);
+      state.db = getFirestore(state.app);
+      state.firebaseReady = true;
+      console.log("[Firestore] Firebase initialized (v9 modular).");
+      console.log("[Firestore] Firestore instance created.");
+
+      const authenticated = await ensureFirebaseAuth();
       if (!authenticated) {
         console.warn("[Firestore] No authenticated user. Firestore rules may block writes.");
       }
 
-      const firestore = firebase.firestore();
-      console.log("[Firestore] Firestore instance created.");
-      await ensureFirestoreDocuments(firestore);
+      await ensureFirestoreDocuments();
       state.online = true;
-      await hydrateCacheFromFirestore(firestore);
-      attachRealtimeListeners(firestore);
+      await hydrateCacheFromFirestore();
+      attachRealtimeListeners();
 
       if (!state.networkListenersAttached) {
         window.addEventListener("online", () => {
           state.online = true;
+          console.log("[Firestore] Browser online event detected.");
           initFirebaseSync();
           flushOfflineQueue();
         });
@@ -416,6 +447,7 @@
       await flushOfflineQueue();
     } catch (error) {
       state.online = false;
+      state.firebaseReady = false;
       if (error && error.code === "permission-denied") {
         console.error("[Firestore] Firestore blocked by rules. Allow authenticated writes in rules.", error);
       } else {
