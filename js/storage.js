@@ -18,6 +18,10 @@
     listeners: [],
     unsubscribers: [],
     offlineQueue: [],
+    firebaseListenersAttached: false,
+    authPromise: null,
+    authRetryTimeoutId: null,
+    networkListenersAttached: false,
   };
 
   function clone(value) {
@@ -188,6 +192,60 @@
     return !!record && record.ownerId === state.uid;
   }
 
+  function attachRealtimeListeners(db) {
+    if (state.firebaseListenersAttached) {
+      return;
+    }
+
+    const unsubSite = db.ref(PAGE1_PATH).on("value", (snapshot) => {
+      state.cache.sites = snapshot.val() || {};
+      notifyChange();
+    });
+
+    const unsubItem = db.ref(PAGE2_PATH).on("value", (snapshot) => {
+      state.cache.items = snapshot.val() || {};
+      notifyChange();
+    });
+
+    const unsubDetail = db.ref(PAGE3_PATH).on("value", (snapshot) => {
+      state.cache.details = snapshot.val() || {};
+      notifyChange();
+    });
+
+    state.unsubscribers.push(() => db.ref(PAGE1_PATH).off("value", unsubSite));
+    state.unsubscribers.push(() => db.ref(PAGE2_PATH).off("value", unsubItem));
+    state.unsubscribers.push(() => db.ref(PAGE3_PATH).off("value", unsubDetail));
+    state.firebaseListenersAttached = true;
+  }
+
+  async function ensureFirebaseAuth(firebase) {
+    if (state.authReady) {
+      return true;
+    }
+
+    if (!state.authPromise) {
+      state.authPromise = firebase
+        .auth()
+        .signInAnonymously()
+        .then(() => {
+          state.uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+          state.authReady = true;
+          state.online = true;
+          return true;
+        })
+        .catch(() => {
+          state.authReady = false;
+          state.online = false;
+          return false;
+        })
+        .finally(() => {
+          state.authPromise = null;
+        });
+    }
+
+    return state.authPromise;
+  }
+
   async function initFirebaseSync() {
     if (!hasFirebase()) {
       state.online = false;
@@ -210,46 +268,36 @@
       firebase.initializeApp(config);
     }
 
-    try {
-      await firebase.auth().signInAnonymously();
-      state.uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
-      state.authReady = true;
-      state.online = true;
-    } catch (error) {
-      state.authReady = false;
-      state.online = false;
+    const authenticated = await ensureFirebaseAuth(firebase);
+    if (!authenticated) {
+      if (state.authRetryTimeoutId) {
+        window.clearTimeout(state.authRetryTimeoutId);
+      }
+      state.authRetryTimeoutId = window.setTimeout(() => {
+        initFirebaseSync();
+      }, 5000);
       return;
+    }
+    if (state.authRetryTimeoutId) {
+      window.clearTimeout(state.authRetryTimeoutId);
+      state.authRetryTimeoutId = null;
     }
 
     const db = firebase.database();
+    attachRealtimeListeners(db);
 
-    const unsubSite = db.ref(PAGE1_PATH).on("value", (snapshot) => {
-      state.cache.sites = snapshot.val() || {};
-      notifyChange();
-    });
+    if (!state.networkListenersAttached) {
+      window.addEventListener("online", () => {
+        state.online = true;
+        initFirebaseSync();
+        flushOfflineQueue();
+      });
 
-    const unsubItem = db.ref(PAGE2_PATH).on("value", (snapshot) => {
-      state.cache.items = snapshot.val() || {};
-      notifyChange();
-    });
-
-    const unsubDetail = db.ref(PAGE3_PATH).on("value", (snapshot) => {
-      state.cache.details = snapshot.val() || {};
-      notifyChange();
-    });
-
-    state.unsubscribers.push(() => db.ref(PAGE1_PATH).off("value", unsubSite));
-    state.unsubscribers.push(() => db.ref(PAGE2_PATH).off("value", unsubItem));
-    state.unsubscribers.push(() => db.ref(PAGE3_PATH).off("value", unsubDetail));
-
-    window.addEventListener("online", () => {
-      state.online = true;
-      flushOfflineQueue();
-    });
-
-    window.addEventListener("offline", () => {
-      state.online = false;
-    });
+      window.addEventListener("offline", () => {
+        state.online = false;
+      });
+      state.networkListenersAttached = true;
+    }
 
     await flushOfflineQueue();
   }
