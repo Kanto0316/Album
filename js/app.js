@@ -453,7 +453,7 @@
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
-                  <span>${detailCountsByItem[item.id] || 0} sous-élément${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span>
+                  <span>${detailCountsByItem[item.id] || 0} Ligne${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span>
                   <span>Créé le ${UiService.formatDate(item.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(item.dateModification)}</small>
                 </div>
@@ -551,7 +551,7 @@
         renderItems();
       },
       () => {
-        UiService.showToast('Comptage des sous-éléments indisponible.');
+        UiService.showToast('Comptage des lignes indisponible.');
       },
     );
   }
