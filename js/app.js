@@ -332,9 +332,12 @@
       }
 
       try {
-        const createdSiteId = await StorageService.createSite(name);
-        if (!createdSiteId) {
-          siteFormError.textContent = 'Création impossible. Vérifiez le nom du site.';
+        const result = await StorageService.createSite(name);
+        if (!result?.ok) {
+          siteFormError.textContent =
+            result?.reason === 'duplicate_site'
+              ? 'Ce nom de site existe déjà.'
+              : 'Création impossible. Vérifiez le nom du site.';
           return;
         }
 
@@ -515,9 +518,12 @@
         itemFormError.textContent = 'Veuillez saisir au moins 4 chiffres.';
         return;
       }
-      const createdItemId = await StorageService.createItem(siteId, value);
-      if (!createdItemId) {
-        itemFormError.textContent = 'Veuillez saisir au moins 4 chiffres.';
+      const result = await StorageService.createItem(siteId, value);
+      if (!result?.ok) {
+        itemFormError.textContent =
+          result?.reason === 'duplicate_out'
+            ? 'Ce N° OUT existe déjà pour ce site.'
+            : 'Veuillez saisir au moins 4 chiffres.';
         return;
       }
       itemDialog.close();
@@ -713,12 +719,19 @@
         detailFormError.textContent = 'Veuillez remplir la désignation.';
         return;
       }
-      await StorageService.createDetail(siteId, itemId, {
+      const result = await StorageService.createDetail(siteId, itemId, {
         code: requireElement('codeInput').value,
         designation: designationInput.value,
         qteSortie: requireElement('qteSortieInput').value,
         unite: requireElement('uniteInput').value,
       });
+      if (!result?.ok) {
+        detailFormError.textContent =
+          result?.reason === 'duplicate_designation'
+            ? 'Cette désignation existe déjà pour ce N° OUT.'
+            : 'Création impossible. Vérifiez la désignation.';
+        return;
+      }
       detailForm.reset();
       requireElement('uniteInput').value = 'm';
       UiService.showToast('Ligne ajoutée et synchronisée.');

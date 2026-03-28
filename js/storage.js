@@ -64,6 +64,33 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function isDuplicateSiteName(name) {
+  const normalized = sanitizeText(name, true);
+  if (!normalized) {
+    return false;
+  }
+  return state.sites.some((site) => sanitizeText(site.nom, true) === normalized);
+}
+
+function isDuplicateItemNumber(siteId, numero) {
+  const normalized = sanitizeText(numero, true);
+  if (!normalized) {
+    return false;
+  }
+  const items = state.itemsBySite.get(siteId) || [];
+  return items.some((item) => sanitizeText(item.numero, true) === normalized);
+}
+
+function isDuplicateDetailDesignation(siteId, itemId, designation) {
+  const normalized = sanitizeText(designation, true);
+  if (!normalized) {
+    return false;
+  }
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = state.detailsByItem.get(detailsKey) || [];
+  return details.some((detail) => sanitizeText(detail.designation, true) === normalized);
+}
+
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 }
@@ -249,7 +276,10 @@ function subscribeDetailCounts(siteId, onChange, onError) {
 async function createSite(name) {
   const siteName = sanitizeText(name, true);
   if (!siteName) {
-    return null;
+    return { ok: false, reason: 'invalid_name' };
+  }
+  if (isDuplicateSiteName(siteName)) {
+    return { ok: false, reason: 'duplicate_site' };
   }
   const timestamp = nowIso();
   const sitesRef = makePageItemsCollection('page1');
@@ -263,7 +293,7 @@ async function createSite(name) {
     updatedAt: serverTimestamp(),
   });
   await persistFullSnapshot();
-  return created.id;
+  return { ok: true, id: created.id };
 }
 
 async function removeSite(siteId) {
@@ -280,14 +310,18 @@ async function removeSite(siteId) {
 async function createItem(siteId, numberValue) {
   const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ''));
   if (cleanNumber.length < 4) {
-    return null;
+    return { ok: false, reason: 'invalid_out' };
+  }
+  const numero = `OUT-${cleanNumber}`;
+  if (isDuplicateItemNumber(siteId, numero)) {
+    return { ok: false, reason: 'duplicate_out' };
   }
 
   const timestamp = nowIso();
   const itemsRef = makePageItemsCollection('page2');
   const created = await addDoc(itemsRef, {
     siteId,
-    numero: `OUT-${cleanNumber}`,
+    numero,
     ownerId: state.userId,
     createdBy: state.userId,
     dateCreation: timestamp,
@@ -296,7 +330,7 @@ async function createItem(siteId, numberValue) {
     updatedAt: serverTimestamp(),
   });
   await persistFullSnapshot();
-  return created.id;
+  return { ok: true, id: created.id };
 }
 
 async function removeItem(_siteId, itemId) {
@@ -311,6 +345,14 @@ async function removeItem(_siteId, itemId) {
 }
 
 async function createDetail(siteId, itemId, payload) {
+  const designation = sanitizeText(payload.designation, true);
+  if (!designation) {
+    return { ok: false, reason: 'invalid_designation' };
+  }
+  if (isDuplicateDetailDesignation(siteId, itemId, designation)) {
+    return { ok: false, reason: 'duplicate_designation' };
+  }
+
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const nextChamp = details.length + 1;
@@ -322,7 +364,7 @@ async function createDetail(siteId, itemId, payload) {
     itemId,
     champ: nextChamp,
     code: sanitizeText(payload.code, true),
-    designation: sanitizeText(payload.designation, true),
+    designation,
     qteSortie: payload.qteSortie === '' ? '' : sanitizeNumber(payload.qteSortie),
     unite: sanitizeText(payload.unite || 'm', false) || 'm',
     qteHorsBtrs: '',
@@ -337,7 +379,7 @@ async function createDetail(siteId, itemId, payload) {
     updatedAt: serverTimestamp(),
   });
   await persistFullSnapshot();
-  return created.id;
+  return { ok: true, id: created.id };
 }
 
 async function updateDetail(siteId, itemId, detailId, changes) {
