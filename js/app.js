@@ -18,6 +18,12 @@
     element.textContent = `${count} ${count > 1 ? plural : singular}`;
   }
 
+  function computeEcart(detail) {
+    const qtePosee = Number(detail?.qtePosee) || 0;
+    const qteRetour = Number(detail?.qteRetour) || 0;
+    return qtePosee - qteRetour;
+  }
+
   function setupBackButtons() {
     document.querySelectorAll('[data-back]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -660,7 +666,7 @@
       updateCount(filteredDetails.length, currentDetails.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="10"><div class="empty-state">${currentDetails.length ? 'Aucune désignation ne correspond à votre recherche.' : 'Aucune ligne enregistrée.'}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${currentDetails.length ? 'Aucune désignation ne correspond à votre recherche.' : 'Aucune ligne enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -677,8 +683,9 @@
                   <small class="meta-value">${escapeHtml(detail.unite)}</small>
                 </div>
               </td>
-              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" max="${escapeHtml(detail.qteSortie)}" step="1" value="${detail.qtePosee}" /></td>
-              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" max="${escapeHtml(detail.qteSortie)}" step="1" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
+              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input" type="number" value="${computeEcart(detail)}" readonly aria-label="Ecart" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td><textarea class="cell-textarea" data-field="observation">${escapeHtml(detail.observation)}</textarea></td>
@@ -699,24 +706,6 @@
           }
 
           let nextValue = event.target.value;
-
-          if (fieldName === 'qteRetour') {
-            const qteSortie = Number(currentDetail.qteSortie) || 0;
-            const qteRetour = Number(nextValue) || 0;
-            if (qteRetour > qteSortie) {
-              nextValue = String(qteSortie);
-              UiService.showToast('La Qté Retour ne peut pas dépasser la Qté Sortie.');
-            }
-          }
-
-          if (fieldName === 'qtePosee') {
-            const qteSortie = Number(currentDetail.qteSortie) || 0;
-            const qtePosee = Number(nextValue) || 0;
-            if (qtePosee > qteSortie) {
-              nextValue = String(qteSortie);
-              UiService.showToast('La Qté posée ne peut pas dépasser la Qté Sortie.');
-            }
-          }
 
           await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
             [fieldName]: nextValue,
