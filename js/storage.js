@@ -169,6 +169,32 @@ function subscribeItems(siteId, onChange, onError) {
   );
 }
 
+function subscribeItemCounts(onChange, onError) {
+  const itemsRef = makePageItemsCollection('page2');
+  const q = query(itemsRef, orderBy('dateModification', 'desc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const counts = {};
+      snapshot.docs.forEach((docSnap) => {
+        const item = normalizeDocData(docSnap);
+        const key = String(item.siteId || '');
+        if (!key) {
+          return;
+        }
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      onChange(clone(counts));
+    },
+    (error) => {
+      if (typeof onError === 'function') {
+        onError(error);
+      }
+    },
+  );
+}
+
 function subscribeDetails(siteId, itemId, onChange, onError) {
   const detailsRef = makePageItemsCollection('page3');
   const q = query(
@@ -185,6 +211,32 @@ function subscribeDetails(siteId, itemId, onChange, onError) {
       const details = snapshot.docs.map(normalizeDocData);
       state.detailsByItem.set(detailsKey, details);
       onChange(clone(details));
+    },
+    (error) => {
+      if (typeof onError === 'function') {
+        onError(error);
+      }
+    },
+  );
+}
+
+function subscribeDetailCounts(siteId, onChange, onError) {
+  const detailsRef = makePageItemsCollection('page3');
+  const q = query(detailsRef, where('siteId', '==', siteId), orderBy('champ', 'asc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const counts = {};
+      snapshot.docs.forEach((docSnap) => {
+        const detail = normalizeDocData(docSnap);
+        const key = String(detail.itemId || '');
+        if (!key) {
+          return;
+        }
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      onChange(clone(counts));
     },
     (error) => {
       if (typeof onError === 'function') {
@@ -516,7 +568,9 @@ window.StorageService = {
   getItem,
   subscribeSites,
   subscribeItems,
+  subscribeItemCounts,
   subscribeDetails,
+  subscribeDetailCounts,
   createSite,
   removeSite,
   createItem,

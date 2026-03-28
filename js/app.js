@@ -142,6 +142,7 @@
     const exportDataButton = requireElement('exportDataButton');
 
     let currentSites = [];
+    let itemCountsBySite = {};
 
     function formatExportFileName() {
       const now = new Date();
@@ -257,6 +258,7 @@
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
+                  <span>${itemCountsBySite[site.id] || 0} sous-élément${(itemCountsBySite[site.id] || 0) > 1 ? 's' : ''}</span>
                   <span>Créé le ${UiService.formatDate(site.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
                 </div>
@@ -353,6 +355,16 @@
         UiService.showToast('Synchronisation Firefox indisponible.');
       },
     );
+
+    StorageService.subscribeItemCounts(
+      (counts) => {
+        itemCountsBySite = counts;
+        renderSites();
+      },
+      () => {
+        UiService.showToast('Comptage des sous-éléments indisponible.');
+      },
+    );
   }
 
   function initSiteDetailPage() {
@@ -375,6 +387,7 @@
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
+    let detailCountsByItem = {};
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -440,6 +453,7 @@
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
+                  <span>${detailCountsByItem[item.id] || 0} sous-élément${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span>
                   <span>Créé le ${UiService.formatDate(item.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(item.dateModification)}</small>
                 </div>
@@ -527,6 +541,17 @@
       },
       () => {
         UiService.showToast('Synchronisation Firefox indisponible.');
+      },
+    );
+
+    StorageService.subscribeDetailCounts(
+      siteId,
+      (counts) => {
+        detailCountsByItem = counts;
+        renderItems();
+      },
+      () => {
+        UiService.showToast('Comptage des sous-éléments indisponible.');
       },
     );
   }
