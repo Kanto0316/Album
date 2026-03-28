@@ -550,9 +550,7 @@
         detailCountsByItem = counts;
         renderItems();
       },
-      () => {
-        UiService.showToast('Comptage des lignes indisponible.');
-      },
+      () => {},
     );
   }
 
