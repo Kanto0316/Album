@@ -455,7 +455,7 @@
       if (!filteredItems.length) {
         UiService.renderEmptyState(
           itemList,
-          query ? 'Aucun N° OUT ne correspond à votre recherche.' : 'Aucun sous-élément pour cette liste.',
+          query ? 'Aucun N° OUT Ou Article ne correspond à votre recherche.' : 'Aucun sous-élément pour cette liste.',
         );
         return;
       }
