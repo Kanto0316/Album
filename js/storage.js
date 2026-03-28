@@ -450,14 +450,6 @@ async function updateDetail(siteId, itemId, detailId, changes) {
     next.observation = sanitizeText(changes.observation, false);
   }
 
-  const qteSortie = Number('qteSortie' in next ? next.qteSortie : current.qteSortie) || 0;
-  const qtePosee = Math.min(Number('qtePosee' in next ? next.qtePosee : current.qtePosee) || 0, qteSortie);
-  const rawQteRetour = Number('qteRetour' in next ? next.qteRetour : current.qteRetour) || 0;
-  const qteRetour = 'qteRetour' in next ? Math.min(Math.max(0, rawQteRetour), qteSortie) : Math.max(0, rawQteRetour);
-
-  next.qteSortie = qteSortie;
-  next.qtePosee = qtePosee;
-  next.qteRetour = qteRetour;
   next.dateModification = nowIso();
   next.updatedAt = serverTimestamp();
 
