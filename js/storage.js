@@ -25,13 +25,6 @@ const FIREBASE_CONFIG = {
   measurementId: 'G-LMQC9RVF2E',
 };
 
-const CACHE_KEYS = {
-  userId: 'suivi-materiel-user-id',
-  sites: 'suivi-materiel-cache-sites',
-  items: 'suivi-materiel-cache-items',
-  details: 'suivi-materiel-cache-details',
-};
-
 const state = {
   initialized: false,
   db: null,
@@ -83,64 +76,6 @@ function normalizeDocData(docSnapshot) {
   return { id: docSnapshot.id, ...data };
 }
 
-function getOrCreateUserId() {
-  const existing = localStorage.getItem(CACHE_KEYS.userId);
-  if (existing) {
-    return existing;
-  }
-  const next = uid();
-  localStorage.setItem(CACHE_KEYS.userId, next);
-  return next;
-}
-
-function hydrateLocalCache() {
-  try {
-    state.sites = JSON.parse(localStorage.getItem(CACHE_KEYS.sites) || '[]');
-  } catch (_error) {
-    state.sites = [];
-  }
-  try {
-    const rawItems = JSON.parse(localStorage.getItem(CACHE_KEYS.items) || '{}');
-    Object.entries(rawItems).forEach(([siteId, items]) => {
-      if (Array.isArray(items)) {
-        state.itemsBySite.set(siteId, items);
-      }
-    });
-  } catch (_error) {
-    state.itemsBySite.clear();
-  }
-  try {
-    const rawDetails = JSON.parse(localStorage.getItem(CACHE_KEYS.details) || '{}');
-    Object.entries(rawDetails).forEach(([key, details]) => {
-      if (Array.isArray(details)) {
-        state.detailsByItem.set(key, details);
-      }
-    });
-  } catch (_error) {
-    state.detailsByItem.clear();
-  }
-}
-
-function persistSitesCache() {
-  localStorage.setItem(CACHE_KEYS.sites, JSON.stringify(state.sites));
-}
-
-function persistItemsCache() {
-  const serializable = {};
-  state.itemsBySite.forEach((value, key) => {
-    serializable[key] = value;
-  });
-  localStorage.setItem(CACHE_KEYS.items, JSON.stringify(serializable));
-}
-
-function persistDetailsCache() {
-  const serializable = {};
-  state.detailsByItem.forEach((value, key) => {
-    serializable[key] = value;
-  });
-  localStorage.setItem(CACHE_KEYS.details, JSON.stringify(serializable));
-}
-
 function getSite(siteId) {
   return clone(state.sites.find((site) => site.id === siteId) || null);
 }
@@ -155,7 +90,7 @@ function getItem(siteId, itemId) {
 }
 
 function canDelete(documentData) {
-  return documentData && documentData.ownerId === state.userId;
+  return Boolean(documentData);
 }
 
 async function init() {
@@ -163,8 +98,7 @@ async function init() {
     return;
   }
   state.initialized = true;
-  state.userId = getOrCreateUserId();
-  hydrateLocalCache();
+  state.userId = uid();
   const app = initializeApp(FIREBASE_CONFIG);
   state.db = getFirestore(app);
 }
@@ -173,15 +107,10 @@ function subscribeSites(onChange, onError) {
   const sitesRef = makePageItemsCollection('page1');
   const q = query(sitesRef, orderBy('dateModification', 'desc'));
 
-  if (state.sites.length) {
-    onChange(clone(state.sites));
-  }
-
   return onSnapshot(
     q,
     (snapshot) => {
       state.sites = snapshot.docs.map(normalizeDocData);
-      persistSitesCache();
       onChange(clone(state.sites));
     },
     (error) => {
@@ -196,17 +125,11 @@ function subscribeItems(siteId, onChange, onError) {
   const itemsRef = makePageItemsCollection('page2');
   const q = query(itemsRef, where('siteId', '==', siteId), orderBy('dateModification', 'desc'));
 
-  const cached = state.itemsBySite.get(siteId);
-  if (cached && cached.length) {
-    onChange(clone(cached));
-  }
-
   return onSnapshot(
     q,
     (snapshot) => {
       const items = snapshot.docs.map(normalizeDocData);
       state.itemsBySite.set(siteId, items);
-      persistItemsCache();
       onChange(clone(items));
     },
     (error) => {
@@ -227,17 +150,11 @@ function subscribeDetails(siteId, itemId, onChange, onError) {
   );
   const detailsKey = `${siteId}:${itemId}`;
 
-  const cached = state.detailsByItem.get(detailsKey);
-  if (cached && cached.length) {
-    onChange(clone(cached));
-  }
-
   return onSnapshot(
     q,
     (snapshot) => {
       const details = snapshot.docs.map(normalizeDocData);
       state.detailsByItem.set(detailsKey, details);
-      persistDetailsCache();
       onChange(clone(details));
     },
     (error) => {
