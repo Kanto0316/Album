@@ -452,11 +452,12 @@ async function updateDetail(siteId, itemId, detailId, changes) {
 
   const qteSortie = Number('qteSortie' in next ? next.qteSortie : current.qteSortie) || 0;
   const qtePosee = Math.min(Number('qtePosee' in next ? next.qtePosee : current.qtePosee) || 0, qteSortie);
-  const qteRetour = Math.max(0, qteSortie - qtePosee);
+  const rawQteRetour = Number('qteRetour' in next ? next.qteRetour : current.qteRetour) || 0;
+  const qteRetour = 'qteRetour' in next ? Math.min(Math.max(0, rawQteRetour), qteSortie) : Math.max(0, rawQteRetour);
 
   next.qteSortie = qteSortie;
   next.qtePosee = qtePosee;
-  next.qteRetour = Math.min(qteRetour, qteSortie);
+  next.qteRetour = qteRetour;
   next.dateModification = nowIso();
   next.updatedAt = serverTimestamp();
 
