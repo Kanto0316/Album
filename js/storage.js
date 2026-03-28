@@ -149,6 +149,30 @@ function canDelete(documentData) {
   return Boolean(documentData);
 }
 
+async function removeDetailsForItem(siteId, itemId) {
+  const detailsRef = makePageItemsCollection('page3');
+  const detailsQuery = query(detailsRef, where('siteId', '==', siteId), where('itemId', '==', itemId));
+  const detailsSnapshot = await getDocs(detailsQuery);
+  await Promise.all(detailsSnapshot.docs.map((detailDoc) => deleteDoc(detailDoc.ref)));
+}
+
+async function removeItemsForSite(siteId) {
+  const itemsRef = makePageItemsCollection('page2');
+  const itemsQuery = query(itemsRef, where('siteId', '==', siteId));
+  const itemsSnapshot = await getDocs(itemsQuery);
+
+  for (const itemDoc of itemsSnapshot.docs) {
+    await removeDetailsForItem(siteId, itemDoc.id);
+    await deleteDoc(itemDoc.ref);
+  }
+}
+
+async function removeAllPageItems(pageName) {
+  const pageRef = makePageItemsCollection(pageName);
+  const snapshot = await getDocs(pageRef);
+  await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+}
+
 async function init() {
   if (state.initialized) {
     return;
@@ -335,7 +359,16 @@ async function removeSite(siteId) {
   if (!snap.exists() || !canDelete(snap.data())) {
     return false;
   }
+
+  await removeItemsForSite(siteId);
   await deleteDoc(targetRef);
+
+  const sitesRef = makePageItemsCollection('page1');
+  const remainingSites = await getDocs(sitesRef);
+  if (remainingSites.empty) {
+    await Promise.all([removeAllPageItems('page2'), removeAllPageItems('page3')]);
+  }
+
   await persistFullSnapshot();
   return true;
 }
@@ -372,6 +405,9 @@ async function removeItem(_siteId, itemId) {
   if (!snap.exists() || !canDelete(snap.data())) {
     return false;
   }
+
+  const itemData = snap.data();
+  await removeDetailsForItem(itemData.siteId, itemId);
   await deleteDoc(targetRef);
   await persistFullSnapshot();
   return true;
