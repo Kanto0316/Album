@@ -328,9 +328,20 @@
         siteFormError.textContent = 'Veuillez remplir ce champ';
         return;
       }
-      await StorageService.createSite(name);
-      siteDialog.close();
-      UiService.showToast('Site créé et partagé en temps réel.');
+
+      try {
+        const createdSiteId = await StorageService.createSite(name);
+        if (!createdSiteId) {
+          siteFormError.textContent = 'Création impossible. Vérifiez le nom du site.';
+          return;
+        }
+
+        siteDialog.close();
+        UiService.showToast('Site créé et partagé en temps réel.');
+      } catch (error) {
+        console.error('Erreur lors de la création du site :', error);
+        siteFormError.textContent = "Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.";
+      }
     });
 
     StorageService.subscribeSites(
