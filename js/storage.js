@@ -222,7 +222,7 @@ function subscribeDetails(siteId, itemId, onChange, onError) {
 
 function subscribeDetailCounts(siteId, onChange, onError) {
   const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId), orderBy('champ', 'asc'));
+  const q = query(detailsRef, where('siteId', '==', siteId));
 
   return onSnapshot(
     q,
