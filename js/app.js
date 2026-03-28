@@ -19,9 +19,15 @@
   }
 
   function computeEcart(detail) {
+    const qteSortie = Number(detail?.qteSortie) || 0;
     const qtePosee = Number(detail?.qtePosee) || 0;
     const qteRetour = Number(detail?.qteRetour) || 0;
-    return qtePosee - qteRetour;
+
+    if (qtePosee === 0 && qteRetour === 0) {
+      return '';
+    }
+
+    return qteSortie - (qtePosee + qteRetour);
   }
 
   function setupBackButtons() {
@@ -676,7 +682,7 @@
         .map(
           (detail) => {
             const ecart = computeEcart(detail);
-            const ecartClassName = ecart === 0 ? '' : ' cell-input--ecart-alert';
+            const ecartClassName = typeof ecart === 'number' && ecart !== 0 ? ' cell-input--ecart-alert' : '';
             return `
             <tr data-detail-id="${detail.id}">
               <td><span class="field-badge">${detail.champ}</span></td>
