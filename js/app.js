@@ -278,7 +278,7 @@
       siteList.querySelectorAll('[data-site-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
           const removed = await StorageService.removeSite(button.dataset.siteDelete);
-          UiService.showToast(removed ? 'Site supprimé.' : 'Suppression refusée : vous n\'êtes pas propriétaire.');
+          UiService.showToast(removed ? 'Site supprimé.' : 'Suppression impossible.');
         });
       });
     }
@@ -339,7 +339,7 @@
         renderSites();
       },
       () => {
-        UiService.showToast('Mode hors ligne: affichage du cache local.');
+        UiService.showToast('Synchronisation Firefox indisponible.');
       },
     );
   }
@@ -450,7 +450,7 @@
       itemList.querySelectorAll('[data-item-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
           const removed = await StorageService.removeItem(siteId, button.dataset.itemDelete);
-          UiService.showToast(removed ? 'Élément supprimé.' : 'Suppression refusée : vous n\'êtes pas propriétaire.');
+          UiService.showToast(removed ? 'Élément supprimé.' : 'Suppression impossible.');
         });
       });
     }
@@ -515,7 +515,7 @@
         renderItems();
       },
       () => {
-        UiService.showToast('Mode hors ligne: affichage du cache local.');
+        UiService.showToast('Synchronisation Firefox indisponible.');
       },
     );
   }
@@ -667,7 +667,7 @@
       detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
           const removed = await StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
-          UiService.showToast(removed ? 'Ligne supprimée.' : 'Suppression refusée : vous n\'êtes pas propriétaire.');
+          UiService.showToast(removed ? 'Ligne supprimée.' : 'Suppression impossible.');
         });
       });
     }
@@ -720,28 +720,36 @@
         renderTable();
       },
       () => {
-        UiService.showToast('Mode hors ligne: affichage du cache local.');
+        UiService.showToast('Synchronisation Firefox indisponible.');
       },
     );
 
     renderTitle();
   }
 
-  function registerOfflineSupport() {
-    if (!('serviceWorker' in navigator)) {
-      return;
+  async function clearBrowserCaches() {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (_error) {
+      // Certains contextes peuvent bloquer l'accès aux stockages web.
     }
 
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {
-        // Le support hors connexion reste optionnel si l'enregistrement échoue.
-      });
-    });
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
+
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
   }
 
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
+    await clearBrowserCaches();
     await StorageService.init();
 
     const page = document.body.dataset.page;
@@ -756,6 +764,5 @@
     }
   }
 
-  registerOfflineSupport();
   bootstrap();
 })();
