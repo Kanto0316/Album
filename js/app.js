@@ -391,6 +391,7 @@
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
     let detailCountsByItem = {};
+    let detailDesignationsByItem = {};
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -437,7 +438,17 @@
 
     function renderItems() {
       const query = itemSearchInput.value.trim().toUpperCase();
-      const filteredItems = currentItems.filter((item) => item.numero.toUpperCase().includes(query));
+      const filteredItems = currentItems.filter((item) => {
+        if (!query) {
+          return true;
+        }
+        const outMatches = String(item.numero || '').toUpperCase().includes(query);
+        if (outMatches) {
+          return true;
+        }
+        const itemDesignations = detailDesignationsByItem[item.id] || [];
+        return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
+      });
 
       setCountText(itemCount, filteredItems.length, 'élément', 'éléments');
 
@@ -554,6 +565,15 @@
       siteId,
       (counts) => {
         detailCountsByItem = counts;
+        renderItems();
+      },
+      () => {},
+    );
+
+    StorageService.subscribeDetailDesignations(
+      siteId,
+      (designationsByItem) => {
+        detailDesignationsByItem = designationsByItem;
         renderItems();
       },
       () => {},

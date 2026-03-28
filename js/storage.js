@@ -273,6 +273,39 @@ function subscribeDetailCounts(siteId, onChange, onError) {
   );
 }
 
+function subscribeDetailDesignations(siteId, onChange, onError) {
+  const detailsRef = makePageItemsCollection('page3');
+  const q = query(detailsRef, where('siteId', '==', siteId));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const designationsByItem = {};
+      snapshot.docs.forEach((docSnap) => {
+        const detail = normalizeDocData(docSnap);
+        const itemId = String(detail.itemId || '');
+        if (!itemId) {
+          return;
+        }
+        const designation = sanitizeText(detail.designation, true);
+        if (!designation) {
+          return;
+        }
+        if (!designationsByItem[itemId]) {
+          designationsByItem[itemId] = [];
+        }
+        designationsByItem[itemId].push(designation);
+      });
+      onChange(clone(designationsByItem));
+    },
+    (error) => {
+      if (typeof onError === 'function') {
+        onError(error);
+      }
+    },
+  );
+}
+
 async function createSite(name) {
   const siteName = sanitizeText(name, true);
   if (!siteName) {
@@ -613,6 +646,7 @@ window.StorageService = {
   subscribeItemCounts,
   subscribeDetails,
   subscribeDetailCounts,
+  subscribeDetailDesignations,
   createSite,
   removeSite,
   createItem,
