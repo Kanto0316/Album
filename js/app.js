@@ -6,12 +6,12 @@
   }
 
   function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function setCountText(element, count, singular, plural) {
@@ -19,16 +19,16 @@
   }
 
   function setupBackButtons() {
-    document.querySelectorAll("[data-back]").forEach((button) => {
-      button.addEventListener("click", () => {
+    document.querySelectorAll('[data-back]').forEach((button) => {
+      button.addEventListener('click', () => {
         UiService.navigate(button.dataset.back);
       });
     });
   }
 
   function downloadExcelFile(fileName, title, workbook) {
-    const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob(['\ufeff', workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = fileName;
     document.body.appendChild(link);
@@ -54,7 +54,7 @@
             </tr>
           `,
       )
-      .join("");
+      .join('');
 
     return `<!DOCTYPE html>
 <html lang="fr">
@@ -99,7 +99,7 @@
           </tr>
         `,
       )
-      .join("");
+      .join('');
 
     return `<!DOCTYPE html>
 <html lang="fr">
@@ -129,21 +129,23 @@
   }
 
   function initHomePage() {
-    const searchInput = requireElement("searchInput");
-    const siteList = requireElement("siteList");
-    const siteCount = requireElement("siteCount");
-    const siteDialog = requireElement("siteDialog");
-    const siteForm = requireElement("siteForm");
-    const siteNameInput = requireElement("siteNameInput");
-    const siteFormError = requireElement("siteFormError");
-    const homeMenuButton = requireElement("homeMenuButton");
-    const homeMenuPanel = requireElement("homeMenuPanel");
-    const importDataButton = requireElement("importDataButton");
-    const exportDataButton = requireElement("exportDataButton");
+    const searchInput = requireElement('searchInput');
+    const siteList = requireElement('siteList');
+    const siteCount = requireElement('siteCount');
+    const siteDialog = requireElement('siteDialog');
+    const siteForm = requireElement('siteForm');
+    const siteNameInput = requireElement('siteNameInput');
+    const siteFormError = requireElement('siteFormError');
+    const homeMenuButton = requireElement('homeMenuButton');
+    const homeMenuPanel = requireElement('homeMenuPanel');
+    const importDataButton = requireElement('importDataButton');
+    const exportDataButton = requireElement('exportDataButton');
+
+    let currentSites = [];
 
     function formatExportFileName() {
       const now = new Date();
-      const datePart = now.toISOString().replace(/[:]/g, "-").replace(/\..+/, "").replace("T", "_");
+      const datePart = now.toISOString().replace(/[:]/g, '-').replace(/\..+/, '').replace('T', '_');
       return `Exporter.${datePart}.su`;
     }
 
@@ -152,7 +154,7 @@
         return;
       }
       homeMenuPanel.hidden = true;
-      homeMenuButton.setAttribute("aria-expanded", "false");
+      homeMenuButton.setAttribute('aria-expanded', 'false');
     }
 
     function openHomeMenu() {
@@ -160,12 +162,12 @@
         return;
       }
       homeMenuPanel.hidden = false;
-      homeMenuButton.setAttribute("aria-expanded", "true");
+      homeMenuButton.setAttribute('aria-expanded', 'true');
     }
 
     function downloadSuFile(fileName, content) {
-      const blob = new Blob([content], { type: "application/octet-stream" });
-      const link = document.createElement("a");
+      const blob = new Blob([content], { type: 'application/octet-stream' });
+      const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = fileName;
       document.body.appendChild(link);
@@ -184,17 +186,16 @@
       try {
         const text = await file.text();
         const payload = JSON.parse(text);
-        const imported = StorageService.importData(payload);
+        const imported = await StorageService.importData(payload);
         if (!imported) {
-          UiService.showToast("Fichier .su invalide.");
+          UiService.showToast('Fichier .su invalide.');
           return;
         }
-        renderSites();
-        UiService.showToast("Données importées.");
-      } catch (error) {
-        UiService.showToast("Importation impossible.");
+        UiService.showToast('Données importées et synchronisées.');
+      } catch (_error) {
+        UiService.showToast('Importation impossible.');
       } finally {
-        fileInput.value = "";
+        fileInput.value = '';
         fileInput.remove();
       }
     }
@@ -203,29 +204,33 @@
       const payload = StorageService.exportData();
       const serialized = JSON.stringify(payload, null, 2);
       downloadSuFile(formatExportFileName(), serialized);
-      UiService.showToast("Exportation lancée.");
+      UiService.showToast('Exportation lancée.');
     }
 
     function openImportFilePicker() {
       closeHomeMenu();
 
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept = ".su,.json,application/json";
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.su,.json,application/json';
       fileInput.hidden = true;
       fileInput.tabIndex = -1;
-      fileInput.setAttribute("aria-hidden", "true");
-      fileInput.addEventListener("change", () => {
-        handleImportFile(fileInput);
-      }, { once: true });
+      fileInput.setAttribute('aria-hidden', 'true');
+      fileInput.addEventListener(
+        'change',
+        () => {
+          handleImportFile(fileInput);
+        },
+        { once: true },
+      );
       document.body.appendChild(fileInput);
 
       try {
-        if (typeof fileInput.showPicker === "function") {
+        if (typeof fileInput.showPicker === 'function') {
           fileInput.showPicker();
           return;
         }
-      } catch (error) {
+      } catch (_error) {
         // Certains navigateurs refusent showPicker sur certains contextes.
       }
 
@@ -234,13 +239,13 @@
 
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
-      const sites = StorageService.getSites().filter((site) => site.nom.toUpperCase().includes(query));
-      setCountText(siteCount, sites.length, "site", "sites");
+      const sites = currentSites.filter((site) => String(site.nom || '').toUpperCase().includes(query));
+      setCountText(siteCount, sites.length, 'site', 'sites');
 
       if (!sites.length) {
         UiService.renderEmptyState(
           siteList,
-          query ? "Aucun site ne correspond à votre recherche." : "Aucun site enregistré pour le moment.",
+          query ? 'Aucun site ne correspond à votre recherche.' : 'Aucun site enregistré pour le moment.',
         );
         return;
       }
@@ -254,7 +259,6 @@
                 <div class="list-card__meta">
                   <span>Créé le ${UiService.formatDate(site.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
-                  <small>${site.items.length} sous-élément(s)</small>
                 </div>
               </button>
               <div class="list-card__actions">
@@ -263,25 +267,24 @@
             </article>
           `,
         )
-        .join("");
+        .join('');
 
-      siteList.querySelectorAll("[data-site-open]").forEach((button) => {
-        button.addEventListener("click", () => {
+      siteList.querySelectorAll('[data-site-open]').forEach((button) => {
+        button.addEventListener('click', () => {
           UiService.navigate(`page2.html?siteId=${encodeURIComponent(button.dataset.siteOpen)}`);
         });
       });
 
-      siteList.querySelectorAll("[data-site-delete]").forEach((button) => {
-        button.addEventListener("click", () => {
-          StorageService.removeSite(button.dataset.siteDelete);
-          UiService.showToast("Site supprimé.");
-          renderSites();
+      siteList.querySelectorAll('[data-site-delete]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const removed = await StorageService.removeSite(button.dataset.siteDelete);
+          UiService.showToast(removed ? 'Site supprimé.' : 'Suppression refusée : vous n\'êtes pas propriétaire.');
         });
       });
     }
 
     if (homeMenuButton && homeMenuPanel) {
-      homeMenuButton.addEventListener("click", () => {
+      homeMenuButton.addEventListener('click', () => {
         if (homeMenuPanel.hidden) {
           openHomeMenu();
           return;
@@ -289,93 +292,92 @@
         closeHomeMenu();
       });
 
-      document.addEventListener("click", (event) => {
-        if (!event.target.closest(".header-menu")) {
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.header-menu')) {
           closeHomeMenu();
         }
       });
     }
 
     if (exportDataButton) {
-      exportDataButton.addEventListener("click", () => {
+      exportDataButton.addEventListener('click', () => {
         closeHomeMenu();
         exportAllData();
       });
     }
 
-
     if (importDataButton) {
-      importDataButton.addEventListener("click", () => {
+      importDataButton.addEventListener('click', () => {
         openImportFilePicker();
       });
     }
 
-    requireElement("openCreateSite").addEventListener("click", () => {
+    requireElement('openCreateSite').addEventListener('click', () => {
       siteForm.reset();
-      siteFormError.textContent = "";
+      siteFormError.textContent = '';
       siteDialog.showModal();
       siteNameInput.focus();
     });
 
-    searchInput.addEventListener("input", renderSites);
+    searchInput.addEventListener('input', renderSites);
 
-    siteForm.addEventListener("submit", (event) => {
+    siteForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const name = siteNameInput.value.trim();
       if (!name) {
-        siteFormError.textContent = "Veuillez remplir ce champ";
+        siteFormError.textContent = 'Veuillez remplir ce champ';
         return;
       }
-      StorageService.createSite(name);
+      await StorageService.createSite(name);
       siteDialog.close();
-      UiService.showToast("Site créé avec succès.");
-      renderSites();
+      UiService.showToast('Site créé et partagé en temps réel.');
     });
 
-    renderSites();
+    StorageService.subscribeSites(
+      (sites) => {
+        currentSites = sites;
+        renderSites();
+      },
+      () => {
+        UiService.showToast('Mode hors ligne: affichage du cache local.');
+      },
+    );
   }
 
   function initSiteDetailPage() {
     const params = UiService.getQueryParams();
-    const siteId = params.get("siteId");
-    const site = StorageService.getSite(siteId);
-    if (!site) {
-      UiService.navigate("index.html");
+    const siteId = params.get('siteId');
+    if (!siteId) {
+      UiService.navigate('index.html');
       return;
     }
 
-    const siteTitle = requireElement("siteTitle");
-    const itemList = requireElement("itemList");
-    const itemCount = requireElement("itemCount");
-    const itemDialog = requireElement("itemDialog");
-    const itemForm = requireElement("itemForm");
-    const itemNumberInput = requireElement("itemNumberInput");
-    const itemFormError = requireElement("itemFormError");
-    const openExportItems = requireElement("openExportItems");
-    const itemSearchInput = requireElement("itemSearchInput");
+    const siteTitle = requireElement('siteTitle');
+    const itemList = requireElement('itemList');
+    const itemCount = requireElement('itemCount');
+    const itemDialog = requireElement('itemDialog');
+    const itemForm = requireElement('itemForm');
+    const itemNumberInput = requireElement('itemNumberInput');
+    const itemFormError = requireElement('itemFormError');
+    const openExportItems = requireElement('openExportItems');
+    const itemSearchInput = requireElement('itemSearchInput');
 
-    siteTitle.textContent = site.nom;
+    let currentSite = StorageService.getSite(siteId);
+    let currentItems = [];
+
+    siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
     function formatSiteExportUnit(unit) {
-      const normalizedUnit = String(unit || "").trim().toLowerCase();
-      if (normalizedUnit === "pcs") {
-        return "pcs";
+      const normalizedUnit = String(unit || '').trim().toLowerCase();
+      if (normalizedUnit === 'pcs') {
+        return 'pcs';
       }
-      return normalizedUnit || "m";
+      return normalizedUnit || 'm';
     }
 
     function buildSiteExportRows() {
-      const currentSite = StorageService.getSite(siteId);
-      if (!currentSite) {
-        return [];
-      }
-
-      return currentSite.items.flatMap((item) => {
-        if (!item.details.length) {
-          return [];
-        }
-
-        return item.details.map((detail) => ({
+      return currentItems.flatMap((item) =>
+        (item.details || []).map((detail) => ({
           out: item.numero,
           champ: detail.champ,
           code: detail.code,
@@ -385,44 +387,37 @@
           qtePosee: detail.qtePosee,
           qteRetour: detail.qteRetour,
           observation: detail.observation,
-        }));
-      });
+        })),
+      );
     }
 
     function exportItems() {
-      const currentSite = StorageService.getSite(siteId);
       if (!currentSite) {
-        UiService.navigate("index.html");
+        UiService.navigate('index.html');
         return;
       }
 
       const rows = buildSiteExportRows();
       if (!rows.length) {
-        UiService.showToast("Aucun sous-élément avec des données à exporter.");
+        UiService.showToast('Aucun sous-élément avec des données à exporter.');
         return;
       }
 
       const title = `${currentSite.nom}.SUIVI MATERIEL`;
       const workbook = buildSiteExcelContent(title, rows);
-      downloadExcelFile(`${title}.xls`, "Export Excel", workbook);
+      downloadExcelFile(`${title}.xls`, 'Export Excel', workbook);
     }
 
     function renderItems() {
-      const nextSite = StorageService.getSite(siteId);
-      if (!nextSite) {
-        UiService.navigate("index.html");
-        return;
-      }
-
       const query = itemSearchInput.value.trim().toUpperCase();
-      const filteredItems = nextSite.items.filter((item) => item.numero.toUpperCase().includes(query));
+      const filteredItems = currentItems.filter((item) => item.numero.toUpperCase().includes(query));
 
-      setCountText(itemCount, filteredItems.length, "élément", "éléments");
+      setCountText(itemCount, filteredItems.length, 'élément', 'éléments');
 
       if (!filteredItems.length) {
         UiService.renderEmptyState(
           itemList,
-          query ? "Aucun N° OUT ne correspond à votre recherche." : "Aucun sous-élément pour cette liste.",
+          query ? 'Aucun N° OUT ne correspond à votre recherche.' : 'Aucun sous-élément pour cette liste.',
         );
         return;
       }
@@ -436,7 +431,6 @@
                 <div class="list-card__meta">
                   <span>Créé le ${UiService.formatDate(item.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(item.dateModification)}</small>
-                  <small>${item.details.length} ligne(s)</small>
                 </div>
               </button>
               <div class="list-card__actions">
@@ -445,100 +439,122 @@
             </article>
           `,
         )
-        .join("");
+        .join('');
 
-      itemList.querySelectorAll("[data-item-open]").forEach((button) => {
-        button.addEventListener("click", () => {
-          UiService.navigate(
-            `page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}`,
-          );
+      itemList.querySelectorAll('[data-item-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+          UiService.navigate(`page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}`);
         });
       });
 
-      itemList.querySelectorAll("[data-item-delete]").forEach((button) => {
-        button.addEventListener("click", () => {
-          StorageService.removeItem(siteId, button.dataset.itemDelete);
-          UiService.showToast("Élément supprimé.");
-          renderItems();
+      itemList.querySelectorAll('[data-item-delete]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const removed = await StorageService.removeItem(siteId, button.dataset.itemDelete);
+          UiService.showToast(removed ? 'Élément supprimé.' : 'Suppression refusée : vous n\'êtes pas propriétaire.');
         });
       });
     }
 
-    requireElement("openCreateItem").addEventListener("click", () => {
+    requireElement('openCreateItem').addEventListener('click', () => {
       itemForm.reset();
-      itemFormError.textContent = "";
+      itemFormError.textContent = '';
       itemDialog.showModal();
       itemNumberInput.focus();
     });
 
-    itemNumberInput.addEventListener("input", () => {
-      const digitsOnly = itemNumberInput.value.replace(/\D/g, "");
+    itemNumberInput.addEventListener('input', () => {
+      const digitsOnly = itemNumberInput.value.replace(/\D/g, '');
       if (itemNumberInput.value !== digitsOnly) {
         itemNumberInput.value = digitsOnly;
       }
     });
 
     if (openExportItems) {
-      openExportItems.addEventListener("click", exportItems);
+      openExportItems.addEventListener('click', exportItems);
     }
 
-    itemSearchInput.addEventListener("input", renderItems);
+    itemSearchInput.addEventListener('input', renderItems);
 
-    itemForm.addEventListener("submit", (event) => {
+    itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const value = itemNumberInput.value.trim();
       if (!value) {
-        itemFormError.textContent = "Veuillez remplir ce champ";
+        itemFormError.textContent = 'Veuillez remplir ce champ';
         return;
       }
       if (!/^\d+$/.test(value)) {
-        itemFormError.textContent = "Veuillez saisir des chiffres uniquement.";
+        itemFormError.textContent = 'Veuillez saisir des chiffres uniquement.';
         return;
       }
       if (value.length < 4) {
-        itemFormError.textContent = "Veuillez saisir au moins 4 chiffres.";
+        itemFormError.textContent = 'Veuillez saisir au moins 4 chiffres.';
         return;
       }
-      const createdItem = StorageService.createItem(siteId, value);
-      if (!createdItem) {
-        itemFormError.textContent = "Veuillez saisir au moins 4 chiffres.";
+      const createdItemId = await StorageService.createItem(siteId, value);
+      if (!createdItemId) {
+        itemFormError.textContent = 'Veuillez saisir au moins 4 chiffres.';
         return;
       }
       itemDialog.close();
-      UiService.showToast("Numéro OUT ajouté.");
-      renderItems();
+      UiService.showToast('Numéro OUT ajouté et partagé.');
     });
 
-    renderItems();
+    StorageService.subscribeSites((sites) => {
+      currentSite = sites.find((site) => site.id === siteId) || currentSite;
+      if (!currentSite) {
+        UiService.navigate('index.html');
+        return;
+      }
+      siteTitle.textContent = currentSite.nom;
+    });
+
+    StorageService.subscribeItems(
+      siteId,
+      (items) => {
+        currentItems = items;
+        renderItems();
+      },
+      () => {
+        UiService.showToast('Mode hors ligne: affichage du cache local.');
+      },
+    );
   }
 
   function initItemDetailPage() {
     const params = UiService.getQueryParams();
-    const siteId = params.get("siteId");
-    const itemId = params.get("itemId");
-    const site = StorageService.getSite(siteId);
-    const item = StorageService.getItem(siteId, itemId);
-
-    if (!site || !item) {
-      UiService.navigate("index.html");
+    const siteId = params.get('siteId');
+    const itemId = params.get('itemId');
+    if (!siteId || !itemId) {
+      UiService.navigate('index.html');
       return;
     }
 
-    requireElement("itemTitle").textContent = `${site.nom} · ${item.numero}`;
-    requireElement("itemBackButton").addEventListener("click", () => {
+    requireElement('itemBackButton').addEventListener('click', () => {
       UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
     });
 
-    const detailForm = requireElement("detailForm");
-    const detailFormError = requireElement("detailFormError");
-    const detailCount = requireElement("detailCount");
-    const detailTableBody = requireElement("detailTableBody");
-    const detailSearchInput = requireElement("detailSearchInput");
-    const exportButton = requireElement("exportDetailsButton");
-    const designationInput = requireElement("designationInput");
+    const detailForm = requireElement('detailForm');
+    const detailFormError = requireElement('detailFormError');
+    const detailCount = requireElement('detailCount');
+    const detailTableBody = requireElement('detailTableBody');
+    const detailSearchInput = requireElement('detailSearchInput');
+    const exportButton = requireElement('exportDetailsButton');
+    const designationInput = requireElement('designationInput');
+
+    let currentSite = StorageService.getSite(siteId);
+    let currentItem = StorageService.getItem(siteId, itemId);
+    let currentDetails = [];
+
+    function renderTitle() {
+      if (!currentSite || !currentItem) {
+        requireElement('itemTitle').textContent = 'Chargement...';
+        return;
+      }
+      requireElement('itemTitle').textContent = `${currentSite.nom} · ${currentItem.numero}`;
+    }
 
     function getSearchQuery() {
-      return detailSearchInput ? detailSearchInput.value.trim().toLowerCase() : "";
+      return detailSearchInput ? detailSearchInput.value.trim().toLowerCase() : '';
     }
 
     function getFilteredDetails(details) {
@@ -546,47 +562,45 @@
       if (!query) {
         return details;
       }
-      return details.filter((detail) => String(detail.designation || "").toLowerCase().includes(query));
+      return details.filter((detail) => String(detail.designation || '').toLowerCase().includes(query));
     }
 
     function updateCount(filteredCount, totalCount) {
       if (filteredCount === totalCount) {
-        setCountText(detailCount, totalCount, "ligne", "lignes");
+        setCountText(detailCount, totalCount, 'ligne', 'lignes');
         return;
       }
-      detailCount.textContent = `${filteredCount} ligne${filteredCount > 1 ? "s" : ""} affichée${filteredCount > 1 ? "s" : ""} / ${totalCount}`;
+      detailCount.textContent = `${filteredCount} ligne${filteredCount > 1 ? 's' : ''} affichée${filteredCount > 1 ? 's' : ''} / ${totalCount}`;
     }
 
     function exportDetails() {
-      const currentItem = StorageService.getItem(siteId, itemId);
+      if (!currentItem || !currentSite) {
+        UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
+        return;
+      }
+
+      const filteredDetails = getFilteredDetails(currentDetails);
+      if (!filteredDetails.length) {
+        UiService.showToast('Aucune ligne à exporter.');
+        return;
+      }
+
+      const fileName = `${currentSite.nom} · ${currentItem.numero}.xls`;
+      const workbook = buildDetailExcelContent(`${currentSite.nom} · ${currentItem.numero}`, filteredDetails);
+      downloadExcelFile(fileName, 'Export Excel', workbook);
+    }
+
+    function renderTable() {
       if (!currentItem) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
         return;
       }
 
-      const filteredDetails = getFilteredDetails(currentItem.details);
-      if (!filteredDetails.length) {
-        UiService.showToast("Aucune ligne à exporter.");
-        return;
-      }
-
-      const fileName = `${site.nom} · ${currentItem.numero}.xls`;
-      const workbook = buildDetailExcelContent(`${site.nom} · ${currentItem.numero}`, filteredDetails);
-      downloadExcelFile(fileName, "Export Excel", workbook);
-    }
-
-    function renderTable() {
-      const nextItem = StorageService.getItem(siteId, itemId);
-      if (!nextItem) {
-        UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
-        return;
-      }
-
-      const filteredDetails = getFilteredDetails(nextItem.details);
-      updateCount(filteredDetails.length, nextItem.details.length);
+      const filteredDetails = getFilteredDetails(currentDetails);
+      updateCount(filteredDetails.length, currentDetails.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="10"><div class="empty-state">${nextItem.details.length ? "Aucune désignation ne correspond à votre recherche." : "Aucune ligne enregistrée."}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="10"><div class="empty-state">${currentDetails.length ? 'Aucune désignation ne correspond à votre recherche.' : 'Aucune ligne enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -612,13 +626,13 @@
             </tr>
           `,
         )
-        .join("");
+        .join('');
 
-      detailTableBody.querySelectorAll("[data-field]").forEach((field) => {
-        field.addEventListener("change", (event) => {
-          const row = event.target.closest("tr");
+      detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
+        field.addEventListener('change', async (event) => {
+          const row = event.target.closest('tr');
           const fieldName = event.target.dataset.field;
-          const currentDetail = nextItem.details.find((detail) => detail.id === row.dataset.detailId);
+          const currentDetail = currentDetails.find((detail) => detail.id === row.dataset.detailId);
 
           if (!currentDetail) {
             return;
@@ -626,78 +640,91 @@
 
           let nextValue = event.target.value;
 
-          if (fieldName === "qteRetour") {
+          if (fieldName === 'qteRetour') {
             const qteSortie = Number(currentDetail.qteSortie) || 0;
             const qteRetour = Number(nextValue) || 0;
             if (qteRetour > qteSortie) {
               nextValue = String(qteSortie);
-              UiService.showToast("La Qté Retour ne peut pas dépasser la Qté Sortie.");
+              UiService.showToast('La Qté Retour ne peut pas dépasser la Qté Sortie.');
             }
           }
 
-          if (fieldName === "qtePosee") {
+          if (fieldName === 'qtePosee') {
             const qteSortie = Number(currentDetail.qteSortie) || 0;
             const qtePosee = Number(nextValue) || 0;
             if (qtePosee > qteSortie) {
               nextValue = String(qteSortie);
-              UiService.showToast("La Qté posée ne peut pas dépasser la Qté Sortie.");
+              UiService.showToast('La Qté posée ne peut pas dépasser la Qté Sortie.');
             }
           }
 
-          if (fieldName === "qteSortie") {
-            const qteSortie = Number(nextValue) || 0;
-            if ((Number(currentDetail.qteRetour) || 0) > qteSortie) {
-              UiService.showToast("La Qté Retour a été ajustée à la Qté Sortie.");
-            } else if ((Number(currentDetail.qtePosee) || 0) > qteSortie) {
-              UiService.showToast("La Qté posée a été ajustée à la Qté Sortie.");
-            }
-          }
-
-          StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
+          await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
             [fieldName]: nextValue,
           });
-
-          renderTable();
         });
       });
 
-      detailTableBody.querySelectorAll("[data-detail-delete]").forEach((button) => {
-        button.addEventListener("click", () => {
-          StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
-          UiService.showToast("Ligne supprimée.");
-          renderTable();
+      detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const removed = await StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
+          UiService.showToast(removed ? 'Ligne supprimée.' : 'Suppression refusée : vous n\'êtes pas propriétaire.');
         });
       });
     }
 
-    detailForm.addEventListener("submit", (event) => {
+    detailForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      detailFormError.textContent = "";
+      detailFormError.textContent = '';
       if (!designationInput.value.trim()) {
-        detailFormError.textContent = "Veuillez remplir la désignation.";
+        detailFormError.textContent = 'Veuillez remplir la désignation.';
         return;
       }
-      StorageService.createDetail(siteId, itemId, {
-        code: requireElement("codeInput").value,
+      await StorageService.createDetail(siteId, itemId, {
+        code: requireElement('codeInput').value,
         designation: designationInput.value,
-        qteSortie: requireElement("qteSortieInput").value,
-        unite: requireElement("uniteInput").value,
+        qteSortie: requireElement('qteSortieInput').value,
+        unite: requireElement('uniteInput').value,
       });
       detailForm.reset();
-      requireElement("uniteInput").value = "m";
-      UiService.showToast("Ligne ajoutée.");
-      renderTable();
+      requireElement('uniteInput').value = 'm';
+      UiService.showToast('Ligne ajoutée et synchronisée.');
     });
 
     if (detailSearchInput) {
-      detailSearchInput.addEventListener("input", renderTable);
+      detailSearchInput.addEventListener('input', renderTable);
     }
 
     if (exportButton) {
-      exportButton.addEventListener("click", exportDetails);
+      exportButton.addEventListener('click', exportDetails);
     }
 
-    renderTable();
+    StorageService.subscribeSites((sites) => {
+      currentSite = sites.find((site) => site.id === siteId) || currentSite;
+      renderTitle();
+    });
+
+    StorageService.subscribeItems(siteId, (items) => {
+      currentItem = items.find((item) => item.id === itemId) || currentItem;
+      if (!currentItem) {
+        UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
+        return;
+      }
+      renderTitle();
+    });
+
+    StorageService.subscribeDetails(
+      siteId,
+      itemId,
+      (details) => {
+        currentDetails = details;
+        renderTable();
+      },
+      () => {
+        UiService.showToast('Mode hors ligne: affichage du cache local.');
+      },
+    );
+
+    renderTitle();
   }
 
   function registerOfflineSupport() {
@@ -718,13 +745,13 @@
     await StorageService.init();
 
     const page = document.body.dataset.page;
-    if (page === "home") {
+    if (page === 'home') {
       initHomePage();
     }
-    if (page === "site-detail") {
+    if (page === 'site-detail') {
       initSiteDetailPage();
     }
-    if (page === "item-detail") {
+    if (page === 'item-detail') {
       initItemDetailPage();
     }
   }
