@@ -56,6 +56,7 @@
               <td>${escapeHtml(detail.unite)}</td>
               <td>${escapeHtml(detail.qtePosee)}</td>
               <td>${escapeHtml(detail.qteRetour)}</td>
+              <td>${escapeHtml(computeEcart(detail))}</td>
               <td>${escapeHtml(detail.observation)}</td>
             </tr>
           `,
@@ -79,6 +80,7 @@
           <th>Unité</th>
           <th>Qté posée</th>
           <th>Qté Retour</th>
+          <th>Ecart</th>
           <th>Observation</th>
         </tr>
       </thead>
@@ -672,7 +674,10 @@
 
       detailTableBody.innerHTML = filteredDetails
         .map(
-          (detail) => `
+          (detail) => {
+            const ecart = computeEcart(detail);
+            const ecartClassName = ecart === 0 ? '' : ' cell-input--ecart-alert';
+            return `
             <tr data-detail-id="${detail.id}">
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input" data-field="code" value="${escapeHtml(detail.code)}" /></td>
@@ -685,13 +690,14 @@
               </td>
               <td><input class="cell-input" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
-              <td><input class="cell-input" type="number" value="${computeEcart(detail)}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input${ecartClassName}" type="number" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td><textarea class="cell-textarea" data-field="observation">${escapeHtml(detail.observation)}</textarea></td>
               <td><button class="btn-danger" type="button" data-detail-delete="${detail.id}">Supprimer</button></td>
             </tr>
-          `,
+          `;
+          },
         )
         .join('');
 

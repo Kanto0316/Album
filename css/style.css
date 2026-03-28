@@ -469,6 +469,11 @@ button {
   padding: 0.7rem 0.8rem;
 }
 
+.cell-input--ecart-alert {
+  background: #ffd9d9;
+  border-color: #f08e8e;
+}
+
 .cell-textarea {
   min-height: 5rem;
   resize: vertical;
