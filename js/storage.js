@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
   onSnapshot,
   orderBy,
@@ -69,6 +70,34 @@ function uid() {
 
 function makePageItemsCollection(pageName) {
   return collection(state.db, 'pages', pageName, 'items');
+}
+
+async function readPageItems(pageName) {
+  const pageRef = makePageItemsCollection(pageName);
+  const snapshot = await getDocs(pageRef);
+  return snapshot.docs.map(normalizeDocData);
+}
+
+async function persistFullSnapshot() {
+  const [page1, page2, page3] = await Promise.all([
+    readPageItems('page1'),
+    readPageItems('page2'),
+    readPageItems('page3'),
+  ]);
+
+  await setDoc(
+    doc(state.db, 'pages', 'snapshot'),
+    {
+      pages: {
+        page1,
+        page2,
+        page3,
+      },
+      updatedAtIso: nowIso(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
 function normalizeDocData(docSnapshot) {
@@ -181,6 +210,7 @@ async function createSite(name) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  await persistFullSnapshot();
   return created.id;
 }
 
@@ -191,6 +221,7 @@ async function removeSite(siteId) {
     return false;
   }
   await deleteDoc(targetRef);
+  await persistFullSnapshot();
   return true;
 }
 
@@ -212,6 +243,7 @@ async function createItem(siteId, numberValue) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  await persistFullSnapshot();
   return created.id;
 }
 
@@ -222,6 +254,7 @@ async function removeItem(_siteId, itemId) {
     return false;
   }
   await deleteDoc(targetRef);
+  await persistFullSnapshot();
   return true;
 }
 
@@ -251,6 +284,7 @@ async function createDetail(siteId, itemId, payload) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  await persistFullSnapshot();
   return created.id;
 }
 
@@ -300,6 +334,7 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   next.updatedAt = serverTimestamp();
 
   await updateDoc(detailRef, next);
+  await persistFullSnapshot();
   return true;
 }
 
@@ -312,6 +347,7 @@ async function removeDetail(siteId, itemId, detailId) {
   }
 
   await deleteDoc(detailRef);
+  await persistFullSnapshot();
   return true;
 }
 
@@ -469,6 +505,7 @@ async function importData(payload) {
     });
   }
 
+  await persistFullSnapshot();
   return true;
 }
 
