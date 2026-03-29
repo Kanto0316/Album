@@ -359,6 +359,27 @@ function subscribeDetailRows(siteId, onChange, onError) {
   );
 }
 
+async function getDetailRowsBySite(siteId) {
+  const detailsRef = makePageItemsCollection('page3');
+  const q = query(detailsRef, where('siteId', '==', siteId), orderBy('champ', 'asc'));
+  const snapshot = await getDocs(q);
+  const rowsByItem = {};
+
+  snapshot.docs.forEach((docSnap) => {
+    const detail = normalizeDocData(docSnap);
+    const itemId = String(detail.itemId || '');
+    if (!itemId) {
+      return;
+    }
+    if (!rowsByItem[itemId]) {
+      rowsByItem[itemId] = [];
+    }
+    rowsByItem[itemId].push(detail);
+  });
+
+  return clone(rowsByItem);
+}
+
 async function createSite(name) {
   const siteName = sanitizeText(name, true);
   if (!siteName) {
@@ -706,6 +727,7 @@ window.StorageService = {
   subscribeDetailCounts,
   subscribeDetailDesignations,
   subscribeDetailRows,
+  getDetailRowsBySite,
   createSite,
   removeSite,
   createItem,

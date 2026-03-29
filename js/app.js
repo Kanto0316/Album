@@ -434,13 +434,21 @@
       );
     }
 
-    function exportItems() {
+    async function exportItems() {
       if (!currentSite) {
         UiService.navigate('index.html');
         return;
       }
 
-      const rows = buildSiteExportRows();
+      let rows = buildSiteExportRows();
+      if (!rows.length) {
+        try {
+          detailRowsByItem = await StorageService.getDetailRowsBySite(siteId);
+          rows = buildSiteExportRows();
+        } catch (_error) {
+          // On conserve le comportement actuel: un toast utilisateur si aucune donnée exploitable.
+        }
+      }
       if (!rows.length) {
         UiService.showToast('Aucun sous-élément avec des données à exporter.');
         return;
