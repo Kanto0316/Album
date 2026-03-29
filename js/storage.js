@@ -153,7 +153,9 @@ async function removeDetailsForItem(siteId, itemId) {
   const detailsRef = makePageItemsCollection('page3');
   const detailsQuery = query(detailsRef, where('siteId', '==', siteId), where('itemId', '==', itemId));
   const detailsSnapshot = await getDocs(detailsQuery);
+  const removedDetails = detailsSnapshot.docs.map(normalizeDocData);
   await Promise.all(detailsSnapshot.docs.map((detailDoc) => deleteDoc(detailDoc.ref)));
+  return removedDetails;
 }
 
 async function removeItemsForSite(siteId) {
@@ -424,8 +426,19 @@ async function removeSite(siteId) {
   const targetRef = doc(state.db, 'pages', 'page1', 'items', siteId);
   const snap = await getDoc(targetRef);
   if (!snap.exists() || !canDelete(snap.data())) {
-    return false;
+    return null;
   }
+
+  const siteData = normalizeDocData(snap);
+  const itemsRef = makePageItemsCollection('page2');
+  const itemsQuery = query(itemsRef, where('siteId', '==', siteId));
+  const itemsSnapshot = await getDocs(itemsQuery);
+  const removedItems = itemsSnapshot.docs.map(normalizeDocData);
+
+  const detailsRef = makePageItemsCollection('page3');
+  const detailsQuery = query(detailsRef, where('siteId', '==', siteId));
+  const detailsSnapshot = await getDocs(detailsQuery);
+  const removedDetails = detailsSnapshot.docs.map(normalizeDocData);
 
   await removeItemsForSite(siteId);
   await deleteDoc(targetRef);
@@ -437,7 +450,11 @@ async function removeSite(siteId) {
   }
 
   await persistFullSnapshot();
-  return true;
+  return {
+    site: siteData,
+    items: removedItems,
+    details: removedDetails,
+  };
 }
 
 async function createItem(siteId, numberValue) {
@@ -470,12 +487,96 @@ async function removeItem(_siteId, itemId) {
   const targetRef = doc(state.db, 'pages', 'page2', 'items', itemId);
   const snap = await getDoc(targetRef);
   if (!snap.exists() || !canDelete(snap.data())) {
+    return null;
+  }
+
+  const itemData = normalizeDocData(snap);
+  const removedDetails = await removeDetailsForItem(itemData.siteId, itemId);
+  await deleteDoc(targetRef);
+  await persistFullSnapshot();
+  return {
+    item: itemData,
+    details: removedDetails,
+  };
+}
+
+function withoutId(payload) {
+  const copy = { ...payload };
+  delete copy.id;
+  return copy;
+}
+
+async function restoreSite(snapshot) {
+  const site = snapshot?.site;
+  if (!site?.id) {
     return false;
   }
 
-  const itemData = snap.data();
-  await removeDetailsForItem(itemData.siteId, itemId);
-  await deleteDoc(targetRef);
+  const timestamp = nowIso();
+  const siteRef = doc(state.db, 'pages', 'page1', 'items', site.id);
+  await setDoc(siteRef, {
+    ...withoutId(site),
+    dateModification: timestamp,
+    updatedAt: serverTimestamp(),
+  });
+
+  const items = Array.isArray(snapshot.items) ? snapshot.items : [];
+  for (const item of items) {
+    if (!item?.id) {
+      continue;
+    }
+    const itemRef = doc(state.db, 'pages', 'page2', 'items', item.id);
+    await setDoc(itemRef, {
+      ...withoutId(item),
+      dateModification: timestamp,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  const details = Array.isArray(snapshot.details) ? snapshot.details : [];
+  for (const detail of details) {
+    if (!detail?.id) {
+      continue;
+    }
+    const detailRef = doc(state.db, 'pages', 'page3', 'items', detail.id);
+    await setDoc(detailRef, {
+      ...withoutId(detail),
+      dateModification: timestamp,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  await persistFullSnapshot();
+  return true;
+}
+
+async function restoreItem(snapshot) {
+  const item = snapshot?.item;
+  if (!item?.id) {
+    return false;
+  }
+
+  const timestamp = nowIso();
+  const itemRef = doc(state.db, 'pages', 'page2', 'items', item.id);
+  await setDoc(itemRef, {
+    ...withoutId(item),
+    dateModification: timestamp,
+    updatedAt: serverTimestamp(),
+  });
+
+  const details = Array.isArray(snapshot.details) ? snapshot.details : [];
+  for (const detail of details) {
+    if (!detail?.id) {
+      continue;
+    }
+    const detailRef = doc(state.db, 'pages', 'page3', 'items', detail.id);
+    await setDoc(detailRef, {
+      ...withoutId(detail),
+      dateModification: timestamp,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
   await persistFullSnapshot();
   return true;
 }
@@ -747,8 +848,10 @@ window.StorageService = {
   getDetailRowsBySite,
   createSite,
   removeSite,
+  restoreSite,
   createItem,
   removeItem,
+  restoreItem,
   createDetail,
   updateDetail,
   removeDetail,

@@ -18,12 +18,42 @@
     if (!toast) {
       return;
     }
+    toast.innerHTML = "";
     toast.textContent = message;
     toast.classList.add("toast--visible");
     window.clearTimeout(showToast.timeoutId);
     showToast.timeoutId = window.setTimeout(() => {
       toast.classList.remove("toast--visible");
     }, 2200);
+  }
+
+  function showUndoSnackbar(message, onUndo, actionLabel = "Annuler") {
+    const toast = document.getElementById("toast");
+    if (!toast) {
+      return;
+    }
+
+    toast.innerHTML = "";
+    const text = document.createElement("span");
+    text.textContent = message;
+    const actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "toast__action";
+    actionButton.textContent = actionLabel;
+    actionButton.addEventListener("click", async () => {
+      toast.classList.remove("toast--visible");
+      window.clearTimeout(showToast.timeoutId);
+      if (typeof onUndo === "function") {
+        await onUndo();
+      }
+    });
+
+    toast.append(text, actionButton);
+    toast.classList.add("toast--visible");
+    window.clearTimeout(showToast.timeoutId);
+    showToast.timeoutId = window.setTimeout(() => {
+      toast.classList.remove("toast--visible");
+    }, 5000);
   }
 
   function renderEmptyState(container, message) {
@@ -46,6 +76,7 @@
     formatDate,
     getQueryParams,
     showToast,
+    showUndoSnackbar,
     renderEmptyState,
     bindDialogCloser,
     navigate,
