@@ -270,7 +270,7 @@
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
-                  <span>${itemCountsBySite[site.id] || 0} sous-élément${(itemCountsBySite[site.id] || 0) > 1 ? 's' : ''}</span>
+                  <span>${itemCountsBySite[site.id] || 0} OUT${(itemCountsBySite[site.id] || 0) > 1 ? 's' : ''}</span>
                   <span>Créé le ${UiService.formatDate(site.dateCreation)}</span>
                   <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
                 </div>
