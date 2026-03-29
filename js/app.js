@@ -15,7 +15,7 @@
   }
 
   function setCountText(element, count, singular, plural) {
-    element.textContent = `${count} ${count > 1 ? plural : singular}`;
+    element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
 
   function computeEcart(detail) {
@@ -734,7 +734,10 @@
             return;
           }
 
-          let nextValue = event.target.value;
+          const nextValue = event.target.value;
+          if (String(currentDetail[fieldName] ?? '') === String(nextValue ?? '')) {
+            return;
+          }
 
           await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
             [fieldName]: nextValue,
@@ -812,29 +815,9 @@
     renderTitle();
   }
 
-  async function clearBrowserCaches() {
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (_error) {
-      // Certains contextes peuvent bloquer l'accès aux stockages web.
-    }
-
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
-    }
-
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((key) => caches.delete(key)));
-    }
-  }
-
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
-    await clearBrowserCaches();
     await StorageService.init();
 
     const page = document.body.dataset.page;
