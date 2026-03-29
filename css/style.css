@@ -422,10 +422,14 @@ button {
 
 .data-table th,
 .data-table td {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #c2d1e0;
   padding: 0.85rem 0.6rem;
   text-align: left;
   vertical-align: top;
+}
+
+body[data-page="item-detail"] .data-table tbody tr:nth-child(even) {
+  background: #f7faff;
 }
 
 .data-table th {
