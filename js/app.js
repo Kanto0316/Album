@@ -291,8 +291,15 @@
 
       siteList.querySelectorAll('[data-site-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
-          const removed = await StorageService.removeSite(button.dataset.siteDelete);
-          UiService.showToast(removed ? 'Site supprimé.' : 'Suppression impossible.');
+          const removedSnapshot = await StorageService.removeSite(button.dataset.siteDelete);
+          if (!removedSnapshot) {
+            UiService.showToast('Suppression impossible.');
+            return;
+          }
+          UiService.showUndoSnackbar('Site supprimé.', async () => {
+            const restored = await StorageService.restoreSite(removedSnapshot);
+            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+          });
         });
       });
     }
@@ -510,8 +517,15 @@
 
       itemList.querySelectorAll('[data-item-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
-          const removed = await StorageService.removeItem(siteId, button.dataset.itemDelete);
-          UiService.showToast(removed ? 'Élément supprimé.' : 'Suppression impossible.');
+          const removedSnapshot = await StorageService.removeItem(siteId, button.dataset.itemDelete);
+          if (!removedSnapshot) {
+            UiService.showToast('Suppression impossible.');
+            return;
+          }
+          UiService.showUndoSnackbar('Élément supprimé.', async () => {
+            const restored = await StorageService.restoreItem(removedSnapshot);
+            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+          });
         });
       });
     }
