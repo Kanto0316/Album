@@ -451,7 +451,7 @@
         }
       }
       if (!rows.length) {
-        UiService.showToast('Aucune donée');
+        UiService.showToast('Aucune donnée');
         return;
       }
 
