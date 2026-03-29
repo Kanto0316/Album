@@ -729,7 +729,7 @@
               <td><input class="cell-input${ecartClassName}" type="number" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
-              <td><textarea class="cell-textarea" data-field="observation">${escapeHtml(detail.observation)}</textarea></td>
+              <td><input class="cell-input" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" /></td>
               <td><button class="btn-danger" type="button" data-detail-delete="${detail.id}">Supprimer</button></td>
             </tr>
           `;
