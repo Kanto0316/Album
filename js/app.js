@@ -406,6 +406,7 @@
     let currentItems = [];
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
+    let detailRowsByItem = {};
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -419,7 +420,7 @@
 
     function buildSiteExportRows() {
       return currentItems.flatMap((item) =>
-        (item.details || []).map((detail) => ({
+        (detailRowsByItem[item.id] || []).map((detail) => ({
           out: item.numero,
           champ: detail.champ,
           code: detail.code,
@@ -445,7 +446,7 @@
         return;
       }
 
-      const title = `${currentSite.nom}.SUIVI MATERIEL`;
+      const title = `SUIVI MATERIEL . ${currentSite.nom}`;
       const workbook = buildSiteExcelContent(title, rows);
       downloadExcelFile(`${title}.xls`, 'Export Excel', workbook);
     }
@@ -589,6 +590,14 @@
       (designationsByItem) => {
         detailDesignationsByItem = designationsByItem;
         renderItems();
+      },
+      () => {},
+    );
+
+    StorageService.subscribeDetailRows(
+      siteId,
+      (rowsByItem) => {
+        detailRowsByItem = rowsByItem;
       },
       () => {},
     );
