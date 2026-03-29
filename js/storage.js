@@ -330,9 +330,24 @@ function subscribeDetailDesignations(siteId, onChange, onError) {
   );
 }
 
+function sortDetailRowsByChamp(rowsByItem) {
+  Object.keys(rowsByItem).forEach((itemId) => {
+    rowsByItem[itemId].sort((left, right) => {
+      const leftChamp = Number(left.champ);
+      const rightChamp = Number(right.champ);
+
+      if (Number.isFinite(leftChamp) && Number.isFinite(rightChamp)) {
+        return leftChamp - rightChamp;
+      }
+
+      return String(left.champ || '').localeCompare(String(right.champ || ''), 'fr', { numeric: true });
+    });
+  });
+}
+
 function subscribeDetailRows(siteId, onChange, onError) {
   const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId), orderBy('champ', 'asc'));
+  const q = query(detailsRef, where('siteId', '==', siteId));
 
   return onSnapshot(
     q,
@@ -349,6 +364,7 @@ function subscribeDetailRows(siteId, onChange, onError) {
         }
         rowsByItem[itemId].push(detail);
       });
+      sortDetailRowsByChamp(rowsByItem);
       onChange(clone(rowsByItem));
     },
     (error) => {
@@ -361,7 +377,7 @@ function subscribeDetailRows(siteId, onChange, onError) {
 
 async function getDetailRowsBySite(siteId) {
   const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId), orderBy('champ', 'asc'));
+  const q = query(detailsRef, where('siteId', '==', siteId));
   const snapshot = await getDocs(q);
   const rowsByItem = {};
 
@@ -377,6 +393,7 @@ async function getDetailRowsBySite(siteId) {
     rowsByItem[itemId].push(detail);
   });
 
+  sortDetailRowsByChamp(rowsByItem);
   return clone(rowsByItem);
 }
 
