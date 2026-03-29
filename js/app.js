@@ -102,7 +102,6 @@
         (row) => `
           <tr>
             <td>${escapeHtml(row.out)}</td>
-            <td>${escapeHtml(row.champ)}</td>
             <td>${escapeHtml(row.code)}</td>
             <td>${escapeHtml(row.designation)}</td>
             <td>${escapeHtml(row.qteSortie)}</td>
@@ -126,7 +125,6 @@
       <thead>
         <tr>
           <th>OUT</th>
-          <th>Champ</th>
           <th>Code</th>
           <th>Désignation</th>
           <th>Qté Sortie</th>
