@@ -419,7 +419,8 @@
     }
 
     function buildSiteExportRows() {
-      return currentItems.flatMap((item) =>
+      const itemsWithLines = currentItems.filter((item) => Number(detailCountsByItem[item.id] || 0) > 0);
+      return itemsWithLines.flatMap((item) =>
         (detailRowsByItem[item.id] || []).map((detail) => ({
           out: item.numero,
           champ: detail.champ,
@@ -450,7 +451,7 @@
         }
       }
       if (!rows.length) {
-        UiService.showToast('Aucun sous-élément avec des données à exporter.');
+        UiService.showToast('Aucune donée');
         return;
       }
 
