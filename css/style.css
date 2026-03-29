@@ -508,7 +508,7 @@ body[data-page="item-detail"] .data-table tbody tr:nth-child(even) {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  width: 80%;
+  width: auto;
   height: auto;
   max-width: calc(100vw - 2rem);
   z-index: 30;
