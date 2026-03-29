@@ -459,6 +459,10 @@ body[data-page="item-detail"] .data-table td {
   z-index: 1;
 }
 
+body[data-page="item-detail"] .data-table th {
+  text-align: center;
+}
+
 .field-badge {
   display: inline-flex;
   align-items: center;
