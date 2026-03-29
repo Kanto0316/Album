@@ -212,7 +212,7 @@
           UiService.showToast('Fichier .su invalide.');
           return;
         }
-        UiService.showToast('Données importées et synchronisées.');
+        UiService.showToast('Données importées.');
       } catch (_error) {
         UiService.showToast('Importation impossible.');
       } finally {
@@ -369,7 +369,7 @@
         }
 
         siteDialog.close();
-        UiService.showToast('Site créé et partagé en temps réel.');
+        UiService.showToast('Site créé avec succés.');
       } catch (error) {
         console.error('Erreur lors de la création du site :', error);
         siteFormError.textContent = "Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.";
@@ -382,7 +382,7 @@
         renderSites();
       },
       () => {
-        UiService.showToast('Synchronisation Firefox indisponible.');
+        UiService.showToast('Synchronisation indisponible.');
       },
     );
 
@@ -492,7 +492,7 @@
       if (!filteredItems.length) {
         UiService.renderEmptyState(
           itemList,
-          query ? 'Aucun N° OUT Ou Article ne correspond à votre recherche.' : 'Aucun sous-élément pour cette liste.',
+          query ? 'Aucun N° OUT Ou Article correspond à votre recherche.' : 'Aucune Article Disponible.',
         );
         return;
       }
@@ -582,7 +582,7 @@
         return;
       }
       itemDialog.close();
-      UiService.showToast('Numéro OUT ajouté et partagé.');
+      UiService.showToast('N° OUT ajouté .');
     });
 
     StorageService.subscribeSites((sites) => {
@@ -601,7 +601,7 @@
         renderItems();
       },
       () => {
-        UiService.showToast('Synchronisation Firefox indisponible.');
+        UiService.showToast('Synchronisation  indisponible.');
       },
     );
 
@@ -679,10 +679,10 @@
 
     function updateCount(filteredCount, totalCount) {
       if (filteredCount === totalCount) {
-        setCountText(detailCount, totalCount, 'ligne', 'lignes');
+        setCountText(detailCount, totalCount, 'Article', 'Article');
         return;
       }
-      detailCount.textContent = `${filteredCount} ligne${filteredCount > 1 ? 's' : ''} affichée${filteredCount > 1 ? 's' : ''} / ${totalCount}`;
+      detailCount.textContent = `${filteredCount} Article${filteredCount > 1 ? 's' : ''} affichée${filteredCount > 1 ? 's' : ''} / ${totalCount}`;
     }
 
     function exportDetails() {
@@ -693,7 +693,7 @@
 
       const filteredDetails = getFilteredDetails(currentDetails);
       if (!filteredDetails.length) {
-        UiService.showToast('Aucune ligne à exporter.');
+        UiService.showToast('Aucune Article à exporter.');
         return;
       }
 
@@ -712,7 +712,7 @@
       updateCount(filteredDetails.length, currentDetails.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${currentDetails.length ? 'Aucune désignation ne correspond à votre recherche.' : 'Aucune ligne enregistrée.'}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -769,7 +769,7 @@
       detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
           const removed = await StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
-          UiService.showToast(removed ? 'Ligne supprimée.' : 'Suppression impossible.');
+          UiService.showToast(removed ? 'Article supprimée.' : 'Suppression impossible.');
         });
       });
     }
@@ -778,7 +778,7 @@
       event.preventDefault();
       detailFormError.textContent = '';
       if (!designationInput.value.trim()) {
-        detailFormError.textContent = 'Veuillez remplir la désignation.';
+        detailFormError.textContent = 'Veuillez remplir le champ.';
         return;
       }
       const result = await StorageService.createDetail(siteId, itemId, {
@@ -796,7 +796,7 @@
       }
       detailForm.reset();
       requireElement('uniteInput').value = 'm';
-      UiService.showToast('Ligne ajoutée et synchronisée.');
+      UiService.showToast('Article ajoutée .');
     });
 
     if (detailSearchInput) {
@@ -829,7 +829,7 @@
         renderTable();
       },
       () => {
-        UiService.showToast('Synchronisation Firefox indisponible.');
+        UiService.showToast('Synchronisation  indisponible.');
       },
     );
 
