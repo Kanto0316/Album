@@ -276,7 +276,7 @@
                 </div>
               </button>
               <div class="list-card__actions">
-                <button class="btn-danger" type="button" data-site-delete="${site.id}">Supprimer</button>
+                <button class="btn-danger btn-danger--icon" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
               </div>
             </article>
           `,
@@ -502,7 +502,7 @@
                 </div>
               </button>
               <div class="list-card__actions">
-                <button class="btn-danger" type="button" data-item-delete="${item.id}">Supprimer</button>
+                <button class="btn-danger btn-danger--icon" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
               </div>
             </article>
           `,
@@ -730,7 +730,7 @@
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td><input class="cell-input" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" /></td>
-              <td><button class="btn-danger" type="button" data-detail-delete="${detail.id}">Supprimer</button></td>
+              <td><button class="btn-danger btn-danger--icon" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>
             </tr>
           `;
           },
