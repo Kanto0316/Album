@@ -447,6 +447,11 @@ body[data-page="item-detail"] .data-table tbody tr:nth-child(even) {
   background: #f7faff;
 }
 
+body[data-page="item-detail"] .data-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .data-table th {
   position: sticky;
   top: 0;
@@ -470,6 +475,7 @@ body[data-page="item-detail"] .data-table tbody tr:nth-child(even) {
 .cell-textarea {
   min-width: 6rem;
   padding: 0.7rem 0.8rem;
+  text-align: center;
 }
 
 .cell-input--ecart-alert {
@@ -505,6 +511,7 @@ body[data-page="item-detail"] .data-table tbody tr:nth-child(even) {
 .qte-sortie-field {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 

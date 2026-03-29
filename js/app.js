@@ -74,6 +74,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>${escapeHtml(title)}</title>
+    <style>
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #cfd8e3; padding: 8px; text-align: center; vertical-align: middle; }
+    </style>
   </head>
   <body>
     <table>
@@ -119,6 +123,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>${escapeHtml(title)}</title>
+    <style>
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #cfd8e3; padding: 8px; text-align: center; vertical-align: middle; }
+    </style>
   </head>
   <body>
     <table>
