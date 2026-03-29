@@ -735,9 +735,9 @@
               <td><input class="cell-input" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
               <td><input class="cell-input${ecartClassName}" type="number" value="${ecart}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input cell-input--autosize" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
-              <td><input class="cell-input" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" /></td>
               <td><button class="btn-danger" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button></td>
             </tr>
           `;
