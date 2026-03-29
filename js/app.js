@@ -702,12 +702,12 @@
             return `
             <tr data-detail-id="${detail.id}">
               <td><span class="field-badge">${detail.champ}</span></td>
-              <td><input class="cell-input" data-field="code" value="${escapeHtml(detail.code)}" /></td>
-              <td><textarea class="cell-textarea cell-textarea--designation" data-field="designation">${escapeHtml(detail.designation)}</textarea></td>
+              <td><input class="cell-input cell-input--autosize" data-field="code" value="${escapeHtml(detail.code)}" size="${Math.max(String(detail.code || '').length + 1, 10)}" /></td>
+              <td><input class="cell-input cell-input--autosize cell-input--designation" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
               <td>
-                <div>
+                <div class="qte-sortie-field">
                   <input class="cell-input" data-field="qteSortie" type="number" min="0" step="1" value="${escapeHtml(detail.qteSortie)}" />
-                  <small class="meta-value">${escapeHtml(detail.unite)}</small>
+                  <span class="meta-value meta-value--inline">${escapeHtml(detail.unite)}</span>
                 </div>
               </td>
               <td><input class="cell-input" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
