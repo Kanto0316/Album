@@ -141,17 +141,25 @@ async function saveUsername(username) {
     return { ok: false, reason: 'invalid_username' };
   }
 
+  const profile = await getCurrentUserProfile();
   const duplicate = await isUsernameDuplicate(nextName, state.userId);
   if (duplicate) {
     return { ok: false, reason: 'duplicate_username' };
   }
 
+  const isFirstUsername = !profile.username;
+  const updates = {
+    username: nextName,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (isFirstUsername) {
+    updates.role = 'ecriture';
+  }
+
   await setDoc(
     userDocRef(),
-    {
-      username: nextName,
-      updatedAt: serverTimestamp(),
-    },
+    updates,
     { merge: true },
   );
 
