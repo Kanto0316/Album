@@ -428,6 +428,10 @@ button {
   overflow-x: auto;
 }
 
+body[data-page="item-detail"] .table-wrapper {
+  padding-bottom: 1.5rem;
+}
+
 .data-table {
   width: max-content;
   min-width: 100%;
