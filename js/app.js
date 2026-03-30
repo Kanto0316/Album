@@ -112,6 +112,7 @@
             <td>${escapeHtml(row.unite)}</td>
             <td>${escapeHtml(row.qtePosee)}</td>
             <td>${escapeHtml(row.qteRetour)}</td>
+            <td>${escapeHtml(computeEcart(row))}</td>
             <td>${escapeHtml(row.observation)}</td>
           </tr>
         `,
@@ -134,12 +135,13 @@
         <tr>
           <th>OUT</th>
           <th>Code</th>
-          <th>Désignation</th>
+          <th>Designation</th>
           <th>Qté Sortie</th>
           <th>Unité</th>
           <th>Qté posée</th>
           <th>Qté Retour</th>
-          <th>Observation</th>
+          <th>Ecart</th>
+          <th>Remarque</th>
         </tr>
       </thead>
       <tbody>${bodyRows}</tbody>
