@@ -135,7 +135,7 @@
         <tr>
           <th>OUT</th>
           <th>Code</th>
-          <th>Designation</th>
+          <th>Désignation</th>
           <th>Qté Sortie</th>
           <th>Unité</th>
           <th>Qté posée</th>
