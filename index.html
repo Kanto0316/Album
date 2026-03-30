@@ -10,6 +10,7 @@
   <body data-page="home">
     <div class="app-shell">
       <header class="app-header app-header--home">
+        <button id="userAvatarButton" class="avatar-button" type="button" aria-label="Profil" hidden>??</button>
         <h1>Suivi Matériel</h1>
         <div class="header-menu">
           <button
@@ -28,6 +29,9 @@
             </button>
             <button id="exportDataButton" class="header-menu__option" type="button" role="menuitem">
               Exporter les données
+            </button>
+            <button id="manageUsersButton" class="header-menu__option" type="button" role="menuitem" hidden>
+              Gestion des utilisateurs
             </button>
           </div>
         </div>
