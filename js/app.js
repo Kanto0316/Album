@@ -150,7 +150,176 @@
 </html>`;
   }
 
-  function initHomePage() {
+
+
+  function buildPermissions(profile) {
+    const username = String(profile?.username || '');
+    const role = String(profile?.role || 'full');
+    const isAdmin = username === 'Admin';
+    if (isAdmin) {
+      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true };
+    }
+    if (role === 'lecture') {
+      return { canCreate: false, canEdit: false, canDelete: false, isAdmin: false };
+    }
+    if (role === 'ecriture') {
+      return { canCreate: true, canEdit: true, canDelete: false, isAdmin: false };
+    }
+    return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false };
+  }
+
+  function formatRetryDate(value) {
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(value);
+  }
+
+  function ensureMandatoryNameModal() {
+    let dialog = document.getElementById('usernameDialog');
+    if (dialog) {
+      return dialog;
+    }
+
+    dialog = document.createElement('dialog');
+    dialog.id = 'usernameDialog';
+    dialog.className = 'modal-card';
+    dialog.innerHTML = `
+      <form class="modal-content" id="usernameForm">
+        <div class="modal-header">
+          <h2>Entrer votre nom</h2>
+        </div>
+        <label class="input-group">
+          <span>Nom</span>
+          <input id="usernameInput" type="text" maxlength="10" />
+        </label>
+        <p id="usernameError" class="form-error" aria-live="polite"></p>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-success">Enregistrer</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dialog);
+    dialog.addEventListener('cancel', (event) => event.preventDefault());
+    return dialog;
+  }
+
+  async function promptForMissingUsername(profile) {
+    if (profile.username) {
+      return profile;
+    }
+
+    const dialog = ensureMandatoryNameModal();
+    const form = dialog.querySelector('#usernameForm');
+    const input = dialog.querySelector('#usernameInput');
+    const error = dialog.querySelector('#usernameError');
+
+    return new Promise((resolve) => {
+      const submitHandler = async (event) => {
+        event.preventDefault();
+        error.textContent = '';
+        const result = await StorageService.saveUsername(input.value);
+        if (!result.ok) {
+          error.textContent = result.reason === 'duplicate_username' ? 'Ce nom existe déjà' : 'Nom invalide (4-10 lettres/chiffres, pas uniquement chiffres).';
+          return;
+        }
+
+        form.removeEventListener('submit', submitHandler);
+        dialog.close();
+        const updated = await StorageService.getCurrentUserProfile();
+        resolve(updated);
+      };
+
+      form.addEventListener('submit', submitHandler);
+      dialog.showModal();
+      input.focus();
+    });
+  }
+
+  function renderAvatar(profile, onClick) {
+    const avatarButton = document.getElementById('userAvatarButton');
+    if (!avatarButton) {
+      return;
+    }
+    const base = String(profile.username || '??').slice(0, 2).toUpperCase();
+    avatarButton.textContent = base;
+    avatarButton.title = profile.username || '';
+    avatarButton.hidden = false;
+    avatarButton.onclick = onClick;
+  }
+
+  function ensureRenameDialog() {
+    let dialog = document.getElementById('renameDialog');
+    if (dialog) {
+      return dialog;
+    }
+    dialog = document.createElement('dialog');
+    dialog.id = 'renameDialog';
+    dialog.className = 'modal-card';
+    dialog.innerHTML = `
+      <form class="modal-content" id="renameForm">
+        <div class="modal-header"><h2>Modifier le nom</h2></div>
+        <label class="input-group">
+          <span>Nouveau nom</span>
+          <input id="renameInput" type="text" maxlength="10" />
+        </label>
+        <p id="renameError" class="form-error" aria-live="polite"></p>
+        <div class="modal-actions">
+          <button id="renameSaveButton" type="submit" class="btn btn-success">Enregistrer</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dialog);
+    return dialog;
+  }
+
+  function openRenameDialog(profile, onSaved) {
+    const dialog = ensureRenameDialog();
+    const form = dialog.querySelector('#renameForm');
+    const input = dialog.querySelector('#renameInput');
+    const error = dialog.querySelector('#renameError');
+    const saveButton = dialog.querySelector('#renameSaveButton');
+
+    const refreshState = async () => {
+      const latest = await StorageService.getCurrentUserProfile();
+      input.value = latest.username || '';
+      error.textContent = '';
+      const nextAllowedAt = StorageService.computeNextNameChangeDate(latest.lastNameChange);
+      const locked = nextAllowedAt && new Date() < nextAllowedAt;
+      input.disabled = Boolean(locked);
+      saveButton.disabled = Boolean(locked);
+      if (locked) {
+        error.textContent = `Vous devez réessayer votre nom dans ${formatRetryDate(nextAllowedAt)}`;
+      }
+      return latest;
+    };
+
+    let submitHandler;
+    submitHandler = async (event) => {
+      event.preventDefault();
+      const result = await StorageService.changeUsername(input.value);
+      if (!result.ok) {
+        if (result.reason === 'duplicate_username') {
+          error.textContent = 'Ce nom existe déjà';
+          return;
+        }
+        if (result.reason === 'cooldown') {
+          error.textContent = `Vous devez réessayer votre nom dans ${formatRetryDate(result.nextAllowedAt)}`;
+          input.disabled = true;
+          saveButton.disabled = true;
+          return;
+        }
+        error.textContent = 'Nom invalide (4-10 lettres/chiffres, pas uniquement chiffres).';
+        return;
+      }
+      form.removeEventListener('submit', submitHandler);
+      dialog.close();
+      onSaved();
+    };
+
+    refreshState();
+    form.addEventListener('submit', submitHandler);
+    dialog.addEventListener('close', () => form.removeEventListener('submit', submitHandler), { once: true });
+    dialog.showModal();
+  }
+  function initHomePage(userProfile, permissions) {
     const searchInput = requireElement('searchInput');
     const siteList = requireElement('siteList');
     const siteCount = requireElement('siteCount');
@@ -162,6 +331,7 @@
     const homeMenuPanel = requireElement('homeMenuPanel');
     const importDataButton = requireElement('importDataButton');
     const exportDataButton = requireElement('exportDataButton');
+    const manageUsersButton = requireElement('manageUsersButton');
 
     let currentSites = [];
     let itemCountsBySite = {};
@@ -285,9 +455,9 @@
                   <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
                 </div>
               </button>
-              <div class="list-card__actions">
+              ${permissions.canDelete ? `<div class="list-card__actions">
                 <button class="btn-danger" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>
-              </div>
+              </div>` : ''}
             </article>
           `,
         )
@@ -342,8 +512,31 @@
         openImportFilePicker();
       });
     }
+    if (!permissions.canCreate) {
+      if (importDataButton) importDataButton.hidden = true;
+    }
 
-    requireElement('openCreateSite').addEventListener('click', () => {
+    if (manageUsersButton) {
+      manageUsersButton.hidden = !permissions.isAdmin;
+      manageUsersButton.addEventListener('click', () => {
+        closeHomeMenu();
+        UiService.navigate('users.html');
+      });
+    }
+
+    const refreshAvatar = async () => {
+      const latest = await StorageService.getCurrentUserProfile();
+      renderAvatar(latest, () => openRenameDialog(latest, refreshAvatar));
+    };
+    renderAvatar(userProfile, () => openRenameDialog(userProfile, refreshAvatar));
+
+
+    const openCreateSite = requireElement('openCreateSite');
+    if (!permissions.canCreate && openCreateSite) {
+      openCreateSite.hidden = true;
+    }
+
+    openCreateSite?.addEventListener('click', () => {
       siteForm.reset();
       siteFormError.textContent = '';
       siteDialog.showModal();
@@ -357,6 +550,11 @@
       const name = siteNameInput.value.trim();
       if (!name) {
         siteFormError.textContent = 'Veuillez remplir ce champ';
+        return;
+      }
+
+      if (!permissions.canCreate) {
+        siteFormError.textContent = 'Accès refusé.';
         return;
       }
 
@@ -399,7 +597,7 @@
     );
   }
 
-  function initSiteDetailPage() {
+  function initSiteDetailPage(permissions) {
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
     if (!siteId) {
@@ -511,9 +709,9 @@
                   <small>Modifié le ${UiService.formatDate(item.dateModification)}</small>
                 </div>
               </button>
-              <div class="list-card__actions">
+              ${permissions.canDelete ? `<div class="list-card__actions">
                 <button class="btn-danger" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>
-              </div>
+              </div>` : ''}
             </article>
           `,
         )
@@ -540,7 +738,12 @@
       });
     }
 
-    requireElement('openCreateItem').addEventListener('click', () => {
+    const openCreateItem = requireElement('openCreateItem');
+    if (!permissions.canCreate && openCreateItem) {
+      openCreateItem.hidden = true;
+    }
+
+    openCreateItem?.addEventListener('click', () => {
       itemForm.reset();
       itemFormError.textContent = '';
       itemDialog.showModal();
@@ -573,6 +776,10 @@
       }
       if (value.length < 4) {
         itemFormError.textContent = 'Veuillez saisir au moins 4 chiffres.';
+        return;
+      }
+      if (!permissions.canCreate) {
+        itemFormError.textContent = 'Accès refusé.';
         return;
       }
       const result = await StorageService.createItem(siteId, value);
@@ -634,7 +841,7 @@
     );
   }
 
-  function initItemDetailPage() {
+  function initItemDetailPage(permissions) {
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
     const itemId = params.get('itemId');
@@ -658,6 +865,17 @@
     let currentSite = StorageService.getSite(siteId);
     let currentItem = StorageService.getItem(siteId, itemId);
     let currentDetails = [];
+
+    if (!permissions.canDelete) {
+      document.querySelector('.data-table')?.classList.add('data-table--hide-action');
+    }
+
+    if (!permissions.canCreate) {
+      detailForm.querySelector('button[type="submit"]').disabled = true;
+      detailForm.querySelectorAll('input, select').forEach((field) => {
+        field.disabled = true;
+      });
+    }
 
     function renderTitle() {
       if (!currentSite || !currentItem) {
@@ -740,7 +958,7 @@
               <td><input class="cell-input cell-input--autosize" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
-              <td><button class="btn-danger" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button></td>
+              <td>${permissions.canDelete ? `<button class="btn-danger" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>` : ""}</td>
             </tr>
           `;
           },
@@ -748,6 +966,13 @@
         .join('');
 
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
+        if (!permissions.canEdit) {
+          field.disabled = true;
+        }
+        if (!permissions.canEdit) {
+          return;
+        }
+
         field.addEventListener('change', async (event) => {
           const row = event.target.closest('tr');
           const fieldName = event.target.dataset.field;
@@ -783,6 +1008,11 @@
         detailFormError.textContent = 'Veuillez remplir le champ.';
         return;
       }
+      if (!permissions.canCreate) {
+        detailFormError.textContent = 'Accès refusé.';
+        return;
+      }
+
       const result = await StorageService.createDetail(siteId, itemId, {
         code: requireElement('codeInput').value,
         designation: designationInput.value,
@@ -838,20 +1068,70 @@
     renderTitle();
   }
 
+
+
+  async function initUsersPage(permissions) {
+    if (!permissions.isAdmin) {
+      UiService.navigate('index.html');
+      return;
+    }
+
+    const tableBody = requireElement('usersTableBody');
+    const backButton = requireElement('usersBackButton');
+    backButton?.addEventListener('click', () => UiService.navigate('index.html'));
+
+    const roleLabel = { lecture: 'Lecture seule', ecriture: 'Écriture seule', full: 'Tout accès' };
+
+    async function renderUsers() {
+      const users = await StorageService.listUsers();
+      tableBody.innerHTML = users
+        .map((user) => `
+          <tr>
+            <td>${escapeHtml(user.username)}</td>
+            <td>
+              ${user.username === 'Admin' ? 'Admin' : `
+              <select data-user-role="${user.id}">
+                <option value="lecture" ${user.role === 'lecture' ? 'selected' : ''}>${roleLabel.lecture}</option>
+                <option value="ecriture" ${user.role === 'ecriture' ? 'selected' : ''}>${roleLabel.ecriture}</option>
+                <option value="full" ${user.role === 'full' ? 'selected' : ''}>${roleLabel.full}</option>
+              </select>`}
+            </td>
+          </tr>
+        `)
+        .join('');
+
+      tableBody.querySelectorAll('[data-user-role]').forEach((select) => {
+        select.addEventListener('change', async () => {
+          await StorageService.updateUserRole(select.dataset.userRole, select.value);
+          UiService.showToast('Rôle mis à jour.');
+        });
+      });
+    }
+
+    await renderUsers();
+  }
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
     await StorageService.init();
 
+    await StorageService.ensureCurrentUser();
+    let profile = await StorageService.getCurrentUserProfile();
+    profile = await promptForMissingUsername(profile);
+    const permissions = buildPermissions(profile);
+
     const page = document.body.dataset.page;
     if (page === 'home') {
-      initHomePage();
+      initHomePage(profile, permissions);
     }
     if (page === 'site-detail') {
-      initSiteDetailPage();
+      initSiteDetailPage(permissions);
     }
     if (page === 'item-detail') {
-      initItemDetailPage();
+      initItemDetailPage(permissions);
+    }
+    if (page === 'users-management') {
+      await initUsersPage(permissions);
     }
   }
 

@@ -607,3 +607,18 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
     flex-wrap: wrap;
   }
 }
+
+.avatar-button {
+  border: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.data-table--hide-action th:last-child,
+.data-table--hide-action td:last-child {
+  display: none;
+}

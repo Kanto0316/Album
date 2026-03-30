@@ -12,6 +12,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
@@ -34,6 +35,186 @@ const state = {
   itemsBySite: new Map(),
   detailsByItem: new Map(),
 };
+
+
+
+function normalizeRole(value) {
+  const role = String(value || '').toLowerCase();
+  if (role === 'lecture' || role === 'ecriture' || role === 'full') {
+    return role;
+  }
+  return 'full';
+}
+
+function normalizeUsername(value) {
+  return sanitizeText(value, false);
+}
+
+function isValidUsername(username) {
+  const value = normalizeUsername(username);
+  if (!/^[A-Za-z0-9]{4,10}$/.test(value)) {
+    return false;
+  }
+  if (/^\d+$/.test(value)) {
+    return false;
+  }
+  return true;
+}
+
+async function resolveUserId() {
+  const source = [navigator.userAgent || '', navigator.language || '', navigator.platform || ''].join('|');
+  const encoded = new TextEncoder().encode(source);
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  const hash = Array.from(new Uint8Array(digest))
+    .slice(0, 16)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+  return `user_${hash}`;
+}
+
+function usersCollection() {
+  return collection(state.db, 'users');
+}
+
+function userDocRef(userId = state.userId) {
+  return doc(state.db, 'users', userId);
+}
+
+async function isUsernameDuplicate(username, excludedUserId) {
+  const q = query(usersCollection(), where('username', '==', username));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.some((snap) => snap.id !== excludedUserId);
+}
+
+async function ensureCurrentUser() {
+  const ref = userDocRef();
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(
+      ref,
+      {
+        username: '',
+        role: 'full',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastNameChange: null,
+      },
+      { merge: true },
+    );
+    return { id: state.userId, username: '', role: 'full', lastNameChange: null };
+  }
+
+  const data = snap.data() || {};
+  return {
+    id: snap.id,
+    username: normalizeUsername(data.username),
+    role: normalizeRole(data.role),
+    lastNameChange: data.lastNameChange || null,
+  };
+}
+
+async function getCurrentUserProfile() {
+  const snap = await getDoc(userDocRef());
+  if (!snap.exists()) {
+    return ensureCurrentUser();
+  }
+  const data = snap.data() || {};
+  return {
+    id: snap.id,
+    username: normalizeUsername(data.username),
+    role: normalizeRole(data.role),
+    lastNameChange: data.lastNameChange || null,
+  };
+}
+
+function computeNextNameChangeDate(lastNameChange) {
+  if (!lastNameChange) {
+    return null;
+  }
+  const date = typeof lastNameChange.toDate === 'function' ? lastNameChange.toDate() : new Date(lastNameChange);
+  return new Date(date.getTime() + 24 * 60 * 60 * 1000);
+}
+
+async function saveUsername(username) {
+  const nextName = normalizeUsername(username);
+  if (!isValidUsername(nextName)) {
+    return { ok: false, reason: 'invalid_username' };
+  }
+
+  const duplicate = await isUsernameDuplicate(nextName, state.userId);
+  if (duplicate) {
+    return { ok: false, reason: 'duplicate_username' };
+  }
+
+  await setDoc(
+    userDocRef(),
+    {
+      username: nextName,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return { ok: true, username: nextName };
+}
+
+async function changeUsername(username) {
+  const profile = await getCurrentUserProfile();
+  const nextAllowedAt = computeNextNameChangeDate(profile.lastNameChange);
+  if (nextAllowedAt && new Date() < nextAllowedAt) {
+    return { ok: false, reason: 'cooldown', nextAllowedAt };
+  }
+
+  const nextName = normalizeUsername(username);
+  if (!isValidUsername(nextName)) {
+    return { ok: false, reason: 'invalid_username' };
+  }
+
+  const duplicate = await isUsernameDuplicate(nextName, profile.id);
+  if (duplicate) {
+    return { ok: false, reason: 'duplicate_username' };
+  }
+
+  await setDoc(
+    userDocRef(),
+    {
+      username: nextName,
+      lastNameChange: Timestamp.fromDate(new Date()),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return { ok: true, username: nextName };
+}
+
+async function listUsers() {
+  const snapshot = await getDocs(usersCollection());
+  return snapshot.docs
+    .map((snap) => {
+      const data = snap.data() || {};
+      return {
+        id: snap.id,
+        username: normalizeUsername(data.username),
+        role: normalizeRole(data.role),
+      };
+    })
+    .filter((user) => user.username);
+}
+
+async function updateUserRole(userId, role) {
+  const nextRole = normalizeRole(role);
+  await setDoc(
+    userDocRef(userId),
+    {
+      role: nextRole,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return true;
+}
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -180,7 +361,7 @@ async function init() {
     return;
   }
   state.initialized = true;
-  state.userId = uid();
+  state.userId = await resolveUserId();
   const app = initializeApp(FIREBASE_CONFIG);
   state.db = getFirestore(app);
 }
@@ -857,4 +1038,11 @@ window.StorageService = {
   removeDetail,
   exportData,
   importData,
+  ensureCurrentUser,
+  getCurrentUserProfile,
+  saveUsername,
+  changeUsername,
+  listUsers,
+  updateUserRole,
+  computeNextNameChangeDate,
 };
