@@ -464,7 +464,10 @@ body[data-page="item-detail"] .data-table th {
 }
 
 body[data-page="item-detail"] .data-table th:nth-child(2),
-body[data-page="item-detail"] .data-table th:nth-child(3),
+body[data-page="item-detail"] .data-table th:nth-child(3) {
+  text-align: center;
+}
+
 body[data-page="item-detail"] .data-table td:nth-child(2),
 body[data-page="item-detail"] .data-table td:nth-child(3) {
   text-align: left;
