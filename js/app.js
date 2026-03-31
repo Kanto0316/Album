@@ -855,6 +855,7 @@
     });
 
     const detailForm = requireElement('detailForm');
+    const detailFormSection = requireElement('detailFormSection');
     const detailFormError = requireElement('detailFormError');
     const detailCount = requireElement('detailCount');
     const detailTableBody = requireElement('detailTableBody');
@@ -871,10 +872,7 @@
     }
 
     if (!permissions.canCreate) {
-      detailForm.querySelector('button[type="submit"]').disabled = true;
-      detailForm.querySelectorAll('input, select').forEach((field) => {
-        field.disabled = true;
-      });
+      detailFormSection.hidden = true;
     }
 
     function renderTitle() {
