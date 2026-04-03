@@ -180,29 +180,29 @@ button {
 }
 
 .list-separator {
-  position: relative;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  column-gap: 0.6rem;
   margin: 0.25rem 0;
 }
 
-.list-separator::before {
+.list-separator::before,
+.list-separator::after {
   content: "";
-  position: absolute;
-  inset: 50% 0 auto;
-  border-top: 1px solid var(--border);
+  height: 1px;
+  background: var(--border);
 }
 
 .list-separator__label {
-  position: relative;
-  z-index: 1;
-  padding: 0.2rem 0.75rem;
+  padding: 0.2rem 0.8rem;
   border-radius: 999px;
   background: var(--bg);
   color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .surface-card,
