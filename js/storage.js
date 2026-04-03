@@ -7,8 +7,6 @@ import {
   getDoc,
   getDocs,
   getFirestore,
-  onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -27,6 +25,9 @@ const FIREBASE_CONFIG = {
   measurementId: 'G-LMQC9RVF2E',
 };
 
+const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
+const PENDING_OPS_KEY = 'suiviMateriel.pendingOps.v1';
+
 const state = {
   initialized: false,
   db: null,
@@ -34,9 +35,16 @@ const state = {
   sites: [],
   itemsBySite: new Map(),
   detailsByItem: new Map(),
+  listeners: {
+    sites: new Set(),
+    itemCounts: new Set(),
+    itemsBySite: new Map(),
+    detailCountsBySite: new Map(),
+    detailDesignationsBySite: new Map(),
+    detailRowsBySite: new Map(),
+    detailsByPair: new Map(),
+  },
 };
-
-
 
 function normalizeRole(value) {
   const role = String(value || '').toLowerCase();
@@ -259,6 +267,423 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function uid() {
+  return `local_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function makePageItemsCollection(pageName) {
+  return collection(state.db, 'pages', pageName, 'items');
+}
+
+function normalizeDocData(docSnapshot) {
+  const data = docSnapshot.data() || {};
+  return { id: docSnapshot.id, ...data };
+}
+
+function persistOfflineState() {
+  const items = [];
+  state.itemsBySite.forEach((value) => items.push(...value));
+  const details = [];
+  state.detailsByItem.forEach((value) => details.push(...value));
+  const payload = {
+    savedAt: nowIso(),
+    pages: {
+      page1: state.sites,
+      page2: items,
+      page3: details,
+    },
+  };
+  localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(payload));
+}
+
+function loadOfflineState() {
+  try {
+    const raw = localStorage.getItem(OFFLINE_CACHE_KEY);
+    if (!raw) {
+      return false;
+    }
+    const parsed = JSON.parse(raw);
+    const page1 = Array.isArray(parsed?.pages?.page1) ? parsed.pages.page1 : [];
+    const page2 = Array.isArray(parsed?.pages?.page2) ? parsed.pages.page2 : [];
+    const page3 = Array.isArray(parsed?.pages?.page3) ? parsed.pages.page3 : [];
+    applySnapshot({ page1, page2, page3 });
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function getPendingOps() {
+  try {
+    const raw = localStorage.getItem(PENDING_OPS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function setPendingOps(ops) {
+  localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(ops));
+}
+
+function pushPendingOp(operation) {
+  const ops = getPendingOps();
+  ops.push(operation);
+  setPendingOps(ops);
+}
+
+async function readPageItems(pageName) {
+  const pageRef = makePageItemsCollection(pageName);
+  const snapshot = await getDocs(pageRef);
+  return snapshot.docs.map(normalizeDocData);
+}
+
+async function loadRemoteSnapshot() {
+  const [page1, page2, page3] = await Promise.all([
+    readPageItems('page1'),
+    readPageItems('page2'),
+    readPageItems('page3'),
+  ]);
+  return { page1, page2, page3 };
+}
+
+function applySnapshot(snapshot) {
+  state.sites = Array.isArray(snapshot.page1) ? clone(snapshot.page1) : [];
+
+  state.itemsBySite = new Map();
+  (Array.isArray(snapshot.page2) ? snapshot.page2 : []).forEach((item) => {
+    const siteId = String(item.siteId || '');
+    if (!siteId) {
+      return;
+    }
+    if (!state.itemsBySite.has(siteId)) {
+      state.itemsBySite.set(siteId, []);
+    }
+    state.itemsBySite.get(siteId).push(item);
+  });
+
+  state.detailsByItem = new Map();
+  (Array.isArray(snapshot.page3) ? snapshot.page3 : []).forEach((detail) => {
+    const siteId = String(detail.siteId || '');
+    const itemId = String(detail.itemId || '');
+    if (!siteId || !itemId) {
+      return;
+    }
+    const key = `${siteId}:${itemId}`;
+    if (!state.detailsByItem.has(key)) {
+      state.detailsByItem.set(key, []);
+    }
+    state.detailsByItem.get(key).push(detail);
+  });
+
+  sortState();
+}
+
+function sortState() {
+  state.sites.sort((a, b) => String(b.dateModification || '').localeCompare(String(a.dateModification || '')));
+  state.itemsBySite.forEach((items) => {
+    items.sort((a, b) => String(b.dateModification || '').localeCompare(String(a.dateModification || '')));
+  });
+  state.detailsByItem.forEach((details) => {
+    details.sort((a, b) => Number(a.champ) - Number(b.champ));
+  });
+}
+
+function emitForSite(siteId) {
+  const items = clone(state.itemsBySite.get(siteId) || []);
+  (state.listeners.itemsBySite.get(siteId) || new Set()).forEach((listener) => listener(items));
+
+  const detailCounts = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId === siteId) {
+      detailCounts[itemId] = details.length;
+    }
+  });
+  (state.listeners.detailCountsBySite.get(siteId) || new Set()).forEach((listener) => listener(clone(detailCounts)));
+
+  const designationsByItem = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId !== siteId) {
+      return;
+    }
+    designationsByItem[itemId] = details.map((detail) => sanitizeText(detail.designation, true)).filter(Boolean);
+  });
+  (state.listeners.detailDesignationsBySite.get(siteId) || new Set()).forEach((listener) => listener(clone(designationsByItem)));
+
+  const rowsByItem = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId === siteId) {
+      rowsByItem[itemId] = clone(details).sort((a, b) => Number(a.champ) - Number(b.champ));
+    }
+  });
+  (state.listeners.detailRowsBySite.get(siteId) || new Set()).forEach((listener) => listener(clone(rowsByItem)));
+}
+
+function emitAll() {
+  state.listeners.sites.forEach((listener) => listener(clone(state.sites)));
+
+  const itemCounts = {};
+  state.itemsBySite.forEach((items, siteId) => {
+    itemCounts[siteId] = items.length;
+  });
+  state.listeners.itemCounts.forEach((listener) => listener(clone(itemCounts)));
+
+  state.listeners.itemsBySite.forEach((_listeners, siteId) => emitForSite(siteId));
+  state.listeners.detailsByPair.forEach((listeners, key) => {
+    const [siteId, itemId] = key.split(':');
+    const details = clone(state.detailsByItem.get(`${siteId}:${itemId}`) || []);
+    listeners.forEach((listener) => listener(details));
+  });
+}
+
+async function flushPendingOperations() {
+  const pending = getPendingOps();
+  if (!pending.length) {
+    return;
+  }
+
+  const siteIdMap = new Map();
+  const itemIdMap = new Map();
+  const detailIdMap = new Map();
+
+  for (const op of pending) {
+    if (op.kind === 'addSite') {
+      const sitePayload = { ...op.data };
+      delete sitePayload.id;
+      const created = await addDoc(makePageItemsCollection('page1'), sitePayload);
+      siteIdMap.set(op.data.id, created.id);
+      continue;
+    }
+
+    if (op.kind === 'addItem') {
+      const itemPayload = { ...op.data };
+      const originalSiteId = itemPayload.siteId;
+      itemPayload.siteId = siteIdMap.get(originalSiteId) || originalSiteId;
+      delete itemPayload.id;
+      const created = await addDoc(makePageItemsCollection('page2'), itemPayload);
+      itemIdMap.set(op.data.id, created.id);
+      continue;
+    }
+
+    if (op.kind === 'addDetail') {
+      const detailPayload = { ...op.data };
+      detailPayload.siteId = siteIdMap.get(detailPayload.siteId) || detailPayload.siteId;
+      detailPayload.itemId = itemIdMap.get(detailPayload.itemId) || detailPayload.itemId;
+      delete detailPayload.id;
+      const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
+      detailIdMap.set(op.data.id, created.id);
+      continue;
+    }
+
+    if (op.kind === 'updateDetail') {
+      const detailId = detailIdMap.get(op.detailId) || op.detailId;
+      const targetRef = doc(state.db, 'pages', 'page3', 'items', detailId);
+      await updateDoc(targetRef, op.changes);
+      continue;
+    }
+
+    if (op.kind === 'deleteDetail') {
+      const detailId = detailIdMap.get(op.detailId) || op.detailId;
+      const targetRef = doc(state.db, 'pages', 'page3', 'items', detailId);
+      await deleteDoc(targetRef);
+      continue;
+    }
+
+    if (op.kind === 'deleteItem') {
+      const itemId = itemIdMap.get(op.itemId) || op.itemId;
+      const targetRef = doc(state.db, 'pages', 'page2', 'items', itemId);
+      await deleteDoc(targetRef);
+      continue;
+    }
+
+    if (op.kind === 'deleteSite') {
+      const siteId = siteIdMap.get(op.siteId) || op.siteId;
+      const targetRef = doc(state.db, 'pages', 'page1', 'items', siteId);
+      await deleteDoc(targetRef);
+    }
+  }
+
+  setPendingOps([]);
+}
+
+async function init() {
+  if (state.initialized) {
+    return;
+  }
+
+  state.initialized = true;
+  state.userId = await resolveUserId();
+  const app = initializeApp(FIREBASE_CONFIG);
+  state.db = getFirestore(app);
+
+  const hasOfflineData = loadOfflineState();
+
+  try {
+    await flushPendingOperations();
+    const remote = await loadRemoteSnapshot();
+    applySnapshot(remote);
+    persistOfflineState();
+  } catch (_error) {
+    if (!hasOfflineData) {
+      applySnapshot({ page1: [], page2: [], page3: [] });
+    }
+  }
+}
+
+function getSite(siteId) {
+  return clone(state.sites.find((site) => site.id === siteId) || null);
+}
+
+function getSites() {
+  return clone(state.sites);
+}
+
+function getItem(siteId, itemId) {
+  const items = state.itemsBySite.get(siteId) || [];
+  return clone(items.find((item) => item.id === itemId) || null);
+}
+
+function subscribeFactory(registry, key, onChange) {
+  if (!registry.has(key)) {
+    registry.set(key, new Set());
+  }
+  const listeners = registry.get(key);
+  listeners.add(onChange);
+  return () => listeners.delete(onChange);
+}
+
+function subscribeSites(onChange, onError) {
+  try {
+    state.listeners.sites.add(onChange);
+    onChange(clone(state.sites));
+    return () => state.listeners.sites.delete(onChange);
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeItems(siteId, onChange, onError) {
+  try {
+    const unsubscribe = subscribeFactory(state.listeners.itemsBySite, siteId, onChange);
+    onChange(clone(state.itemsBySite.get(siteId) || []));
+    return unsubscribe;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeItemCounts(onChange, onError) {
+  try {
+    state.listeners.itemCounts.add(onChange);
+    const counts = {};
+    state.itemsBySite.forEach((items, siteId) => {
+      counts[siteId] = items.length;
+    });
+    onChange(clone(counts));
+    return () => state.listeners.itemCounts.delete(onChange);
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeDetails(siteId, itemId, onChange, onError) {
+  try {
+    const key = `${siteId}:${itemId}`;
+    const unsubscribe = subscribeFactory(state.listeners.detailsByPair, key, onChange);
+    onChange(clone(state.detailsByItem.get(key) || []));
+    return unsubscribe;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeDetailCounts(siteId, onChange, onError) {
+  try {
+    const unsubscribe = subscribeFactory(state.listeners.detailCountsBySite, siteId, onChange);
+    const counts = {};
+    state.detailsByItem.forEach((details, key) => {
+      const [kSiteId, itemId] = key.split(':');
+      if (kSiteId === siteId) {
+        counts[itemId] = details.length;
+      }
+    });
+    onChange(clone(counts));
+    return unsubscribe;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeDetailDesignations(siteId, onChange, onError) {
+  try {
+    const unsubscribe = subscribeFactory(state.listeners.detailDesignationsBySite, siteId, onChange);
+    const designationsByItem = {};
+    state.detailsByItem.forEach((details, key) => {
+      const [kSiteId, itemId] = key.split(':');
+      if (kSiteId === siteId) {
+        designationsByItem[itemId] = details.map((detail) => sanitizeText(detail.designation, true)).filter(Boolean);
+      }
+    });
+    onChange(clone(designationsByItem));
+    return unsubscribe;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeDetailRows(siteId, onChange, onError) {
+  try {
+    const unsubscribe = subscribeFactory(state.listeners.detailRowsBySite, siteId, onChange);
+    const rowsByItem = {};
+    state.detailsByItem.forEach((details, key) => {
+      const [kSiteId, itemId] = key.split(':');
+      if (kSiteId === siteId) {
+        rowsByItem[itemId] = clone(details).sort((a, b) => Number(a.champ) - Number(b.champ));
+      }
+    });
+    onChange(clone(rowsByItem));
+    return unsubscribe;
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+async function getDetailRowsBySite(siteId) {
+  const rowsByItem = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId === siteId) {
+      rowsByItem[itemId] = clone(details).sort((a, b) => Number(a.champ) - Number(b.champ));
+    }
+  });
+  return clone(rowsByItem);
+}
+
 function isDuplicateSiteName(name) {
   const normalized = sanitizeText(name, true);
   if (!normalized) {
@@ -286,312 +711,10 @@ function isDuplicateDetailDesignation(siteId, itemId, designation) {
   return details.some((detail) => sanitizeText(detail.designation, true) === normalized);
 }
 
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-}
-
-function makePageItemsCollection(pageName) {
-  return collection(state.db, 'pages', pageName, 'items');
-}
-
-async function readPageItems(pageName) {
-  const pageRef = makePageItemsCollection(pageName);
-  const snapshot = await getDocs(pageRef);
-  return snapshot.docs.map(normalizeDocData);
-}
-
-async function persistFullSnapshot() {
-  const [page1, page2, page3] = await Promise.all([
-    readPageItems('page1'),
-    readPageItems('page2'),
-    readPageItems('page3'),
-  ]);
-
-  await setDoc(
-    doc(state.db, 'pages', 'snapshot'),
-    {
-      pages: {
-        page1,
-        page2,
-        page3,
-      },
-      updatedAtIso: nowIso(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-}
-
-function normalizeDocData(docSnapshot) {
-  const data = docSnapshot.data() || {};
-  return { id: docSnapshot.id, ...data };
-}
-
-function getSite(siteId) {
-  return clone(state.sites.find((site) => site.id === siteId) || null);
-}
-
-function getSites() {
-  return clone(state.sites);
-}
-
-function getItem(siteId, itemId) {
-  const items = state.itemsBySite.get(siteId) || [];
-  return clone(items.find((item) => item.id === itemId) || null);
-}
-
-function canDelete(documentData) {
-  return Boolean(documentData);
-}
-
-async function removeDetailsForItem(siteId, itemId) {
-  const detailsRef = makePageItemsCollection('page3');
-  const detailsQuery = query(detailsRef, where('siteId', '==', siteId), where('itemId', '==', itemId));
-  const detailsSnapshot = await getDocs(detailsQuery);
-  const removedDetails = detailsSnapshot.docs.map(normalizeDocData);
-  await Promise.all(detailsSnapshot.docs.map((detailDoc) => deleteDoc(detailDoc.ref)));
-  return removedDetails;
-}
-
-async function removeItemsForSite(siteId) {
-  const itemsRef = makePageItemsCollection('page2');
-  const itemsQuery = query(itemsRef, where('siteId', '==', siteId));
-  const itemsSnapshot = await getDocs(itemsQuery);
-
-  for (const itemDoc of itemsSnapshot.docs) {
-    await removeDetailsForItem(siteId, itemDoc.id);
-    await deleteDoc(itemDoc.ref);
-  }
-}
-
-async function removeAllPageItems(pageName) {
-  const pageRef = makePageItemsCollection(pageName);
-  const snapshot = await getDocs(pageRef);
-  await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-}
-
-async function init() {
-  if (state.initialized) {
-    return;
-  }
-  state.initialized = true;
-  state.userId = await resolveUserId();
-  const app = initializeApp(FIREBASE_CONFIG);
-  state.db = getFirestore(app);
-}
-
-function subscribeSites(onChange, onError) {
-  const sitesRef = makePageItemsCollection('page1');
-  const q = query(sitesRef, orderBy('dateModification', 'desc'));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      state.sites = snapshot.docs.map(normalizeDocData);
-      onChange(clone(state.sites));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-function subscribeItems(siteId, onChange, onError) {
-  const itemsRef = makePageItemsCollection('page2');
-  const q = query(itemsRef, where('siteId', '==', siteId), orderBy('dateModification', 'desc'));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items = snapshot.docs.map(normalizeDocData);
-      state.itemsBySite.set(siteId, items);
-      onChange(clone(items));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-function subscribeItemCounts(onChange, onError) {
-  const itemsRef = makePageItemsCollection('page2');
-  const q = query(itemsRef, orderBy('dateModification', 'desc'));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const counts = {};
-      snapshot.docs.forEach((docSnap) => {
-        const item = normalizeDocData(docSnap);
-        const key = String(item.siteId || '');
-        if (!key) {
-          return;
-        }
-        counts[key] = (counts[key] || 0) + 1;
-      });
-      onChange(clone(counts));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-function subscribeDetails(siteId, itemId, onChange, onError) {
-  const detailsRef = makePageItemsCollection('page3');
-  const q = query(
-    detailsRef,
-    where('siteId', '==', siteId),
-    where('itemId', '==', itemId),
-    orderBy('champ', 'asc'),
-  );
-  const detailsKey = `${siteId}:${itemId}`;
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const details = snapshot.docs.map(normalizeDocData);
-      state.detailsByItem.set(detailsKey, details);
-      onChange(clone(details));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-function subscribeDetailCounts(siteId, onChange, onError) {
-  const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const counts = {};
-      snapshot.docs.forEach((docSnap) => {
-        const detail = normalizeDocData(docSnap);
-        const key = String(detail.itemId || '');
-        if (!key) {
-          return;
-        }
-        counts[key] = (counts[key] || 0) + 1;
-      });
-      onChange(clone(counts));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-function subscribeDetailDesignations(siteId, onChange, onError) {
-  const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const designationsByItem = {};
-      snapshot.docs.forEach((docSnap) => {
-        const detail = normalizeDocData(docSnap);
-        const itemId = String(detail.itemId || '');
-        if (!itemId) {
-          return;
-        }
-        const designation = sanitizeText(detail.designation, true);
-        if (!designation) {
-          return;
-        }
-        if (!designationsByItem[itemId]) {
-          designationsByItem[itemId] = [];
-        }
-        designationsByItem[itemId].push(designation);
-      });
-      onChange(clone(designationsByItem));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-function sortDetailRowsByChamp(rowsByItem) {
-  Object.keys(rowsByItem).forEach((itemId) => {
-    rowsByItem[itemId].sort((left, right) => {
-      const leftChamp = Number(left.champ);
-      const rightChamp = Number(right.champ);
-
-      if (Number.isFinite(leftChamp) && Number.isFinite(rightChamp)) {
-        return leftChamp - rightChamp;
-      }
-
-      return String(left.champ || '').localeCompare(String(right.champ || ''), 'fr', { numeric: true });
-    });
-  });
-}
-
-function subscribeDetailRows(siteId, onChange, onError) {
-  const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const rowsByItem = {};
-      snapshot.docs.forEach((docSnap) => {
-        const detail = normalizeDocData(docSnap);
-        const itemId = String(detail.itemId || '');
-        if (!itemId) {
-          return;
-        }
-        if (!rowsByItem[itemId]) {
-          rowsByItem[itemId] = [];
-        }
-        rowsByItem[itemId].push(detail);
-      });
-      sortDetailRowsByChamp(rowsByItem);
-      onChange(clone(rowsByItem));
-    },
-    (error) => {
-      if (typeof onError === 'function') {
-        onError(error);
-      }
-    },
-  );
-}
-
-async function getDetailRowsBySite(siteId) {
-  const detailsRef = makePageItemsCollection('page3');
-  const q = query(detailsRef, where('siteId', '==', siteId));
-  const snapshot = await getDocs(q);
-  const rowsByItem = {};
-
-  snapshot.docs.forEach((docSnap) => {
-    const detail = normalizeDocData(docSnap);
-    const itemId = String(detail.itemId || '');
-    if (!itemId) {
-      return;
-    }
-    if (!rowsByItem[itemId]) {
-      rowsByItem[itemId] = [];
-    }
-    rowsByItem[itemId].push(detail);
-  });
-
-  sortDetailRowsByChamp(rowsByItem);
-  return clone(rowsByItem);
+function withoutId(payload) {
+  const copy = { ...payload };
+  delete copy.id;
+  return copy;
 }
 
 async function createSite(name) {
@@ -602,54 +725,47 @@ async function createSite(name) {
   if (isDuplicateSiteName(siteName)) {
     return { ok: false, reason: 'duplicate_site' };
   }
+
   const timestamp = nowIso();
-  const sitesRef = makePageItemsCollection('page1');
-  const created = await addDoc(sitesRef, {
+  const site = {
+    id: uid(),
     nom: siteName,
     ownerId: state.userId,
     createdBy: state.userId,
     dateCreation: timestamp,
     dateModification: timestamp,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  await persistFullSnapshot();
-  return { ok: true, id: created.id };
+  };
+
+  state.sites.unshift(site);
+  pushPendingOp({ kind: 'addSite', data: site });
+  persistOfflineState();
+  emitAll();
+  return { ok: true, id: site.id };
 }
 
 async function removeSite(siteId) {
-  const targetRef = doc(state.db, 'pages', 'page1', 'items', siteId);
-  const snap = await getDoc(targetRef);
-  if (!snap.exists() || !canDelete(snap.data())) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
     return null;
   }
 
-  const siteData = normalizeDocData(snap);
-  const itemsRef = makePageItemsCollection('page2');
-  const itemsQuery = query(itemsRef, where('siteId', '==', siteId));
-  const itemsSnapshot = await getDocs(itemsQuery);
-  const removedItems = itemsSnapshot.docs.map(normalizeDocData);
+  const [site] = state.sites.splice(siteIndex, 1);
+  const items = clone(state.itemsBySite.get(siteId) || []);
+  state.itemsBySite.delete(siteId);
 
-  const detailsRef = makePageItemsCollection('page3');
-  const detailsQuery = query(detailsRef, where('siteId', '==', siteId));
-  const detailsSnapshot = await getDocs(detailsQuery);
-  const removedDetails = detailsSnapshot.docs.map(normalizeDocData);
+  const details = [];
+  Array.from(state.detailsByItem.keys()).forEach((key) => {
+    if (key.startsWith(`${siteId}:`)) {
+      details.push(...(state.detailsByItem.get(key) || []));
+      state.detailsByItem.delete(key);
+    }
+  });
 
-  await removeItemsForSite(siteId);
-  await deleteDoc(targetRef);
+  pushPendingOp({ kind: 'deleteSite', siteId });
+  persistOfflineState();
+  emitAll();
 
-  const sitesRef = makePageItemsCollection('page1');
-  const remainingSites = await getDocs(sitesRef);
-  if (remainingSites.empty) {
-    await Promise.all([removeAllPageItems('page2'), removeAllPageItems('page3')]);
-  }
-
-  await persistFullSnapshot();
-  return {
-    site: siteData,
-    items: removedItems,
-    details: removedDetails,
-  };
+  return { site: clone(site), items, details };
 }
 
 async function createItem(siteId, numberValue) {
@@ -663,42 +779,43 @@ async function createItem(siteId, numberValue) {
   }
 
   const timestamp = nowIso();
-  const itemsRef = makePageItemsCollection('page2');
-  const created = await addDoc(itemsRef, {
+  const item = {
+    id: uid(),
     siteId,
     numero,
     ownerId: state.userId,
     createdBy: state.userId,
     dateCreation: timestamp,
     dateModification: timestamp,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  await persistFullSnapshot();
-  return { ok: true, id: created.id };
+  };
+
+  if (!state.itemsBySite.has(siteId)) {
+    state.itemsBySite.set(siteId, []);
+  }
+  state.itemsBySite.get(siteId).unshift(item);
+
+  pushPendingOp({ kind: 'addItem', data: item });
+  persistOfflineState();
+  emitAll();
+  return { ok: true, id: item.id };
 }
 
-async function removeItem(_siteId, itemId) {
-  const targetRef = doc(state.db, 'pages', 'page2', 'items', itemId);
-  const snap = await getDoc(targetRef);
-  if (!snap.exists() || !canDelete(snap.data())) {
+async function removeItem(siteId, itemId) {
+  const items = state.itemsBySite.get(siteId) || [];
+  const itemIndex = items.findIndex((item) => item.id === itemId);
+  if (itemIndex === -1) {
     return null;
   }
 
-  const itemData = normalizeDocData(snap);
-  const removedDetails = await removeDetailsForItem(itemData.siteId, itemId);
-  await deleteDoc(targetRef);
-  await persistFullSnapshot();
-  return {
-    item: itemData,
-    details: removedDetails,
-  };
-}
+  const [item] = items.splice(itemIndex, 1);
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = clone(state.detailsByItem.get(detailsKey) || []);
+  state.detailsByItem.delete(detailsKey);
 
-function withoutId(payload) {
-  const copy = { ...payload };
-  delete copy.id;
-  return copy;
+  pushPendingOp({ kind: 'deleteItem', itemId });
+  persistOfflineState();
+  emitAll();
+  return { item: clone(item), details };
 }
 
 async function restoreSite(snapshot) {
@@ -707,72 +824,54 @@ async function restoreSite(snapshot) {
     return false;
   }
 
-  const timestamp = nowIso();
-  const siteRef = doc(state.db, 'pages', 'page1', 'items', site.id);
-  await setDoc(siteRef, {
-    ...withoutId(site),
-    dateModification: timestamp,
-    updatedAt: serverTimestamp(),
+  state.sites.unshift(clone(site));
+
+  (Array.isArray(snapshot.items) ? snapshot.items : []).forEach((item) => {
+    if (!item?.siteId) {
+      return;
+    }
+    if (!state.itemsBySite.has(item.siteId)) {
+      state.itemsBySite.set(item.siteId, []);
+    }
+    state.itemsBySite.get(item.siteId).push(clone(item));
   });
 
-  const items = Array.isArray(snapshot.items) ? snapshot.items : [];
-  for (const item of items) {
-    if (!item?.id) {
-      continue;
+  (Array.isArray(snapshot.details) ? snapshot.details : []).forEach((detail) => {
+    const key = `${detail.siteId}:${detail.itemId}`;
+    if (!state.detailsByItem.has(key)) {
+      state.detailsByItem.set(key, []);
     }
-    const itemRef = doc(state.db, 'pages', 'page2', 'items', item.id);
-    await setDoc(itemRef, {
-      ...withoutId(item),
-      dateModification: timestamp,
-      updatedAt: serverTimestamp(),
-    });
-  }
+    state.detailsByItem.get(key).push(clone(detail));
+  });
 
-  const details = Array.isArray(snapshot.details) ? snapshot.details : [];
-  for (const detail of details) {
-    if (!detail?.id) {
-      continue;
-    }
-    const detailRef = doc(state.db, 'pages', 'page3', 'items', detail.id);
-    await setDoc(detailRef, {
-      ...withoutId(detail),
-      dateModification: timestamp,
-      updatedAt: serverTimestamp(),
-    });
-  }
-
-  await persistFullSnapshot();
+  pushPendingOp({ kind: 'addSite', data: clone(site) });
+  persistOfflineState();
+  emitAll();
   return true;
 }
 
 async function restoreItem(snapshot) {
   const item = snapshot?.item;
-  if (!item?.id) {
+  if (!item?.id || !item.siteId) {
     return false;
   }
 
-  const timestamp = nowIso();
-  const itemRef = doc(state.db, 'pages', 'page2', 'items', item.id);
-  await setDoc(itemRef, {
-    ...withoutId(item),
-    dateModification: timestamp,
-    updatedAt: serverTimestamp(),
+  if (!state.itemsBySite.has(item.siteId)) {
+    state.itemsBySite.set(item.siteId, []);
+  }
+  state.itemsBySite.get(item.siteId).push(clone(item));
+
+  (Array.isArray(snapshot.details) ? snapshot.details : []).forEach((detail) => {
+    const key = `${detail.siteId}:${detail.itemId}`;
+    if (!state.detailsByItem.has(key)) {
+      state.detailsByItem.set(key, []);
+    }
+    state.detailsByItem.get(key).push(clone(detail));
   });
 
-  const details = Array.isArray(snapshot.details) ? snapshot.details : [];
-  for (const detail of details) {
-    if (!detail?.id) {
-      continue;
-    }
-    const detailRef = doc(state.db, 'pages', 'page3', 'items', detail.id);
-    await setDoc(detailRef, {
-      ...withoutId(detail),
-      dateModification: timestamp,
-      updatedAt: serverTimestamp(),
-    });
-  }
-
-  await persistFullSnapshot();
+  pushPendingOp({ kind: 'addItem', data: item });
+  persistOfflineState();
+  emitAll();
   return true;
 }
 
@@ -787,14 +886,12 @@ async function createDetail(siteId, itemId, payload) {
 
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
-  const nextChamp = details.length + 1;
   const timestamp = nowIso();
-
-  const detailsRef = makePageItemsCollection('page3');
-  const created = await addDoc(detailsRef, {
+  const detail = {
+    id: uid(),
     siteId,
     itemId,
-    champ: nextChamp,
+    champ: details.length + 1,
     code: sanitizeText(payload.code, true),
     designation,
     qteSortie: payload.qteSortie === '' ? '' : sanitizeNumber(payload.qteSortie),
@@ -807,66 +904,77 @@ async function createDetail(siteId, itemId, payload) {
     createdBy: state.userId,
     dateCreation: timestamp,
     dateModification: timestamp,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  await persistFullSnapshot();
-  return { ok: true, id: created.id };
+  };
+
+  if (!state.detailsByItem.has(detailsKey)) {
+    state.detailsByItem.set(detailsKey, []);
+  }
+  state.detailsByItem.get(detailsKey).push(detail);
+
+  pushPendingOp({ kind: 'addDetail', data: detail });
+  persistOfflineState();
+  emitAll();
+  return { ok: true, id: detail.id };
 }
 
 async function updateDetail(siteId, itemId, detailId, changes) {
-  const detailRef = doc(state.db, 'pages', 'page3', 'items', detailId);
-  const snap = await getDoc(detailRef);
-  if (!snap.exists()) {
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = state.detailsByItem.get(detailsKey) || [];
+  const target = details.find((detail) => detail.id === detailId);
+  if (!target) {
     return null;
   }
 
-  const current = snap.data();
-  if (current.siteId !== siteId || current.itemId !== itemId) {
-    return null;
-  }
-
-  const next = {};
+  const syncedChanges = {};
   if ('code' in changes) {
-    next.code = sanitizeText(changes.code, true);
+    target.code = sanitizeText(changes.code, true);
+    syncedChanges.code = target.code;
   }
   if ('designation' in changes) {
-    next.designation = sanitizeText(changes.designation, false);
+    target.designation = sanitizeText(changes.designation, false);
+    syncedChanges.designation = target.designation;
   }
   if ('qteSortie' in changes) {
-    next.qteSortie = sanitizeNumber(changes.qteSortie);
+    target.qteSortie = sanitizeNumber(changes.qteSortie);
+    syncedChanges.qteSortie = target.qteSortie;
   }
   if ('unite' in changes) {
-    next.unite = sanitizeText(changes.unite, false) || 'm';
+    target.unite = sanitizeText(changes.unite, false) || 'm';
+    syncedChanges.unite = target.unite;
   }
   if ('qteRetour' in changes) {
-    next.qteRetour = sanitizeNumber(changes.qteRetour);
+    target.qteRetour = sanitizeNumber(changes.qteRetour);
+    syncedChanges.qteRetour = target.qteRetour;
   }
   if ('qtePosee' in changes) {
-    next.qtePosee = sanitizeNumber(changes.qtePosee);
+    target.qtePosee = sanitizeNumber(changes.qtePosee);
+    syncedChanges.qtePosee = target.qtePosee;
   }
   if ('observation' in changes) {
-    next.observation = sanitizeText(changes.observation, false);
+    target.observation = sanitizeText(changes.observation, false);
+    syncedChanges.observation = target.observation;
   }
+  target.dateModification = nowIso();
+  syncedChanges.dateModification = target.dateModification;
 
-  next.dateModification = nowIso();
-  next.updatedAt = serverTimestamp();
-
-  await updateDoc(detailRef, next);
-  await persistFullSnapshot();
+  pushPendingOp({ kind: 'updateDetail', detailId, changes: syncedChanges });
+  persistOfflineState();
+  emitAll();
   return true;
 }
 
 async function removeDetail(siteId, itemId, detailId) {
-  const detailRef = doc(state.db, 'pages', 'page3', 'items', detailId);
-  const snap = await getDoc(detailRef);
-  const data = snap.data();
-  if (!snap.exists() || data.siteId !== siteId || data.itemId !== itemId || !canDelete(data)) {
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = state.detailsByItem.get(detailsKey) || [];
+  const detailIndex = details.findIndex((detail) => detail.id === detailId);
+  if (detailIndex === -1) {
     return false;
   }
 
-  await deleteDoc(detailRef);
-  await persistFullSnapshot();
+  details.splice(detailIndex, 1);
+  pushPendingOp({ kind: 'deleteDetail', detailId });
+  persistOfflineState();
+  emitAll();
   return true;
 }
 
@@ -972,59 +1080,43 @@ async function importData(payload) {
     return false;
   }
 
-  const page1Ref = makePageItemsCollection('page1');
-  const page2Ref = makePageItemsCollection('page2');
-  const page3Ref = makePageItemsCollection('page3');
-
-  for (const site of normalized.page1) {
-    const docId = sanitizeText(site.id || uid(), false) || uid();
-    const targetRef = doc(page1Ref, docId);
-    const exists = await getDoc(targetRef);
-    if (exists.exists()) {
-      continue;
-    }
-    await setDoc(targetRef, {
+  normalized.page1.forEach((site) => {
+    const sitePayload = {
+      id: sanitizeText(site.id || uid(), false) || uid(),
       ...site,
-      ownerId: site.ownerId || state.userId,
-      createdBy: state.userId,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  }
+    };
+    state.sites.push(sitePayload);
+    pushPendingOp({ kind: 'addSite', data: sitePayload });
+  });
 
-  for (const item of normalized.page2) {
-    const docId = sanitizeText(item.id || uid(), false) || uid();
-    const targetRef = doc(page2Ref, docId);
-    const exists = await getDoc(targetRef);
-    if (exists.exists()) {
-      continue;
-    }
-    await setDoc(targetRef, {
+  normalized.page2.forEach((item) => {
+    const itemPayload = {
+      id: sanitizeText(item.id || uid(), false) || uid(),
       ...item,
-      ownerId: item.ownerId || state.userId,
-      createdBy: state.userId,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  }
-
-  for (const detail of normalized.page3) {
-    const docId = sanitizeText(detail.id || uid(), false) || uid();
-    const targetRef = doc(page3Ref, docId);
-    const exists = await getDoc(targetRef);
-    if (exists.exists()) {
-      continue;
+    };
+    if (!state.itemsBySite.has(itemPayload.siteId)) {
+      state.itemsBySite.set(itemPayload.siteId, []);
     }
-    await setDoc(targetRef, {
-      ...detail,
-      ownerId: detail.ownerId || state.userId,
-      createdBy: state.userId,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  }
+    state.itemsBySite.get(itemPayload.siteId).push(itemPayload);
+    pushPendingOp({ kind: 'addItem', data: itemPayload });
+  });
 
-  await persistFullSnapshot();
+  normalized.page3.forEach((detail) => {
+    const detailPayload = {
+      id: sanitizeText(detail.id || uid(), false) || uid(),
+      ...detail,
+    };
+    const detailsKey = `${detailPayload.siteId}:${detailPayload.itemId}`;
+    if (!state.detailsByItem.has(detailsKey)) {
+      state.detailsByItem.set(detailsKey, []);
+    }
+    state.detailsByItem.get(detailsKey).push(detailPayload);
+    pushPendingOp({ kind: 'addDetail', data: detailPayload });
+  });
+
+  sortState();
+  persistOfflineState();
+  emitAll();
   return true;
 }
 
