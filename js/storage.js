@@ -81,9 +81,15 @@ function userDocRef(userId = state.userId) {
 }
 
 async function isUsernameDuplicate(username, excludedUserId) {
-  const q = query(usersCollection(), where('username', '==', username));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.some((snap) => snap.id !== excludedUserId);
+  const normalizedTarget = normalizeUsername(username).toUpperCase();
+  const snapshot = await getDocs(usersCollection());
+  return snapshot.docs.some((snap) => {
+    if (snap.id === excludedUserId) {
+      return false;
+    }
+    const existing = normalizeUsername(snap.data()?.username).toUpperCase();
+    return existing && existing === normalizedTarget;
+  });
 }
 
 async function ensureCurrentUser() {
