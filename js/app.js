@@ -18,6 +18,20 @@
     element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
 
+  function resolveActorLabel(userId, userMap) {
+    const username = userMap?.[String(userId || '')];
+    return username || 'N/A';
+  }
+
+  function buildCreatedModifiedLabels(item, userMap) {
+    const createdBy = resolveActorLabel(item?.createdBy, userMap);
+    const modifiedBy = resolveActorLabel(item?.modifiedBy || item?.updatedBy || item?.createdBy, userMap);
+    return {
+      createdLabel: `Créé par ${createdBy} le ${UiService.formatDate(item?.dateCreation)}`,
+      modifiedLabel: `Modifié par ${modifiedBy} le ${UiService.formatDate(item?.dateModification)}`,
+    };
+  }
+
   function startOfDay(date) {
     const value = new Date(date);
     value.setHours(0, 0, 0, 0);
@@ -415,6 +429,22 @@
 
     let currentSites = [];
     let itemCountsBySite = {};
+    let userNamesById = {};
+
+    async function loadUserNames() {
+      try {
+        const users = await StorageService.listUsers();
+        userNamesById = users.reduce((accumulator, user) => {
+          if (user?.id) {
+            accumulator[user.id] = user.username || 'N/A';
+          }
+          return accumulator;
+        }, {});
+      } catch (_error) {
+        userNamesById = {};
+      }
+      renderSites();
+    }
 
     function formatExportFileName() {
       const now = new Date();
@@ -524,21 +554,22 @@
       }
 
       siteList.innerHTML = sites
-        .map(
-          (site) => `
+        .map((site) => {
+          const labels = buildCreatedModifiedLabels(site, userNamesById);
+          return `
             <article class="list-card">
               ${permissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
                   <span>${itemCountsBySite[site.id] || 0} OUT${(itemCountsBySite[site.id] || 0) > 1 ? 'S' : ''}</span>
-                  <span>Créé le ${UiService.formatDate(site.dateCreation)}</span>
-                  <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
+                  <span>${escapeHtml(labels.createdLabel)}</span>
+                  <small>${escapeHtml(labels.modifiedLabel)}</small>
                 </div>
               </button>
             </article>
-          `,
-        )
+          `;
+        })
         .join('');
 
       siteList.querySelectorAll('[data-site-open]').forEach((button) => {
@@ -673,6 +704,8 @@
         UiService.showToast('Comptage des sous-éléments indisponible.');
       },
     );
+
+    loadUserNames();
   }
 
   function initSiteDetailPage(permissions) {
@@ -699,12 +732,28 @@
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
+    let userNamesById = {};
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
+
+    async function loadUserNames() {
+      try {
+        const users = await StorageService.listUsers();
+        userNamesById = users.reduce((accumulator, user) => {
+          if (user?.id) {
+            accumulator[user.id] = user.username || 'N/A';
+          }
+          return accumulator;
+        }, {});
+      } catch (_error) {
+        userNamesById = {};
+      }
+      renderItems();
+    }
 
     function formatSiteExportUnit(unit) {
       const normalizedUnit = String(unit || '').trim().toLowerCase();
@@ -795,6 +844,7 @@
           `);
         }
         previousLabel = currentLabel;
+        const labels = buildCreatedModifiedLabels(item, userNamesById);
         htmlParts.push(`
             <article class="list-card">
               ${permissions.canDelete ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
@@ -802,8 +852,8 @@
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
                   <span>${detailCountsByItem[item.id] || 0} Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span>
-                  <span>Créé le ${UiService.formatDate(item.dateCreation)}</span>
-                  <small>Modifié le ${UiService.formatDate(item.dateModification)}</small>
+                  <span>${escapeHtml(labels.createdLabel)}</span>
+                  <small>${escapeHtml(labels.modifiedLabel)}</small>
                 </div>
               </button>
             </article>
@@ -948,6 +998,8 @@
       },
       () => {},
     );
+
+    loadUserNames();
   }
 
   function initItemDetailPage(permissions) {
