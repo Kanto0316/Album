@@ -233,6 +233,10 @@ button {
   gap: 0.5rem;
 }
 
+.search-filter-group {
+  margin-top: 0.85rem;
+}
+
 .input-group span {
   font-size: 0.92rem;
   color: var(--text-muted);

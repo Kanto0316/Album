@@ -34,6 +34,16 @@
               autocomplete="off"
             />
           </label>
+          <label class="input-group search-filter-group">
+            <span>Filtrer par date</span>
+            <select id="itemDateFilter" aria-label="Filtrer les résultats par date">
+              <option value="all">Tous</option>
+              <option value="today">Aujourd'hui</option>
+              <option value="yesterday">Hier</option>
+              <option value="lastMonth">Le mois dernier</option>
+              <option value="lastYear">L'Année dernier</option>
+            </select>
+          </label>
         </section>
 
         <section id="itemList" class="list-grid" aria-live="polite"></section>
