@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Détail liste - Suivi Matériel</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+  <body data-page="site-detail">
+    <div class="app-shell">
+      <header class="app-header app-header--detail">
+        <button class="back-button" type="button" data-back="index.html" aria-label="Retour">←</button>
+        <div>
+          <h1 id="siteTitle">Chargement...</h1>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <section class="section-heading section-heading--meta surface-card">
+          <p id="itemCount">0 élément</p>
+          <button type="button" id="openExportItems" class="btn btn-success">
+            Exporter
+          </button>
+        </section>
+
+        <section class="search-panel surface-card">
+          <label class="input-group">
+            <span>Recherche par N°OUT Ou par Article</span>
+            <input
+              id="itemSearchInput"
+              type="search"
+              placeholder="Rechercher..."
+              autocomplete="off"
+            />
+          </label>
+          <label class="input-group search-filter-group">
+            <span>Filtrer par date</span>
+            <select id="itemDateFilter" aria-label="Filtrer les résultats par date">
+              <option value="all">Tous</option>
+              <option value="today">Aujourd'hui</option>
+              <option value="yesterday">Hier</option>
+              <option value="lastMonth">Le mois dernier</option>
+              <option value="lastYear">L'Année dernier</option>
+            </select>
+          </label>
+        </section>
+
+        <section id="itemList" class="list-grid" aria-live="polite"></section>
+      </main>
+
+      <button id="openCreateItem" class="fab" type="button" aria-label="Ajouter un numéro OUT">+</button>
+
+      <dialog id="itemDialog" class="modal-card">
+        <form method="dialog" class="modal-content" id="itemForm">
+          <div class="modal-header">
+            <h2>N° OUT-</h2>
+            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
+          </div>
+          <label class="input-group">
+            <span>Numéro</span>
+            <input
+              id="itemNumberInput"
+              name="itemNumber"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="40"
+              minlength="4"
+              placeholder="OUT-123456"
+            />
+          </label>
+          <p id="itemFormError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-success">Créer</button>
+          </div>
+        </form>
+      </dialog>
+
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
