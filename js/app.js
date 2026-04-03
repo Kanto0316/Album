@@ -69,6 +69,38 @@
     return true;
   }
 
+  function getItemDateGroup(item) {
+    const itemDate = parseDateValue(item?.dateCreation || item?.dateModification);
+    if (!itemDate) {
+      return 'older';
+    }
+
+    const today = startOfDay(new Date());
+    const itemDay = startOfDay(itemDate);
+
+    if (itemDay.getTime() === today.getTime()) {
+      return 'today';
+    }
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (itemDay.getTime() === yesterday.getTime()) {
+      return 'yesterday';
+    }
+
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const previousMonthDate = new Date(currentYear, currentMonth - 1, 1);
+    if (
+      itemDate.getMonth() === previousMonthDate.getMonth()
+      && itemDate.getFullYear() === previousMonthDate.getFullYear()
+    ) {
+      return 'lastMonth';
+    }
+
+    return 'older';
+  }
+
   function computeEcart(detail) {
     const qteSortie = Number(detail?.qteSortie) || 0;
     const qtePosee = Number(detail?.qtePosee) || 0;
@@ -729,20 +761,28 @@
 
     function renderItems() {
       const query = itemSearchInput.value.trim().toUpperCase();
-      const filteredItems = currentItems.filter((item) => {
-        if (!itemMatchesDateFilter(item, selectedDateFilter)) {
-          return false;
-        }
-        if (!query) {
-          return true;
-        }
-        const outMatches = String(item.numero || '').toUpperCase().includes(query);
-        if (outMatches) {
-          return true;
-        }
-        const itemDesignations = detailDesignationsByItem[item.id] || [];
-        return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
-      });
+      const filteredItems = currentItems
+        .filter((item) => {
+          if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+            return false;
+          }
+          if (!query) {
+            return true;
+          }
+          const outMatches = String(item.numero || '').toUpperCase().includes(query);
+          if (outMatches) {
+            return true;
+          }
+          const itemDesignations = detailDesignationsByItem[item.id] || [];
+          return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
+        })
+        .sort((a, b) => {
+          const aDate = parseDateValue(a?.dateCreation || a?.dateModification);
+          const bDate = parseDateValue(b?.dateCreation || b?.dateModification);
+          const aTime = aDate ? aDate.getTime() : 0;
+          const bTime = bDate ? bDate.getTime() : 0;
+          return bTime - aTime;
+        });
 
       setCountText(itemCount, filteredItems.length, 'élément', 'éléments');
 
@@ -754,9 +794,27 @@
         return;
       }
 
+      const groupLabels = {
+        today: "Aujourd'hui",
+        yesterday: 'Hier',
+        lastMonth: 'Le mois dernier',
+        older: 'Plus longtemps',
+      };
+      let previousGroup = '';
+
       itemList.innerHTML = filteredItems
-        .map(
-          (item) => `
+        .map((item) => {
+          const currentGroup = getItemDateGroup(item);
+          const shouldRenderSeparator = currentGroup !== previousGroup;
+          previousGroup = currentGroup;
+          const separatorMarkup = shouldRenderSeparator
+            ? `<div class="list-separator" role="separator" aria-label="${escapeHtml(groupLabels[currentGroup] || groupLabels.older)}">
+                <span>${escapeHtml(groupLabels[currentGroup] || groupLabels.older)}</span>
+              </div>`
+            : '';
+
+          return `
+            ${separatorMarkup}
             <article class="list-card">
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
@@ -770,8 +828,8 @@
                 <button class="btn-danger" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>
               </div>` : ''}
             </article>
-          `,
-        )
+          `;
+        })
         .join('');
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
