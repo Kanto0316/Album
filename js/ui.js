@@ -1,4 +1,9 @@
 (function () {
+  const TOAST_VISIBLE_CLASS = "toast--visible";
+  const DEFAULT_TOAST_DURATION = 3000;
+  const DEFAULT_SNACKBAR_DURATION = 5000;
+  let hideTimerId = null;
+
   function formatDate(dateValue) {
     if (!dateValue) {
       return "--";
@@ -13,12 +18,72 @@
     return new URLSearchParams(window.location.search);
   }
 
-  function showToast(_message) {
-    // Notifications intentionally disabled.
+  function getToastElement() {
+    return document.getElementById("toast");
   }
 
-  function showUndoSnackbar(_message, _onUndo, _actionLabel = "Annuler") {
-    // Notifications intentionally disabled.
+  function hideToast() {
+    const toast = getToastElement();
+    if (!toast) {
+      return;
+    }
+    toast.classList.remove(TOAST_VISIBLE_CLASS);
+    window.setTimeout(() => {
+      if (!toast.classList.contains(TOAST_VISIBLE_CLASS)) {
+        toast.textContent = "";
+      }
+    }, 250);
+  }
+
+  function scheduleHide(delay = DEFAULT_TOAST_DURATION) {
+    if (hideTimerId) {
+      window.clearTimeout(hideTimerId);
+    }
+    hideTimerId = window.setTimeout(() => {
+      hideTimerId = null;
+      hideToast();
+    }, delay);
+  }
+
+  function showToast(message) {
+    const toast = getToastElement();
+    if (!toast) {
+      return;
+    }
+    toast.textContent = String(message ?? "");
+    toast.classList.add(TOAST_VISIBLE_CLASS);
+    scheduleHide(DEFAULT_TOAST_DURATION);
+  }
+
+  function showUndoSnackbar(message, onUndo, actionLabel = "Annuler") {
+    const toast = getToastElement();
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent = "";
+    const messageNode = document.createElement("span");
+    messageNode.textContent = String(message ?? "");
+    toast.appendChild(messageNode);
+
+    if (typeof onUndo === "function") {
+      const actionButton = document.createElement("button");
+      actionButton.type = "button";
+      actionButton.className = "toast__action";
+      actionButton.textContent = actionLabel;
+      actionButton.addEventListener(
+        "click",
+        () => {
+          onUndo();
+          hideToast();
+        },
+        { once: true },
+      );
+      toast.appendChild(actionButton);
+    }
+
+    toast.classList.add(TOAST_VISIBLE_CLASS);
+    scheduleHide(DEFAULT_SNACKBAR_DURATION);
   }
 
   function renderEmptyState(container, message) {
