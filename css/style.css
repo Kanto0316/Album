@@ -179,6 +179,32 @@ button {
   box-shadow: var(--shadow);
 }
 
+.list-separator {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.25rem 0;
+}
+
+.list-separator::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px solid var(--border);
+}
+
+.list-separator__label {
+  position: relative;
+  z-index: 1;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .surface-card,
 .form-card,
 .table-card,

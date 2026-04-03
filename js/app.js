@@ -69,6 +69,35 @@
     return true;
   }
 
+  function resolveItemPeriodLabel(item) {
+    const itemDate = parseDateValue(item?.dateCreation || item?.dateModification);
+    if (!itemDate) {
+      return null;
+    }
+
+    const today = startOfDay(new Date());
+    const itemDay = startOfDay(itemDate);
+    if (itemDay.getTime() === today.getTime()) {
+      return "Aujourd'hui";
+    }
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (itemDay.getTime() === yesterday.getTime()) {
+      return 'Hier';
+    }
+
+    const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    if (
+      itemDate.getMonth() === previousMonthDate.getMonth()
+      && itemDate.getFullYear() === previousMonthDate.getFullYear()
+    ) {
+      return 'Le mois dernier';
+    }
+
+    return null;
+  }
+
   function computeEcart(detail) {
     const qteSortie = Number(detail?.qteSortie) || 0;
     const qtePosee = Number(detail?.qtePosee) || 0;
@@ -754,9 +783,19 @@
         return;
       }
 
-      itemList.innerHTML = filteredItems
-        .map(
-          (item) => `
+      const htmlParts = [];
+      let previousLabel = null;
+      filteredItems.forEach((item) => {
+        const currentLabel = resolveItemPeriodLabel(item);
+        if (currentLabel && currentLabel !== previousLabel) {
+          htmlParts.push(`
+            <div class="list-separator" role="separator" aria-label="${escapeHtml(currentLabel)}">
+              <span class="list-separator__label">${escapeHtml(currentLabel)}</span>
+            </div>
+          `);
+        }
+        previousLabel = currentLabel;
+        htmlParts.push(`
             <article class="list-card">
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
@@ -770,9 +809,9 @@
                 <button class="btn-danger" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>
               </div>` : ''}
             </article>
-          `,
-        )
-        .join('');
+          `);
+      });
+      itemList.innerHTML = htmlParts.join('');
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
         button.addEventListener('click', () => {
