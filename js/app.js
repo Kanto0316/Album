@@ -702,7 +702,9 @@
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
+    const searchStorageKey = `site-detail:item-search:${siteId}`;
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
+    itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -857,7 +859,10 @@
       openExportItems.addEventListener('click', exportItems);
     }
 
-    itemSearchInput.addEventListener('input', renderItems);
+    itemSearchInput.addEventListener('input', () => {
+      window.localStorage.setItem(searchStorageKey, itemSearchInput.value);
+      renderItems();
+    });
 
     if (itemDateFilter) {
       if (!itemDateFilter.querySelector(`option[value="${selectedDateFilter}"]`)) {
