@@ -18,6 +18,57 @@
     element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
 
+  function startOfDay(date) {
+    const value = new Date(date);
+    value.setHours(0, 0, 0, 0);
+    return value;
+  }
+
+  function parseDateValue(value) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function itemMatchesDateFilter(item, filterValue) {
+    if (!filterValue || filterValue === 'all') {
+      return true;
+    }
+
+    const itemDate = parseDateValue(item?.dateCreation || item?.dateModification);
+    if (!itemDate) {
+      return false;
+    }
+
+    const today = startOfDay(new Date());
+    const itemDay = startOfDay(itemDate);
+
+    if (filterValue === 'today') {
+      return itemDay.getTime() === today.getTime();
+    }
+
+    if (filterValue === 'yesterday') {
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      return itemDay.getTime() === yesterday.getTime();
+    }
+
+    if (filterValue === 'lastMonth') {
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      const previousMonthDate = new Date(currentYear, currentMonth - 1, 1);
+      return (
+        itemDate.getMonth() === previousMonthDate.getMonth()
+        && itemDate.getFullYear() === previousMonthDate.getFullYear()
+      );
+    }
+
+    if (filterValue === 'lastYear') {
+      return itemDate.getFullYear() === today.getFullYear() - 1;
+    }
+
+    return true;
+  }
+
   function computeEcart(detail) {
     const qteSortie = Number(detail?.qteSortie) || 0;
     const qtePosee = Number(detail?.qtePosee) || 0;
@@ -614,12 +665,15 @@
     const itemFormError = requireElement('itemFormError');
     const openExportItems = requireElement('openExportItems');
     const itemSearchInput = requireElement('itemSearchInput');
+    const itemDateFilter = requireElement('itemDateFilter');
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
+    const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
+    let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -676,6 +730,9 @@
     function renderItems() {
       const query = itemSearchInput.value.trim().toUpperCase();
       const filteredItems = currentItems.filter((item) => {
+        if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+          return false;
+        }
         if (!query) {
           return true;
         }
@@ -762,6 +819,18 @@
     }
 
     itemSearchInput.addEventListener('input', renderItems);
+
+    if (itemDateFilter) {
+      if (!itemDateFilter.querySelector(`option[value="${selectedDateFilter}"]`)) {
+        selectedDateFilter = 'all';
+      }
+      itemDateFilter.value = selectedDateFilter;
+      itemDateFilter.addEventListener('change', () => {
+        selectedDateFilter = itemDateFilter.value || 'all';
+        window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
+        renderItems();
+      });
+    }
 
     itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
