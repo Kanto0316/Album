@@ -188,7 +188,7 @@ async function saveUsername(username) {
   };
 
   if (isFirstUsername) {
-    updates.role = 'ecriture';
+    updates.role = 'lecture';
   }
 
   await setDoc(
