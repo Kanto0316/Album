@@ -527,6 +527,7 @@
         .map(
           (site) => `
             <article class="list-card">
+              ${permissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
@@ -535,12 +536,6 @@
                   <small>Modifié le ${UiService.formatDate(site.dateModification)}</small>
                 </div>
               </button>
-              ${permissions.canDelete ? `<div class="list-card__actions">
-                <button class="btn-danger btn-danger--icon" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">
-                  <span aria-hidden="true">✕</span>
-                  <span class="sr-only">Supprimer</span>
-                </button>
-              </div>` : ''}
             </article>
           `,
         )
@@ -802,6 +797,7 @@
         previousLabel = currentLabel;
         htmlParts.push(`
             <article class="list-card">
+              ${permissions.canDelete ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
@@ -810,9 +806,6 @@
                   <small>Modifié le ${UiService.formatDate(item.dateModification)}</small>
                 </div>
               </button>
-              ${permissions.canDelete ? `<div class="list-card__actions">
-                <button class="btn-danger" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>
-              </div>` : ''}
             </article>
           `);
       });
