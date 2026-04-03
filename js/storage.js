@@ -26,7 +26,6 @@ const FIREBASE_CONFIG = {
 };
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
-const PENDING_OPS_KEY = 'suiviMateriel.pendingOps.v1';
 
 const state = {
   initialized: false,
@@ -313,26 +312,6 @@ function loadOfflineState() {
   }
 }
 
-function getPendingOps() {
-  try {
-    const raw = localStorage.getItem(PENDING_OPS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_error) {
-    return [];
-  }
-}
-
-function setPendingOps(ops) {
-  localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(ops));
-}
-
-function pushPendingOp(operation) {
-  const ops = getPendingOps();
-  ops.push(operation);
-  setPendingOps(ops);
-}
-
 async function readPageItems(pageName) {
   const pageRef = makePageItemsCollection(pageName);
   const snapshot = await getDocs(pageRef);
@@ -440,76 +419,6 @@ function emitAll() {
   });
 }
 
-async function flushPendingOperations() {
-  const pending = getPendingOps();
-  if (!pending.length) {
-    return;
-  }
-
-  const siteIdMap = new Map();
-  const itemIdMap = new Map();
-  const detailIdMap = new Map();
-
-  for (const op of pending) {
-    if (op.kind === 'addSite') {
-      const sitePayload = { ...op.data };
-      delete sitePayload.id;
-      const created = await addDoc(makePageItemsCollection('page1'), sitePayload);
-      siteIdMap.set(op.data.id, created.id);
-      continue;
-    }
-
-    if (op.kind === 'addItem') {
-      const itemPayload = { ...op.data };
-      const originalSiteId = itemPayload.siteId;
-      itemPayload.siteId = siteIdMap.get(originalSiteId) || originalSiteId;
-      delete itemPayload.id;
-      const created = await addDoc(makePageItemsCollection('page2'), itemPayload);
-      itemIdMap.set(op.data.id, created.id);
-      continue;
-    }
-
-    if (op.kind === 'addDetail') {
-      const detailPayload = { ...op.data };
-      detailPayload.siteId = siteIdMap.get(detailPayload.siteId) || detailPayload.siteId;
-      detailPayload.itemId = itemIdMap.get(detailPayload.itemId) || detailPayload.itemId;
-      delete detailPayload.id;
-      const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
-      detailIdMap.set(op.data.id, created.id);
-      continue;
-    }
-
-    if (op.kind === 'updateDetail') {
-      const detailId = detailIdMap.get(op.detailId) || op.detailId;
-      const targetRef = doc(state.db, 'pages', 'page3', 'items', detailId);
-      await updateDoc(targetRef, op.changes);
-      continue;
-    }
-
-    if (op.kind === 'deleteDetail') {
-      const detailId = detailIdMap.get(op.detailId) || op.detailId;
-      const targetRef = doc(state.db, 'pages', 'page3', 'items', detailId);
-      await deleteDoc(targetRef);
-      continue;
-    }
-
-    if (op.kind === 'deleteItem') {
-      const itemId = itemIdMap.get(op.itemId) || op.itemId;
-      const targetRef = doc(state.db, 'pages', 'page2', 'items', itemId);
-      await deleteDoc(targetRef);
-      continue;
-    }
-
-    if (op.kind === 'deleteSite') {
-      const siteId = siteIdMap.get(op.siteId) || op.siteId;
-      const targetRef = doc(state.db, 'pages', 'page1', 'items', siteId);
-      await deleteDoc(targetRef);
-    }
-  }
-
-  setPendingOps([]);
-}
-
 async function init() {
   if (state.initialized) {
     return;
@@ -523,7 +432,6 @@ async function init() {
   const hasOfflineData = loadOfflineState();
 
   try {
-    await flushPendingOperations();
     const remote = await loadRemoteSnapshot();
     applySnapshot(remote);
     persistOfflineState();
@@ -727,17 +635,17 @@ async function createSite(name) {
   }
 
   const timestamp = nowIso();
-  const site = {
-    id: uid(),
+  const sitePayload = {
     nom: siteName,
     ownerId: state.userId,
     createdBy: state.userId,
     dateCreation: timestamp,
     dateModification: timestamp,
   };
+  const created = await addDoc(makePageItemsCollection('page1'), sitePayload);
+  const site = { id: created.id, ...sitePayload };
 
   state.sites.unshift(site);
-  pushPendingOp({ kind: 'addSite', data: site });
   persistOfflineState();
   emitAll();
   return { ok: true, id: site.id };
@@ -748,6 +656,7 @@ async function removeSite(siteId) {
   if (siteIndex === -1) {
     return null;
   }
+  await deleteDoc(doc(state.db, 'pages', 'page1', 'items', siteId));
 
   const [site] = state.sites.splice(siteIndex, 1);
   const items = clone(state.itemsBySite.get(siteId) || []);
@@ -761,7 +670,6 @@ async function removeSite(siteId) {
     }
   });
 
-  pushPendingOp({ kind: 'deleteSite', siteId });
   persistOfflineState();
   emitAll();
 
@@ -779,8 +687,7 @@ async function createItem(siteId, numberValue) {
   }
 
   const timestamp = nowIso();
-  const item = {
-    id: uid(),
+  const itemPayload = {
     siteId,
     numero,
     ownerId: state.userId,
@@ -788,13 +695,14 @@ async function createItem(siteId, numberValue) {
     dateCreation: timestamp,
     dateModification: timestamp,
   };
+  const created = await addDoc(makePageItemsCollection('page2'), itemPayload);
+  const item = { id: created.id, ...itemPayload };
 
   if (!state.itemsBySite.has(siteId)) {
     state.itemsBySite.set(siteId, []);
   }
   state.itemsBySite.get(siteId).unshift(item);
 
-  pushPendingOp({ kind: 'addItem', data: item });
   persistOfflineState();
   emitAll();
   return { ok: true, id: item.id };
@@ -807,12 +715,13 @@ async function removeItem(siteId, itemId) {
     return null;
   }
 
+  await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId));
+
   const [item] = items.splice(itemIndex, 1);
   const detailsKey = `${siteId}:${itemId}`;
   const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
 
-  pushPendingOp({ kind: 'deleteItem', itemId });
   persistOfflineState();
   emitAll();
   return { item: clone(item), details };
@@ -824,27 +733,49 @@ async function restoreSite(snapshot) {
     return false;
   }
 
-  state.sites.unshift(clone(site));
+  try {
+    const createdSite = await addDoc(makePageItemsCollection('page1'), withoutId(site));
+    const nextSite = { ...clone(site), id: createdSite.id };
+    const itemIdMap = new Map();
+    const restoredItems = [];
 
-  (Array.isArray(snapshot.items) ? snapshot.items : []).forEach((item) => {
-    if (!item?.siteId) {
-      return;
+    for (const item of Array.isArray(snapshot.items) ? snapshot.items : []) {
+      const itemPayload = { ...withoutId(item), siteId: nextSite.id };
+      const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
+      const nextItem = { ...itemPayload, id: createdItem.id };
+      itemIdMap.set(item.id, nextItem.id);
+      restoredItems.push(nextItem);
     }
-    if (!state.itemsBySite.has(item.siteId)) {
-      state.itemsBySite.set(item.siteId, []);
-    }
-    state.itemsBySite.get(item.siteId).push(clone(item));
-  });
 
-  (Array.isArray(snapshot.details) ? snapshot.details : []).forEach((detail) => {
-    const key = `${detail.siteId}:${detail.itemId}`;
-    if (!state.detailsByItem.has(key)) {
-      state.detailsByItem.set(key, []);
+    const restoredDetails = [];
+    for (const detail of Array.isArray(snapshot.details) ? snapshot.details : []) {
+      const nextItemId = itemIdMap.get(detail.itemId);
+      if (!nextItemId) {
+        continue;
+      }
+      const detailPayload = { ...withoutId(detail), siteId: nextSite.id, itemId: nextItemId };
+      const createdDetail = await addDoc(makePageItemsCollection('page3'), detailPayload);
+      restoredDetails.push({ ...detailPayload, id: createdDetail.id });
     }
-    state.detailsByItem.get(key).push(clone(detail));
-  });
 
-  pushPendingOp({ kind: 'addSite', data: clone(site) });
+    state.sites.unshift(nextSite);
+    restoredItems.forEach((item) => {
+      if (!state.itemsBySite.has(item.siteId)) {
+        state.itemsBySite.set(item.siteId, []);
+      }
+      state.itemsBySite.get(item.siteId).push(item);
+    });
+    restoredDetails.forEach((detail) => {
+      const key = `${detail.siteId}:${detail.itemId}`;
+      if (!state.detailsByItem.has(key)) {
+        state.detailsByItem.set(key, []);
+      }
+      state.detailsByItem.get(key).push(detail);
+    });
+  } catch (_error) {
+    return false;
+  }
+
   persistOfflineState();
   emitAll();
   return true;
@@ -856,20 +787,33 @@ async function restoreItem(snapshot) {
     return false;
   }
 
-  if (!state.itemsBySite.has(item.siteId)) {
-    state.itemsBySite.set(item.siteId, []);
-  }
-  state.itemsBySite.get(item.siteId).push(clone(item));
-
-  (Array.isArray(snapshot.details) ? snapshot.details : []).forEach((detail) => {
-    const key = `${detail.siteId}:${detail.itemId}`;
-    if (!state.detailsByItem.has(key)) {
-      state.detailsByItem.set(key, []);
+  try {
+    const itemPayload = { ...withoutId(item) };
+    const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
+    const nextItem = { ...itemPayload, id: createdItem.id };
+    if (!state.itemsBySite.has(nextItem.siteId)) {
+      state.itemsBySite.set(nextItem.siteId, []);
     }
-    state.detailsByItem.get(key).push(clone(detail));
-  });
+    state.itemsBySite.get(nextItem.siteId).push(nextItem);
 
-  pushPendingOp({ kind: 'addItem', data: item });
+    for (const detail of Array.isArray(snapshot.details) ? snapshot.details : []) {
+      const detailPayload = {
+        ...withoutId(detail),
+        siteId: nextItem.siteId,
+        itemId: nextItem.id,
+      };
+      const createdDetail = await addDoc(makePageItemsCollection('page3'), detailPayload);
+      const nextDetail = { ...detailPayload, id: createdDetail.id };
+      const key = `${nextDetail.siteId}:${nextDetail.itemId}`;
+      if (!state.detailsByItem.has(key)) {
+        state.detailsByItem.set(key, []);
+      }
+      state.detailsByItem.get(key).push(nextDetail);
+    }
+  } catch (_error) {
+    return false;
+  }
+
   persistOfflineState();
   emitAll();
   return true;
@@ -887,8 +831,7 @@ async function createDetail(siteId, itemId, payload) {
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const timestamp = nowIso();
-  const detail = {
-    id: uid(),
+  const detailPayload = {
     siteId,
     itemId,
     champ: details.length + 1,
@@ -905,13 +848,14 @@ async function createDetail(siteId, itemId, payload) {
     dateCreation: timestamp,
     dateModification: timestamp,
   };
+  const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
+  const detail = { id: created.id, ...detailPayload };
 
   if (!state.detailsByItem.has(detailsKey)) {
     state.detailsByItem.set(detailsKey, []);
   }
   state.detailsByItem.get(detailsKey).push(detail);
 
-  pushPendingOp({ kind: 'addDetail', data: detail });
   persistOfflineState();
   emitAll();
   return { ok: true, id: detail.id };
@@ -926,38 +870,40 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   }
 
   const syncedChanges = {};
+  const nextValues = {};
   if ('code' in changes) {
-    target.code = sanitizeText(changes.code, true);
-    syncedChanges.code = target.code;
+    nextValues.code = sanitizeText(changes.code, true);
+    syncedChanges.code = nextValues.code;
   }
   if ('designation' in changes) {
-    target.designation = sanitizeText(changes.designation, false);
-    syncedChanges.designation = target.designation;
+    nextValues.designation = sanitizeText(changes.designation, false);
+    syncedChanges.designation = nextValues.designation;
   }
   if ('qteSortie' in changes) {
-    target.qteSortie = sanitizeNumber(changes.qteSortie);
-    syncedChanges.qteSortie = target.qteSortie;
+    nextValues.qteSortie = sanitizeNumber(changes.qteSortie);
+    syncedChanges.qteSortie = nextValues.qteSortie;
   }
   if ('unite' in changes) {
-    target.unite = sanitizeText(changes.unite, false) || 'm';
-    syncedChanges.unite = target.unite;
+    nextValues.unite = sanitizeText(changes.unite, false) || 'm';
+    syncedChanges.unite = nextValues.unite;
   }
   if ('qteRetour' in changes) {
-    target.qteRetour = sanitizeNumber(changes.qteRetour);
-    syncedChanges.qteRetour = target.qteRetour;
+    nextValues.qteRetour = sanitizeNumber(changes.qteRetour);
+    syncedChanges.qteRetour = nextValues.qteRetour;
   }
   if ('qtePosee' in changes) {
-    target.qtePosee = sanitizeNumber(changes.qtePosee);
-    syncedChanges.qtePosee = target.qtePosee;
+    nextValues.qtePosee = sanitizeNumber(changes.qtePosee);
+    syncedChanges.qtePosee = nextValues.qtePosee;
   }
   if ('observation' in changes) {
-    target.observation = sanitizeText(changes.observation, false);
-    syncedChanges.observation = target.observation;
+    nextValues.observation = sanitizeText(changes.observation, false);
+    syncedChanges.observation = nextValues.observation;
   }
-  target.dateModification = nowIso();
-  syncedChanges.dateModification = target.dateModification;
+  nextValues.dateModification = nowIso();
+  syncedChanges.dateModification = nextValues.dateModification;
 
-  pushPendingOp({ kind: 'updateDetail', detailId, changes: syncedChanges });
+  await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), syncedChanges);
+  Object.assign(target, nextValues);
   persistOfflineState();
   emitAll();
   return true;
@@ -971,8 +917,8 @@ async function removeDetail(siteId, itemId, detailId) {
     return false;
   }
 
+  await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
   details.splice(detailIndex, 1);
-  pushPendingOp({ kind: 'deleteDetail', detailId });
   persistOfflineState();
   emitAll();
   return true;
@@ -1079,39 +1025,66 @@ async function importData(payload) {
   if (!normalized) {
     return false;
   }
+  const siteIdMap = new Map();
+  const itemIdMap = new Map();
+  const addedSites = [];
+  const addedItems = [];
+  const addedDetails = [];
 
-  normalized.page1.forEach((site) => {
-    const sitePayload = {
-      id: sanitizeText(site.id || uid(), false) || uid(),
-      ...site,
-    };
-    state.sites.push(sitePayload);
-    pushPendingOp({ kind: 'addSite', data: sitePayload });
-  });
+  for (const site of normalized.page1) {
+    const localId = sanitizeText(site.id || uid(), false) || uid();
+    const sitePayload = { ...site };
+    delete sitePayload.id;
+    const createdSite = await addDoc(makePageItemsCollection('page1'), sitePayload);
+    const nextSite = { id: createdSite.id, ...sitePayload };
+    siteIdMap.set(localId, nextSite.id);
+    addedSites.push(nextSite);
+  }
 
-  normalized.page2.forEach((item) => {
-    const itemPayload = {
-      id: sanitizeText(item.id || uid(), false) || uid(),
-      ...item,
-    };
-    if (!state.itemsBySite.has(itemPayload.siteId)) {
-      state.itemsBySite.set(itemPayload.siteId, []);
+  for (const item of normalized.page2) {
+    const localId = sanitizeText(item.id || uid(), false) || uid();
+    const originalSiteId = sanitizeText(item.siteId || '', false);
+    const mappedSiteId = siteIdMap.get(originalSiteId) || originalSiteId;
+    if (!mappedSiteId) {
+      continue;
     }
-    state.itemsBySite.get(itemPayload.siteId).push(itemPayload);
-    pushPendingOp({ kind: 'addItem', data: itemPayload });
+    const itemPayload = { ...item, siteId: mappedSiteId };
+    delete itemPayload.id;
+    const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
+    const nextItem = { id: createdItem.id, ...itemPayload };
+    itemIdMap.set(localId, nextItem.id);
+    addedItems.push(nextItem);
+  }
+
+  for (const detail of normalized.page3) {
+    const originalSiteId = sanitizeText(detail.siteId || '', false);
+    const originalItemId = sanitizeText(detail.itemId || '', false);
+    const mappedSiteId = siteIdMap.get(originalSiteId) || originalSiteId;
+    const mappedItemId = itemIdMap.get(originalItemId) || originalItemId;
+    if (!mappedSiteId || !mappedItemId) {
+      continue;
+    }
+    const detailPayload = { ...detail, siteId: mappedSiteId, itemId: mappedItemId };
+    delete detailPayload.id;
+    const createdDetail = await addDoc(makePageItemsCollection('page3'), detailPayload);
+    addedDetails.push({ id: createdDetail.id, ...detailPayload });
+  }
+
+  state.sites.push(...addedSites);
+
+  addedItems.forEach((item) => {
+    if (!state.itemsBySite.has(item.siteId)) {
+      state.itemsBySite.set(item.siteId, []);
+    }
+    state.itemsBySite.get(item.siteId).push(item);
   });
 
-  normalized.page3.forEach((detail) => {
-    const detailPayload = {
-      id: sanitizeText(detail.id || uid(), false) || uid(),
-      ...detail,
-    };
-    const detailsKey = `${detailPayload.siteId}:${detailPayload.itemId}`;
+  addedDetails.forEach((detail) => {
+    const detailsKey = `${detail.siteId}:${detail.itemId}`;
     if (!state.detailsByItem.has(detailsKey)) {
       state.detailsByItem.set(detailsKey, []);
     }
-    state.detailsByItem.get(detailsKey).push(detailPayload);
-    pushPendingOp({ kind: 'addDetail', data: detailPayload });
+    state.detailsByItem.get(detailsKey).push(detail);
   });
 
   sortState();
