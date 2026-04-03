@@ -303,6 +303,7 @@ body[data-page="home"] .list-grid {
 }
 
 .list-card {
+  position: relative;
   padding: 1rem;
   background: linear-gradient(160deg, #59b8ff 0%, #2b90dc 100%);
   color: #fff;
@@ -312,7 +313,7 @@ body[data-page="home"] .list-grid {
   border: 0;
   background: transparent;
   width: 100%;
-  padding: 0;
+  padding: 0 3rem 0 0;
   color: inherit;
   text-align: left;
 }
@@ -334,10 +335,27 @@ body[data-page="home"] .list-grid {
   color: rgba(255, 255, 255, 0.82);
 }
 
-.list-card__actions {
-  margin-top: 0.9rem;
-  display: flex;
-  justify-content: flex-end;
+.list-card__delete-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(31, 42, 55, 0.08);
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.list-card__delete-button:hover,
+.list-card__delete-button:focus-visible {
+  background: rgba(31, 42, 55, 0.16);
 }
 
 .btn,
