@@ -294,6 +294,10 @@ button {
   gap: 0.9rem;
 }
 
+body[data-page="site-detail"] .list-grid {
+  grid-template-columns: 1fr;
+}
+
 .list-card {
   padding: 1rem;
   background: linear-gradient(160deg, #59b8ff 0%, #2b90dc 100%);
