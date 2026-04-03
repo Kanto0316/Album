@@ -57,12 +57,33 @@ function normalizeUsername(value) {
   return sanitizeText(value, false);
 }
 
+const BLOCKED_USERNAMES = new Set([
+  'FACEBOOK',
+  'YOUTUBE',
+  'TWITEER',
+  'ANONYME',
+  'TAY',
+  'AMANY',
+  'FORY',
+  'VODY',
+  'LATAKA',
+  'BOBOTA',
+  'BIBITY',
+  'BIBY',
+  'KINDY',
+  'TABORY',
+  'NEMANY',
+]);
+
 function isValidUsername(username) {
   const value = normalizeUsername(username);
-  if (!/^[A-Za-z0-9]{4,10}$/.test(value)) {
+  if (!/^[A-Za-z0-9]{4,20}$/.test(value)) {
     return false;
   }
   if (/^\d+$/.test(value)) {
+    return false;
+  }
+  if (BLOCKED_USERNAMES.has(value.toUpperCase())) {
     return false;
   }
   return true;

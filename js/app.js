@@ -282,7 +282,7 @@
         </div>
         <label class="input-group">
           <span>Nom</span>
-          <input id="usernameInput" type="text" maxlength="10" />
+          <input id="usernameInput" type="text" maxlength="20" />
         </label>
         <p id="usernameError" class="form-error" aria-live="polite"></p>
         <div class="modal-actions">
@@ -311,7 +311,7 @@
         error.textContent = '';
         const result = await StorageService.saveUsername(input.value);
         if (!result.ok) {
-          error.textContent = result.reason === 'duplicate_username' ? 'Ce nom existe déjà' : 'Nom invalide (4-10 lettres/chiffres, pas uniquement chiffres).';
+          error.textContent = result.reason === 'duplicate_username' ? 'Ce nom existe déjà' : 'Nom invalide (4-20 lettres/chiffres, pas uniquement chiffres, noms interdits refusés).';
           return;
         }
 
@@ -352,7 +352,7 @@
         <div class="modal-header"><h2>Modifier le nom</h2></div>
         <label class="input-group">
           <span>Nouveau nom</span>
-          <input id="renameInput" type="text" maxlength="10" />
+          <input id="renameInput" type="text" maxlength="20" />
         </label>
         <p id="renameError" class="form-error" aria-live="polite"></p>
         <div class="modal-actions">
@@ -400,7 +400,7 @@
           saveButton.disabled = true;
           return;
         }
-        error.textContent = 'Nom invalide (4-10 lettres/chiffres, pas uniquement chiffres).';
+        error.textContent = 'Nom invalide (4-20 lettres/chiffres, pas uniquement chiffres, noms interdits refusés).';
         return;
       }
       form.removeEventListener('submit', submitHandler);
