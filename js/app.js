@@ -536,7 +536,10 @@
                 </div>
               </button>
               ${permissions.canDelete ? `<div class="list-card__actions">
-                <button class="btn-danger" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>
+                <button class="btn-danger btn-danger--icon" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">
+                  <span aria-hidden="true">✕</span>
+                  <span class="sr-only">Supprimer</span>
+                </button>
               </div>` : ''}
             </article>
           `,
