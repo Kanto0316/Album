@@ -101,7 +101,16 @@ button {
 
 .header-menu {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.icon-cloche {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
 }
 
 .header-menu__trigger {
