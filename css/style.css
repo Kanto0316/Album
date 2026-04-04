@@ -28,6 +28,10 @@ body {
   font-family: "Roboto", sans-serif;
 }
 
+body[data-page="history"] {
+  background: linear-gradient(180deg, #d8ecff 0%, #eef6ff 45%, #f6f9ff 100%);
+}
+
 button,
 input,
 select,
@@ -304,6 +308,44 @@ body[data-page="home"] .list-grid {
 
 body[data-page="history"] .list-grid {
   grid-template-columns: 1fr;
+}
+
+.page-content--history {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(216, 236, 255, 0.35));
+}
+
+.history-list {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(182, 206, 232, 0.8);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.history-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history-list__item {
+  padding: 0.9rem 1rem;
+}
+
+.history-list__item + .history-list__item {
+  border-top: 1px solid #cdddee;
+}
+
+.history-list__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.history-list__date {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
 }
 
 .list-card {
