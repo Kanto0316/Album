@@ -168,6 +168,20 @@ button {
   font-size: 1.25rem;
 }
 
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.back-button .btn-retour {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  display: block;
+}
+
 .page-content {
   flex: 1;
   min-height: 0;
