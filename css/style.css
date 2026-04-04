@@ -302,6 +302,10 @@ body[data-page="home"] .list-grid {
   grid-template-columns: 1fr;
 }
 
+body[data-page="history"] .list-grid {
+  grid-template-columns: 1fr;
+}
+
 .list-card {
   position: relative;
   padding: 1rem;
@@ -651,6 +655,10 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
 
   .list-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  body[data-page="history"] .list-grid {
+    grid-template-columns: 1fr;
   }
 
   .responsive-form {

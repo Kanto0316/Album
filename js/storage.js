@@ -972,9 +972,20 @@ async function appendHistoryEntry(actionText) {
       action,
       createdAt: serverTimestamp(),
     });
+    await pruneHistoryEntries();
   } catch (_error) {
     // L'historique ne doit pas bloquer l'action principale.
   }
+}
+
+async function pruneHistoryEntries() {
+  const snapshot = await getDocs(query(historyCollection(), orderBy('createdAt', 'desc')));
+  if (snapshot.size <= 100) {
+    return;
+  }
+
+  const docsToDelete = snapshot.docs.slice(100);
+  await Promise.all(docsToDelete.map((historyDoc) => deleteDoc(historyDoc.ref)));
 }
 
 async function listHistoriques() {
