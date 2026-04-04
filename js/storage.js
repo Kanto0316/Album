@@ -7,12 +7,12 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
-  where,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const FIREBASE_CONFIG = {
@@ -293,6 +293,10 @@ function uid() {
 
 function makePageItemsCollection(pageName) {
   return collection(state.db, 'pages', pageName, 'items');
+}
+
+function historyCollection() {
+  return collection(state.db, 'historiques');
 }
 
 function normalizeDocData(docSnapshot) {
@@ -667,6 +671,7 @@ async function createSite(name) {
   const site = { id: created.id, ...sitePayload };
 
   state.sites.unshift(site);
+  await appendHistoryEntry(`a créé le site ${site.nom}`);
   persistOfflineState();
   emitAll();
   return { ok: true, id: site.id };
@@ -691,6 +696,7 @@ async function removeSite(siteId) {
     }
   });
 
+  await appendHistoryEntry(`a supprimé le site ${site.nom}`);
   persistOfflineState();
   emitAll();
 
@@ -724,6 +730,7 @@ async function createItem(siteId, numberValue) {
   }
   state.itemsBySite.get(siteId).unshift(item);
 
+  await appendHistoryEntry(`a créé ${item.numero}`);
   persistOfflineState();
   emitAll();
   return { ok: true, id: item.id };
@@ -743,6 +750,7 @@ async function removeItem(siteId, itemId) {
   const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
 
+  await appendHistoryEntry(`a supprimé ${item.numero}`);
   persistOfflineState();
   emitAll();
   return { item: clone(item), details };
@@ -877,6 +885,8 @@ async function createDetail(siteId, itemId, payload) {
   }
   state.detailsByItem.get(detailsKey).push(detail);
 
+  const item = getItem(siteId, itemId);
+  await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`);
   persistOfflineState();
   emitAll();
   return { ok: true, id: detail.id };
@@ -925,6 +935,8 @@ async function updateDetail(siteId, itemId, detailId, changes) {
 
   await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), syncedChanges);
   Object.assign(target, nextValues);
+  const item = getItem(siteId, itemId);
+  await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`);
   persistOfflineState();
   emitAll();
   return true;
@@ -940,9 +952,42 @@ async function removeDetail(siteId, itemId, detailId) {
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
   details.splice(detailIndex, 1);
+  const item = getItem(siteId, itemId);
+  await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`);
   persistOfflineState();
   emitAll();
   return true;
+}
+
+async function appendHistoryEntry(actionText) {
+  const action = sanitizeText(actionText, false);
+  if (!action) {
+    return;
+  }
+  try {
+    const profile = await getCurrentUserProfile();
+    const username = normalizeUsername(profile?.username) || 'Utilisateur inconnu';
+    await addDoc(historyCollection(), {
+      userName: username,
+      action,
+      createdAt: serverTimestamp(),
+    });
+  } catch (_error) {
+    // L'historique ne doit pas bloquer l'action principale.
+  }
+}
+
+async function listHistoriques() {
+  const snapshot = await getDocs(query(historyCollection(), orderBy('createdAt', 'desc')));
+  return snapshot.docs.map((snap) => {
+    const data = snap.data() || {};
+    return {
+      id: snap.id,
+      userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
+      action: sanitizeText(data.action, false),
+      createdAt: data.createdAt || null,
+    };
+  });
 }
 
 function exportData() {
@@ -1145,4 +1190,5 @@ window.StorageService = {
   listUsers,
   updateUserRole,
   computeNextNameChangeDate,
+  listHistoriques,
 };

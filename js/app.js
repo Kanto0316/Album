@@ -426,6 +426,7 @@
     const importDataButton = requireElement('importDataButton');
     const exportDataButton = requireElement('exportDataButton');
     const manageUsersButton = requireElement('manageUsersButton');
+    const historyButton = requireElement('historyButton');
 
     let currentSites = [];
     let itemCountsBySite = {};
@@ -630,6 +631,13 @@
       manageUsersButton.addEventListener('click', () => {
         closeHomeMenu();
         UiService.navigate('users.html');
+      });
+    }
+
+    if (historyButton) {
+      historyButton.addEventListener('click', () => {
+        closeHomeMenu();
+        UiService.navigate('historiques.html');
       });
     }
 
@@ -1269,6 +1277,36 @@
 
     await renderUsers();
   }
+
+  async function initHistoryPage() {
+    const historyList = requireElement('historyList');
+    if (!historyList) {
+      return;
+    }
+
+    try {
+      const historiques = await StorageService.listHistoriques();
+      if (!historiques.length) {
+        UiService.renderEmptyState(historyList, 'Aucun historique enregistré pour le moment.');
+        return;
+      }
+
+      historyList.innerHTML = historiques
+        .map((history) => `
+          <article class="list-card">
+            <div class="list-card__button" aria-label="Historique">
+              <h3 class="list-card__title">${escapeHtml(history.userName)} ${escapeHtml(history.action)}</h3>
+              <div class="list-card__meta">
+                <span>${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</span>
+              </div>
+            </div>
+          </article>
+        `)
+        .join('');
+    } catch (_error) {
+      UiService.renderEmptyState(historyList, "Impossible de charger l'historique.");
+    }
+  }
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
@@ -1291,6 +1329,9 @@
     }
     if (page === 'users-management') {
       await initUsersPage(permissions);
+    }
+    if (page === 'history') {
+      await initHistoryPage();
     }
   }
 
