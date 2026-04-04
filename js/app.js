@@ -1291,18 +1291,18 @@
         return;
       }
 
-      historyList.innerHTML = historiques
-        .map((history) => `
-          <article class="list-card">
-            <div class="list-card__button" aria-label="Historique">
-              <h3 class="list-card__title">${escapeHtml(history.userName)} ${escapeHtml(history.action)}</h3>
-              <div class="list-card__meta">
-                <span>${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</span>
-              </div>
-            </div>
-          </article>
-        `)
-        .join('');
+      historyList.innerHTML = `
+        <ul class="history-list__items">
+          ${historiques
+            .map((history) => `
+              <li class="history-list__item" aria-label="Historique">
+                <p class="history-list__title">${escapeHtml(history.userName)} ${escapeHtml(history.action)}</p>
+                <p class="history-list__date">${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</p>
+              </li>
+            `)
+            .join('')}
+        </ul>
+      `;
     } catch (_error) {
       UiService.renderEmptyState(historyList, "Impossible de charger l'historique.");
     }
