@@ -59,8 +59,9 @@
               <input id="detailSearchInput" type="text" placeholder="Rechercher..." autocomplete="off" />
             </label>
           </div>
-          <div class="table-wrapper">
-            <table class="data-table">
+          <div class="table-container" id="detailTableContainer">
+            <div class="table-wrapper" id="detailTableWrapper">
+              <table class="data-table" id="detailDataTable">
               <thead>
                 <tr>
                   <th>#   </th>
@@ -76,8 +77,9 @@
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody id="detailTableBody"></tbody>
-            </table>
+                <tbody id="detailTableBody"></tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>
