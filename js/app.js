@@ -124,6 +124,134 @@
     return qteSortie - (qtePosee + qteRetour);
   }
 
+  function setupZoomableDetailTable() {
+    const tableContainer = requireElement('detailTableContainer');
+    const tableWrapper = requireElement('detailTableWrapper');
+    if (!tableContainer || !tableWrapper) {
+      return;
+    }
+
+    const minScale = 0.7;
+    const maxScale = 2;
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let dragState = null;
+    let pinchState = null;
+
+    function clampScale(value) {
+      return Math.min(maxScale, Math.max(minScale, value));
+    }
+
+    function applyTransform() {
+      tableWrapper.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function zoomAtPoint(nextScale, clientX, clientY) {
+      const clampedScale = clampScale(nextScale);
+      if (clampedScale === scale) {
+        return;
+      }
+
+      const rect = tableContainer.getBoundingClientRect();
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      const nextTranslateX = localX - ((localX - translateX) / scale) * clampedScale;
+      const nextTranslateY = localY - ((localY - translateY) / scale) * clampedScale;
+
+      scale = clampedScale;
+      translateX = nextTranslateX;
+      translateY = nextTranslateY;
+      applyTransform();
+    }
+
+    function isInteractiveTarget(target) {
+      return Boolean(target.closest('input, select, textarea, button, a, label'));
+    }
+
+    tableContainer.addEventListener('wheel', (event) => {
+      if (!event.ctrlKey) {
+        return;
+      }
+      event.preventDefault();
+      const direction = event.deltaY > 0 ? -1 : 1;
+      const zoomStep = 0.08;
+      zoomAtPoint(scale + direction * zoomStep, event.clientX, event.clientY);
+    }, { passive: false });
+
+    tableContainer.addEventListener('mousedown', (event) => {
+      if (event.button !== 0 || isInteractiveTarget(event.target)) {
+        return;
+      }
+      dragState = {
+        startX: event.clientX,
+        startY: event.clientY,
+        startTranslateX: translateX,
+        startTranslateY: translateY,
+      };
+      tableContainer.classList.add('is-grabbing');
+      event.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (event) => {
+      if (!dragState) {
+        return;
+      }
+      translateX = dragState.startTranslateX + (event.clientX - dragState.startX);
+      translateY = dragState.startTranslateY + (event.clientY - dragState.startY);
+      applyTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      dragState = null;
+      tableContainer.classList.remove('is-grabbing');
+    });
+
+    tableContainer.addEventListener('touchstart', (event) => {
+      if (event.touches.length === 2) {
+        const [touchA, touchB] = event.touches;
+        const dx = touchB.clientX - touchA.clientX;
+        const dy = touchB.clientY - touchA.clientY;
+        pinchState = {
+          distance: Math.hypot(dx, dy),
+          scale,
+        };
+      }
+    }, { passive: true });
+
+    tableContainer.addEventListener('touchmove', (event) => {
+      if (event.touches.length !== 2 || !pinchState) {
+        return;
+      }
+
+      const [touchA, touchB] = event.touches;
+      const dx = touchB.clientX - touchA.clientX;
+      const dy = touchB.clientY - touchA.clientY;
+      const currentDistance = Math.hypot(dx, dy);
+      if (!currentDistance || !pinchState.distance) {
+        return;
+      }
+
+      const midpointX = (touchA.clientX + touchB.clientX) / 2;
+      const midpointY = (touchA.clientY + touchB.clientY) / 2;
+      const scaleFactor = currentDistance / pinchState.distance;
+      zoomAtPoint(pinchState.scale * scaleFactor, midpointX, midpointY);
+      event.preventDefault();
+    }, { passive: false });
+
+    tableContainer.addEventListener('touchend', (event) => {
+      if (event.touches.length < 2) {
+        pinchState = null;
+      }
+    });
+
+    tableContainer.addEventListener('touchcancel', () => {
+      pinchState = null;
+    });
+
+    applyTransform();
+  }
+
   function setupBackButtons() {
     document.querySelectorAll('[data-back]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -1066,6 +1194,8 @@
     const detailSearchInput = requireElement('detailSearchInput');
     const exportButton = requireElement('exportDetailsButton');
     const designationInput = requireElement('designationInput');
+
+    setupZoomableDetailTable();
 
     let currentSite = StorageService.getSite(siteId);
     let currentItem = StorageService.getItem(siteId, itemId);

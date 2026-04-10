@@ -672,12 +672,33 @@ body[data-page="history"] .list-grid {
   padding-inline: 0;
 }
 
-.table-wrapper {
+.table-container {
   overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.table-container.is-grabbing {
+  cursor: grabbing;
+}
+
+.table-wrapper {
+  width: max-content;
+  min-width: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 body[data-page="item-detail"] .table-wrapper {
   padding-bottom: 1.5rem;
+}
+
+body[data-page="item-detail"] .table-container input,
+body[data-page="item-detail"] .table-container select,
+body[data-page="item-detail"] .table-container button,
+body[data-page="item-detail"] .table-container textarea {
+  user-select: text;
 }
 
 .data-table {
