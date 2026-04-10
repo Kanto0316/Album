@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -106,6 +107,10 @@ function usersCollection() {
 
 function userDocRef(userId = state.userId) {
   return doc(state.db, 'users', userId);
+}
+
+function maintenanceDocRef() {
+  return doc(state.db, 'appSettings', 'maintenance');
 }
 
 async function isUsernameDuplicate(username, excludedUserId) {
@@ -256,6 +261,46 @@ async function updateUserRole(userId, role) {
   );
 
   return true;
+}
+
+function normalizeMaintenanceState(value) {
+  return {
+    enabled: Boolean(value?.enabled),
+  };
+}
+
+async function setMaintenanceState(enabled) {
+  await setDoc(
+    maintenanceDocRef(),
+    {
+      enabled: Boolean(enabled),
+      updatedAt: serverTimestamp(),
+      updatedBy: state.userId || null,
+    },
+    { merge: true },
+  );
+  return true;
+}
+
+function subscribeMaintenanceState(onChange, onError) {
+  try {
+    return onSnapshot(
+      maintenanceDocRef(),
+      (snapshot) => {
+        onChange(normalizeMaintenanceState(snapshot.exists() ? snapshot.data() : { enabled: false }));
+      },
+      (error) => {
+        if (typeof onError === 'function') {
+          onError(error);
+        }
+      },
+    );
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
 }
 
 function clone(value) {
@@ -1200,6 +1245,8 @@ window.StorageService = {
   changeUsername,
   listUsers,
   updateUserRole,
+  setMaintenanceState,
+  subscribeMaintenanceState,
   computeNextNameChangeDate,
   listHistoriques,
 };
