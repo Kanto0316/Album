@@ -502,6 +502,85 @@
     avatarButton.onclick = onClick;
   }
 
+  function ensureAvatarBottomSheet() {
+    let overlay = document.getElementById('avatarSheetOverlay');
+    if (overlay) {
+      return overlay;
+    }
+
+    overlay = document.createElement('div');
+    overlay.id = 'avatarSheetOverlay';
+    overlay.className = 'bottom-sheet-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="bottom-sheet" id="avatarBottomSheet" role="dialog" aria-modal="true" aria-label="Actions du profil">
+        <div class="bottom-sheet__handle" aria-hidden="true"></div>
+        <div class="bottom-sheet__content">
+          <div class="bottom-sheet__avatar" id="avatarSheetPreview">??</div>
+          <button type="button" class="bottom-sheet__action" id="avatarSheetRename">Modifier un nom</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function openAvatarBottomSheet(profile, onRenameClick) {
+    const overlay = ensureAvatarBottomSheet();
+    const sheet = overlay.querySelector('#avatarBottomSheet');
+    const avatarPreview = overlay.querySelector('#avatarSheetPreview');
+    const renameButton = overlay.querySelector('#avatarSheetRename');
+
+    if (!sheet || !avatarPreview || !renameButton) {
+      return;
+    }
+
+    const base = String(profile?.username || '??').slice(0, 2).toUpperCase();
+    avatarPreview.textContent = base;
+    avatarPreview.title = profile?.username || '';
+
+    const closeSheet = () => {
+      overlay.classList.remove('is-open');
+      const onTransitionEnd = () => {
+        overlay.hidden = true;
+        overlay.removeEventListener('transitionend', onTransitionEnd);
+      };
+      overlay.addEventListener('transitionend', onTransitionEnd);
+    };
+
+    renameButton.onclick = () => {
+      closeSheet();
+      onRenameClick();
+    };
+
+    overlay.onclick = (event) => {
+      if (event.target === overlay) {
+        closeSheet();
+      }
+    };
+
+    let touchStartY = null;
+    sheet.ontouchstart = (event) => {
+      touchStartY = event.touches[0]?.clientY ?? null;
+    };
+    sheet.ontouchend = (event) => {
+      if (touchStartY === null) {
+        return;
+      }
+      const touchEndY = event.changedTouches[0]?.clientY ?? touchStartY;
+      if (touchEndY - touchStartY > 60) {
+        closeSheet();
+      }
+      touchStartY = null;
+    };
+
+    overlay.hidden = false;
+    window.requestAnimationFrame(() => {
+      overlay.classList.add('is-open');
+    });
+  }
+
   function ensureRenameDialog() {
     let dialog = document.getElementById('renameDialog');
     if (dialog) {
@@ -806,9 +885,9 @@
 
     const refreshAvatar = async () => {
       const latest = await StorageService.getCurrentUserProfile();
-      renderAvatar(latest, () => openRenameDialog(latest, refreshAvatar));
+      renderAvatar(latest, () => openAvatarBottomSheet(latest, () => openRenameDialog(latest, refreshAvatar)));
     };
-    renderAvatar(userProfile, () => openRenameDialog(userProfile, refreshAvatar));
+    renderAvatar(userProfile, () => openAvatarBottomSheet(userProfile, () => openRenameDialog(userProfile, refreshAvatar)));
 
 
     const openCreateSite = requireElement('openCreateSite');
