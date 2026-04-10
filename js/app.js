@@ -248,8 +248,8 @@
 
   function buildPermissions(profile) {
     const username = String(profile?.username || '');
-    const role = String(profile?.role || 'full');
-    const isAdmin = username === 'Admin';
+    const role = String(profile?.role || 'full').toLowerCase();
+    const isAdmin = username === 'Admin' || role === 'admin';
     if (isAdmin) {
       return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true };
     }
@@ -260,6 +260,41 @@
       return { canCreate: true, canEdit: true, canDelete: false, isAdmin: false };
     }
     return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false };
+  }
+
+  function ensureMaintenanceOverlay() {
+    let overlay = document.getElementById('maintenanceOverlay');
+    if (overlay) {
+      return overlay;
+    }
+    overlay = document.createElement('div');
+    overlay.id = 'maintenanceOverlay';
+    overlay.className = 'maintenance-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <article class="maintenance-card" role="alertdialog" aria-modal="true" aria-labelledby="maintenanceTitle">
+        <h3 id="maintenanceTitle">Information</h3>
+        <p>Page en cours de maintenance, veuillez attendre s'il vous plaît</p>
+      </article>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function initMaintenanceGate(permissions) {
+    if (permissions?.isAdmin) {
+      return () => {};
+    }
+
+    const overlay = ensureMaintenanceOverlay();
+    return StorageService.subscribeMaintenanceState(
+      (maintenanceState) => {
+        overlay.hidden = !maintenanceState.enabled;
+      },
+      () => {
+        UiService.showToast('État de maintenance indisponible.');
+      },
+    );
   }
 
   function formatRetryDate(value) {
@@ -1245,9 +1280,20 @@
 
     const tableBody = requireElement('usersTableBody');
     const backButton = requireElement('usersBackButton');
+    const maintenanceToggle = requireElement('maintenanceToggle');
+    const maintenanceStatusText = requireElement('maintenanceStatusText');
     backButton?.addEventListener('click', () => UiService.navigate('index.html'));
 
     const roleLabel = { lecture: 'Lecture seule', ecriture: 'Écriture seule', full: 'Tout accès' };
+
+    function updateMaintenanceLabel(isEnabled) {
+      if (maintenanceStatusText) {
+        maintenanceStatusText.textContent = isEnabled ? 'Activé' : 'Désactivé';
+      }
+      if (maintenanceToggle) {
+        maintenanceToggle.checked = Boolean(isEnabled);
+      }
+    }
 
     async function renderUsers() {
       const users = await StorageService.listUsers();
@@ -1274,6 +1320,32 @@
         });
       });
     }
+
+    let ignoreToggleEvent = false;
+    StorageService.subscribeMaintenanceState(
+      (maintenanceState) => {
+        ignoreToggleEvent = true;
+        updateMaintenanceLabel(Boolean(maintenanceState.enabled));
+        ignoreToggleEvent = false;
+      },
+      () => {
+        UiService.showToast('Impossible de synchroniser l’état de maintenance.');
+      },
+    );
+
+    maintenanceToggle?.addEventListener('change', async () => {
+      if (ignoreToggleEvent) {
+        return;
+      }
+      const enabled = maintenanceToggle.checked;
+      updateMaintenanceLabel(enabled);
+      try {
+        await StorageService.setMaintenanceState(enabled);
+      } catch (_error) {
+        updateMaintenanceLabel(!enabled);
+        UiService.showToast('Échec de mise à jour de l’état de maintenance.');
+      }
+    });
 
     await renderUsers();
   }
@@ -1316,6 +1388,8 @@
     let profile = await StorageService.getCurrentUserProfile();
     profile = await promptForMissingUsername(profile);
     const permissions = buildPermissions(profile);
+
+    initMaintenanceGate(permissions);
 
     const page = document.body.dataset.page;
     if (page === 'home') {

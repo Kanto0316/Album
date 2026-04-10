@@ -13,6 +13,17 @@
         <div><h1>Gestion des utilisateurs</h1></div>
       </header>
       <main class="page-content page-content--wide">
+        <section class="surface-card details-card">
+          <h2 class="section-title">Détails</h2>
+          <div class="maintenance-toggle-row">
+            <span class="maintenance-toggle-row__label">Etat de la page</span>
+            <label class="switch" for="maintenanceToggle">
+              <input id="maintenanceToggle" type="checkbox" role="switch" aria-label="Activer ou désactiver la maintenance" />
+              <span class="slider"></span>
+            </label>
+            <span id="maintenanceStatusText" class="maintenance-toggle-row__status">Désactivé</span>
+          </div>
+        </section>
         <section class="surface-card table-card">
           <div class="table-wrapper">
             <table class="data-table">
