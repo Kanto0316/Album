@@ -2,6 +2,7 @@
   const { StorageService, UiService } = window;
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dskw13nem/image/upload';
   const CLOUDINARY_UPLOAD_PRESET = 'public_upload';
+  const WELCOME_SHOWN_KEY = 'welcomeShown';
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -427,9 +428,11 @@
     );
   }
 
-  function getStatusVisual(status) {
+  function getStatusVisual(status, profile) {
     if (status === 'approved') {
-      return { title: 'Accès autorisé', message: 'Bienvenue.', tone: 'approved' };
+      const username = String(profile?.username || '').trim();
+      const message = username ? `Bienvenue, ${username}` : 'Accès autorisé';
+      return { title: 'Accès autorisé', message, tone: 'approved' };
     }
     if (status === 'rejected') {
       return { title: 'Accès refusé', message: 'Vous n’avez pas l’autorisation d’utiliser cette page.', tone: 'rejected' };
@@ -460,12 +463,12 @@
     return overlay;
   }
 
-  function showApprovalOverlay(status) {
+  function showApprovalOverlay(status, profile) {
     const overlay = ensureApprovalOverlay();
     const card = overlay.querySelector('.status-card');
     const title = overlay.querySelector('#approvalTitle');
     const message = overlay.querySelector('#approvalMessage');
-    const visual = getStatusVisual(status);
+    const visual = getStatusVisual(status, profile);
 
     if (!card || !title || !message) {
       return;
@@ -497,6 +500,30 @@
     }
   }
 
+  function hasShownWelcome() {
+    try {
+      return window.localStorage.getItem(WELCOME_SHOWN_KEY) === 'true';
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function markWelcomeAsShown() {
+    try {
+      window.localStorage.setItem(WELCOME_SHOWN_KEY, 'true');
+    } catch (_error) {
+      // Ignore storage access issues.
+    }
+  }
+
+  function resetWelcomeFlag() {
+    try {
+      window.localStorage.removeItem(WELCOME_SHOWN_KEY);
+    } catch (_error) {
+      // Ignore storage access issues.
+    }
+  }
+
   async function initApprovalGate(profile, permissions) {
     if (permissions?.isAdmin) {
       return profile;
@@ -514,6 +541,7 @@
             }
             recoveringDeletedUser = true;
             hideApprovalOverlay();
+            resetWelcomeFlag();
             clearClientUserState();
             if (currentPage !== 'home') {
               UiService.navigate('index.html');
@@ -531,14 +559,15 @@
 
           const status = String(latestProfile?.status || 'pending');
           if (status === 'rejected') {
-            showApprovalOverlay('rejected');
+            showApprovalOverlay('rejected', latestProfile);
             return;
           }
 
           if (status === 'approved') {
-            if (!approvedShown) {
+            if (!approvedShown && !hasShownWelcome()) {
               approvedShown = true;
-              showApprovalOverlay('approved');
+              showApprovalOverlay('approved', latestProfile);
+              markWelcomeAsShown();
               window.setTimeout(() => {
                 hideApprovalOverlay();
                 unsubscribe?.();
@@ -547,11 +576,15 @@
                 }
                 resolve(latestProfile);
               }, 3000);
+              return;
             }
+            hideApprovalOverlay();
+            unsubscribe?.();
+            resolve(latestProfile);
             return;
           }
 
-          showApprovalOverlay(status);
+          showApprovalOverlay(status, latestProfile);
           if (status !== 'rejected' && currentPage !== 'home') {
             UiService.navigate('index.html');
           }
