@@ -436,14 +436,18 @@ body[data-page="history"] .list-grid {
 
 .page-content--history {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(216, 236, 255, 0.35));
+  overflow: hidden;
 }
 
 .history-list {
+  flex: 1;
+  min-height: 0;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(182, 206, 232, 0.8);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .history-list__items {
