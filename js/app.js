@@ -427,6 +427,106 @@
     );
   }
 
+  function getStatusVisual(status) {
+    if (status === 'approved') {
+      return { title: 'Accès autorisé', message: 'Bienvenue.', tone: 'approved' };
+    }
+    if (status === 'rejected') {
+      return { title: 'Demande refusée', message: 'Votre demande a été refusée.', tone: 'rejected' };
+    }
+    return {
+      title: 'En attente de confirmation',
+      message: 'Les informations sont enregistrées. En attente de confirmation par l’administrateur.',
+      tone: 'pending',
+    };
+  }
+
+  function ensureApprovalOverlay() {
+    let overlay = document.getElementById('approvalOverlay');
+    if (overlay) {
+      return overlay;
+    }
+    overlay = document.createElement('div');
+    overlay.id = 'approvalOverlay';
+    overlay.className = 'status-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <article class="status-card status-card--pending" role="alertdialog" aria-modal="true" aria-labelledby="approvalTitle">
+        <h3 id="approvalTitle"></h3>
+        <p id="approvalMessage"></p>
+      </article>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function showApprovalOverlay(status) {
+    const overlay = ensureApprovalOverlay();
+    const card = overlay.querySelector('.status-card');
+    const title = overlay.querySelector('#approvalTitle');
+    const message = overlay.querySelector('#approvalMessage');
+    const visual = getStatusVisual(status);
+
+    if (!card || !title || !message) {
+      return;
+    }
+
+    title.textContent = visual.title;
+    message.textContent = visual.message;
+    card.classList.remove('status-card--pending', 'status-card--approved', 'status-card--rejected');
+    card.classList.add(`status-card--${visual.tone}`);
+    overlay.hidden = false;
+    window.requestAnimationFrame(() => overlay.classList.add('is-visible'));
+  }
+
+  function hideApprovalOverlay() {
+    const overlay = document.getElementById('approvalOverlay');
+    if (!overlay) {
+      return;
+    }
+    overlay.classList.remove('is-visible');
+    overlay.hidden = true;
+  }
+
+  async function initApprovalGate(profile, permissions) {
+    if (permissions?.isAdmin) {
+      return profile;
+    }
+
+    const currentPage = document.body.dataset.page;
+    return new Promise((resolve) => {
+      let approvedShown = false;
+      const unsubscribe = StorageService.subscribeCurrentUserProfile(
+        (latestProfile) => {
+          const status = String(latestProfile?.status || 'pending');
+          if (status === 'approved') {
+            if (!approvedShown) {
+              approvedShown = true;
+              showApprovalOverlay('approved');
+              window.setTimeout(() => {
+                hideApprovalOverlay();
+                unsubscribe?.();
+                if (currentPage !== 'home') {
+                  UiService.navigate('index.html');
+                }
+                resolve(latestProfile);
+              }, 3000);
+            }
+            return;
+          }
+
+          showApprovalOverlay(status);
+          if (currentPage !== 'home') {
+            UiService.navigate('index.html');
+          }
+        },
+        () => {
+          UiService.showToast('Impossible de vérifier votre statut utilisateur.');
+        },
+      );
+    });
+  }
+
   function formatRetryDate(value) {
     return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(value);
   }
@@ -1590,6 +1690,7 @@
     }
 
     const tableBody = requireElement('usersTableBody');
+    const pendingUsersList = requireElement('pendingUsersList');
     const backButton = requireElement('usersBackButton');
     const maintenanceToggle = requireElement('maintenanceToggle');
     const maintenanceStatusText = requireElement('maintenanceStatusText');
@@ -1606,12 +1707,54 @@
       }
     }
 
+    function statusLabel(status) {
+      if (status === 'approved') {
+        return 'Approuvé';
+      }
+      if (status === 'rejected') {
+        return 'Refusé';
+      }
+      return 'En attente';
+    }
+
     async function renderUsers() {
       const users = await StorageService.listUsers();
+      const pendingUsers = users.filter((user) => user.status === 'pending');
+
+      if (pendingUsersList) {
+        pendingUsersList.innerHTML = pendingUsers.length
+          ? pendingUsers
+            .map((user) => `
+              <article class="pending-user-card">
+                <div class="pending-user-card__identity">
+                  ${user.avatarUrl
+      ? `<img class="pending-user-card__avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(user.username)}" />`
+      : `<span class="pending-user-card__avatar pending-user-card__avatar--fallback">${escapeHtml(getInitialsFromName(user.username))}</span>`}
+                  <div>
+                    <p class="pending-user-card__name">${escapeHtml(user.username)}</p>
+                    <p class="pending-user-card__status">${statusLabel(user.status)}</p>
+                  </div>
+                </div>
+                <div class="pending-user-card__actions">
+                  <button type="button" class="btn btn-success" data-approve-user="${user.id}">Accepter</button>
+                  <button type="button" class="btn btn-danger" data-reject-user="${user.id}">Refuser</button>
+                </div>
+              </article>
+            `)
+            .join('')
+          : '<p class="empty-state">Aucun utilisateur en attente.</p>';
+      }
+
       tableBody.innerHTML = users
         .map((user) => `
           <tr>
+            <td>
+              ${user.avatarUrl
+      ? `<img class="table-avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(user.username)}" />`
+      : `<span class="table-avatar table-avatar--fallback">${escapeHtml(getInitialsFromName(user.username))}</span>`}
+            </td>
             <td>${escapeHtml(user.username)}</td>
+            <td><span class="status-pill status-pill--${escapeHtml(user.status)}">${statusLabel(user.status)}</span></td>
             <td>
               ${user.username === 'Admin' ? 'Admin' : `
               <select data-user-role="${user.id}">
@@ -1628,6 +1771,22 @@
         select.addEventListener('change', async () => {
           await StorageService.updateUserRole(select.dataset.userRole, select.value);
           UiService.showToast('Rôle mis à jour.');
+        });
+      });
+
+      pendingUsersList?.querySelectorAll('[data-approve-user]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          await StorageService.updateUserStatus(button.dataset.approveUser, 'approved');
+          UiService.showToast('Utilisateur accepté.');
+          await renderUsers();
+        });
+      });
+
+      pendingUsersList?.querySelectorAll('[data-reject-user]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          await StorageService.updateUserStatus(button.dataset.rejectUser, 'rejected');
+          UiService.showToast('Utilisateur refusé.');
+          await renderUsers();
         });
       });
     }
@@ -1728,7 +1887,9 @@
     await StorageService.ensureCurrentUser();
     let profile = await StorageService.getCurrentUserProfile();
     profile = await promptForMissingUsername(profile);
+    profile = await StorageService.getCurrentUserProfile();
     const permissions = buildPermissions(profile);
+    profile = await initApprovalGate(profile, permissions);
 
     initMaintenanceGate(permissions);
 

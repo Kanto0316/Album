@@ -62,6 +62,14 @@ function normalizeAvatarUrl(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeStatus(value) {
+  const status = String(value || '').toLowerCase();
+  if (status === 'approved' || status === 'rejected') {
+    return status;
+  }
+  return 'pending';
+}
+
 const BLOCKED_USERNAMES = new Set([
   'FACEBOOK',
   'YOUTUBE',
@@ -137,24 +145,37 @@ async function ensureCurrentUser() {
       ref,
       {
         username: '',
+        name: '',
         avatarUrl: '',
+        avatar: '',
         role: 'full',
+        status: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastNameChange: null,
       },
       { merge: true },
     );
-    return { id: state.userId, username: '', role: 'full', lastNameChange: null, avatarUrl: '' };
+    return {
+      id: state.userId,
+      username: '',
+      avatarUrl: '',
+      role: 'full',
+      status: 'pending',
+      lastNameChange: null,
+      createdAt: null,
+    };
   }
 
   const data = snap.data() || {};
   return {
     id: snap.id,
-    username: normalizeUsername(data.username),
+    username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
+    status: normalizeStatus(data.status),
     lastNameChange: data.lastNameChange || null,
-    avatarUrl: normalizeAvatarUrl(data.avatarUrl),
+    avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+    createdAt: data.createdAt || null,
   };
 }
 
@@ -166,10 +187,12 @@ async function getCurrentUserProfile() {
   const data = snap.data() || {};
   return {
     id: snap.id,
-    username: normalizeUsername(data.username),
+    username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
+    status: normalizeStatus(data.status),
     lastNameChange: data.lastNameChange || null,
-    avatarUrl: normalizeAvatarUrl(data.avatarUrl),
+    avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+    createdAt: data.createdAt || null,
   };
 }
 
@@ -196,11 +219,13 @@ async function saveUsername(username) {
   const isFirstUsername = !profile.username;
   const updates = {
     username: nextName,
+    name: nextName,
     updatedAt: serverTimestamp(),
   };
 
   if (isFirstUsername) {
     updates.role = 'lecture';
+    updates.status = 'pending';
   }
 
   await setDoc(
@@ -233,6 +258,7 @@ async function changeUsername(username) {
     userDocRef(),
     {
       username: nextName,
+      name: nextName,
       lastNameChange: Timestamp.fromDate(new Date()),
       updatedAt: serverTimestamp(),
     },
@@ -248,6 +274,7 @@ async function updateAvatarUrl(avatarUrl) {
     userDocRef(),
     {
       avatarUrl: nextAvatarUrl,
+      avatar: nextAvatarUrl,
       updatedAt: serverTimestamp(),
     },
     { merge: true },
@@ -262,9 +289,11 @@ async function listUsers() {
       const data = snap.data() || {};
       return {
         id: snap.id,
-        username: normalizeUsername(data.username),
-        avatarUrl: normalizeAvatarUrl(data.avatarUrl),
+        username: normalizeUsername(data.username || data.name),
+        avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
         role: normalizeRole(data.role),
+        status: normalizeStatus(data.status),
+        createdAt: data.createdAt || null,
       };
     })
     .filter((user) => user.username);
@@ -282,6 +311,55 @@ async function updateUserRole(userId, role) {
   );
 
   return true;
+}
+
+async function updateUserStatus(userId, status) {
+  const nextStatus = normalizeStatus(status);
+  await setDoc(
+    userDocRef(userId),
+    {
+      status: nextStatus,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return true;
+}
+
+function subscribeCurrentUserProfile(onChange, onError) {
+  try {
+    return onSnapshot(
+      userDocRef(),
+      async (snapshot) => {
+        if (!snapshot.exists()) {
+          const profile = await ensureCurrentUser();
+          onChange(profile);
+          return;
+        }
+        const data = snapshot.data() || {};
+        onChange({
+          id: snapshot.id,
+          username: normalizeUsername(data.username || data.name),
+          role: normalizeRole(data.role),
+          status: normalizeStatus(data.status),
+          lastNameChange: data.lastNameChange || null,
+          avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+          createdAt: data.createdAt || null,
+        });
+      },
+      (error) => {
+        if (typeof onError === 'function') {
+          onError(error);
+        }
+      },
+    );
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
 }
 
 function normalizeMaintenanceState(value) {
@@ -1269,8 +1347,10 @@ window.StorageService = {
   updateAvatarUrl,
   listUsers,
   updateUserRole,
+  updateUserStatus,
   setMaintenanceState,
   subscribeMaintenanceState,
+  subscribeCurrentUserProfile,
   computeNextNameChangeDate,
   listHistoriques,
 };
