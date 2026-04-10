@@ -917,6 +917,25 @@ body[data-page="history"] .list-grid {
   will-change: transform;
 }
 
+body[data-page="users-management"] .table-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body[data-page="users-management"] .table-wrapper--users {
+  width: 100%;
+  min-width: 0;
+  max-height: clamp(18rem, 48vh, 34rem);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+body[data-page="users-management"] .table-wrapper--users .data-table {
+  min-width: 44rem;
+}
+
 body[data-page="item-detail"] .table-wrapper {
   padding-bottom: 1.5rem;
 }
