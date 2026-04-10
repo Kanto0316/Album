@@ -58,6 +58,10 @@ function normalizeUsername(value) {
   return sanitizeText(value, false);
 }
 
+function normalizeAvatarUrl(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 const BLOCKED_USERNAMES = new Set([
   'FACEBOOK',
   'YOUTUBE',
@@ -133,6 +137,7 @@ async function ensureCurrentUser() {
       ref,
       {
         username: '',
+        avatarUrl: '',
         role: 'full',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -140,7 +145,7 @@ async function ensureCurrentUser() {
       },
       { merge: true },
     );
-    return { id: state.userId, username: '', role: 'full', lastNameChange: null };
+    return { id: state.userId, username: '', role: 'full', lastNameChange: null, avatarUrl: '' };
   }
 
   const data = snap.data() || {};
@@ -149,6 +154,7 @@ async function ensureCurrentUser() {
     username: normalizeUsername(data.username),
     role: normalizeRole(data.role),
     lastNameChange: data.lastNameChange || null,
+    avatarUrl: normalizeAvatarUrl(data.avatarUrl),
   };
 }
 
@@ -163,6 +169,7 @@ async function getCurrentUserProfile() {
     username: normalizeUsername(data.username),
     role: normalizeRole(data.role),
     lastNameChange: data.lastNameChange || null,
+    avatarUrl: normalizeAvatarUrl(data.avatarUrl),
   };
 }
 
@@ -233,6 +240,19 @@ async function changeUsername(username) {
   );
 
   return { ok: true, username: nextName };
+}
+
+async function updateAvatarUrl(avatarUrl) {
+  const nextAvatarUrl = normalizeAvatarUrl(avatarUrl);
+  await setDoc(
+    userDocRef(),
+    {
+      avatarUrl: nextAvatarUrl,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+  return { ok: true, avatarUrl: nextAvatarUrl };
 }
 
 async function listUsers() {
@@ -1243,6 +1263,7 @@ window.StorageService = {
   getCurrentUserProfile,
   saveUsername,
   changeUsername,
+  updateAvatarUrl,
   listUsers,
   updateUserRole,
   setMaintenanceState,

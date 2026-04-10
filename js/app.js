@@ -1,5 +1,7 @@
 (function () {
   const { StorageService, UiService } = window;
+  const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dskw13nem/image/upload';
+  const CLOUDINARY_UPLOAD_PRESET = 'public_upload';
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -490,13 +492,27 @@
     });
   }
 
+  function getAvatarInitials(profile) {
+    return String(profile?.username || '??').slice(0, 2).toUpperCase();
+  }
+
+  function renderAvatarVisual(container, profile) {
+    if (!container) {
+      return;
+    }
+    const avatarUrl = String(profile?.avatarUrl || '').trim();
+    const initials = getAvatarInitials(profile);
+    container.innerHTML = avatarUrl
+      ? `<img src="${escapeHtml(avatarUrl)}" alt="Photo de profil" class="avatar-image" />`
+      : `<span class="avatar-initials">${escapeHtml(initials)}</span>`;
+  }
+
   function renderAvatar(profile, onClick) {
     const avatarButton = document.getElementById('userAvatarButton');
     if (!avatarButton) {
       return;
     }
-    const base = String(profile.username || '??').slice(0, 2).toUpperCase();
-    avatarButton.textContent = base;
+    renderAvatarVisual(avatarButton, profile);
     avatarButton.title = profile.username || '';
     avatarButton.hidden = false;
     avatarButton.onclick = onClick;
@@ -516,8 +532,15 @@
       <div class="bottom-sheet" id="avatarBottomSheet" role="dialog" aria-modal="true" aria-label="Actions du profil">
         <div class="bottom-sheet__handle" aria-hidden="true"></div>
         <div class="bottom-sheet__content">
-          <div class="bottom-sheet__avatar" id="avatarSheetPreview">??</div>
+          <div class="bottom-sheet__avatar-wrap">
+            <div class="bottom-sheet__avatar" id="avatarSheetPreview">??</div>
+            <button type="button" class="bottom-sheet__avatar-edit" id="avatarSheetEditButton" aria-label="Modifier la photo de profil">
+              <i class="fa-solid fa-pencil" aria-hidden="true"></i>
+            </button>
+            <input id="avatarFileInput" type="file" accept="image/*" hidden />
+          </div>
           <button type="button" class="bottom-sheet__action" id="avatarSheetRename">Modifier un nom</button>
+          <p id="avatarSheetMessage" class="form-error" aria-live="polite"></p>
         </div>
       </div>
     `;
@@ -526,19 +549,23 @@
     return overlay;
   }
 
-  function openAvatarBottomSheet(profile, onRenameClick) {
+  function openAvatarBottomSheet(profile, handlers) {
     const overlay = ensureAvatarBottomSheet();
     const sheet = overlay.querySelector('#avatarBottomSheet');
     const avatarPreview = overlay.querySelector('#avatarSheetPreview');
     const renameButton = overlay.querySelector('#avatarSheetRename');
+    const editButton = overlay.querySelector('#avatarSheetEditButton');
+    const fileInput = overlay.querySelector('#avatarFileInput');
+    const message = overlay.querySelector('#avatarSheetMessage');
 
-    if (!sheet || !avatarPreview || !renameButton) {
+    if (!sheet || !avatarPreview || !renameButton || !editButton || !fileInput || !message) {
       return;
     }
 
-    const base = String(profile?.username || '??').slice(0, 2).toUpperCase();
-    avatarPreview.textContent = base;
+    renderAvatarVisual(avatarPreview, profile);
     avatarPreview.title = profile?.username || '';
+    message.textContent = '';
+    fileInput.value = '';
 
     const closeSheet = () => {
       overlay.classList.remove('is-open');
@@ -551,7 +578,36 @@
 
     renameButton.onclick = () => {
       closeSheet();
-      onRenameClick();
+      handlers.onRenameClick();
+    };
+
+    editButton.onclick = () => {
+      message.textContent = '';
+      fileInput.click();
+    };
+
+    fileInput.onchange = async () => {
+      const [selectedFile] = fileInput.files || [];
+      if (!selectedFile) {
+        return;
+      }
+      if (!selectedFile.type.startsWith('image/')) {
+        message.textContent = 'Veuillez sélectionner une image valide.';
+        return;
+      }
+      editButton.disabled = true;
+      renameButton.disabled = true;
+      message.textContent = 'Téléversement en cours...';
+      try {
+        await handlers.onUploadAvatar(selectedFile);
+        message.textContent = 'Photo de profil mise à jour.';
+        closeSheet();
+      } catch (_error) {
+        message.textContent = "Échec de l'upload. Veuillez réessayer.";
+      } finally {
+        editButton.disabled = false;
+        renameButton.disabled = false;
+      }
     };
 
     overlay.onclick = (event) => {
@@ -579,6 +635,24 @@
     window.requestAnimationFrame(() => {
       overlay.classList.add('is-open');
     });
+  }
+
+  async function uploadAvatarToCloudinary(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error('upload_failed');
+    }
+    const data = await response.json();
+    if (!data?.secure_url) {
+      throw new Error('missing_secure_url');
+    }
+    return String(data.secure_url);
   }
 
   function ensureRenameDialog() {
@@ -885,9 +959,23 @@
 
     const refreshAvatar = async () => {
       const latest = await StorageService.getCurrentUserProfile();
-      renderAvatar(latest, () => openAvatarBottomSheet(latest, () => openRenameDialog(latest, refreshAvatar)));
+      renderAvatar(latest, () => openAvatarBottomSheet(latest, {
+        onRenameClick: () => openRenameDialog(latest, refreshAvatar),
+        onUploadAvatar: async (file) => {
+          const avatarUrl = await uploadAvatarToCloudinary(file);
+          await StorageService.updateAvatarUrl(avatarUrl);
+          await refreshAvatar();
+        },
+      }));
     };
-    renderAvatar(userProfile, () => openAvatarBottomSheet(userProfile, () => openRenameDialog(userProfile, refreshAvatar)));
+    renderAvatar(userProfile, () => openAvatarBottomSheet(userProfile, {
+      onRenameClick: () => openRenameDialog(userProfile, refreshAvatar),
+      onUploadAvatar: async (file) => {
+        const avatarUrl = await uploadAvatarToCloudinary(file);
+        await StorageService.updateAvatarUrl(avatarUrl);
+        await refreshAvatar();
+      },
+    }));
 
 
     const openCreateSite = requireElement('openCreateSite');
