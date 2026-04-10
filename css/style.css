@@ -393,6 +393,11 @@ button {
   border-color: #ef4444;
 }
 
+.status-card--rejected h3,
+.status-card--rejected p {
+  color: #b91c1c;
+}
+
 .status-card h3 {
   margin: 0 0 0.7rem;
 }
@@ -665,6 +670,11 @@ body[data-page="history"] .list-grid {
 .status-pill--rejected {
   background: rgba(239, 68, 68, 0.16);
   color: #b91c1c;
+}
+
+.table-action-disabled {
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .list-card {
