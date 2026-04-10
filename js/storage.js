@@ -263,6 +263,7 @@ async function listUsers() {
       return {
         id: snap.id,
         username: normalizeUsername(data.username),
+        avatarUrl: normalizeAvatarUrl(data.avatarUrl),
         role: normalizeRole(data.role),
       };
     })
@@ -1033,6 +1034,7 @@ async function appendHistoryEntry(actionText) {
     const profile = await getCurrentUserProfile();
     const username = normalizeUsername(profile?.username) || 'Utilisateur inconnu';
     await addDoc(historyCollection(), {
+      userId: profile?.id || state.userId || null,
       userName: username,
       action,
       createdAt: serverTimestamp(),
@@ -1059,6 +1061,7 @@ async function listHistoriques() {
     const data = snap.data() || {};
     return {
       id: snap.id,
+      userId: sanitizeText(data.userId, false),
       userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
       action: sanitizeText(data.action, false),
       createdAt: data.createdAt || null,

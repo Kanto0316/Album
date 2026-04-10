@@ -457,21 +457,70 @@ body[data-page="history"] .list-grid {
 }
 
 .history-list__item {
-  padding: 0.9rem 1rem;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  transition: background-color 0.2s ease;
 }
 
 .history-list__item + .history-list__item {
   border-top: 1px solid #cdddee;
 }
 
-.history-list__title {
+.history-list__item:hover {
+  background: rgba(89, 184, 255, 0.09);
+}
+
+.history-list__avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.history-list__avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.history-list__avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.history-list__content {
+  min-width: 0;
+}
+
+.history-list__name {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.history-list__title {
+  margin: 0.22rem 0 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .history-list__date {
-  margin: 0.35rem 0 0;
+  margin: 0.18rem 0 0;
   color: var(--text-muted);
   font-size: 0.86rem;
 }
