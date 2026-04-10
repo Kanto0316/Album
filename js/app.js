@@ -488,6 +488,15 @@
     overlay.hidden = true;
   }
 
+  function clearClientUserState() {
+    try {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    } catch (_error) {
+      // Ignore storage cleanup errors (private mode / restricted storage).
+    }
+  }
+
   async function initApprovalGate(profile, permissions) {
     if (permissions?.isAdmin) {
       return profile;
@@ -496,8 +505,30 @@
     const currentPage = document.body.dataset.page;
     return new Promise((resolve) => {
       let approvedShown = false;
+      let recoveringDeletedUser = false;
       const unsubscribe = StorageService.subscribeCurrentUserProfile(
         (latestProfile) => {
+          if (latestProfile?.missing) {
+            if (recoveringDeletedUser) {
+              return;
+            }
+            recoveringDeletedUser = true;
+            hideApprovalOverlay();
+            clearClientUserState();
+            if (currentPage !== 'home') {
+              UiService.navigate('index.html');
+              return;
+            }
+            window.setTimeout(async () => {
+              await StorageService.ensureCurrentUser();
+              const recreatedProfile = await StorageService.getCurrentUserProfile();
+              await promptForMissingUsername(recreatedProfile);
+              approvedShown = false;
+              recoveringDeletedUser = false;
+            }, 0);
+            return;
+          }
+
           const status = String(latestProfile?.status || 'pending');
           if (status === 'rejected') {
             showApprovalOverlay('rejected');
@@ -544,19 +575,19 @@
 
     dialog = document.createElement('dialog');
     dialog.id = 'usernameDialog';
-    dialog.className = 'modal-card';
+    dialog.className = 'modal-card username-onboarding';
     dialog.innerHTML = `
       <form class="modal-content" id="usernameForm">
         <div class="modal-header">
-          <h2>Entrer votre nom</h2>
+          <h2>Créer votre profil</h2>
         </div>
         <label class="input-group">
-          <span>Nom</span>
+          <span>Nom utilisateur</span>
           <input id="usernameInput" type="text" maxlength="20" />
         </label>
         <p id="usernameError" class="form-error" aria-live="polite"></p>
         <div class="modal-actions">
-          <button type="submit" class="btn btn-success">Enregistrer</button>
+          <button type="submit" class="btn btn-success">Valider</button>
         </div>
       </form>
     `;
@@ -1790,7 +1821,7 @@
           if (!shouldDelete) {
             return;
           }
-          await StorageService.updateUserStatus(button.dataset.deleteUser, 'rejected');
+          await StorageService.deleteUser(button.dataset.deleteUser);
           UiService.showToast('Utilisateur supprimé.');
           await renderUsers();
         });

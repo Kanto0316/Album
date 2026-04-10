@@ -327,14 +327,31 @@ async function updateUserStatus(userId, status) {
   return true;
 }
 
+async function deleteUser(userId) {
+  const targetId = String(userId || '').trim();
+  if (!targetId) {
+    return false;
+  }
+  await deleteDoc(userDocRef(targetId));
+  return true;
+}
+
 function subscribeCurrentUserProfile(onChange, onError) {
   try {
     return onSnapshot(
       userDocRef(),
-      async (snapshot) => {
+      (snapshot) => {
         if (!snapshot.exists()) {
-          const profile = await ensureCurrentUser();
-          onChange(profile);
+          onChange({
+            id: state.userId,
+            username: '',
+            role: 'full',
+            status: 'pending',
+            lastNameChange: null,
+            avatarUrl: '',
+            createdAt: null,
+            missing: true,
+          });
           return;
         }
         const data = snapshot.data() || {};
@@ -346,6 +363,7 @@ function subscribeCurrentUserProfile(onChange, onError) {
           lastNameChange: data.lastNameChange || null,
           avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
           createdAt: data.createdAt || null,
+          missing: false,
         });
       },
       (error) => {
@@ -1348,6 +1366,7 @@ window.StorageService = {
   listUsers,
   updateUserRole,
   updateUserStatus,
+  deleteUser,
   setMaintenanceState,
   subscribeMaintenanceState,
   subscribeCurrentUserProfile,
