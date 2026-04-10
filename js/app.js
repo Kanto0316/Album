@@ -432,7 +432,7 @@
       return { title: 'Accès autorisé', message: 'Bienvenue.', tone: 'approved' };
     }
     if (status === 'rejected') {
-      return { title: 'Demande refusée', message: 'Votre demande a été refusée.', tone: 'rejected' };
+      return { title: 'Accès refusé', message: 'Vous n’avez pas l’autorisation d’utiliser cette page.', tone: 'rejected' };
     }
     return {
       title: 'En attente de confirmation',
@@ -499,6 +499,11 @@
       const unsubscribe = StorageService.subscribeCurrentUserProfile(
         (latestProfile) => {
           const status = String(latestProfile?.status || 'pending');
+          if (status === 'rejected') {
+            showApprovalOverlay('rejected');
+            return;
+          }
+
           if (status === 'approved') {
             if (!approvedShown) {
               approvedShown = true;
@@ -516,7 +521,7 @@
           }
 
           showApprovalOverlay(status);
-          if (currentPage !== 'home') {
+          if (status !== 'rejected' && currentPage !== 'home') {
             UiService.navigate('index.html');
           }
         },
@@ -1763,6 +1768,11 @@
                 <option value="full" ${user.role === 'full' ? 'selected' : ''}>${roleLabel.full}</option>
               </select>`}
             </td>
+            <td>
+              ${user.username === 'Admin'
+      ? '<span class="table-action-disabled">-</span>'
+      : `<button type="button" class="btn btn-danger" data-delete-user="${user.id}">Supprimer</button>`}
+            </td>
           </tr>
         `)
         .join('');
@@ -1771,6 +1781,18 @@
         select.addEventListener('change', async () => {
           await StorageService.updateUserRole(select.dataset.userRole, select.value);
           UiService.showToast('Rôle mis à jour.');
+        });
+      });
+
+      tableBody.querySelectorAll('[data-delete-user]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const shouldDelete = window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');
+          if (!shouldDelete) {
+            return;
+          }
+          await StorageService.updateUserStatus(button.dataset.deleteUser, 'rejected');
+          UiService.showToast('Utilisateur supprimé.');
+          await renderUsers();
         });
       });
 
