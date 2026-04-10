@@ -492,8 +492,22 @@
     });
   }
 
+  function getInitialsFromName(name) {
+    const parts = String(name || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!parts.length) {
+      return '??';
+    }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
   function getAvatarInitials(profile) {
-    return String(profile?.username || '??').slice(0, 2).toUpperCase();
+    return getInitialsFromName(profile?.username);
   }
 
   function renderAvatarVisual(container, profile) {
@@ -1654,6 +1668,20 @@
     }
 
     try {
+      const users = await StorageService.listUsers();
+      const usersById = users.reduce((accumulator, user) => {
+        if (user?.id) {
+          accumulator[user.id] = user;
+        }
+        return accumulator;
+      }, {});
+      const usersByName = users.reduce((accumulator, user) => {
+        const usernameKey = String(user?.username || '').trim().toLowerCase();
+        if (usernameKey && !accumulator[usernameKey]) {
+          accumulator[usernameKey] = user;
+        }
+        return accumulator;
+      }, {});
       const historiques = await StorageService.listHistoriques();
       if (!historiques.length) {
         UiService.renderEmptyState(historyList, 'Aucun historique enregistré pour le moment.');
@@ -1663,12 +1691,28 @@
       historyList.innerHTML = `
         <ul class="history-list__items">
           ${historiques
-            .map((history) => `
+            .map((history) => {
+              const normalizedName = String(history.userName || '').trim().toLowerCase();
+              const matchedUser = usersById[history.userId] || usersByName[normalizedName] || null;
+              const avatarUrl = String(matchedUser?.avatarUrl || '').trim();
+              const displayName = String(history.userName || 'Utilisateur inconnu').trim();
+              const initials = getInitialsFromName(displayName);
+              const avatarMarkup = avatarUrl
+                ? `<img class="history-list__avatar-image" src="${escapeHtml(avatarUrl)}" alt="Avatar de ${escapeHtml(displayName)}" />`
+                : `<span class="history-list__avatar-fallback" aria-hidden="true">${escapeHtml(initials)}</span>`;
+              return `
               <li class="history-list__item" aria-label="Historique">
-                <p class="history-list__title">${escapeHtml(history.userName)} ${escapeHtml(history.action)}</p>
-                <p class="history-list__date">${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</p>
+                <div class="history-list__avatar">
+                  ${avatarMarkup}
+                </div>
+                <div class="history-list__content">
+                  <p class="history-list__name">${escapeHtml(displayName)}</p>
+                  <p class="history-list__title">${escapeHtml(history.action)}</p>
+                  <p class="history-list__date">${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</p>
+                </div>
               </li>
-            `)
+            `;
+            })
             .join('')}
         </ul>
       `;
