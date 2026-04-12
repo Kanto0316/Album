@@ -1148,6 +1148,7 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
   align-items: flex-end;
   justify-content: center;
   transition: background 0.25s ease;
+  pointer-events: none;
 }
 
 .bottom-sheet {
@@ -1162,6 +1163,7 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
 
 .bottom-sheet-overlay.is-open {
   background: rgba(15, 23, 42, 0.42);
+  pointer-events: auto;
 }
 
 .bottom-sheet-overlay.is-open .bottom-sheet {
