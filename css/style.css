@@ -899,6 +899,30 @@ body[data-page="history"] .list-grid {
   padding-inline: 0;
 }
 
+.section-heading--table {
+  margin-bottom: 0.75rem;
+}
+
+.table-container--card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.table-wrapper--shared {
+  width: 100%;
+  min-width: 0;
+  max-height: clamp(18rem, 48vh, 34rem);
+  overflow: auto;
+}
+
+body[data-page="users-management"] .pending-users-list--scroll {
+  max-height: clamp(13rem, 38vh, 20rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+
 .table-container {
   overflow-x: auto;
   overflow-y: hidden;
@@ -924,10 +948,6 @@ body[data-page="users-management"] .table-card {
 }
 
 body[data-page="users-management"] .table-wrapper--users {
-  width: 100%;
-  min-width: 0;
-  max-height: clamp(18rem, 48vh, 34rem);
-  overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
@@ -948,7 +968,9 @@ body[data-page="users-management"] .maintenance-access-checkbox {
   cursor: pointer;
 }
 
-body[data-page="item-detail"] .table-wrapper {
+body[data-page="item-detail"] .table-wrapper--shared {
+  width: max-content;
+  min-width: 100%;
   padding-bottom: 1.5rem;
 }
 
