@@ -1809,8 +1809,7 @@
       return 'En attente';
     }
 
-    async function renderUsers() {
-      const users = await StorageService.listUsers();
+    function renderUsers(users) {
       const pendingUsers = users.filter((user) => user.status === 'pending');
 
       if (pendingUsersList) {
@@ -1855,6 +1854,15 @@
                 <option value="full" ${user.role === 'full' ? 'selected' : ''}>${roleLabel.full}</option>
               </select>`}
             </td>
+            <td class="maintenance-access-cell">
+              <input
+                type="checkbox"
+                class="maintenance-access-checkbox"
+                data-user-maintenance-access="${user.id}"
+                ${user.maintenanceAccess ? 'checked' : ''}
+                aria-label="Autoriser ${escapeHtml(user.username)} pendant la maintenance"
+              />
+            </td>
             <td>
               ${user.username === 'Admin'
       ? '<span class="table-action-disabled">-</span>'
@@ -1871,6 +1879,19 @@
         });
       });
 
+      tableBody.querySelectorAll('[data-user-maintenance-access]').forEach((checkbox) => {
+        checkbox.addEventListener('change', async () => {
+          const isAllowed = checkbox.checked;
+          try {
+            await StorageService.updateUserMaintenanceAccess(checkbox.dataset.userMaintenanceAccess, isAllowed);
+            UiService.showToast('Accès maintenance mis à jour.');
+          } catch (_error) {
+            checkbox.checked = !isAllowed;
+            UiService.showToast('Impossible de mettre à jour l’accès maintenance.');
+          }
+        });
+      });
+
       tableBody.querySelectorAll('[data-delete-user]').forEach((button) => {
         button.addEventListener('click', async () => {
           const shouldDelete = window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');
@@ -1879,7 +1900,6 @@
           }
           await StorageService.deleteUser(button.dataset.deleteUser);
           UiService.showToast('Utilisateur supprimé.');
-          await renderUsers();
         });
       });
 
@@ -1887,7 +1907,6 @@
         button.addEventListener('click', async () => {
           await StorageService.updateUserStatus(button.dataset.approveUser, 'approved');
           UiService.showToast('Utilisateur accepté.');
-          await renderUsers();
         });
       });
 
@@ -1895,7 +1914,6 @@
         button.addEventListener('click', async () => {
           await StorageService.updateUserStatus(button.dataset.rejectUser, 'rejected');
           UiService.showToast('Utilisateur refusé.');
-          await renderUsers();
         });
       });
     }
@@ -1926,7 +1944,21 @@
       }
     });
 
-    await renderUsers();
+    try {
+      const initialUsers = await StorageService.listUsers();
+      renderUsers(initialUsers);
+    } catch (_error) {
+      UiService.showToast('Impossible de charger les utilisateurs.');
+    }
+
+    StorageService.subscribeUsers(
+      (users) => {
+        renderUsers(users);
+      },
+      () => {
+        UiService.showToast('Synchronisation des utilisateurs indisponible.');
+      },
+    );
   }
 
   async function initHistoryPage() {

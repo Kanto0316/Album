@@ -933,7 +933,19 @@ body[data-page="users-management"] .table-wrapper--users {
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table {
-  min-width: 44rem;
+  min-width: 52rem;
+}
+
+body[data-page="users-management"] .maintenance-access-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+body[data-page="users-management"] .maintenance-access-checkbox {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--primary);
+  cursor: pointer;
 }
 
 body[data-page="item-detail"] .table-wrapper {

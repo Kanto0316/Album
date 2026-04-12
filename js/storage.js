@@ -70,6 +70,10 @@ function normalizeStatus(value) {
   return 'pending';
 }
 
+function normalizeMaintenanceAccess(value) {
+  return Boolean(value);
+}
+
 const BLOCKED_USERNAMES = new Set([
   'FACEBOOK',
   'YOUTUBE',
@@ -150,6 +154,7 @@ async function ensureCurrentUser() {
         avatar: '',
         role: 'full',
         status: 'pending',
+        maintenanceAccess: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastNameChange: null,
@@ -162,6 +167,7 @@ async function ensureCurrentUser() {
       avatarUrl: '',
       role: 'full',
       status: 'pending',
+      maintenanceAccess: false,
       lastNameChange: null,
       createdAt: null,
     };
@@ -173,6 +179,7 @@ async function ensureCurrentUser() {
     username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
     status: normalizeStatus(data.status),
+    maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
     lastNameChange: data.lastNameChange || null,
     avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
     createdAt: data.createdAt || null,
@@ -190,6 +197,7 @@ async function getCurrentUserProfile() {
     username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
     status: normalizeStatus(data.status),
+    maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
     lastNameChange: data.lastNameChange || null,
     avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
     createdAt: data.createdAt || null,
@@ -293,6 +301,7 @@ async function listUsers() {
         avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
         role: normalizeRole(data.role),
         status: normalizeStatus(data.status),
+        maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
         createdAt: data.createdAt || null,
       };
     })
@@ -327,6 +336,19 @@ async function updateUserStatus(userId, status) {
   return true;
 }
 
+async function updateUserMaintenanceAccess(userId, maintenanceAccess) {
+  await setDoc(
+    userDocRef(userId),
+    {
+      maintenanceAccess: Boolean(maintenanceAccess),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  return true;
+}
+
 async function deleteUser(userId) {
   const targetId = String(userId || '').trim();
   if (!targetId) {
@@ -347,6 +369,7 @@ function subscribeCurrentUserProfile(onChange, onError) {
             username: '',
             role: 'full',
             status: 'pending',
+            maintenanceAccess: false,
             lastNameChange: null,
             avatarUrl: '',
             createdAt: null,
@@ -360,11 +383,47 @@ function subscribeCurrentUserProfile(onChange, onError) {
           username: normalizeUsername(data.username || data.name),
           role: normalizeRole(data.role),
           status: normalizeStatus(data.status),
+          maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
           lastNameChange: data.lastNameChange || null,
           avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
           createdAt: data.createdAt || null,
           missing: false,
         });
+      },
+      (error) => {
+        if (typeof onError === 'function') {
+          onError(error);
+        }
+      },
+    );
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
+function subscribeUsers(onChange, onError) {
+  try {
+    return onSnapshot(
+      usersCollection(),
+      (snapshot) => {
+        const users = snapshot.docs
+          .map((snap) => {
+            const data = snap.data() || {};
+            return {
+              id: snap.id,
+              username: normalizeUsername(data.username || data.name),
+              avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+              role: normalizeRole(data.role),
+              status: normalizeStatus(data.status),
+              maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
+              createdAt: data.createdAt || null,
+            };
+          })
+          .filter((user) => user.username);
+        onChange(users);
       },
       (error) => {
         if (typeof onError === 'function') {
@@ -1364,8 +1423,10 @@ window.StorageService = {
   changeUsername,
   updateAvatarUrl,
   listUsers,
+  subscribeUsers,
   updateUserRole,
   updateUserStatus,
+  updateUserMaintenanceAccess,
   deleteUser,
   setMaintenanceState,
   subscribeMaintenanceState,
