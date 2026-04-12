@@ -90,6 +90,9 @@ const BLOCKED_USERNAMES = new Set([
   'KINDY',
   'TABORY',
   'NEMANY',
+  'FUCK',
+  'JE T AIME',
+  'GOOGLE',
 ]);
 
 function isValidUsername(username) {
