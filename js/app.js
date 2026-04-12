@@ -615,12 +615,12 @@
           <h2>Créer votre profil</h2>
         </div>
         <label class="input-group">
-          <span>Nom utilisateur</span>
+          <span>Enter votre Nom </span>
           <input id="usernameInput" type="text" maxlength="20" />
         </label>
         <p id="usernameError" class="form-error" aria-live="polite"></p>
         <div class="modal-actions">
-          <button type="submit" class="btn btn-success">Valider</button>
+          <button type="submit" class="btn btn-success">Enregister</button>
         </div>
       </form>
     `;
