@@ -750,13 +750,35 @@
     message.textContent = '';
     fileInput.value = '';
 
-    const closeSheet = () => {
+    const closeTransitionDurationMs = 320;
+    const clearCloseListeners = () => {
+      if (overlay.__closeTimerId) {
+        window.clearTimeout(overlay.__closeTimerId);
+        overlay.__closeTimerId = null;
+      }
+      if (overlay.__closeTransitionHandler) {
+        overlay.removeEventListener('transitionend', overlay.__closeTransitionHandler);
+        overlay.__closeTransitionHandler = null;
+      }
+    };
+    const finalizeClose = () => {
+      clearCloseListeners();
+      overlay.hidden = true;
       overlay.classList.remove('is-open');
-      const onTransitionEnd = () => {
-        overlay.hidden = true;
-        overlay.removeEventListener('transitionend', onTransitionEnd);
+    };
+    const closeSheet = () => {
+      if (overlay.hidden) {
+        return;
+      }
+      overlay.classList.remove('is-open');
+      overlay.__closeTransitionHandler = (event) => {
+        if (event.target !== overlay && event.target !== sheet) {
+          return;
+        }
+        finalizeClose();
       };
-      overlay.addEventListener('transitionend', onTransitionEnd);
+      overlay.addEventListener('transitionend', overlay.__closeTransitionHandler);
+      overlay.__closeTimerId = window.setTimeout(finalizeClose, closeTransitionDurationMs);
     };
 
     renameButton.onclick = () => {
@@ -815,6 +837,7 @@
     };
 
     overlay.hidden = false;
+    clearCloseListeners();
     window.requestAnimationFrame(() => {
       overlay.classList.add('is-open');
     });
