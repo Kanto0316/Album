@@ -616,7 +616,7 @@
         </div>
         <label class="input-group">
           <span>Enter votre Nom </span>
-          <input id="usernameInput" type="text" maxlength="20" />
+          <input id="usernameInput" type="text" maxlength="30" />
         </label>
         <p id="usernameError" class="form-error" aria-live="polite"></p>
         <div class="modal-actions">
@@ -874,7 +874,7 @@
         <div class="modal-header"><h2>Modifier le nom</h2></div>
         <label class="input-group">
           <span>Nouveau nom</span>
-          <input id="renameInput" type="text" maxlength="20" />
+          <input id="renameInput" type="text" maxlength="30" />
         </label>
         <p id="renameError" class="form-error" aria-live="polite"></p>
         <div class="modal-actions">
@@ -902,7 +902,7 @@
       input.disabled = Boolean(locked);
       saveButton.disabled = Boolean(locked);
       if (locked) {
-        error.textContent = `Vous devez réessayer votre nom dans ${formatRetryDate(nextAllowedAt)}`;
+        error.textContent = `Limite de changement nom atteint ,réessayer après ${formatRetryDate(nextAllowedAt)}`;
       }
       return latest;
     };
@@ -917,12 +917,12 @@
           return;
         }
         if (result.reason === 'cooldown') {
-          error.textContent = `Vous devez réessayer votre nom dans ${formatRetryDate(result.nextAllowedAt)}`;
+          error.textContent = `Limite de changement nom atteint ,réessayer après ${formatRetryDate(result.nextAllowedAt)}`;
           input.disabled = true;
           saveButton.disabled = true;
           return;
         }
-        error.textContent = 'Nom invalide (4-20 lettres/chiffres, pas uniquement chiffres, noms interdits refusés).';
+        error.textContent = 'Nom invalide , Veuillez réessayer.';
         return;
       }
       form.removeEventListener('submit', submitHandler);
@@ -1030,7 +1030,7 @@
       const payload = StorageService.exportData();
       const serialized = JSON.stringify(payload, null, 2);
       downloadSuFile(formatExportFileName(), serialized);
-      UiService.showToast('Exportation lancée.');
+      UiService.showToast('Exportation des données lancée.');
     }
 
     function openImportFilePicker() {
