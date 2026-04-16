@@ -722,7 +722,7 @@
             </button>
             <input id="avatarFileInput" type="file" accept="image/*" hidden />
           </div>
-          <button type="button" class="bottom-sheet__action" id="avatarSheetRename">Modifier un nom</button>
+          <button type="button" class="bottom-sheet__action" id="avatarSheetRename">Modifier votre nom</button>
           <p id="avatarSheetMessage" class="form-error" aria-live="polite"></p>
         </div>
       </div>
@@ -902,7 +902,7 @@
       input.disabled = Boolean(locked);
       saveButton.disabled = Boolean(locked);
       if (locked) {
-        error.textContent = `Limite de changement nom atteint ,réessayer après ${formatRetryDate(nextAllowedAt)}`;
+        error.textContent = `Limite de changement dépassé,Réessayer après ${formatRetryDate(nextAllowedAt)}`;
       }
       return latest;
     };
@@ -917,7 +917,7 @@
           return;
         }
         if (result.reason === 'cooldown') {
-          error.textContent = `Limite de changement nom atteint ,réessayer après ${formatRetryDate(result.nextAllowedAt)}`;
+          error.textContent = `Limite de changement  atteint ,réessayer après ${formatRetryDate(result.nextAllowedAt)}`;
           input.disabled = true;
           saveButton.disabled = true;
           return;
