@@ -21,7 +21,10 @@
           <form id="detailForm" class="responsive-form" novalidate>
             <label class="input-group">
               <span>Code</span>
-              <input id="codeInput" name="code" type="text" maxlength="40" aria-label="Code" />
+              <div class="typeahead" id="codeTypeahead">
+                <input id="codeInput" name="code" type="text" maxlength="40" aria-label="Code" autocomplete="off" />
+                <div id="codeSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de code" hidden></div>
+              </div>
             </label>
             <label class="input-group input-group--wide">
               <span>Désignation</span>

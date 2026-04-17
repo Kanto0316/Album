@@ -841,6 +841,14 @@ async function getDetailRowsBySite(siteId) {
   return clone(rowsByItem);
 }
 
+async function getAllDetails() {
+  const details = [];
+  state.detailsByItem.forEach((itemDetails) => {
+    details.push(...itemDetails);
+  });
+  return clone(details);
+}
+
 function isDuplicateSiteName(name) {
   const normalized = sanitizeText(name, true);
   if (!normalized) {
@@ -1409,6 +1417,7 @@ window.StorageService = {
   subscribeDetailDesignations,
   subscribeDetailRows,
   getDetailRowsBySite,
+  getAllDetails,
   createSite,
   removeSite,
   restoreSite,
