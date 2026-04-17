@@ -27,6 +27,7 @@ const FIREBASE_CONFIG = {
 };
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
+const OFFLINE_CACHE_TTL_MS = 180 * 1000;
 
 const state = {
   initialized: false,
@@ -544,20 +545,26 @@ function persistOfflineState() {
   localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(payload));
 }
 
-function loadOfflineState() {
+function parseOfflineState() {
   try {
     const raw = localStorage.getItem(OFFLINE_CACHE_KEY);
     if (!raw) {
-      return false;
+      return null;
     }
     const parsed = JSON.parse(raw);
     const page1 = Array.isArray(parsed?.pages?.page1) ? parsed.pages.page1 : [];
     const page2 = Array.isArray(parsed?.pages?.page2) ? parsed.pages.page2 : [];
     const page3 = Array.isArray(parsed?.pages?.page3) ? parsed.pages.page3 : [];
-    applySnapshot({ page1, page2, page3 });
-    return true;
+    const savedAt = typeof parsed?.savedAt === 'string' ? parsed.savedAt : null;
+    const savedAtTime = savedAt ? new Date(savedAt).getTime() : NaN;
+    const isFresh = Number.isFinite(savedAtTime) && Date.now() - savedAtTime < OFFLINE_CACHE_TTL_MS;
+    return {
+      snapshot: { page1, page2, page3 },
+      savedAt,
+      isFresh,
+    };
   } catch (_error) {
-    return false;
+    return null;
   }
 }
 
@@ -678,14 +685,28 @@ async function init() {
   const app = initializeApp(FIREBASE_CONFIG);
   state.db = getFirestore(app);
 
-  const hasOfflineData = loadOfflineState();
+  const offlineState = parseOfflineState();
+  if (offlineState?.snapshot) {
+    applySnapshot(offlineState.snapshot);
+  }
 
-  try {
-    const remote = await loadRemoteSnapshot();
-    applySnapshot(remote);
-    persistOfflineState();
-  } catch (_error) {
-    if (!hasOfflineData) {
+  if (!offlineState?.isFresh) {
+    try {
+      const remote = await loadRemoteSnapshot();
+      applySnapshot(remote);
+      persistOfflineState();
+    } catch (_error) {
+      if (!offlineState?.snapshot) {
+        applySnapshot({ page1: [], page2: [], page3: [] });
+      }
+    }
+  } else if (!offlineState.snapshot) {
+    // Defensive fallback, should never happen.
+    try {
+      const remote = await loadRemoteSnapshot();
+      applySnapshot(remote);
+      persistOfflineState();
+    } catch (_error) {
       applySnapshot({ page1: [], page2: [], page3: [] });
     }
   }
