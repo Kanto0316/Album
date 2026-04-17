@@ -90,41 +90,6 @@
     return true;
   }
 
-  function countItemsMatchingDateFilter(items, filterValue) {
-    if (!Array.isArray(items) || !items.length) {
-      return 0;
-    }
-    return items.reduce((count, item) => count + (itemMatchesDateFilter(item, filterValue) ? 1 : 0), 0);
-  }
-
-  function pickBestDateFilter(items, availableFilterValues, currentFilterValue) {
-    const filters = Array.isArray(availableFilterValues) ? availableFilterValues : [];
-    if (!filters.length) {
-      return currentFilterValue || 'all';
-    }
-
-    const hasCurrentFilter = filters.includes(currentFilterValue);
-    const isCurrentPrioritizedPeriod = hasCurrentFilter && !['all', 'today', 'yesterday'].includes(currentFilterValue);
-    if (isCurrentPrioritizedPeriod && countItemsMatchingDateFilter(items, currentFilterValue) > 0) {
-      return currentFilterValue;
-    }
-
-    const nonRecentFilters = filters.filter((value) => !['all', 'today', 'yesterday'].includes(value));
-    for (const filterValue of nonRecentFilters) {
-      if (countItemsMatchingDateFilter(items, filterValue) > 0) {
-        return filterValue;
-      }
-    }
-
-    for (const filterValue of ['today', 'yesterday']) {
-      if (filters.includes(filterValue) && countItemsMatchingDateFilter(items, filterValue) > 0) {
-        return filterValue;
-      }
-    }
-
-    return filters.includes('all') ? 'all' : filters[0];
-  }
-
   function resolveItemPeriodLabel(item) {
     const itemDate = parseDateValue(item?.dateCreation || item?.dateModification);
     if (!itemDate) {
