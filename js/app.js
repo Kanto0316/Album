@@ -17,6 +17,10 @@
       .replace(/'/g, '&#39;');
   }
 
+  function escapeRegExp(value) {
+    return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   function setCountText(element, count, singular, plural) {
     element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
@@ -1566,13 +1570,153 @@
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
     const exportButton = requireElement('exportDetailsButton');
+    const codeInput = requireElement('codeInput');
     const designationInput = requireElement('designationInput');
+    const codeSuggestions = requireElement('codeSuggestions');
 
     setupZoomableDetailTable();
 
     let currentSite = StorageService.getSite(siteId);
     let currentItem = StorageService.getItem(siteId, itemId);
     let currentDetails = [];
+    let codeSuggestionSource = [];
+    let visibleCodeSuggestions = [];
+    let activeSuggestionIndex = -1;
+
+    function buildCodeSuggestionSource(details) {
+      const suggestionsByCode = new Map();
+      details.forEach((detail) => {
+        const code = String(detail?.code || '').trim();
+        if (!code) {
+          return;
+        }
+        const designation = String(detail?.designation || '').trim();
+        const key = code.toLowerCase();
+        if (!suggestionsByCode.has(key)) {
+          suggestionsByCode.set(key, { code, designation });
+          return;
+        }
+        const existing = suggestionsByCode.get(key);
+        if (!existing.designation && designation) {
+          existing.designation = designation;
+        }
+      });
+
+      return Array.from(suggestionsByCode.values())
+        .sort((a, b) => a.code.localeCompare(b.code, 'fr', { sensitivity: 'base' }));
+    }
+
+    function getCodeMatches(query) {
+      const normalizedQuery = String(query || '').trim().toLowerCase();
+      if (!normalizedQuery) {
+        return [];
+      }
+
+      return codeSuggestionSource
+        .map((entry) => {
+          const codeLower = entry.code.toLowerCase();
+          const matchIndex = codeLower.indexOf(normalizedQuery);
+          return { entry, matchIndex, startsWith: codeLower.startsWith(normalizedQuery) };
+        })
+        .filter((item) => item.matchIndex !== -1)
+        .sort((a, b) => {
+          if (a.startsWith !== b.startsWith) {
+            return a.startsWith ? -1 : 1;
+          }
+          if (a.matchIndex !== b.matchIndex) {
+            return a.matchIndex - b.matchIndex;
+          }
+          return a.entry.code.localeCompare(b.entry.code, 'fr', { sensitivity: 'base' });
+        })
+        .slice(0, 8)
+        .map((item) => item.entry);
+    }
+
+    function buildHighlightedText(text, query) {
+      const safeText = String(text || '');
+      const normalizedQuery = String(query || '').trim();
+      if (!normalizedQuery) {
+        return escapeHtml(safeText);
+      }
+
+      const matcher = new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'ig');
+      return escapeHtml(safeText).replace(matcher, '<mark>$1</mark>');
+    }
+
+    function setActiveSuggestion(index) {
+      activeSuggestionIndex = index;
+      if (!codeSuggestions) {
+        return;
+      }
+
+      codeSuggestions.querySelectorAll('.typeahead__option').forEach((option, optionIndex) => {
+        const isActive = optionIndex === index;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        if (isActive) {
+          option.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    function hideCodeSuggestions() {
+      visibleCodeSuggestions = [];
+      activeSuggestionIndex = -1;
+      if (!codeSuggestions) {
+        return;
+      }
+      codeSuggestions.hidden = true;
+      codeSuggestions.innerHTML = '';
+    }
+
+    function applyCodeSuggestion(entry) {
+      if (!entry || !codeInput || !designationInput) {
+        return;
+      }
+      codeInput.value = entry.code;
+      designationInput.value = entry.designation || '';
+      hideCodeSuggestions();
+    }
+
+    function renderCodeSuggestions(query) {
+      if (!codeSuggestions) {
+        return;
+      }
+
+      visibleCodeSuggestions = getCodeMatches(query);
+      activeSuggestionIndex = -1;
+
+      if (!visibleCodeSuggestions.length) {
+        hideCodeSuggestions();
+        return;
+      }
+
+      codeSuggestions.hidden = false;
+      codeSuggestions.innerHTML = visibleCodeSuggestions
+        .map(
+          (entry, index) => `
+            <button
+              type="button"
+              class="typeahead__option"
+              role="option"
+              data-typeahead-index="${index}"
+              aria-selected="false"
+            >
+              <span class="typeahead__code">${buildHighlightedText(entry.code, query)}</span>
+              <span class="typeahead__designation">${buildHighlightedText(entry.designation || 'Désignation indisponible', query)}</span>
+            </button>
+          `,
+        )
+        .join('');
+    }
+
+    async function refreshCodeSuggestionSource() {
+      const details = await StorageService.getAllDetails();
+      codeSuggestionSource = buildCodeSuggestionSource(details);
+      if (document.activeElement === codeInput) {
+        renderCodeSuggestions(codeInput.value);
+      }
+    }
 
     if (!permissions.canDelete) {
       document.querySelector('.data-table')?.classList.add('data-table--hide-action');
@@ -1733,8 +1877,66 @@
       }
       detailForm.reset();
       requireElement('uniteInput').value = 'm';
+      hideCodeSuggestions();
       UiService.showToast('Article ajoutée .');
     });
+
+    if (codeInput && codeSuggestions) {
+      codeInput.addEventListener('focus', () => {
+        renderCodeSuggestions(codeInput.value);
+      });
+
+      codeInput.addEventListener('input', () => {
+        renderCodeSuggestions(codeInput.value);
+      });
+
+      codeInput.addEventListener('keydown', (event) => {
+        if (!visibleCodeSuggestions.length) {
+          return;
+        }
+
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          const nextIndex = activeSuggestionIndex < visibleCodeSuggestions.length - 1 ? activeSuggestionIndex + 1 : 0;
+          setActiveSuggestion(nextIndex);
+          return;
+        }
+
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          const nextIndex = activeSuggestionIndex > 0 ? activeSuggestionIndex - 1 : visibleCodeSuggestions.length - 1;
+          setActiveSuggestion(nextIndex);
+          return;
+        }
+
+        if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+          event.preventDefault();
+          applyCodeSuggestion(visibleCodeSuggestions[activeSuggestionIndex]);
+          return;
+        }
+
+        if (event.key === 'Escape') {
+          hideCodeSuggestions();
+        }
+      });
+
+      codeInput.addEventListener('blur', () => {
+        window.setTimeout(hideCodeSuggestions, 140);
+      });
+
+      codeSuggestions.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
+
+      codeSuggestions.addEventListener('click', (event) => {
+        const option = event.target.closest('[data-typeahead-index]');
+        if (!option) {
+          return;
+        }
+        const suggestion = visibleCodeSuggestions[Number(option.dataset.typeaheadIndex)];
+        applyCodeSuggestion(suggestion);
+      });
+    }
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', renderTable);
@@ -1747,6 +1949,7 @@
     StorageService.subscribeSites((sites) => {
       currentSite = sites.find((site) => site.id === siteId) || currentSite;
       renderTitle();
+      refreshCodeSuggestionSource();
     });
 
     StorageService.subscribeItems(siteId, (items) => {
@@ -1771,6 +1974,7 @@
     );
 
     renderTitle();
+    refreshCodeSuggestionSource();
   }
 
 
