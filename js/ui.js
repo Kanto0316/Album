@@ -26,10 +26,20 @@
     overlay.setAttribute("aria-live", "polite");
     overlay.setAttribute("aria-label", "Chargement en cours");
 
+    const loaderContent = document.createElement("div");
+    loaderContent.className = "global-loader-content";
+
     const spinner = document.createElement("div");
     spinner.className = "global-loader-spinner";
     spinner.setAttribute("aria-hidden", "true");
-    overlay.appendChild(spinner);
+    loaderContent.appendChild(spinner);
+
+    const loaderText = document.createElement("p");
+    loaderText.className = "global-loader-text";
+    loaderText.textContent = "Chargement en cours...";
+    loaderContent.appendChild(loaderText);
+
+    overlay.appendChild(loaderContent);
 
     document.body.appendChild(overlay);
     globalLoader = overlay;
