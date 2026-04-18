@@ -463,6 +463,19 @@ button {
   color: var(--text-muted);
 }
 
+.input-group span.label-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.label-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .input-group input,
 .input-group select,
 .cell-input,
