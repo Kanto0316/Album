@@ -1563,6 +1563,14 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
   display: inline-flex;
 }
 
+.bottom-sheet__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-align: center;
+}
+
 .bottom-sheet__avatar-edit {
   position: absolute;
   right: -0.15rem;
