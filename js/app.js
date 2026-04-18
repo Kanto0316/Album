@@ -1807,7 +1807,11 @@
               <td><input class="cell-input cell-input--autosize" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
-              <td>${permissions.canDelete ? `<button class="btn-danger" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer">Supprimer</button>` : ""}</td>
+              <td>
+                ${permissions.canDelete
+      ? `<button class="table-delete-icon-button" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`
+      : ""}
+              </td>
             </tr>
           `;
           },
@@ -2070,7 +2074,7 @@
             <td>
               ${user.username === 'Admin'
       ? '<span class="table-action-disabled">-</span>'
-      : `<button type="button" class="btn btn-danger" data-delete-user="${user.id}">Supprimer</button>`}
+      : `<button type="button" class="table-delete-icon-button" data-delete-user="${user.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`}
             </td>
           </tr>
         `)
