@@ -1,10 +1,8 @@
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
 (function () {
   const { StorageService, UiService } = window;
-  const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dskw13nem/image/upload';
-  const CLOUDINARY_UPLOAD_PRESET = 'public_upload';
   const WELCOME_SHOWN_KEY = 'welcomeShown';
 
   function requireElement(id) {
@@ -271,15 +269,30 @@ import { firebaseAuth } from './firebase-core.js';
     });
   }
 
-  function renderHomeAccessControls({ isAuthenticated, profile, onAvatarClick }) {
+  function getAuthUserData(user) {
+    const authUser = user || firebaseAuth.currentUser;
+    if (!authUser) {
+      return null;
+    }
+    return {
+      uid: authUser.uid || '',
+      name: authUser.displayName || '',
+      email: authUser.email || '',
+      photo: authUser.photoURL || '',
+    };
+  }
+
+  function renderHomeAccessControls({ authUser, onAvatarClick }) {
     const avatarButton = document.getElementById('userAvatarButton');
     const loginButton = document.getElementById('openLoginButton');
+    const userData = getAuthUserData(authUser);
+    const isAuthenticated = Boolean(userData);
 
     if (isAuthenticated) {
       if (loginButton) {
         loginButton.hidden = true;
       }
-      renderAvatar(profile, onAvatarClick);
+      renderAvatar(userData, onAvatarClick);
       return;
     }
 
@@ -579,8 +592,6 @@ import { firebaseAuth } from './firebase-core.js';
             }
             window.setTimeout(async () => {
               await StorageService.ensureCurrentUser();
-              const recreatedProfile = await StorageService.getCurrentUserProfile();
-              await promptForMissingUsername(recreatedProfile);
               approvedShown = false;
               recoveringDeletedUser = false;
             }, 0);
@@ -626,71 +637,6 @@ import { firebaseAuth } from './firebase-core.js';
     });
   }
 
-  function formatRetryDate(value) {
-    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(value);
-  }
-
-  function ensureMandatoryNameModal() {
-    let dialog = document.getElementById('usernameDialog');
-    if (dialog) {
-      return dialog;
-    }
-
-    dialog = document.createElement('dialog');
-    dialog.id = 'usernameDialog';
-    dialog.className = 'modal-card username-onboarding';
-    dialog.innerHTML = `
-      <form class="modal-content" id="usernameForm">
-        <div class="modal-header">
-          <h2>Créer votre profil</h2>
-        </div>
-        <label class="input-group">
-          <span>Enter votre Nom </span>
-          <input id="usernameInput" type="text" maxlength="30" />
-        </label>
-        <p id="usernameError" class="form-error" aria-live="polite"></p>
-        <div class="modal-actions">
-          <button type="submit" class="btn btn-success">Enregister</button>
-        </div>
-      </form>
-    `;
-    document.body.appendChild(dialog);
-    dialog.addEventListener('cancel', (event) => event.preventDefault());
-    return dialog;
-  }
-
-  async function promptForMissingUsername(profile) {
-    if (profile.username) {
-      return profile;
-    }
-
-    const dialog = ensureMandatoryNameModal();
-    const form = dialog.querySelector('#usernameForm');
-    const input = dialog.querySelector('#usernameInput');
-    const error = dialog.querySelector('#usernameError');
-
-    return new Promise((resolve) => {
-      const submitHandler = async (event) => {
-        event.preventDefault();
-        error.textContent = '';
-        const result = await StorageService.saveUsername(input.value);
-        if (!result.ok) {
-          error.textContent = result.reason === 'duplicate_username' ? 'Ce nom existe déjà' : 'Nom invalide (4-20 lettres/chiffres, pas uniquement chiffres, noms interdits refusés).';
-          return;
-        }
-
-        form.removeEventListener('submit', submitHandler);
-        dialog.close();
-        const updated = await StorageService.getCurrentUserProfile();
-        resolve(updated);
-      };
-
-      form.addEventListener('submit', submitHandler);
-      dialog.showModal();
-      input.focus();
-    });
-  }
-
   function getInitialsFromName(name) {
     const parts = String(name || '')
       .trim()
@@ -705,28 +651,28 @@ import { firebaseAuth } from './firebase-core.js';
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
 
-  function getAvatarInitials(profile) {
-    return getInitialsFromName(profile?.username);
+  function getAvatarInitials(authUserData) {
+    return getInitialsFromName(authUserData?.name);
   }
 
-  function renderAvatarVisual(container, profile) {
+  function renderAvatarVisual(container, authUserData) {
     if (!container) {
       return;
     }
-    const avatarUrl = String(profile?.avatarUrl || '').trim();
-    const initials = getAvatarInitials(profile);
+    const avatarUrl = String(authUserData?.photo || '').trim();
+    const initials = getAvatarInitials(authUserData);
     container.innerHTML = avatarUrl
       ? `<img src="${escapeHtml(avatarUrl)}" alt="Photo de profil" class="avatar-image" />`
       : `<span class="avatar-initials">${escapeHtml(initials)}</span>`;
   }
 
-  function renderAvatar(profile, onClick) {
+  function renderAvatar(authUserData, onClick) {
     const avatarButton = document.getElementById('userAvatarButton');
     if (!avatarButton) {
       return;
     }
-    renderAvatarVisual(avatarButton, profile);
-    avatarButton.title = profile.username || '';
+    renderAvatarVisual(avatarButton, authUserData);
+    avatarButton.title = authUserData?.name || authUserData?.email || '';
     avatarButton.hidden = false;
     avatarButton.onclick = onClick;
   }
@@ -747,12 +693,9 @@ import { firebaseAuth } from './firebase-core.js';
         <div class="bottom-sheet__content">
           <div class="bottom-sheet__avatar-wrap">
             <div class="bottom-sheet__avatar" id="avatarSheetPreview">??</div>
-            <button type="button" class="bottom-sheet__avatar-edit" id="avatarSheetEditButton" aria-label="Modifier la photo de profil">
-              <i class="fa-solid fa-pencil" aria-hidden="true"></i>
-            </button>
-            <input id="avatarFileInput" type="file" accept="image/*" hidden />
           </div>
-          <button type="button" class="bottom-sheet__action" id="avatarSheetRename">Modifier votre nom</button>
+          <p class="bottom-sheet__name" id="avatarSheetName">Utilisateur</p>
+          <button type="button" class="bottom-sheet__action" id="avatarSheetLogout">Déconnexion</button>
           <p id="avatarSheetMessage" class="form-error" aria-live="polite"></p>
         </div>
       </div>
@@ -762,23 +705,22 @@ import { firebaseAuth } from './firebase-core.js';
     return overlay;
   }
 
-  function openAvatarBottomSheet(profile, handlers) {
+  function openAvatarBottomSheet(authUserData) {
     const overlay = ensureAvatarBottomSheet();
     const sheet = overlay.querySelector('#avatarBottomSheet');
     const avatarPreview = overlay.querySelector('#avatarSheetPreview');
-    const renameButton = overlay.querySelector('#avatarSheetRename');
-    const editButton = overlay.querySelector('#avatarSheetEditButton');
-    const fileInput = overlay.querySelector('#avatarFileInput');
+    const nameLabel = overlay.querySelector('#avatarSheetName');
+    const logoutButton = overlay.querySelector('#avatarSheetLogout');
     const message = overlay.querySelector('#avatarSheetMessage');
 
-    if (!sheet || !avatarPreview || !renameButton || !editButton || !fileInput || !message) {
+    if (!sheet || !avatarPreview || !nameLabel || !logoutButton || !message) {
       return;
     }
 
-    renderAvatarVisual(avatarPreview, profile);
-    avatarPreview.title = profile?.username || '';
+    renderAvatarVisual(avatarPreview, authUserData);
+    nameLabel.textContent = String(authUserData?.name || authUserData?.email || 'Utilisateur');
+    avatarPreview.title = authUserData?.name || authUserData?.email || '';
     message.textContent = '';
-    fileInput.value = '';
 
     const closeTransitionDurationMs = 320;
     const clearCloseListeners = () => {
@@ -811,37 +753,16 @@ import { firebaseAuth } from './firebase-core.js';
       overlay.__closeTimerId = window.setTimeout(finalizeClose, closeTransitionDurationMs);
     };
 
-    renameButton.onclick = () => {
-      closeSheet();
-      handlers.onRenameClick();
-    };
-
-    editButton.onclick = () => {
-      message.textContent = '';
-      fileInput.click();
-    };
-
-    fileInput.onchange = async () => {
-      const [selectedFile] = fileInput.files || [];
-      if (!selectedFile) {
+    logoutButton.onclick = async () => {
+      const shouldLogout = window.confirm('Voulez-vous vraiment vous déconnecter ?');
+      if (!shouldLogout) {
         return;
       }
-      if (!selectedFile.type.startsWith('image/')) {
-        message.textContent = 'Veuillez sélectionner une image valide.';
-        return;
-      }
-      editButton.disabled = true;
-      renameButton.disabled = true;
-      message.textContent = 'Téléversement en cours...';
       try {
-        await handlers.onUploadAvatar(selectedFile);
-        message.textContent = 'Photo de profil mise à jour.';
+        await signOut(firebaseAuth);
         closeSheet();
       } catch (_error) {
-        message.textContent = "Échec de l'upload. Veuillez réessayer.";
-      } finally {
-        editButton.disabled = false;
-        renameButton.disabled = false;
+        message.textContent = "Impossible de se déconnecter pour l'instant.";
       }
     };
 
@@ -873,99 +794,7 @@ import { firebaseAuth } from './firebase-core.js';
     });
   }
 
-  async function uploadAvatarToCloudinary(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) {
-      throw new Error('upload_failed');
-    }
-    const data = await response.json();
-    if (!data?.secure_url) {
-      throw new Error('missing_secure_url');
-    }
-    return String(data.secure_url);
-  }
-
-  function ensureRenameDialog() {
-    let dialog = document.getElementById('renameDialog');
-    if (dialog) {
-      return dialog;
-    }
-    dialog = document.createElement('dialog');
-    dialog.id = 'renameDialog';
-    dialog.className = 'modal-card';
-    dialog.innerHTML = `
-      <form class="modal-content" id="renameForm">
-        <div class="modal-header"><h2>Modifier le nom</h2></div>
-        <label class="input-group">
-          <span>Nouveau nom</span>
-          <input id="renameInput" type="text" maxlength="30" />
-        </label>
-        <p id="renameError" class="form-error" aria-live="polite"></p>
-        <div class="modal-actions">
-          <button id="renameSaveButton" type="submit" class="btn btn-success">Enregistrer</button>
-        </div>
-      </form>
-    `;
-    document.body.appendChild(dialog);
-    return dialog;
-  }
-
-  function openRenameDialog(profile, onSaved) {
-    const dialog = ensureRenameDialog();
-    const form = dialog.querySelector('#renameForm');
-    const input = dialog.querySelector('#renameInput');
-    const error = dialog.querySelector('#renameError');
-    const saveButton = dialog.querySelector('#renameSaveButton');
-
-    const refreshState = async () => {
-      const latest = await StorageService.getCurrentUserProfile();
-      input.value = latest.username || '';
-      error.textContent = '';
-      const nextAllowedAt = StorageService.computeNextNameChangeDate(latest.lastNameChange);
-      const locked = nextAllowedAt && new Date() < nextAllowedAt;
-      input.disabled = Boolean(locked);
-      saveButton.disabled = Boolean(locked);
-      if (locked) {
-        error.textContent = `Limite de changement dépassé,Réessayer après ${formatRetryDate(nextAllowedAt)}`;
-      }
-      return latest;
-    };
-
-    let submitHandler;
-    submitHandler = async (event) => {
-      event.preventDefault();
-      const result = await StorageService.changeUsername(input.value);
-      if (!result.ok) {
-        if (result.reason === 'duplicate_username') {
-          error.textContent = 'Ce nom existe déjà';
-          return;
-        }
-        if (result.reason === 'cooldown') {
-          error.textContent = `Limite de changement  atteint ,réessayer après ${formatRetryDate(result.nextAllowedAt)}`;
-          input.disabled = true;
-          saveButton.disabled = true;
-          return;
-        }
-        error.textContent = 'Nom invalide , Veuillez réessayer.';
-        return;
-      }
-      form.removeEventListener('submit', submitHandler);
-      dialog.close();
-      onSaved();
-    };
-
-    refreshState();
-    form.addEventListener('submit', submitHandler);
-    dialog.addEventListener('close', () => form.removeEventListener('submit', submitHandler), { once: true });
-    dialog.showModal();
-  }
-  function initHomePage(userProfile, permissions, authState) {
+  function initHomePage(permissions, authState) {
     const searchInput = requireElement('searchInput');
     const siteList = requireElement('siteList');
     const siteCount = requireElement('siteCount');
@@ -1193,33 +1022,17 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
-    const refreshAvatar = async () => {
-      const latest = await StorageService.getCurrentUserProfile();
+    const syncHomeAuthControls = (authUser) => {
+      const authUserData = getAuthUserData(authUser);
       renderHomeAccessControls({
-        isAuthenticated: Boolean(authState?.isAuthenticated),
-        profile: latest,
-        onAvatarClick: () => openAvatarBottomSheet(latest, {
-          onRenameClick: () => openRenameDialog(latest, refreshAvatar),
-          onUploadAvatar: async (file) => {
-            const avatarUrl = await uploadAvatarToCloudinary(file);
-            await StorageService.updateAvatarUrl(avatarUrl);
-            await refreshAvatar();
-          },
-        }),
+        authUser: authUserData,
+        onAvatarClick: () => openAvatarBottomSheet(authUserData),
       });
     };
 
-    renderHomeAccessControls({
-      isAuthenticated: Boolean(authState?.isAuthenticated),
-      profile: userProfile,
-      onAvatarClick: () => openAvatarBottomSheet(userProfile, {
-        onRenameClick: () => openRenameDialog(userProfile, refreshAvatar),
-        onUploadAvatar: async (file) => {
-          const avatarUrl = await uploadAvatarToCloudinary(file);
-          await StorageService.updateAvatarUrl(avatarUrl);
-          await refreshAvatar();
-        },
-      }),
+    syncHomeAuthControls(authState?.authUser || null);
+    onAuthStateChanged(firebaseAuth, (user) => {
+      syncHomeAuthControls(user || null);
     });
 
     const openCreateSite = requireElement('openCreateSite');
@@ -2295,8 +2108,6 @@ import { firebaseAuth } from './firebase-core.js';
     if (isAuthenticated) {
       await StorageService.ensureCurrentUser();
       profile = await StorageService.getCurrentUserProfile();
-      profile = await promptForMissingUsername(profile);
-      profile = await StorageService.getCurrentUserProfile();
     }
 
     if (isAuthenticated && String(profile?.email || '').trim().toLowerCase() === 'andrainaaina@gmail.com') {
@@ -2313,7 +2124,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     const page = document.body.dataset.page;
     if (page === 'home') {
-      initHomePage(profile, permissions, { isAuthenticated, authUser });
+      initHomePage(permissions, { isAuthenticated, authUser });
     }
     if (page === 'site-detail') {
       initSiteDetailPage(permissions);
