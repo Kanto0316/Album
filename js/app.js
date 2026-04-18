@@ -2256,5 +2256,7 @@
     }
   }
 
-  bootstrap();
+  bootstrap().finally(() => {
+    UiService.markAppReady();
+  });
 })();

@@ -1489,3 +1489,37 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
 .data-table--hide-action td:last-child {
   display: none;
 }
+
+.global-loader-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 9999;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.global-loader-overlay--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.global-loader-spinner {
+  width: 52px;
+  height: 52px;
+  border: 4px solid rgba(39, 141, 218, 0.2);
+  border-top-color: var(--primary-dark);
+  border-radius: 50%;
+  animation: global-spinner-rotate 0.9s linear infinite;
+}
+
+@keyframes global-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
