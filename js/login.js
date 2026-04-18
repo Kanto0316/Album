@@ -265,7 +265,9 @@ googleLoginButton.addEventListener('click', async () => {
       return;
     }
   } catch (error) {
-    globalError.textContent = mapGoogleAuthError(error);
+    console.log('🔥 Firebase Error Code :', error?.code);
+    console.log('🔥 Firebase Error Message :', error?.message);
+    alert('Erreur : ' + error?.code);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
     return;
