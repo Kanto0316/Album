@@ -23,6 +23,7 @@ const emailLoginButton = document.getElementById('emailLoginButton');
 const googleLoginButton = document.getElementById('googleLoginButton');
 
 let lastEmailCheckId = 0;
+let isAuthInProgress = false;
 
 function redirectToHome() {
   window.location.href = 'index.html';
@@ -50,32 +51,41 @@ getRedirectResult(firebaseAuth).catch(() => {
 function setLoading(isLoading, sourceButton = emailLoginButton) {
   emailLoginButton.disabled = isLoading;
   googleLoginButton.disabled = isLoading;
+  emailLoginButton.setAttribute('aria-busy', String(isLoading));
+  googleLoginButton.setAttribute('aria-busy', String(isLoading));
   sourceButton?.classList.toggle('is-loading', isLoading);
 }
 
-function shouldUseRedirect() {
+function isMobileDevice() {
+  if (navigator.userAgentData?.mobile) {
+    return true;
+  }
+
   const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+  const smallViewport = window.matchMedia('(max-width: 900px)').matches;
   const userAgent = navigator.userAgent.toLowerCase();
   const isMobileUserAgent = /android|iphone|ipad|ipod|mobile/.test(userAgent);
-  return touchDevice || isMobileUserAgent;
+
+  return isMobileUserAgent || (touchDevice && smallViewport);
 }
 
 async function startGoogleSignIn() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
-  if (shouldUseRedirect()) {
+  if (isMobileDevice()) {
     await signInWithRedirect(firebaseAuth, provider);
-    return;
+    return 'redirect';
   }
 
   try {
     await signInWithPopup(firebaseAuth, provider);
+    return 'popup';
   } catch (error) {
     const code = String(error?.code || '');
     if (code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
       await signInWithRedirect(firebaseAuth, provider);
-      return;
+      return 'redirect';
     }
     throw error;
   }
@@ -181,6 +191,9 @@ togglePasswordButton.addEventListener('click', () => {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (isAuthInProgress) {
+    return;
+  }
   globalError.textContent = '';
 
   const isEmailValid = await validateEmailRealtime();
@@ -208,13 +221,25 @@ form.addEventListener('submit', async (event) => {
 });
 
 googleLoginButton.addEventListener('click', async () => {
+  if (isAuthInProgress) {
+    return;
+  }
+
+  isAuthInProgress = true;
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
-    await startGoogleSignIn();
+    const flow = await startGoogleSignIn();
+    if (flow === 'redirect') {
+      return;
+    }
   } catch (_error) {
     globalError.textContent = 'Connexion Google indisponible.';
-  } finally {
+    isAuthInProgress = false;
     setLoading(false, googleLoginButton);
+    return;
   }
+
+  isAuthInProgress = false;
+  setLoading(false, googleLoginButton);
 });
