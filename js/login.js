@@ -80,12 +80,18 @@ function mapGoogleAuthError(error) {
   return 'Connexion Google impossible pour le moment. Réessayez.';
 }
 
-getRedirectResult(firebaseAuth).catch((error) => {
-  logAuthError(error);
-  globalError.textContent = mapGoogleAuthError(error);
-  isAuthInProgress = false;
-  setLoading(false, googleLoginButton);
-});
+getRedirectResult(firebaseAuth)
+  .then((result) => {
+    if (result?.user) {
+      redirectToHome();
+    }
+  })
+  .catch((error) => {
+    logAuthError(error);
+    globalError.textContent = mapGoogleAuthError(error);
+    isAuthInProgress = false;
+    setLoading(false, googleLoginButton);
+  });
 
 function setLoading(isLoading, sourceButton = emailLoginButton) {
   emailLoginButton.disabled = isLoading;
