@@ -44,8 +44,39 @@ onAuthStateChanged(firebaseAuth, (user) => {
   redirectToHome();
 });
 
-getRedirectResult(firebaseAuth).catch(() => {
-  globalError.textContent = 'Connexion Google indisponible.';
+function mapGoogleAuthError(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '');
+
+  console.log('CODE :', code || 'unknown');
+  console.log('MESSAGE :', message || 'Aucun message Firebase');
+
+  if (code.includes('auth/popup-blocked')) {
+    return 'La popup Google a été bloquée par le navigateur. Autorisez les popups puis réessayez.';
+  }
+  if (code.includes('auth/unauthorized-domain')) {
+    return `Domaine non autorisé dans Firebase : "${window.location.hostname}". Ajoutez ce domaine dans Authentication > Settings > Authorized domains.`;
+  }
+  if (code.includes('auth/operation-not-allowed')) {
+    return 'Google Auth n’est pas activé dans Firebase (Authentication > Sign-in method > Google).';
+  }
+  if (code.includes('auth/popup-closed-by-user')) {
+    return 'Connexion Google annulée : la popup a été fermée avant la validation.';
+  }
+  if (code.includes('auth/cancelled-popup-request')) {
+    return 'Une autre tentative de connexion popup est déjà en cours.';
+  }
+  if (code.includes('auth/network-request-failed')) {
+    return 'Connexion réseau impossible. Vérifiez Internet puis réessayez.';
+  }
+
+  return 'Connexion Google impossible pour le moment. Réessayez.';
+}
+
+getRedirectResult(firebaseAuth).catch((error) => {
+  globalError.textContent = mapGoogleAuthError(error);
+  isAuthInProgress = false;
+  setLoading(false, googleLoginButton);
 });
 
 function setLoading(isLoading, sourceButton = emailLoginButton) {
@@ -233,8 +264,8 @@ googleLoginButton.addEventListener('click', async () => {
     if (flow === 'redirect') {
       return;
     }
-  } catch (_error) {
-    globalError.textContent = 'Connexion Google indisponible.';
+  } catch (error) {
+    globalError.textContent = mapGoogleAuthError(error);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
     return;
