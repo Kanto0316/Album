@@ -1137,6 +1137,32 @@ body[data-page="users-management"] .table-wrapper--users .data-table td:nth-chil
 
 body[data-page="users-management"] .table-wrapper--users .data-table td:last-child {
   white-space: nowrap;
+  text-align: center;
+}
+
+.table-delete-icon-button {
+  border: 0;
+  background: transparent;
+  padding: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.table-delete-icon-button__icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+
+.table-delete-icon-button:hover,
+.table-delete-icon-button:focus-visible {
+  opacity: 0.8;
+  background-color: rgba(229, 72, 77, 0.12);
 }
 
 body[data-page="users-management"] .maintenance-access-cell {
