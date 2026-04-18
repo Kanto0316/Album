@@ -1658,6 +1658,7 @@
         return;
       }
       codeSuggestions.hidden = true;
+      codeSuggestions.style.display = 'none';
       codeSuggestions.innerHTML = '';
     }
 
@@ -1675,6 +1676,12 @@
         return;
       }
 
+      const normalizedQuery = String(query || '').trim();
+      if (!normalizedQuery) {
+        hideCodeSuggestions();
+        return;
+      }
+
       visibleCodeSuggestions = getCodeMatches(query);
       activeSuggestionIndex = -1;
 
@@ -1684,6 +1691,7 @@
       }
 
       codeSuggestions.hidden = false;
+      codeSuggestions.style.display = 'block';
       codeSuggestions.innerHTML = visibleCodeSuggestions
         .map(
           (entry, index) => `
@@ -1705,7 +1713,7 @@
     async function refreshCodeSuggestionSource() {
       const details = await StorageService.getAllDetails();
       codeSuggestionSource = buildCodeSuggestionSource(details);
-      if (document.activeElement === codeInput) {
+      if (document.activeElement === codeInput && String(codeInput.value || '').trim()) {
         renderCodeSuggestions(codeInput.value);
       }
     }
@@ -1887,6 +1895,10 @@
 
     if (codeInput && codeSuggestions) {
       codeInput.addEventListener('focus', () => {
+        if (!String(codeInput.value || '').trim()) {
+          hideCodeSuggestions();
+          return;
+        }
         renderCodeSuggestions(codeInput.value);
       });
 
