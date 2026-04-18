@@ -33,7 +33,7 @@ function logAuthError(error) {
 
 
 function redirectToHome() {
-  window.location.href = 'index.html';
+  window.location.replace('index.html');
 }
 
 onAuthStateChanged(firebaseAuth, (user) => {
@@ -41,6 +41,7 @@ onAuthStateChanged(firebaseAuth, (user) => {
     return;
   }
 
+  // utilisateur déjà connecté
   const authPayload = {
     uid: user.uid || '',
     displayName: user.displayName || '',
