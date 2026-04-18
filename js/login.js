@@ -25,6 +25,13 @@ const googleLoginButton = document.getElementById('googleLoginButton');
 let lastEmailCheckId = 0;
 let isAuthInProgress = false;
 
+function logAuthError(error) {
+  console.log('CODE:', error?.code || 'unknown');
+  console.log('MESSAGE:', error?.message || 'Aucun message Firebase');
+  alert(error?.code || 'auth/unknown');
+}
+
+
 function redirectToHome() {
   window.location.href = 'index.html';
 }
@@ -48,8 +55,8 @@ function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
   const message = String(error?.message || '');
 
-  console.log('CODE :', code || 'unknown');
-  console.log('MESSAGE :', message || 'Aucun message Firebase');
+  console.log('CODE:', code || 'unknown');
+  console.log('MESSAGE:', message || 'Aucun message Firebase');
 
   if (code.includes('auth/popup-blocked')) {
     return 'La popup Google a été bloquée par le navigateur. Autorisez les popups puis réessayez.';
@@ -74,6 +81,7 @@ function mapGoogleAuthError(error) {
 }
 
 getRedirectResult(firebaseAuth).catch((error) => {
+  logAuthError(error);
   globalError.textContent = mapGoogleAuthError(error);
   isAuthInProgress = false;
   setLoading(false, googleLoginButton);
@@ -113,6 +121,7 @@ async function startGoogleSignIn() {
     await signInWithPopup(firebaseAuth, provider);
     return 'popup';
   } catch (error) {
+    logAuthError(error);
     const code = String(error?.code || '');
     if (code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
       await signInWithRedirect(firebaseAuth, provider);
@@ -181,7 +190,8 @@ async function validateEmailRealtime() {
       emailError.textContent = 'Email inexistant.';
       return false;
     }
-  } catch (_error) {
+  } catch (error) {
+    logAuthError(error);
     emailError.textContent = 'Vérification email indisponible.';
     return false;
   }
@@ -238,6 +248,7 @@ form.addEventListener('submit', async (event) => {
     await signInWithEmailAndPassword(firebaseAuth, emailInput.value.trim(), passwordInput.value);
     saveCredentials(emailInput.value.trim(), passwordInput.value);
   } catch (error) {
+    logAuthError(error);
     const code = String(error?.code || '');
     if (code.includes('wrong-password') || code.includes('invalid-credential')) {
       passwordError.textContent = 'Mot de passe incorrect.';
@@ -265,9 +276,8 @@ googleLoginButton.addEventListener('click', async () => {
       return;
     }
   } catch (error) {
-    console.log('🔥 Firebase Error Code :', error?.code);
-    console.log('🔥 Firebase Error Message :', error?.message);
-    alert('Erreur : ' + error?.code);
+    logAuthError(error);
+    globalError.textContent = mapGoogleAuthError(error);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
     return;

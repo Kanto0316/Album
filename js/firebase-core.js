@@ -1,9 +1,10 @@
 import { getApp, getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getAnalytics, isSupported } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyD6krHqIlaD7Jo-ERhNxEFuuenwjwHrho',
+  apiKey: 'AIzaSyD6krHqIlaD7Jo-ERhNxEFuuenwjwHrhro',
   authDomain: 'base-737bf.firebaseapp.com',
   projectId: 'base-737bf',
   storageBucket: 'base-737bf.firebasestorage.app',
@@ -15,5 +16,6 @@ const FIREBASE_CONFIG = {
 const firebaseApp = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
 const firebaseAuth = getAuth(firebaseApp);
 const firebaseDb = getFirestore(firebaseApp);
+const firebaseAnalyticsPromise = isSupported().then((supported) => (supported ? getAnalytics(firebaseApp) : null)).catch(() => null);
 
-export { firebaseApp, firebaseAuth, firebaseDb };
+export { firebaseApp, firebaseAuth, firebaseDb, firebaseAnalyticsPromise };
