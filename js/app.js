@@ -1,3 +1,6 @@
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { firebaseAuth } from './firebase-core.js';
+
 (function () {
   const { StorageService, UiService } = window;
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dskw13nem/image/upload';
@@ -257,6 +260,37 @@
         UiService.navigate(button.dataset.back);
       });
     });
+  }
+
+  function waitForAuthState() {
+    return new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+        unsubscribe();
+        resolve(user || null);
+      }, () => resolve(null));
+    });
+  }
+
+  function renderHomeAccessControls({ isAuthenticated, profile, onAvatarClick }) {
+    const avatarButton = document.getElementById('userAvatarButton');
+    const loginButton = document.getElementById('openLoginButton');
+
+    if (isAuthenticated) {
+      if (loginButton) {
+        loginButton.hidden = true;
+      }
+      renderAvatar(profile, onAvatarClick);
+      return;
+    }
+
+    if (avatarButton) {
+      avatarButton.hidden = true;
+      avatarButton.onclick = null;
+    }
+    if (loginButton) {
+      loginButton.hidden = false;
+      loginButton.onclick = () => UiService.navigate('login.html');
+    }
   }
 
   function downloadExcelFile(fileName, title, workbook) {
@@ -931,7 +965,7 @@
     dialog.addEventListener('close', () => form.removeEventListener('submit', submitHandler), { once: true });
     dialog.showModal();
   }
-  function initHomePage(userProfile, permissions) {
+  function initHomePage(userProfile, permissions, authState) {
     const searchInput = requireElement('searchInput');
     const siteList = requireElement('siteList');
     const siteCount = requireElement('siteCount');
@@ -1161,24 +1195,32 @@
 
     const refreshAvatar = async () => {
       const latest = await StorageService.getCurrentUserProfile();
-      renderAvatar(latest, () => openAvatarBottomSheet(latest, {
-        onRenameClick: () => openRenameDialog(latest, refreshAvatar),
+      renderHomeAccessControls({
+        isAuthenticated: Boolean(authState?.isAuthenticated),
+        profile: latest,
+        onAvatarClick: () => openAvatarBottomSheet(latest, {
+          onRenameClick: () => openRenameDialog(latest, refreshAvatar),
+          onUploadAvatar: async (file) => {
+            const avatarUrl = await uploadAvatarToCloudinary(file);
+            await StorageService.updateAvatarUrl(avatarUrl);
+            await refreshAvatar();
+          },
+        }),
+      });
+    };
+
+    renderHomeAccessControls({
+      isAuthenticated: Boolean(authState?.isAuthenticated),
+      profile: userProfile,
+      onAvatarClick: () => openAvatarBottomSheet(userProfile, {
+        onRenameClick: () => openRenameDialog(userProfile, refreshAvatar),
         onUploadAvatar: async (file) => {
           const avatarUrl = await uploadAvatarToCloudinary(file);
           await StorageService.updateAvatarUrl(avatarUrl);
           await refreshAvatar();
         },
-      }));
-    };
-    renderAvatar(userProfile, () => openAvatarBottomSheet(userProfile, {
-      onRenameClick: () => openRenameDialog(userProfile, refreshAvatar),
-      onUploadAvatar: async (file) => {
-        const avatarUrl = await uploadAvatarToCloudinary(file);
-        await StorageService.updateAvatarUrl(avatarUrl);
-        await refreshAvatar();
-      },
-    }));
-
+      }),
+    });
 
     const openCreateSite = requireElement('openCreateSite');
     if (!permissions.canCreate && openCreateSite) {
@@ -2243,20 +2285,35 @@
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
+
+    const authUser = await waitForAuthState();
     await StorageService.init();
 
-    await StorageService.ensureCurrentUser();
+    const isAuthenticated = Boolean(authUser);
     let profile = await StorageService.getCurrentUserProfile();
-    profile = await promptForMissingUsername(profile);
-    profile = await StorageService.getCurrentUserProfile();
-    const permissions = buildPermissions(profile);
-    profile = await initApprovalGate(profile, permissions);
+
+    if (isAuthenticated) {
+      await StorageService.ensureCurrentUser();
+      profile = await StorageService.getCurrentUserProfile();
+      profile = await promptForMissingUsername(profile);
+      profile = await StorageService.getCurrentUserProfile();
+    }
+
+    if (isAuthenticated && String(profile?.email || '').trim().toLowerCase() === 'andrainaaina@gmail.com') {
+      profile.role = 'admin';
+    }
+
+    const permissions = buildPermissions(isAuthenticated ? profile : { role: 'lecture' });
+
+    if (isAuthenticated) {
+      profile = await initApprovalGate(profile, permissions);
+    }
 
     initMaintenanceGate(permissions);
 
     const page = document.body.dataset.page;
     if (page === 'home') {
-      initHomePage(profile, permissions);
+      initHomePage(profile, permissions, { isAuthenticated, authUser });
     }
     if (page === 'site-detail') {
       initSiteDetailPage(permissions);
@@ -2271,6 +2328,7 @@
       await initHistoryPage();
     }
   }
+
 
   bootstrap().finally(() => {
     UiService.markAppReady();

@@ -1,4 +1,3 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
   addDoc,
   collection,
@@ -6,7 +5,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  getFirestore,
   onSnapshot,
   orderBy,
   query,
@@ -15,16 +13,7 @@ import {
   Timestamp,
   updateDoc,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-
-const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyD6krHqIlaD7Jo-ERhNxEFuuenwjwHrho',
-  authDomain: 'base-737bf.firebaseapp.com',
-  projectId: 'base-737bf',
-  storageBucket: 'base-737bf.firebasestorage.app',
-  messagingSenderId: '560283994192',
-  appId: '1:560283994192:web:ede7aa7a3714c439542955',
-  measurementId: 'G-LMQC9RVF2E',
-};
+import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -33,6 +22,7 @@ const state = {
   initialized: false,
   db: null,
   userId: null,
+  authUser: null,
   sites: [],
   itemsBySite: new Map(),
   detailsByItem: new Map(),
@@ -49,7 +39,7 @@ const state = {
 
 function normalizeRole(value) {
   const role = String(value || '').toLowerCase();
-  if (role === 'lecture' || role === 'ecriture' || role === 'full') {
+  if (role === 'lecture' || role === 'ecriture' || role === 'full' || role === 'admin') {
     return role;
   }
   return 'full';
@@ -110,15 +100,21 @@ function isValidUsername(username) {
   return true;
 }
 
-async function resolveUserId() {
-  const source = [navigator.userAgent || '', navigator.language || '', navigator.platform || ''].join('|');
-  const encoded = new TextEncoder().encode(source);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  const hash = Array.from(new Uint8Array(digest))
-    .slice(0, 16)
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-  return `user_${hash}`;
+function getCurrentAuthUser() {
+  const authUser = firebaseAuth.currentUser;
+  if (!authUser) {
+    return null;
+  }
+  return {
+    uid: authUser.uid,
+    email: authUser.email || '',
+    displayName: authUser.displayName || '',
+    photoURL: authUser.photoURL || '',
+  };
+}
+
+function isAdminEmail(email) {
+  return String(email || '').trim().toLowerCase() === 'andrainaaina@gmail.com';
 }
 
 function usersCollection() {
@@ -126,6 +122,9 @@ function usersCollection() {
 }
 
 function userDocRef(userId = state.userId) {
+  if (!userId) {
+    return null;
+  }
   return doc(state.db, 'users', userId);
 }
 
@@ -146,6 +145,9 @@ async function isUsernameDuplicate(username, excludedUserId) {
 }
 
 async function ensureCurrentUser() {
+  if (!state.userId) {
+    return null;
+  }
   const ref = userDocRef();
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -153,10 +155,11 @@ async function ensureCurrentUser() {
       ref,
       {
         username: '',
+        email: state.authUser?.email || '',
         name: '',
         avatarUrl: '',
         avatar: '',
-        role: 'full',
+        role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
         status: 'pending',
         maintenanceAccess: false,
         createdAt: serverTimestamp(),
@@ -169,7 +172,7 @@ async function ensureCurrentUser() {
       id: state.userId,
       username: '',
       avatarUrl: '',
-      role: 'full',
+      role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
       status: 'pending',
       maintenanceAccess: false,
       lastNameChange: null,
@@ -179,6 +182,7 @@ async function ensureCurrentUser() {
 
   const data = snap.data() || {};
   return {
+    email: String(data.email || state.authUser?.email || ''),
     id: snap.id,
     username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
@@ -191,12 +195,28 @@ async function ensureCurrentUser() {
 }
 
 async function getCurrentUserProfile() {
-  const snap = await getDoc(userDocRef());
+  if (!state.userId) {
+    return {
+      id: null,
+      username: '',
+      email: '',
+      role: 'lecture',
+      status: 'approved',
+      maintenanceAccess: false,
+      lastNameChange: null,
+      avatarUrl: '',
+      createdAt: null,
+      guest: true,
+    };
+  }
+  const ref = userDocRef();
+  const snap = await getDoc(ref);
   if (!snap.exists()) {
     return ensureCurrentUser();
   }
   const data = snap.data() || {};
   return {
+    email: String(data.email || state.authUser?.email || ''),
     id: snap.id,
     username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
@@ -371,7 +391,7 @@ function subscribeCurrentUserProfile(onChange, onError) {
           onChange({
             id: state.userId,
             username: '',
-            role: 'full',
+            role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
             status: 'pending',
             maintenanceAccess: false,
             lastNameChange: null,
@@ -681,9 +701,9 @@ async function init() {
   }
 
   state.initialized = true;
-  state.userId = await resolveUserId();
-  const app = initializeApp(FIREBASE_CONFIG);
-  state.db = getFirestore(app);
+  state.authUser = getCurrentAuthUser();
+  state.userId = state.authUser?.uid || null;
+  state.db = firebaseDb;
 
   const offlineState = parseOfflineState();
   if (offlineState?.snapshot) {
@@ -1219,7 +1239,7 @@ async function appendHistoryEntry(actionText) {
   }
   try {
     const profile = await getCurrentUserProfile();
-    const username = normalizeUsername(profile?.username) || 'Utilisateur inconnu';
+    const username = normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu';
     await addDoc(historyCollection(), {
       userId: profile?.id || state.userId || null,
       userName: username,
@@ -1466,4 +1486,5 @@ window.StorageService = {
   subscribeCurrentUserProfile,
   computeNextNameChangeDate,
   listHistoriques,
+  getAuthUser: () => clone(state.authUser),
 };
