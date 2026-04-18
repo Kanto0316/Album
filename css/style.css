@@ -115,12 +115,6 @@ button {
   flex-shrink: 0;
 }
 
-.icon-cloche {
-  width: 2rem;
-  height: 2rem;
-  object-fit: contain;
-}
-
 .header-menu__trigger {
   display: inline-flex;
   align-items: center;
