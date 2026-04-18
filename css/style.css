@@ -1590,11 +1590,19 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.7);
-  z-index: 9999;
+  background: rgba(255, 255, 255, 0.6);
+  z-index: 10000;
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
   opacity: 1;
   visibility: visible;
   transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .global-loader-overlay {
+    background: rgba(255, 255, 255, 0.82);
+  }
 }
 
 .global-loader-content {
