@@ -74,13 +74,9 @@
     }
 
     if (filterValue === 'lastMonth') {
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
-      const previousMonthDate = new Date(currentYear, currentMonth - 1, 1);
-      return (
-        itemDate.getMonth() === previousMonthDate.getMonth()
-        && itemDate.getFullYear() === previousMonthDate.getFullYear()
-      );
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      return itemDay.getTime() < yesterday.getTime();
     }
 
     if (filterValue === 'lastYear') {
@@ -108,12 +104,8 @@
       return 'Hier';
     }
 
-    const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    if (
-      itemDate.getMonth() === previousMonthDate.getMonth()
-      && itemDate.getFullYear() === previousMonthDate.getFullYear()
-    ) {
-      return 'Le mois dernier';
+    if (itemDay.getTime() < yesterday.getTime()) {
+      return 'Il y a longtemps';
     }
 
     return null;
