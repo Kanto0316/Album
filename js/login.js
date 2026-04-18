@@ -1,9 +1,11 @@
 import {
   GoogleAuthProvider,
   fetchSignInMethodsForEmail,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
@@ -41,10 +43,42 @@ onAuthStateChanged(firebaseAuth, (user) => {
   redirectToHome();
 });
 
+getRedirectResult(firebaseAuth).catch(() => {
+  globalError.textContent = 'Connexion Google indisponible.';
+});
+
 function setLoading(isLoading, sourceButton = emailLoginButton) {
   emailLoginButton.disabled = isLoading;
   googleLoginButton.disabled = isLoading;
   sourceButton?.classList.toggle('is-loading', isLoading);
+}
+
+function shouldUseRedirect() {
+  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileUserAgent = /android|iphone|ipad|ipod|mobile/.test(userAgent);
+  return touchDevice || isMobileUserAgent;
+}
+
+async function startGoogleSignIn() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+
+  if (shouldUseRedirect()) {
+    await signInWithRedirect(firebaseAuth, provider);
+    return;
+  }
+
+  try {
+    await signInWithPopup(firebaseAuth, provider);
+  } catch (error) {
+    const code = String(error?.code || '');
+    if (code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
+      await signInWithRedirect(firebaseAuth, provider);
+      return;
+    }
+    throw error;
+  }
 }
 
 function encodeMemo(email, password) {
@@ -177,8 +211,7 @@ googleLoginButton.addEventListener('click', async () => {
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(firebaseAuth, provider);
+    await startGoogleSignIn();
   } catch (_error) {
     globalError.textContent = 'Connexion Google indisponible.';
   } finally {
