@@ -2,7 +2,77 @@
   const TOAST_VISIBLE_CLASS = "toast--visible";
   const DEFAULT_TOAST_DURATION = 3000;
   const DEFAULT_SNACKBAR_DURATION = 5000;
+  const GLOBAL_LOADER_ID = "globalPageLoader";
+  const GLOBAL_LOADER_HIDDEN_CLASS = "global-loader-overlay--hidden";
   let hideTimerId = null;
+  let globalLoader = null;
+  let hasWindowLoaded = document.readyState === "complete";
+  let isAppReady = false;
+
+  function ensureGlobalLoader() {
+    if (globalLoader) {
+      return globalLoader;
+    }
+
+    globalLoader = document.getElementById(GLOBAL_LOADER_ID);
+    if (globalLoader) {
+      return globalLoader;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.id = GLOBAL_LOADER_ID;
+    overlay.className = "global-loader-overlay";
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-live", "polite");
+    overlay.setAttribute("aria-label", "Chargement en cours");
+
+    const spinner = document.createElement("div");
+    spinner.className = "global-loader-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    overlay.appendChild(spinner);
+
+    document.body.appendChild(overlay);
+    globalLoader = overlay;
+    return globalLoader;
+  }
+
+  function showGlobalLoader() {
+    ensureGlobalLoader().classList.remove(GLOBAL_LOADER_HIDDEN_CLASS);
+  }
+
+  function hideGlobalLoader() {
+    ensureGlobalLoader().classList.add(GLOBAL_LOADER_HIDDEN_CLASS);
+  }
+
+  function waitForImagesReady() {
+    const pendingImages = Array.from(document.images).filter((image) => !image.complete);
+    if (pendingImages.length === 0) {
+      return Promise.resolve();
+    }
+
+    return Promise.all(
+      pendingImages.map(
+        (image) =>
+          new Promise((resolve) => {
+            image.addEventListener("load", resolve, { once: true });
+            image.addEventListener("error", resolve, { once: true });
+          }),
+      ),
+    ).then(() => undefined);
+  }
+
+  function maybeHideGlobalLoader() {
+    if (!hasWindowLoaded || !isAppReady) {
+      return;
+    }
+
+    waitForImagesReady().then(hideGlobalLoader);
+  }
+
+  function markAppReady() {
+    isAppReady = true;
+    maybeHideGlobalLoader();
+  }
 
   function formatDate(dateValue) {
     if (!dateValue) {
@@ -99,8 +169,20 @@
   }
 
   function navigate(url) {
-    window.location.href = url;
+    showGlobalLoader();
+    window.requestAnimationFrame(() => {
+      window.location.href = url;
+    });
   }
+
+  ensureGlobalLoader();
+  showGlobalLoader();
+
+  window.addEventListener("beforeunload", showGlobalLoader);
+  window.addEventListener("load", () => {
+    hasWindowLoaded = true;
+    maybeHideGlobalLoader();
+  });
 
   window.UiService = {
     formatDate,
@@ -110,5 +192,8 @@
     renderEmptyState,
     bindDialogCloser,
     navigate,
+    showGlobalLoader,
+    hideGlobalLoader,
+    markAppReady,
   };
 })();
