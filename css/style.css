@@ -13,6 +13,8 @@
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 12px;
+  --header-height: 5.75rem;
+  --header-side-width: 3rem;
 }
 
 * {
@@ -69,8 +71,9 @@ button {
 }
 
 .app-header {
-  min-height: 8vh;
-  padding: 1.5rem 1.25rem;
+  min-height: var(--header-height);
+  height: var(--header-height);
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,13 +88,18 @@ button {
 
 .app-header h1 {
   margin: 0;
-  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-size: clamp(1.2rem, 3.2vw, 1.8rem);
   text-align: center;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-header--detail {
-  justify-content: flex-start;
-  gap: 1rem;
+  justify-content: center;
+  position: relative;
+  padding-left: calc(1rem + var(--header-side-width));
+  padding-right: calc(1rem + var(--header-side-width));
 }
 
 .app-header--home {
@@ -173,6 +181,66 @@ button {
   align-items: center;
   justify-content: center;
   padding: 0;
+}
+
+.app-header--detail .back-button {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-shrink: 0;
+}
+
+.header-title {
+  width: min(100%, 46rem);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+.header-title h1 {
+  width: 100%;
+}
+
+.header-title--stacked h1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.header-title__line {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-title__line--primary {
+  font-weight: 700;
+}
+
+.header-title__line--secondary {
+  font-size: 0.85em;
+  opacity: 0.95;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  :root {
+    --header-height: 5.25rem;
+    --header-side-width: 2.75rem;
+  }
+
+  .app-header {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .app-header--detail .back-button {
+    left: 0.85rem;
+  }
 }
 
 .back-button .btn-retour {
