@@ -9,6 +9,40 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
+console.log('LOGIN PAGE LOADED');
+
+onAuthStateChanged(firebaseAuth, (user) => {
+  if (user) {
+    console.log('Utilisateur détecté après redirect');
+    const authPayload = {
+      uid: user.uid || '',
+      displayName: user.displayName || '',
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+    };
+    localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
+    window.location.replace('index.html');
+  }
+});
+
+getRedirectResult(firebaseAuth)
+  .then((result) => {
+    if (result && result.user) {
+      console.log('Redirect result OK');
+      const authPayload = {
+        uid: result.user.uid || '',
+        displayName: result.user.displayName || '',
+        email: result.user.email || '',
+        photoURL: result.user.photoURL || '',
+      };
+      localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
+      window.location.replace('index.html');
+    }
+  })
+  .catch((error) => {
+    console.log('Erreur redirect:', error);
+  });
+
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
 
 const form = document.getElementById('loginForm');
@@ -35,22 +69,6 @@ function logAuthError(error) {
 function redirectToHome() {
   window.location.replace('index.html');
 }
-
-onAuthStateChanged(firebaseAuth, (user) => {
-  if (!user) {
-    return;
-  }
-
-  // utilisateur déjà connecté
-  const authPayload = {
-    uid: user.uid || '',
-    displayName: user.displayName || '',
-    email: user.email || '',
-    photoURL: user.photoURL || '',
-  };
-  localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
-  redirectToHome();
-});
 
 function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
@@ -80,19 +98,6 @@ function mapGoogleAuthError(error) {
 
   return 'Connexion Google impossible pour le moment. Réessayez.';
 }
-
-getRedirectResult(firebaseAuth)
-  .then((result) => {
-    if (result?.user) {
-      redirectToHome();
-    }
-  })
-  .catch((error) => {
-    logAuthError(error);
-    globalError.textContent = mapGoogleAuthError(error);
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
-  });
 
 function setLoading(isLoading, sourceButton = emailLoginButton) {
   emailLoginButton.disabled = isLoading;
