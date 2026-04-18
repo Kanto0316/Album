@@ -1719,11 +1719,19 @@
     }
 
     function renderTitle() {
+      const itemTitle = requireElement('itemTitle');
       if (!currentSite || !currentItem) {
-        requireElement('itemTitle').textContent = 'Chargement...';
+        itemTitle.textContent = 'Chargement...';
         return;
       }
-      requireElement('itemTitle').textContent = `${currentSite.nom} · ${currentItem.numero}`;
+      itemTitle.innerHTML = '';
+      const primaryLine = document.createElement('span');
+      primaryLine.className = 'header-title__line header-title__line--primary';
+      primaryLine.textContent = currentSite.nom;
+      const secondaryLine = document.createElement('span');
+      secondaryLine.className = 'header-title__line header-title__line--secondary';
+      secondaryLine.textContent = currentItem.numero;
+      itemTitle.append(primaryLine, secondaryLine);
     }
 
     function getSearchQuery() {
