@@ -6,6 +6,65 @@
     <title>Gestion des utilisateurs - Suivi Matériel</title>
     <link rel="stylesheet" href="css/style.css" />
     <style>
+      body[data-page='users-management'] {
+        min-height: 100dvh;
+      }
+
+      body[data-page='users-management'] .app-shell.app-shell--wide {
+        min-height: 100dvh;
+        width: min(100%, 100vw);
+      }
+
+      body[data-page='users-management'] .page-content.page-content--wide {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: clamp(0.8rem, 1.3vw, 1.1rem);
+        min-height: 0;
+        flex: 1 1 auto;
+        padding-inline: clamp(0.75rem, 1.8vw, 1.4rem);
+        padding-bottom: clamp(0.75rem, 1.8vw, 1.25rem);
+      }
+
+      body[data-page='users-management'] .surface-card {
+        margin: 0;
+      }
+
+      body[data-page='users-management'] .table-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      body[data-page='users-management'] .table-card .section-title {
+        margin-bottom: 0.75rem;
+      }
+
+      body[data-page='users-management'] .table-wrapper--users {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        height: 100%;
+      }
+
+      body[data-page='users-management'] .maintenance-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      body[data-page='users-management'] .maintenance-card-header .section-title {
+        margin: 0;
+      }
+
+      body[data-page='users-management'] .maintenance-toggle-row {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
       .users-avatar {
         width: 36px;
         height: 36px;
@@ -39,6 +98,20 @@
       .maintenance-access-cell {
         text-align: center;
       }
+
+      @media (max-width: 920px) {
+        body[data-page='users-management'] .page-content.page-content--wide {
+          grid-template-rows: auto minmax(0, 1fr);
+        }
+
+        body[data-page='users-management'] .maintenance-card-header {
+          align-items: flex-start;
+        }
+
+        body[data-page='users-management'] .maintenance-toggle-row {
+          margin-left: 0;
+        }
+      }
     </style>
   </head>
   <body data-page="users-management">
@@ -49,14 +122,15 @@
       </header>
       <main class="page-content page-content--wide">
         <section class="surface-card details-card">
-          <h2 class="section-title">Maintenance de la page</h2>
-          <div class="maintenance-toggle-row">
-            <span class="maintenance-toggle-row__label">Page en cours de mainenance </span>
-            <label class="switch" for="maintenanceToggle">
-              <input id="maintenanceToggle" type="checkbox" role="switch" aria-label="Activer ou désactiver la maintenance" />
-              <span class="slider"></span>
-            </label>
-            <span id="maintenanceStatusText" class="maintenance-toggle-row__status">Désactivé</span>
+          <div class="maintenance-card-header">
+            <h2 class="section-title">Maintenance de la page</h2>
+            <div class="maintenance-toggle-row">
+              <label class="switch" for="maintenanceToggle">
+                <input id="maintenanceToggle" type="checkbox" role="switch" aria-label="Activer ou désactiver la maintenance" />
+                <span class="slider"></span>
+              </label>
+              <span id="maintenanceStatusText" class="maintenance-toggle-row__status">Désactivé</span>
+            </div>
           </div>
         </section>
         <section class="surface-card table-card">
