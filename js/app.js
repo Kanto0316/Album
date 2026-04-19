@@ -471,10 +471,11 @@ import { firebaseAuth } from './firebase-core.js';
     const username = String(profile?.username || '');
     const role = String(profile?.role || 'full').toLowerCase();
     const isAdmin = username === 'Admin' || role === 'admin';
+    const isLecture = role === 'lecture';
     if (isAdmin) {
-      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true };
+      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true, isLecture: false };
     }
-    return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false };
+    return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false, isLecture };
   }
 
   function ensureMaintenanceOverlay() {
@@ -1245,7 +1246,7 @@ import { firebaseAuth } from './firebase-core.js';
         const labels = buildCreatedModifiedLabels(item, userNamesById);
         htmlParts.push(`
             <article class="list-card">
-              ${permissions.canDelete ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
+              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
@@ -1576,11 +1577,11 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
-    if (!permissions.canDelete) {
+    if (!permissions.canDelete || permissions.isLecture) {
       document.querySelector('.data-table')?.classList.add('data-table--hide-action');
     }
 
-    if (!permissions.canCreate) {
+    if (!permissions.canCreate || permissions.isLecture) {
       detailFormSection.hidden = true;
     }
 
@@ -1674,7 +1675,7 @@ import { firebaseAuth } from './firebase-core.js';
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td>
-                ${permissions.canDelete
+                ${permissions.canDelete && !permissions.isLecture
       ? `<button class="table-delete-icon-button" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`
       : ""}
               </td>
