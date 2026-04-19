@@ -34,13 +34,9 @@ import { firebaseAuth } from './firebase-core.js';
     return username || 'Utilisateur';
   }
 
-  function buildCreatedModifiedLabels(item, userMap) {
+  function buildCreatedLabel(item, userMap) {
     const createdBy = resolveActorLabel(item?.createdBy, userMap, item?.createdByName);
-    const modifiedBy = resolveActorLabel(item?.modifiedBy || item?.updatedBy || item?.createdBy, userMap);
-    return {
-      createdLabel: `Créé par ${createdBy} le ${UiService.formatDate(item?.dateCreation)}`,
-      modifiedLabel: `Modifié par ${modifiedBy} le ${UiService.formatDate(item?.dateModification)}`,
-    };
+    return `Créé par ${createdBy} le ${UiService.formatDate(item?.dateCreation)}`;
   }
 
   function startOfDay(date) {
@@ -908,7 +904,7 @@ import { firebaseAuth } from './firebase-core.js';
 
       siteList.innerHTML = sites
         .map((site) => {
-          const labels = buildCreatedModifiedLabels(site, userNamesById);
+          const createdLabel = buildCreatedLabel(site, userNamesById);
           return `
             <article class="list-card">
               ${isAuthenticated && currentPermissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
@@ -916,8 +912,7 @@ import { firebaseAuth } from './firebase-core.js';
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
                   <span>${itemCountsBySite[site.id] || 0} OUT${(itemCountsBySite[site.id] || 0) > 1 ? 'S' : ''}</span>
-                  <span>${escapeHtml(labels.createdLabel)}</span>
-                  <small>${escapeHtml(labels.modifiedLabel)}</small>
+                  <span>${escapeHtml(createdLabel)}</span>
                 </div>
               </button>
             </article>
@@ -1233,7 +1228,7 @@ import { firebaseAuth } from './firebase-core.js';
           `);
         }
         previousLabel = currentLabel;
-        const labels = buildCreatedModifiedLabels(item, userNamesById);
+        const createdLabel = buildCreatedLabel(item, userNamesById);
         htmlParts.push(`
             <article class="list-card">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
@@ -1241,8 +1236,7 @@ import { firebaseAuth } from './firebase-core.js';
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
                   <span>${detailCountsByItem[item.id] || 0} Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span>
-                  <span>${escapeHtml(labels.createdLabel)}</span>
-                  <small>${escapeHtml(labels.modifiedLabel)}</small>
+                  <span>${escapeHtml(createdLabel)}</span>
                 </div>
               </button>
             </article>
