@@ -1483,11 +1483,14 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
   padding: 0;
 }
 
-.avatar-image {
+.avatar-image,
+.header-avatar-img,
+.sheet-avatar-img {
   width: 100%;
   height: 100%;
-  border-radius: inherit;
   object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .avatar-initials {
