@@ -690,29 +690,42 @@ import { firebaseAuth } from './firebase-core.js';
       overlay.hidden = true;
       overlay.classList.remove('is-open');
     };
-    const closeSheet = () => {
-      if (overlay.hidden) {
-        return;
-      }
-      overlay.classList.remove('is-open');
-      overlay.__closeTransitionHandler = (event) => {
-        if (event.target !== overlay && event.target !== sheet) {
+    const closeSheet = () =>
+      new Promise((resolve) => {
+        if (overlay.hidden) {
+          resolve();
           return;
         }
-        finalizeClose();
-      };
-      overlay.addEventListener('transitionend', overlay.__closeTransitionHandler);
-      overlay.__closeTimerId = window.setTimeout(finalizeClose, closeTransitionDurationMs);
-    };
+
+        let isResolved = false;
+        const finish = () => {
+          if (isResolved) {
+            return;
+          }
+          isResolved = true;
+          finalizeClose();
+          resolve();
+        };
+
+        overlay.classList.remove('is-open');
+        overlay.__closeTransitionHandler = (event) => {
+          if (event.target !== overlay && event.target !== sheet) {
+            return;
+          }
+          finish();
+        };
+        overlay.addEventListener('transitionend', overlay.__closeTransitionHandler);
+        overlay.__closeTimerId = window.setTimeout(finish, closeTransitionDurationMs);
+      });
 
     logoutButton.onclick = async () => {
+      await closeSheet();
       const shouldLogout = await askLogoutConfirmation();
       if (!shouldLogout) {
         return;
       }
       try {
         await signOut(firebaseAuth);
-        closeSheet();
       } catch (_error) {
         message.textContent = "Impossible de se déconnecter pour l'instant.";
       }
