@@ -1397,6 +1397,8 @@ import { firebaseAuth } from './firebase-core.js';
     const codeInput = requireElement('codeInput');
     const designationInput = requireElement('designationInput');
     const codeSuggestions = requireElement('codeSuggestions');
+    const isAuthenticatedUser = Boolean(firebaseAuth.currentUser);
+    const canEditDetails = permissions.canEdit && isAuthenticatedUser;
 
     setupZoomableDetailTable();
 
@@ -1659,10 +1661,10 @@ import { firebaseAuth } from './firebase-core.js';
         .join('');
 
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
-        if (!permissions.canEdit) {
+        if (!canEditDetails) {
           field.disabled = true;
         }
-        if (!permissions.canEdit) {
+        if (!canEditDetails) {
           return;
         }
 
