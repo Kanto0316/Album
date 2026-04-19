@@ -112,13 +112,13 @@
       function resolveRole(user) {
         const role = cleanString(user.role);
         const normalized = toLower(role);
-        if (normalized === 'admin' || normalized === 'adjoint') {
-          return 'Adjoint';
+        if (normalized === 'admin') {
+          return 'admin';
         }
-        if (normalized === 'ecriture') {
-          return 'Ecriture';
+        if (normalized === 'standard' || normalized === 'adjoint') {
+          return 'Standard';
         }
-        return 'Ecriture';
+        return 'Limité';
       }
 
       function resolveMaintenanceAuthorized(user) {
@@ -139,7 +139,7 @@
 
         const updates = {};
         if (!cleanString(user.role)) {
-          updates.role = 'Ecriture';
+          updates.role = 'Limité';
         }
 
         const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
@@ -169,7 +169,7 @@
             const role = resolveRole(user);
             const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
             const photoURL = cleanString(user.photoURL || user.avatarUrl || user.avatar);
-            const isPrimaryAdmin = toLower(role) === 'adjoint' && toLower(email) === 'andrainaaina@gmail.com';
+            const isPrimaryAdmin = toLower(email) === 'andrainaaina@gmail.com';
 
             const avatarMarkup = photoURL
               ? `<span class="users-avatar"><img src="${photoURL.replace(/"/g, '&quot;')}" alt="Avatar de ${displayName.replace(/"/g, '&quot;')}" /></span>`
@@ -181,10 +181,11 @@
                 <td>${displayName}</td>
                 <td class="users-email-cell">${email || '-'}</td>
                 <td>
-                  <select class="users-role-select" data-user-role="${user.id}" ${isPrimaryAdmin ? 'disabled' : ''}>
-                    <option value="Adjoint" ${role === 'Adjoint' ? 'selected' : ''}>Adjoint</option>
-                    <option value="Ecriture" ${role === 'Ecriture' ? 'selected' : ''}>Ecriture</option>
-                  </select>
+                  ${isPrimaryAdmin ? 'admin' : `
+                  <select class="users-role-select" data-user-role="${user.id}">
+                    <option value="Standard" ${role === 'Standard' ? 'selected' : ''}>Standard</option>
+                    <option value="Limité" ${role === 'Limité' ? 'selected' : ''}>Limité</option>
+                  </select>`}
                 </td>
                 <td class="maintenance-access-cell">
                   <input
@@ -208,7 +209,7 @@
         tableBody.querySelectorAll('[data-user-role]').forEach((select) => {
           select.addEventListener('change', async () => {
             const userId = select.getAttribute('data-user-role');
-            const selected = toLower(select.value) === 'adjoint' ? 'Adjoint' : 'Ecriture';
+            const selected = toLower(select.value) === 'standard' ? 'Standard' : 'Limité';
             try {
               await setDoc(
                 doc(firebaseDb, 'users', userId),
