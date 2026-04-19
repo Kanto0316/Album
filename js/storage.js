@@ -43,16 +43,27 @@ function normalizeRole(value) {
   if (role === 'admin') {
     return 'admin';
   }
-  if (role === 'adjoint' || role === 'full') {
-    return 'adjoint';
+  if (role === 'adjoint' || role === 'full' || role === 'standard') {
+    return 'standard';
   }
   if (role === 'lecture') {
     return 'lecture';
   }
-  if (role === 'ecriture' || role === 'écriture') {
-    return 'ecriture';
+  if (role === 'ecriture' || role === 'écriture' || role === 'limite' || role === 'limité') {
+    return 'limite';
   }
-  return 'ecriture';
+  return 'limite';
+}
+
+function serializeRole(role) {
+  const normalized = normalizeRole(role);
+  if (normalized === 'admin') {
+    return 'admin';
+  }
+  if (normalized === 'standard') {
+    return 'Standard';
+  }
+  return 'Limité';
 }
 
 function normalizeUsername(value) {
@@ -174,7 +185,7 @@ async function ensureCurrentUser() {
         photoURL: authPhotoUrl,
         avatarUrl: authPhotoUrl,
         avatar: authPhotoUrl,
-        role: 'Ecriture',
+        role: 'Limité',
         status: deleteField(),
         approved: deleteField(),
         pending: deleteField(),
@@ -191,7 +202,7 @@ async function ensureCurrentUser() {
       id: state.userId,
       username: authDisplayName,
       avatarUrl: authPhotoUrl,
-      role: 'ecriture',
+      role: 'limite',
       maintenanceAccess: false,
       maintenanceAuthorized: false,
       lastNameChange: null,
@@ -212,7 +223,7 @@ async function ensureCurrentUser() {
     updatedAt: serverTimestamp(),
   };
   if (!Object.prototype.hasOwnProperty.call(data, 'role') || !String(data.role || '').trim()) {
-    updates.role = 'Ecriture';
+    updates.role = 'Limité';
   }
   if (!Object.prototype.hasOwnProperty.call(data, 'maintenanceAuthorized')) {
     updates.maintenanceAuthorized = false;
@@ -255,7 +266,7 @@ async function getCurrentUserProfile() {
       id: null,
       username: '',
       email: '',
-      role: 'full',
+      role: 'limite',
       maintenanceAccess: false,
       lastNameChange: null,
       avatarUrl: '',
@@ -310,7 +321,7 @@ async function saveUsername(username) {
   };
 
   if (isFirstUsername) {
-    updates.role = 'full';
+    updates.role = 'Limité';
     updates.status = deleteField();
     updates.approved = deleteField();
     updates.pending = deleteField();
@@ -395,7 +406,7 @@ async function updateUserRole(userId, role) {
   await setDoc(
     userDocRef(userId),
     {
-      role: nextRole,
+      role: serializeRole(nextRole),
       updatedAt: serverTimestamp(),
     },
     { merge: true },
@@ -435,7 +446,7 @@ function subscribeCurrentUserProfile(onChange, onError) {
           onChange({
             id: state.userId,
             username: '',
-            role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
+            role: isAdminEmail(state.authUser?.email) ? 'admin' : 'limite',
             maintenanceAccess: false,
             lastNameChange: null,
             avatarUrl: '',

@@ -324,35 +324,6 @@ import { firebaseAuth } from './firebase-core.js';
     }
   }
 
-  const HOME_MODES = {
-    LECTURE: 'lecture',
-    FULL: 'full',
-    ADMIN: 'admin',
-  };
-
-  const ADMIN_EMAIL = 'andrainaaina@gmail.com';
-
-  function resolveHomeModeFromAuthUser(user) {
-    if (!user) {
-      return HOME_MODES.LECTURE;
-    }
-    const email = String(user?.email || '').trim().toLowerCase();
-    if (email === ADMIN_EMAIL) {
-      return HOME_MODES.ADMIN;
-    }
-    return HOME_MODES.FULL;
-  }
-
-  function buildHomePermissionsByMode(mode) {
-    if (mode === HOME_MODES.ADMIN) {
-      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true };
-    }
-    if (mode === HOME_MODES.FULL) {
-      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false };
-    }
-    return { canCreate: false, canEdit: false, canDelete: false, isAdmin: false };
-  }
-
   function downloadExcelFile(fileName, title, workbook) {
     const blob = new Blob(['\ufeff', workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const link = document.createElement('a');
@@ -469,13 +440,32 @@ import { firebaseAuth } from './firebase-core.js';
 
   function buildPermissions(profile) {
     const username = String(profile?.username || '');
-    const role = String(profile?.role || 'full').toLowerCase();
+    const role = String(profile?.role || 'limite').toLowerCase();
     const isAdmin = username === 'Admin' || role === 'admin';
+    const isStandard = role === 'standard';
     const isLecture = role === 'lecture';
     if (isAdmin) {
-      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true, isLecture: false };
+      return {
+        canCreate: true,
+        canEdit: true,
+        canDelete: true,
+        isAdmin: true,
+        isStandard: false,
+        canManageUsers: true,
+        canImportExport: true,
+        isLecture: false,
+      };
     }
-    return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false, isLecture };
+    return {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      isAdmin: false,
+      isStandard,
+      canManageUsers: isStandard,
+      canImportExport: isStandard,
+      isLecture,
+    };
   }
 
   function ensureMaintenanceOverlay() {
@@ -990,59 +980,34 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
-    function mettreAJourPermissionsUI(mode) {
-      currentPermissions = buildHomePermissionsByMode(mode);
+    function mettreAJourPermissionsUI(nextPermissions) {
+      currentPermissions = { ...currentPermissions, ...(nextPermissions || {}) };
 
       if (openCreateSite) {
         openCreateSite.hidden = !currentPermissions.canCreate;
       }
 
       if (importDataButton) {
-        importDataButton.hidden = mode !== HOME_MODES.ADMIN;
+        importDataButton.hidden = !currentPermissions.canImportExport;
       }
 
       if (exportDataButton) {
-        exportDataButton.hidden = mode !== HOME_MODES.ADMIN;
+        exportDataButton.hidden = !currentPermissions.canImportExport;
       }
 
       if (manageUsersButton) {
-        manageUsersButton.hidden = !currentPermissions.isAdmin;
+        manageUsersButton.hidden = !currentPermissions.canManageUsers;
       }
 
       closeHomeMenu();
       renderSites();
     }
 
-    function appliquerModeLecture() {
-      mettreAJourPermissionsUI(HOME_MODES.LECTURE);
-    }
-
-    function appliquerModeFull() {
-      mettreAJourPermissionsUI(HOME_MODES.FULL);
-    }
-
-    function appliquerModeAdmin() {
-      mettreAJourPermissionsUI(HOME_MODES.ADMIN);
-    }
-
-    function appliquerModeParUtilisateur(authUser) {
-      mettreAJourHeaderUtilisateur(authUser || null);
-      const mode = resolveHomeModeFromAuthUser(authUser);
-      if (mode === HOME_MODES.ADMIN) {
-        appliquerModeAdmin(authUser);
-        return;
-      }
-      if (mode === HOME_MODES.FULL) {
-        appliquerModeFull(authUser);
-        return;
-      }
-      appliquerModeLecture();
-    }
-
-    appliquerModeParUtilisateur(authState?.authUser || null);
+    mettreAJourHeaderUtilisateur(authState?.authUser || null);
+    mettreAJourPermissionsUI(currentPermissions);
     onAuthStateChanged(firebaseAuth, (user) => {
       renderUserAvatar(user || null);
-      appliquerModeParUtilisateur(user || null);
+      mettreAJourHeaderUtilisateur(user || null);
     });
 
     openCreateSite?.addEventListener('click', () => {
@@ -1860,7 +1825,7 @@ import { firebaseAuth } from './firebase-core.js';
 
 
   async function initUsersPage(permissions) {
-    if (!permissions.isAdmin) {
+    if (!permissions.isAdmin && !permissions.isStandard) {
       UiService.navigate('index.html');
       return;
     }
@@ -1871,7 +1836,7 @@ import { firebaseAuth } from './firebase-core.js';
     const maintenanceStatusText = requireElement('maintenanceStatusText');
     backButton?.addEventListener('click', () => UiService.navigate('index.html'));
 
-    const roleLabel = { adjoint: 'Adjoint', ecriture: 'Ecriture' };
+    const roleLabel = { standard: 'Standard', limite: 'Limité' };
 
     function cleanText(value) {
       return String(value || '').trim();
@@ -1888,7 +1853,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     function resolveRole(user) {
       const role = cleanText(user?.role).toLowerCase();
-      return role === 'adjoint' || role === 'admin' ? 'adjoint' : 'ecriture';
+      return role === 'standard' || role === 'adjoint' || role === 'admin' ? 'standard' : 'limite';
     }
 
     function resolveMaintenanceAuthorized(user) {
@@ -1922,10 +1887,10 @@ import { firebaseAuth } from './firebase-core.js';
             <td>${escapeHtml(resolveDisplayName(user))}</td>
             <td class="users-email-cell">${escapeHtml(cleanText(user.email) || '-')}</td>
             <td>
-              ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com' ? 'Adjoint' : `
+              ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com' ? 'admin' : `
               <select data-user-role="${user.id}">
-                <option value="adjoint" ${resolveRole(user) === 'adjoint' ? 'selected' : ''}>${roleLabel.adjoint}</option>
-                <option value="ecriture" ${resolveRole(user) === 'ecriture' ? 'selected' : ''}>${roleLabel.ecriture}</option>
+                <option value="standard" ${resolveRole(user) === 'standard' ? 'selected' : ''}>${roleLabel.standard}</option>
+                <option value="limite" ${resolveRole(user) === 'limite' ? 'selected' : ''}>${roleLabel.limite}</option>
               </select>`}
             </td>
             <td class="maintenance-access-cell">
@@ -2103,7 +2068,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     if (!String(nextProfile.role || '').trim()) {
-      nextProfile.role = 'ecriture';
+      nextProfile.role = 'limite';
     }
     return nextProfile;
   }
