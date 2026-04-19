@@ -765,6 +765,7 @@ import { firebaseAuth } from './firebase-core.js';
     let itemCountsBySite = {};
     let userNamesById = {};
     let currentPermissions = permissions;
+    let isAuthenticated = Boolean(authState?.isAuthenticated);
 
     async function loadUserNames() {
       try {
@@ -893,7 +894,7 @@ import { firebaseAuth } from './firebase-core.js';
           const labels = buildCreatedModifiedLabels(site, userNamesById);
           return `
             <article class="list-card">
-              ${currentPermissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
+              ${isAuthenticated && currentPermissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
@@ -1006,8 +1007,10 @@ import { firebaseAuth } from './firebase-core.js';
     mettreAJourHeaderUtilisateur(authState?.authUser || null);
     mettreAJourPermissionsUI(currentPermissions);
     onAuthStateChanged(firebaseAuth, (user) => {
+      isAuthenticated = Boolean(user);
       renderUserAvatar(user || null);
       mettreAJourHeaderUtilisateur(user || null);
+      renderSites();
     });
 
     openCreateSite?.addEventListener('click', () => {
