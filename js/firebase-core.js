@@ -18,4 +18,7 @@ const firebaseAuth = getAuth(firebaseApp);
 const firebaseDb = getFirestore(firebaseApp);
 const firebaseAnalyticsPromise = isSupported().then((supported) => (supported ? getAnalytics(firebaseApp) : null)).catch(() => null);
 
+console.log('Firebase initialized');
+console.log('Auth initialized');
+
 export { firebaseApp, firebaseAuth, firebaseDb, firebaseAnalyticsPromise };

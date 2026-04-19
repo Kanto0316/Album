@@ -12,13 +12,44 @@ import {
 import { firebaseAuth } from './firebase-core.js';
 
 console.log('LOGIN PAGE LOADED');
-console.log('Auth initialized');
+alert('LOGIN PAGE LOADED');
 
-const authReadyPromise = setPersistence(firebaseAuth, browserLocalPersistence)
+const auth = firebaseAuth;
+
+function isMobileDevice() {
+  if (navigator.userAgentData?.mobile) {
+    return true;
+  }
+
+  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+  const smallViewport = window.matchMedia('(max-width: 900px)').matches;
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileUserAgent = /android|iphone|ipad|ipod|mobile/.test(userAgent);
+
+  return isMobileUserAgent || (touchDevice && smallViewport);
+}
+
+function debugStep(message, { withAlert = false } = {}) {
+  const details = `[${new Date().toISOString()}] ${message} | device=${isMobileDevice() ? 'mobile' : 'desktop'}`;
+  console.log(details);
+  if (withAlert && isMobileDevice()) {
+    alert(message);
+  }
+}
+
+debugStep('Firebase/Auth references ready', { withAlert: true });
+
+const authReadyPromise = setPersistence(auth, browserLocalPersistence)
   .then(() => {
-    onAuthStateChanged(firebaseAuth, (user) => {
-      console.log('Auth state changed:', user ? user.email : 'no user');
+    debugStep('Persistence set: browserLocalPersistence', { withAlert: true });
+
+    let hasAuthenticatedUser = false;
+
+    onAuthStateChanged(auth, (user) => {
       if (user) {
+        hasAuthenticatedUser = true;
+        console.log('onAuthStateChanged user.email:', user.email || '');
+        debugStep('Authenticated user detected via onAuthStateChanged', { withAlert: true });
         const authPayload = {
           uid: user.uid || '',
           displayName: user.displayName || '',
@@ -27,12 +58,17 @@ const authReadyPromise = setPersistence(firebaseAuth, browserLocalPersistence)
         };
         localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
         window.location.replace('index.html');
+      } else {
+        console.log('No authenticated user');
       }
     });
 
-    getRedirectResult(firebaseAuth)
+    debugStep('Calling getRedirectResult(auth)', { withAlert: true });
+    getRedirectResult(auth)
       .then((result) => {
+        console.log('getRedirectResult(auth) full result:', result);
         if (result && result.user) {
+          debugStep('Redirect result contains user', { withAlert: true });
           const authPayload = {
             uid: result.user.uid || '',
             displayName: result.user.displayName || '',
@@ -41,10 +77,20 @@ const authReadyPromise = setPersistence(firebaseAuth, browserLocalPersistence)
           };
           localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
           window.location.replace('index.html');
+          return;
+        }
+
+        if (!hasAuthenticatedUser) {
+          const failureMessage = 'Redirect flow likely failed before authentication (result=null and no auth state user). Verify Android browser compatibility and avoid in-app browsers.';
+          console.warn(failureMessage);
+          debugStep(failureMessage, { withAlert: true });
         }
       })
       .catch((error) => {
-        console.log('Redirect error:', error.code, error.message);
+        console.log('Redirect error code:', error?.code || 'unknown');
+        console.log('Redirect error message:', error?.message || 'No message');
+        console.log('Redirect full error:', error);
+        debugStep('getRedirectResult(auth) failed', { withAlert: true });
       });
   })
   .catch((error) => {
@@ -115,37 +161,27 @@ function setLoading(isLoading, sourceButton = emailLoginButton) {
   sourceButton?.classList.toggle('is-loading', isLoading);
 }
 
-function isMobileDevice() {
-  if (navigator.userAgentData?.mobile) {
-    return true;
-  }
-
-  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
-  const smallViewport = window.matchMedia('(max-width: 900px)').matches;
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobileUserAgent = /android|iphone|ipad|ipod|mobile/.test(userAgent);
-
-  return isMobileUserAgent || (touchDevice && smallViewport);
-}
-
 async function startGoogleSignIn() {
   await authReadyPromise;
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
   if (isMobileDevice()) {
-    await signInWithRedirect(firebaseAuth, provider);
+    debugStep('Launching Google redirect', { withAlert: true });
+    await signInWithRedirect(auth, provider);
     return 'redirect';
   }
 
   try {
-    await signInWithPopup(firebaseAuth, provider);
+    debugStep('Launching Google popup (desktop)');
+    await signInWithPopup(auth, provider);
     return 'popup';
   } catch (error) {
     logAuthError(error);
     const code = String(error?.code || '');
     if (code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
-      await signInWithRedirect(firebaseAuth, provider);
+      debugStep('Popup failed, fallback Launching Google redirect', { withAlert: true });
+      await signInWithRedirect(auth, provider);
       return 'redirect';
     }
     throw error;
@@ -203,7 +239,7 @@ async function validateEmailRealtime() {
 
   const requestId = ++lastEmailCheckId;
   try {
-    const methods = await fetchSignInMethodsForEmail(firebaseAuth, email);
+    const methods = await fetchSignInMethodsForEmail(auth, email);
     if (requestId !== lastEmailCheckId) {
       return false;
     }
@@ -267,7 +303,7 @@ form.addEventListener('submit', async (event) => {
   setLoading(true, emailLoginButton);
   try {
     await authReadyPromise;
-    await signInWithEmailAndPassword(firebaseAuth, emailInput.value.trim(), passwordInput.value);
+    await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
     saveCredentials(emailInput.value.trim(), passwordInput.value);
   } catch (error) {
     logAuthError(error);
@@ -288,6 +324,10 @@ googleLoginButton.addEventListener('click', async () => {
   if (isAuthInProgress) {
     return;
   }
+
+  console.log('Google button clicked');
+  console.log(`Device type: ${isMobileDevice() ? 'mobile' : 'desktop'}`);
+  debugStep('Google button clicked', { withAlert: true });
 
   isAuthInProgress = true;
   globalError.textContent = '';
