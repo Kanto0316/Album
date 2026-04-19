@@ -795,6 +795,11 @@ import { firebaseAuth } from './firebase-core.js';
     const siteUnlockForm = requireElement('siteUnlockForm');
     const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
     const siteUnlockError = requireElement('siteUnlockError');
+    const siteLockManageDialog = requireElement('siteLockManageDialog');
+    const siteLockManageForm = requireElement('siteLockManageForm');
+    const siteLockCurrentPasswordInput = requireElement('siteLockCurrentPasswordInput');
+    const siteLockNewPasswordInput = requireElement('siteLockNewPasswordInput');
+    const siteLockManageError = requireElement('siteLockManageError');
 
     let currentSites = [];
     let itemCountsBySite = {};
@@ -803,6 +808,7 @@ import { firebaseAuth } from './firebase-core.js';
     let isAuthenticated = Boolean(authState?.isAuthenticated);
     let siteIdPendingLock = null;
     let siteIdPendingUnlock = null;
+    let siteIdPendingLockManage = null;
 
     async function loadUserNames() {
       try {
@@ -930,9 +936,11 @@ import { firebaseAuth } from './firebase-core.js';
         .map((site) => {
           const createdLabel = buildCreatedLabel(site, userNamesById);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
+          const canShowDeleteButton =
+            isAuthenticated && currentPermissions.canDelete && !isSiteLocked(site);
           return `
             <article class="list-card">
-              ${isAuthenticated && currentPermissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
+              ${canShowDeleteButton ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
@@ -941,7 +949,7 @@ import { firebaseAuth } from './firebase-core.js';
                 </div>
               </button>
               <img
-                class="list-card__lock-icon"
+                class="list-card__lock-icon ${canShowDeleteButton ? 'list-card__lock-icon--with-delete' : ''}"
                 src="${lockIconSrc}"
                 alt="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
                 aria-label="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
@@ -988,6 +996,25 @@ import { firebaseAuth } from './firebase-core.js';
         };
 
         const openLockDialog = () => {
+          const targetSite = currentSites.find((site) => site.id === siteId);
+          if (isSiteLocked(targetSite)) {
+            if (
+              !siteLockManageDialog ||
+              !siteLockCurrentPasswordInput ||
+              !siteLockNewPasswordInput ||
+              !siteLockManageError
+            ) {
+              return;
+            }
+            siteIdPendingLockManage = siteId;
+            siteLockCurrentPasswordInput.value = '';
+            siteLockNewPasswordInput.value = '';
+            siteLockManageError.textContent = '';
+            siteLockManageDialog.showModal();
+            siteLockCurrentPasswordInput.focus();
+            return;
+          }
+
           if (!siteLockDialog || !siteLockPasswordInput || !siteLockConfirmPasswordInput || !siteLockError) {
             return;
           }
@@ -1252,6 +1279,65 @@ import { firebaseAuth } from './firebase-core.js';
       }
     });
 
+    siteLockManageForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!siteIdPendingLockManage) {
+        return;
+      }
+
+      const submittedAction = event.submitter?.dataset?.lockManageAction;
+      const currentPasswordValue = siteLockCurrentPasswordInput?.value || '';
+      const newPasswordValue = siteLockNewPasswordInput?.value || '';
+      const targetSite = currentSites.find((site) => site.id === siteIdPendingLockManage);
+      if (!isSiteLocked(targetSite)) {
+        siteLockManageDialog?.close();
+        siteIdPendingLockManage = null;
+        return;
+      }
+
+      if (!currentPasswordValue.trim()) {
+        siteLockManageError.textContent = 'Mot de passe actuel incorrect.';
+        return;
+      }
+
+      try {
+        const currentPasswordHash = await hashPassword(currentPasswordValue);
+        if (currentPasswordHash !== targetSite.passwordHash) {
+          siteLockManageError.textContent = 'Mot de passe actuel incorrect.';
+          return;
+        }
+
+        if (submittedAction === 'unlock') {
+          const result = await StorageService.clearSiteLock(siteIdPendingLockManage);
+          if (!result?.ok) {
+            siteLockManageError.textContent = 'Impossible de retirer le verrouillage.';
+            return;
+          }
+          siteLockManageDialog?.close();
+          siteIdPendingLockManage = null;
+          UiService.showToast('Le verrouillage a été retiré avec succès.');
+          return;
+        }
+
+        if (!newPasswordValue.trim()) {
+          siteLockManageError.textContent = 'Veuillez saisir un nouveau mot de passe.';
+          return;
+        }
+
+        const nextPasswordHash = await hashPassword(newPasswordValue);
+        const result = await StorageService.setSiteLock(siteIdPendingLockManage, { passwordHash: nextPasswordHash });
+        if (!result?.ok) {
+          siteLockManageError.textContent = 'Impossible de mettre à jour le mot de passe.';
+          return;
+        }
+        siteLockManageDialog?.close();
+        siteIdPendingLockManage = null;
+        UiService.showToast('Le mot de passe a été mis à jour avec succès.');
+      } catch (_error) {
+        siteLockManageError.textContent = 'Erreur pendant la gestion du mot de passe.';
+      }
+    });
+
     siteLockDialog?.addEventListener('close', () => {
       siteIdPendingLock = null;
       if (siteLockError) {
@@ -1263,6 +1349,13 @@ import { firebaseAuth } from './firebase-core.js';
       siteIdPendingUnlock = null;
       if (siteUnlockError) {
         siteUnlockError.textContent = '';
+      }
+    });
+
+    siteLockManageDialog?.addEventListener('close', () => {
+      siteIdPendingLockManage = null;
+      if (siteLockManageError) {
+        siteLockManageError.textContent = '';
       }
     });
 

@@ -897,6 +897,11 @@ body[data-page="history"] .list-grid {
   object-fit: contain;
 }
 
+.list-card__lock-icon--with-delete {
+  top: calc(0.75rem + 2.25rem + 0.35rem);
+  bottom: auto;
+}
+
 .btn,
 .btn-danger {
   border: 0;
@@ -987,6 +992,13 @@ body[data-page="history"] .list-grid {
 
 .modal-content {
   padding: 1rem;
+}
+
+.modal-helper-text {
+  margin: -0.2rem 0 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .modal-header {
