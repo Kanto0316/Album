@@ -497,8 +497,13 @@ import { firebaseAuth } from './firebase-core.js';
     return overlay;
   }
 
-  function initMaintenanceGate(permissions) {
-    if (permissions?.isAdmin) {
+  function initMaintenanceGate(permissions, profile) {
+    const bypassMaintenance = Boolean(
+      permissions?.isAdmin
+      || profile?.maintenanceAuthorized
+      || profile?.maintenanceAccess,
+    );
+    if (bypassMaintenance) {
       return () => {};
     }
 
@@ -2060,7 +2065,9 @@ import { firebaseAuth } from './firebase-core.js';
       return nextProfile;
     }
 
-    nextProfile.role = 'full';
+    if (!String(nextProfile.role || '').trim()) {
+      nextProfile.role = 'ecriture';
+    }
     return nextProfile;
   }
 
@@ -2083,7 +2090,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     const permissions = buildPermissions(profile);
 
-    initMaintenanceGate(permissions);
+    initMaintenanceGate(permissions, profile);
 
     const page = document.body.dataset.page;
     if (page === 'home') {
