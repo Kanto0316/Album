@@ -324,6 +324,35 @@ import { firebaseAuth } from './firebase-core.js';
     }
   }
 
+  const HOME_MODES = {
+    LECTURE: 'lecture',
+    FULL: 'full',
+    ADMIN: 'admin',
+  };
+
+  const ADMIN_EMAIL = 'andrainaaina@gmail.com';
+
+  function resolveHomeModeFromAuthUser(user) {
+    if (!user) {
+      return HOME_MODES.LECTURE;
+    }
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (email === ADMIN_EMAIL) {
+      return HOME_MODES.ADMIN;
+    }
+    return HOME_MODES.FULL;
+  }
+
+  function buildHomePermissionsByMode(mode) {
+    if (mode === HOME_MODES.ADMIN) {
+      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true };
+    }
+    if (mode === HOME_MODES.FULL) {
+      return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false };
+    }
+    return { canCreate: false, canEdit: false, canDelete: false, isAdmin: false };
+  }
+
   function downloadExcelFile(fileName, title, workbook) {
     const blob = new Blob(['\ufeff', workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const link = document.createElement('a');
@@ -577,6 +606,61 @@ import { firebaseAuth } from './firebase-core.js';
     return overlay;
   }
 
+  function ensureLogoutConfirmationCard() {
+    let overlay = document.getElementById('logoutConfirmOverlay');
+    if (overlay) {
+      return overlay;
+    }
+
+    overlay = document.createElement('div');
+    overlay.id = 'logoutConfirmOverlay';
+    overlay.className = 'maintenance-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <article class="maintenance-card" role="alertdialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
+        <h3 id="logoutConfirmTitle">Déconnexion</h3>
+        <p>Voulez-vous vraiment vous déconnecter ?</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="logoutConfirmCancel">Annuler</button>
+          <button type="button" class="btn btn-danger" id="logoutConfirmSubmit">Déconnexion</button>
+        </div>
+      </article>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function askLogoutConfirmation() {
+    const overlay = ensureLogoutConfirmationCard();
+    const cancelButton = overlay.querySelector('#logoutConfirmCancel');
+    const submitButton = overlay.querySelector('#logoutConfirmSubmit');
+    if (!cancelButton || !submitButton) {
+      return Promise.resolve(false);
+    }
+
+    return new Promise((resolve) => {
+      const cleanup = () => {
+        overlay.hidden = true;
+        overlay.onclick = null;
+        cancelButton.onclick = null;
+        submitButton.onclick = null;
+      };
+      const close = (value) => {
+        cleanup();
+        resolve(value);
+      };
+
+      cancelButton.onclick = () => close(false);
+      submitButton.onclick = () => close(true);
+      overlay.onclick = (event) => {
+        if (event.target === overlay) {
+          close(false);
+        }
+      };
+      overlay.hidden = false;
+    });
+  }
+
   function openAvatarBottomSheet(authUserData) {
     const overlay = ensureAvatarBottomSheet();
     const sheet = overlay.querySelector('#avatarBottomSheet');
@@ -626,7 +710,7 @@ import { firebaseAuth } from './firebase-core.js';
     };
 
     logoutButton.onclick = async () => {
-      const shouldLogout = window.confirm('Voulez-vous vraiment vous déconnecter ?');
+      const shouldLogout = await askLogoutConfirmation();
       if (!shouldLogout) {
         return;
       }
@@ -684,6 +768,7 @@ import { firebaseAuth } from './firebase-core.js';
     let currentSites = [];
     let itemCountsBySite = {};
     let userNamesById = {};
+    let currentPermissions = permissions;
 
     async function loadUserNames() {
       try {
@@ -812,7 +897,7 @@ import { firebaseAuth } from './firebase-core.js';
           const labels = buildCreatedModifiedLabels(site, userNamesById);
           return `
             <article class="list-card">
-              ${permissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
+              ${currentPermissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
@@ -875,12 +960,7 @@ import { firebaseAuth } from './firebase-core.js';
         openImportFilePicker();
       });
     }
-    if (!permissions.canCreate) {
-      if (importDataButton) importDataButton.hidden = true;
-    }
-
     if (manageUsersButton) {
-      manageUsersButton.hidden = !permissions.isAdmin;
       manageUsersButton.addEventListener('click', () => {
         closeHomeMenu();
         UiService.navigate('users.html');
@@ -894,26 +974,76 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
-    const syncHomeAuthControls = (authUser) => {
+    const openCreateSite = requireElement('openCreateSite');
+
+    function mettreAJourHeaderUtilisateur(authUser) {
       const authUserData = normalizeAuthUserData(authUser);
       renderHomeAccessControls({
         authUser: authUserData,
         onAvatarClick: () => openAvatarBottomSheet(authUserData),
       });
-    };
-
-    syncHomeAuthControls(authState?.authUser || null);
-    onAuthStateChanged(firebaseAuth, (user) => {
-      renderUserAvatar(user || null);
-      syncHomeAuthControls(user || null);
-    });
-
-    const openCreateSite = requireElement('openCreateSite');
-    if (!permissions.canCreate && openCreateSite) {
-      openCreateSite.hidden = true;
     }
 
+    function mettreAJourPermissionsUI(mode) {
+      currentPermissions = buildHomePermissionsByMode(mode);
+
+      if (openCreateSite) {
+        openCreateSite.hidden = !currentPermissions.canCreate;
+      }
+
+      if (importDataButton) {
+        importDataButton.hidden = mode !== HOME_MODES.ADMIN;
+      }
+
+      if (exportDataButton) {
+        exportDataButton.hidden = mode !== HOME_MODES.ADMIN;
+      }
+
+      if (manageUsersButton) {
+        manageUsersButton.hidden = !currentPermissions.isAdmin;
+      }
+
+      closeHomeMenu();
+      renderSites();
+    }
+
+    function appliquerModeLecture() {
+      mettreAJourPermissionsUI(HOME_MODES.LECTURE);
+    }
+
+    function appliquerModeFull() {
+      mettreAJourPermissionsUI(HOME_MODES.FULL);
+    }
+
+    function appliquerModeAdmin() {
+      mettreAJourPermissionsUI(HOME_MODES.ADMIN);
+    }
+
+    function appliquerModeParUtilisateur(authUser) {
+      mettreAJourHeaderUtilisateur(authUser || null);
+      const mode = resolveHomeModeFromAuthUser(authUser);
+      if (mode === HOME_MODES.ADMIN) {
+        appliquerModeAdmin(authUser);
+        return;
+      }
+      if (mode === HOME_MODES.FULL) {
+        appliquerModeFull(authUser);
+        return;
+      }
+      appliquerModeLecture();
+    }
+
+    appliquerModeParUtilisateur(authState?.authUser || null);
+    onAuthStateChanged(firebaseAuth, (user) => {
+      renderUserAvatar(user || null);
+      appliquerModeParUtilisateur(user || null);
+    });
+
     openCreateSite?.addEventListener('click', () => {
+      if (!currentPermissions.canCreate) {
+        UiService.showToast('Action non autorisée.');
+        return;
+      }
       siteForm.reset();
       siteFormError.textContent = '';
       siteDialog.showModal();
@@ -930,7 +1060,7 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
 
-      if (!permissions.canCreate) {
+      if (!currentPermissions.canCreate) {
         siteFormError.textContent = 'Action non autorisée.';
         return;
       }
