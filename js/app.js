@@ -3,7 +3,6 @@ import { firebaseAuth } from './firebase-core.js';
 
 (function () {
   const { StorageService, UiService } = window;
-  const WELCOME_SHOWN_KEY = 'welcomeShown';
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -441,12 +440,6 @@ import { firebaseAuth } from './firebase-core.js';
     if (isAdmin) {
       return { canCreate: true, canEdit: true, canDelete: true, isAdmin: true };
     }
-    if (role === 'lecture') {
-      return { canCreate: false, canEdit: false, canDelete: false, isAdmin: false };
-    }
-    if (role === 'ecriture') {
-      return { canCreate: true, canEdit: true, canDelete: false, isAdmin: false };
-    }
     return { canCreate: true, canEdit: true, canDelete: true, isAdmin: false };
   }
 
@@ -485,69 +478,6 @@ import { firebaseAuth } from './firebase-core.js';
     );
   }
 
-  function getStatusVisual(status, profile) {
-    if (status === 'approved') {
-      const username = String(profile?.username || '').trim();
-      const message = username ? `Bienvenue, ${username}` : 'Accès autorisé';
-      return { title: 'Accès autorisé', message, tone: 'approved' };
-    }
-    if (status === 'rejected') {
-      return { title: 'Accès refusé', message: 'Vous n’avez pas l’autorisation d’utiliser cette page.', tone: 'rejected' };
-    }
-    return {
-      title: 'En attente de confirmation',
-      message: 'Les informations sont enregistrées. En attente de confirmation par l’administrateur.',
-      tone: 'pending',
-    };
-  }
-
-  function ensureApprovalOverlay() {
-    let overlay = document.getElementById('approvalOverlay');
-    if (overlay) {
-      return overlay;
-    }
-    overlay = document.createElement('div');
-    overlay.id = 'approvalOverlay';
-    overlay.className = 'status-overlay';
-    overlay.hidden = true;
-    overlay.innerHTML = `
-      <article class="status-card status-card--pending" role="alertdialog" aria-modal="true" aria-labelledby="approvalTitle">
-        <h3 id="approvalTitle"></h3>
-        <p id="approvalMessage"></p>
-      </article>
-    `;
-    document.body.appendChild(overlay);
-    return overlay;
-  }
-
-  function showApprovalOverlay(status, profile) {
-    const overlay = ensureApprovalOverlay();
-    const card = overlay.querySelector('.status-card');
-    const title = overlay.querySelector('#approvalTitle');
-    const message = overlay.querySelector('#approvalMessage');
-    const visual = getStatusVisual(status, profile);
-
-    if (!card || !title || !message) {
-      return;
-    }
-
-    title.textContent = visual.title;
-    message.textContent = visual.message;
-    card.classList.remove('status-card--pending', 'status-card--approved', 'status-card--rejected');
-    card.classList.add(`status-card--${visual.tone}`);
-    overlay.hidden = false;
-    window.requestAnimationFrame(() => overlay.classList.add('is-visible'));
-  }
-
-  function hideApprovalOverlay() {
-    const overlay = document.getElementById('approvalOverlay');
-    if (!overlay) {
-      return;
-    }
-    overlay.classList.remove('is-visible');
-    overlay.hidden = true;
-  }
-
   function clearClientUserState() {
     try {
       window.localStorage.clear();
@@ -555,100 +485,6 @@ import { firebaseAuth } from './firebase-core.js';
     } catch (_error) {
       // Ignore storage cleanup errors (private mode / restricted storage).
     }
-  }
-
-  function hasShownWelcome() {
-    try {
-      return window.localStorage.getItem(WELCOME_SHOWN_KEY) === 'true';
-    } catch (_error) {
-      return false;
-    }
-  }
-
-  function markWelcomeAsShown() {
-    try {
-      window.localStorage.setItem(WELCOME_SHOWN_KEY, 'true');
-    } catch (_error) {
-      // Ignore storage access issues.
-    }
-  }
-
-  function resetWelcomeFlag() {
-    try {
-      window.localStorage.removeItem(WELCOME_SHOWN_KEY);
-    } catch (_error) {
-      // Ignore storage access issues.
-    }
-  }
-
-  async function initApprovalGate(profile, permissions) {
-    if (permissions?.isAdmin) {
-      return profile;
-    }
-
-    const currentPage = document.body.dataset.page;
-    return new Promise((resolve) => {
-      let approvedShown = false;
-      let recoveringDeletedUser = false;
-      const unsubscribe = StorageService.subscribeCurrentUserProfile(
-        (latestProfile) => {
-          if (latestProfile?.missing) {
-            if (recoveringDeletedUser) {
-              return;
-            }
-            recoveringDeletedUser = true;
-            hideApprovalOverlay();
-            resetWelcomeFlag();
-            clearClientUserState();
-            if (currentPage !== 'home') {
-              UiService.navigate('index.html');
-              return;
-            }
-            window.setTimeout(async () => {
-              await StorageService.ensureCurrentUser();
-              approvedShown = false;
-              recoveringDeletedUser = false;
-            }, 0);
-            return;
-          }
-
-          const status = String(latestProfile?.status || 'pending');
-          if (status === 'rejected') {
-            showApprovalOverlay('rejected', latestProfile);
-            return;
-          }
-
-          if (status === 'approved') {
-            if (!approvedShown && !hasShownWelcome()) {
-              approvedShown = true;
-              showApprovalOverlay('approved', latestProfile);
-              markWelcomeAsShown();
-              window.setTimeout(() => {
-                hideApprovalOverlay();
-                unsubscribe?.();
-                if (currentPage !== 'home') {
-                  UiService.navigate('index.html');
-                }
-                resolve(latestProfile);
-              }, 3000);
-              return;
-            }
-            hideApprovalOverlay();
-            unsubscribe?.();
-            resolve(latestProfile);
-            return;
-          }
-
-          showApprovalOverlay(status, latestProfile);
-          if (status !== 'rejected' && currentPage !== 'home') {
-            UiService.navigate('index.html');
-          }
-        },
-        () => {
-          UiService.showToast('Impossible de vérifier votre statut utilisateur.');
-        },
-      );
-    });
   }
 
   function getInitialsFromName(name) {
@@ -1073,7 +909,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
 
       if (!permissions.canCreate) {
-        siteFormError.textContent = 'Accès refusé.';
+        siteFormError.textContent = 'Action non autorisée.';
         return;
       }
 
@@ -1348,7 +1184,7 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
       if (!permissions.canCreate) {
-        itemFormError.textContent = 'Accès refusé.';
+        itemFormError.textContent = 'Action non autorisée.';
         return;
       }
       const result = await StorageService.createItem(siteId, value);
@@ -1740,7 +1576,7 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
       if (!permissions.canCreate) {
-        detailFormError.textContent = 'Accès refusé.';
+        detailFormError.textContent = 'Action non autorisée.';
         return;
       }
 
@@ -1872,7 +1708,6 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const tableBody = requireElement('usersTableBody');
-    const pendingUsersList = requireElement('pendingUsersList');
     const backButton = requireElement('usersBackButton');
     const maintenanceToggle = requireElement('maintenanceToggle');
     const maintenanceStatusText = requireElement('maintenanceStatusText');
@@ -1889,43 +1724,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
-    function statusLabel(status) {
-      if (status === 'approved') {
-        return 'Approuvé';
-      }
-      if (status === 'rejected') {
-        return 'Refusé';
-      }
-      return 'En attente';
-    }
-
     function renderUsers(users) {
-      const pendingUsers = users.filter((user) => user.status === 'pending');
-
-      if (pendingUsersList) {
-        pendingUsersList.innerHTML = pendingUsers.length
-          ? pendingUsers
-            .map((user) => `
-              <article class="pending-user-card">
-                <div class="pending-user-card__identity">
-                  ${user.avatarUrl
-      ? `<img class="pending-user-card__avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(user.username)}" />`
-      : `<span class="pending-user-card__avatar pending-user-card__avatar--fallback">${escapeHtml(getInitialsFromName(user.username))}</span>`}
-                  <div>
-                    <p class="pending-user-card__name">${escapeHtml(user.username)}</p>
-                    <p class="pending-user-card__status">${statusLabel(user.status)}</p>
-                  </div>
-                </div>
-                <div class="pending-user-card__actions">
-                  <button type="button" class="btn btn-success" data-approve-user="${user.id}">Accepter</button>
-                  <button type="button" class="btn btn-danger" data-reject-user="${user.id}">Refuser</button>
-                </div>
-              </article>
-            `)
-            .join('')
-          : '<p class="empty-state">Aucun utilisateur en attente.</p>';
-      }
-
       tableBody.innerHTML = users
         .map((user) => `
           <tr>
@@ -1935,7 +1734,6 @@ import { firebaseAuth } from './firebase-core.js';
       : `<span class="table-avatar table-avatar--fallback">${escapeHtml(getInitialsFromName(user.username))}</span>`}
             </td>
             <td>${escapeHtml(user.username)}</td>
-            <td><span class="status-pill status-pill--${escapeHtml(user.status)}">${statusLabel(user.status)}</span></td>
             <td>
               ${user.username === 'Admin' ? 'Admin' : `
               <select data-user-role="${user.id}">
@@ -1990,20 +1788,6 @@ import { firebaseAuth } from './firebase-core.js';
           }
           await StorageService.deleteUser(button.dataset.deleteUser);
           UiService.showToast('Utilisateur supprimé.');
-        });
-      });
-
-      pendingUsersList?.querySelectorAll('[data-approve-user]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          await StorageService.updateUserStatus(button.dataset.approveUser, 'approved');
-          UiService.showToast('Utilisateur accepté.');
-        });
-      });
-
-      pendingUsersList?.querySelectorAll('[data-reject-user]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          await StorageService.updateUserStatus(button.dataset.rejectUser, 'rejected');
-          UiService.showToast('Utilisateur refusé.');
         });
       });
     }
@@ -2123,7 +1907,7 @@ import { firebaseAuth } from './firebase-core.js';
       return nextProfile;
     }
 
-    nextProfile.role = 'ecriture';
+    nextProfile.role = 'full';
     return nextProfile;
   }
 
@@ -2145,10 +1929,6 @@ import { firebaseAuth } from './firebase-core.js';
     profile = resolveConnectedProfile(profile, isAuthenticated);
 
     const permissions = buildPermissions(profile);
-
-    if (isAuthenticated) {
-      profile = await initApprovalGate(profile, permissions);
-    }
 
     initMaintenanceGate(permissions);
 
