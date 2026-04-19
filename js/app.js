@@ -25,6 +25,19 @@ import { firebaseAuth } from './firebase-core.js';
     element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
 
+  function isSiteLocked(site) {
+    return Boolean(site?.isLocked) && Boolean(String(site?.passwordHash || '').trim());
+  }
+
+  async function hashPassword(value) {
+    const normalized = String(value || '');
+    const encoded = new TextEncoder().encode(normalized);
+    const digest = await crypto.subtle.digest('SHA-256', encoded);
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
   function resolveActorLabel(userId, userMap, fallbackName) {
     const directName = String(fallbackName || '').trim();
     if (directName) {
@@ -773,12 +786,23 @@ import { firebaseAuth } from './firebase-core.js';
     const exportDataButton = requireElement('exportDataButton');
     const manageUsersButton = requireElement('manageUsersButton');
     const historyButton = requireElement('historyButton');
+    const siteLockDialog = requireElement('siteLockDialog');
+    const siteLockForm = requireElement('siteLockForm');
+    const siteLockPasswordInput = requireElement('siteLockPasswordInput');
+    const siteLockConfirmPasswordInput = requireElement('siteLockConfirmPasswordInput');
+    const siteLockError = requireElement('siteLockError');
+    const siteUnlockDialog = requireElement('siteUnlockDialog');
+    const siteUnlockForm = requireElement('siteUnlockForm');
+    const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
+    const siteUnlockError = requireElement('siteUnlockError');
 
     let currentSites = [];
     let itemCountsBySite = {};
     let userNamesById = {};
     let currentPermissions = permissions;
     let isAuthenticated = Boolean(authState?.isAuthenticated);
+    let siteIdPendingLock = null;
+    let siteIdPendingUnlock = null;
 
     async function loadUserNames() {
       try {
@@ -915,14 +939,82 @@ import { firebaseAuth } from './firebase-core.js';
                   <span>${escapeHtml(createdLabel)}</span>
                 </div>
               </button>
+              <img
+                class="list-card__lock-icon"
+                src="${isSiteLocked(site) ? 'Icon/Cadenas_close' : 'Icon/Cadenas_Open'}"
+                alt="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
+                aria-label="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
+              />
             </article>
           `;
         })
         .join('');
 
       siteList.querySelectorAll('[data-site-open]').forEach((button) => {
+        let longPressTimer = null;
+        let skipClickAfterLongPress = false;
+        const siteId = button.dataset.siteOpen;
+
+        const clearLongPressTimer = () => {
+          if (!longPressTimer) {
+            return;
+          }
+          window.clearTimeout(longPressTimer);
+          longPressTimer = null;
+        };
+
+        const openLockDialog = () => {
+          if (!siteLockDialog || !siteLockPasswordInput || !siteLockConfirmPasswordInput || !siteLockError) {
+            return;
+          }
+          siteIdPendingLock = siteId;
+          siteLockPasswordInput.value = '';
+          siteLockConfirmPasswordInput.value = '';
+          siteLockError.textContent = '';
+          siteLockDialog.showModal();
+          siteLockPasswordInput.focus();
+        };
+
+        button.addEventListener('pointerdown', (event) => {
+          if (event.button !== 0) {
+            return;
+          }
+          skipClickAfterLongPress = false;
+          clearLongPressTimer();
+          longPressTimer = window.setTimeout(() => {
+            skipClickAfterLongPress = true;
+            openLockDialog();
+          }, 650);
+        });
+
+        button.addEventListener('pointerup', clearLongPressTimer);
+        button.addEventListener('pointerleave', clearLongPressTimer);
+        button.addEventListener('pointercancel', clearLongPressTimer);
+        button.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          clearLongPressTimer();
+          skipClickAfterLongPress = true;
+          openLockDialog();
+        });
+
         button.addEventListener('click', () => {
-          UiService.navigate(`page2.html?siteId=${encodeURIComponent(button.dataset.siteOpen)}`);
+          if (skipClickAfterLongPress) {
+            skipClickAfterLongPress = false;
+            return;
+          }
+          const targetSite = currentSites.find((site) => site.id === siteId);
+          if (!isSiteLocked(targetSite)) {
+            UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
+            return;
+          }
+          if (!siteUnlockDialog || !siteUnlockPasswordInput || !siteUnlockError) {
+            return;
+          }
+          siteIdPendingUnlock = siteId;
+          siteUnlockPasswordInput.value = '';
+          siteUnlockError.textContent = '';
+          siteUnlockDialog.showModal();
+          siteUnlockPasswordInput.focus();
         });
       });
 
@@ -1066,6 +1158,87 @@ import { firebaseAuth } from './firebase-core.js';
       } catch (error) {
         console.error('Erreur lors de la création du site :', error);
         siteFormError.textContent = "Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.";
+      }
+    });
+
+    siteLockForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!siteIdPendingLock) {
+        return;
+      }
+      const passwordValue = siteLockPasswordInput?.value || '';
+      const confirmValue = siteLockConfirmPasswordInput?.value || '';
+
+      if (!passwordValue.trim() || !confirmValue.trim()) {
+        siteLockError.textContent = 'Veuillez remplir tous les champs.';
+        return;
+      }
+
+      if (passwordValue !== confirmValue) {
+        siteLockError.textContent = 'Les mots de passe ne correspondent pas.';
+        return;
+      }
+
+      try {
+        const passwordHash = await hashPassword(passwordValue);
+        const result = await StorageService.setSiteLock(siteIdPendingLock, { passwordHash });
+        if (!result?.ok) {
+          siteLockError.textContent = 'Impossible de verrouiller ce site.';
+          return;
+        }
+        siteLockDialog?.close();
+        siteIdPendingLock = null;
+        UiService.showToast('Site verrouillé.');
+      } catch (_error) {
+        siteLockError.textContent = 'Erreur pendant le verrouillage.';
+      }
+    });
+
+    siteUnlockForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!siteIdPendingUnlock) {
+        return;
+      }
+      const passwordValue = siteUnlockPasswordInput?.value || '';
+      if (!passwordValue.trim()) {
+        siteUnlockError.textContent = 'Veuillez entrer le mot de passe.';
+        return;
+      }
+
+      const targetSite = currentSites.find((site) => site.id === siteIdPendingUnlock);
+      if (!isSiteLocked(targetSite)) {
+        siteUnlockDialog?.close();
+        UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteIdPendingUnlock)}`);
+        siteIdPendingUnlock = null;
+        return;
+      }
+
+      try {
+        const passwordHash = await hashPassword(passwordValue);
+        if (passwordHash !== targetSite.passwordHash) {
+          siteUnlockError.textContent = 'Mot de passe incorrect.';
+          return;
+        }
+        const openSiteId = siteIdPendingUnlock;
+        siteUnlockDialog?.close();
+        siteIdPendingUnlock = null;
+        UiService.navigate(`page2.html?siteId=${encodeURIComponent(openSiteId)}`);
+      } catch (_error) {
+        siteUnlockError.textContent = 'Erreur pendant la vérification.';
+      }
+    });
+
+    siteLockDialog?.addEventListener('close', () => {
+      siteIdPendingLock = null;
+      if (siteLockError) {
+        siteLockError.textContent = '';
+      }
+    });
+
+    siteUnlockDialog?.addEventListener('close', () => {
+      siteIdPendingUnlock = null;
+      if (siteUnlockError) {
+        siteUnlockError.textContent = '';
       }
     });
 
