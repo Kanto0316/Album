@@ -888,6 +888,15 @@ body[data-page="history"] .list-grid {
   background: rgba(31, 42, 55, 0.16);
 }
 
+.list-card__lock-icon {
+  position: absolute;
+  right: 0.85rem;
+  bottom: 0.95rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: contain;
+}
+
 .btn,
 .btn-danger {
   border: 0;
@@ -899,6 +908,10 @@ body[data-page="history"] .list-grid {
 .btn-success {
   color: #fff;
   background: var(--success);
+}
+
+.modal-actions--split {
+  justify-content: space-between;
 }
 
 .btn-danger {

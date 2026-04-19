@@ -79,6 +79,46 @@
         </form>
       </dialog>
 
+      <dialog id="siteLockDialog" class="modal-card">
+        <form class="modal-content" id="siteLockForm">
+          <div class="modal-header">
+            <h2>Verrouiller ce site</h2>
+            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
+          </div>
+          <label class="input-group">
+            <span>Entrer un mot de passe</span>
+            <input id="siteLockPasswordInput" type="password" autocomplete="new-password" />
+          </label>
+          <label class="input-group">
+            <span>Confirmer le mot de passe</span>
+            <input id="siteLockConfirmPasswordInput" type="password" autocomplete="new-password" />
+          </label>
+          <p id="siteLockError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split">
+            <button type="button" class="btn" data-close-dialog>Annuler</button>
+            <button type="submit" class="btn btn-success">Enregistrer</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="siteUnlockDialog" class="modal-card">
+        <form class="modal-content" id="siteUnlockForm">
+          <div class="modal-header">
+            <h2>Site verrouillé</h2>
+            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
+          </div>
+          <label class="input-group">
+            <span>Mot de passe</span>
+            <input id="siteUnlockPasswordInput" type="password" autocomplete="current-password" />
+          </label>
+          <p id="siteUnlockError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split">
+            <button type="button" class="btn" data-close-dialog>Annuler</button>
+            <button type="submit" class="btn btn-success">Valider</button>
+          </div>
+        </form>
+      </dialog>
+
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
