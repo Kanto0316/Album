@@ -809,6 +809,32 @@ import { firebaseAuth } from './firebase-core.js';
     let siteIdPendingLock = null;
     let siteIdPendingUnlock = null;
     let siteIdPendingLockManage = null;
+    const transientErrorTimers = new WeakMap();
+
+    function clearTransientError(errorElement) {
+      if (!errorElement) {
+        return;
+      }
+      const activeTimer = transientErrorTimers.get(errorElement);
+      if (activeTimer) {
+        window.clearTimeout(activeTimer);
+        transientErrorTimers.delete(errorElement);
+      }
+      errorElement.textContent = '';
+    }
+
+    function showTransientError(errorElement, message) {
+      if (!errorElement) {
+        return;
+      }
+      clearTransientError(errorElement);
+      errorElement.textContent = message;
+      const hideTimer = window.setTimeout(() => {
+        errorElement.textContent = '';
+        transientErrorTimers.delete(errorElement);
+      }, 2000);
+      transientErrorTimers.set(errorElement, hideTimer);
+    }
 
     async function loadUserNames() {
       try {
@@ -1009,7 +1035,7 @@ import { firebaseAuth } from './firebase-core.js';
             siteIdPendingLockManage = siteId;
             siteLockCurrentPasswordInput.value = '';
             siteLockNewPasswordInput.value = '';
-            siteLockManageError.textContent = '';
+            clearTransientError(siteLockManageError);
             siteLockManageDialog.showModal();
             siteLockCurrentPasswordInput.focus();
             return;
@@ -1021,7 +1047,7 @@ import { firebaseAuth } from './firebase-core.js';
           siteIdPendingLock = siteId;
           siteLockPasswordInput.value = '';
           siteLockConfirmPasswordInput.value = '';
-          siteLockError.textContent = '';
+          clearTransientError(siteLockError);
           siteLockDialog.showModal();
           siteLockPasswordInput.focus();
         };
@@ -1063,7 +1089,7 @@ import { firebaseAuth } from './firebase-core.js';
           }
           siteIdPendingUnlock = siteId;
           siteUnlockPasswordInput.value = '';
-          siteUnlockError.textContent = '';
+          clearTransientError(siteUnlockError);
           siteUnlockDialog.showModal();
           siteUnlockPasswordInput.focus();
         });
@@ -1217,16 +1243,17 @@ import { firebaseAuth } from './firebase-core.js';
       if (!siteIdPendingLock) {
         return;
       }
+      clearTransientError(siteLockError);
       const passwordValue = siteLockPasswordInput?.value || '';
       const confirmValue = siteLockConfirmPasswordInput?.value || '';
 
       if (!passwordValue.trim() || !confirmValue.trim()) {
-        siteLockError.textContent = 'Veuillez remplir tous les champs.';
+        showTransientError(siteLockError, 'Veuillez remplir tous les champs.');
         return;
       }
 
       if (passwordValue !== confirmValue) {
-        siteLockError.textContent = 'Les mots de passe ne correspondent pas.';
+        showTransientError(siteLockError, 'Les mots de passe ne correspondent pas.');
         return;
       }
 
@@ -1234,14 +1261,14 @@ import { firebaseAuth } from './firebase-core.js';
         const passwordHash = await hashPassword(passwordValue);
         const result = await StorageService.setSiteLock(siteIdPendingLock, { passwordHash });
         if (!result?.ok) {
-          siteLockError.textContent = 'Impossible de verrouiller ce site.';
+          showTransientError(siteLockError, 'Impossible de verrouiller ce site.');
           return;
         }
         siteLockDialog?.close();
         siteIdPendingLock = null;
         UiService.showToast('Site verrouillé.');
       } catch (_error) {
-        siteLockError.textContent = 'Erreur pendant le verrouillage.';
+        showTransientError(siteLockError, 'Erreur pendant le verrouillage.');
       }
     });
 
@@ -1250,9 +1277,10 @@ import { firebaseAuth } from './firebase-core.js';
       if (!siteIdPendingUnlock) {
         return;
       }
+      clearTransientError(siteUnlockError);
       const passwordValue = siteUnlockPasswordInput?.value || '';
       if (!passwordValue.trim()) {
-        siteUnlockError.textContent = 'Veuillez entrer le mot de passe.';
+        showTransientError(siteUnlockError, 'Veuillez entrer le mot de passe.');
         return;
       }
 
@@ -1267,7 +1295,7 @@ import { firebaseAuth } from './firebase-core.js';
       try {
         const passwordHash = await hashPassword(passwordValue);
         if (passwordHash !== targetSite.passwordHash) {
-          siteUnlockError.textContent = 'Mot de passe incorrect.';
+          showTransientError(siteUnlockError, 'Mot de passe incorrect.');
           return;
         }
         const openSiteId = siteIdPendingUnlock;
@@ -1275,7 +1303,7 @@ import { firebaseAuth } from './firebase-core.js';
         siteIdPendingUnlock = null;
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(openSiteId)}`);
       } catch (_error) {
-        siteUnlockError.textContent = 'Erreur pendant la vérification.';
+        showTransientError(siteUnlockError, 'Erreur pendant la vérification.');
       }
     });
 
@@ -1284,6 +1312,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (!siteIdPendingLockManage) {
         return;
       }
+      clearTransientError(siteLockManageError);
 
       const submittedAction = event.submitter?.dataset?.lockManageAction;
       const currentPasswordValue = siteLockCurrentPasswordInput?.value || '';
@@ -1296,21 +1325,21 @@ import { firebaseAuth } from './firebase-core.js';
       }
 
       if (!currentPasswordValue.trim()) {
-        siteLockManageError.textContent = 'Mot de passe actuel incorrect.';
+        showTransientError(siteLockManageError, 'Mot de passe actuel incorrect.');
         return;
       }
 
       try {
         const currentPasswordHash = await hashPassword(currentPasswordValue);
         if (currentPasswordHash !== targetSite.passwordHash) {
-          siteLockManageError.textContent = 'Mot de passe actuel incorrect.';
+          showTransientError(siteLockManageError, 'Mot de passe actuel incorrect.');
           return;
         }
 
         if (submittedAction === 'unlock') {
           const result = await StorageService.clearSiteLock(siteIdPendingLockManage);
           if (!result?.ok) {
-            siteLockManageError.textContent = 'Impossible de retirer le verrouillage.';
+            showTransientError(siteLockManageError, 'Impossible de retirer le verrouillage.');
             return;
           }
           siteLockManageDialog?.close();
@@ -1320,43 +1349,37 @@ import { firebaseAuth } from './firebase-core.js';
         }
 
         if (!newPasswordValue.trim()) {
-          siteLockManageError.textContent = 'Veuillez saisir un nouveau mot de passe.';
+          showTransientError(siteLockManageError, 'Veuillez saisir un nouveau mot de passe.');
           return;
         }
 
         const nextPasswordHash = await hashPassword(newPasswordValue);
         const result = await StorageService.setSiteLock(siteIdPendingLockManage, { passwordHash: nextPasswordHash });
         if (!result?.ok) {
-          siteLockManageError.textContent = 'Impossible de mettre à jour le mot de passe.';
+          showTransientError(siteLockManageError, 'Impossible de mettre à jour le mot de passe.');
           return;
         }
         siteLockManageDialog?.close();
         siteIdPendingLockManage = null;
         UiService.showToast('Le mot de passe a été mis à jour avec succès.');
       } catch (_error) {
-        siteLockManageError.textContent = 'Erreur pendant la gestion du mot de passe.';
+        showTransientError(siteLockManageError, 'Erreur pendant la gestion du mot de passe.');
       }
     });
 
     siteLockDialog?.addEventListener('close', () => {
       siteIdPendingLock = null;
-      if (siteLockError) {
-        siteLockError.textContent = '';
-      }
+      clearTransientError(siteLockError);
     });
 
     siteUnlockDialog?.addEventListener('close', () => {
       siteIdPendingUnlock = null;
-      if (siteUnlockError) {
-        siteUnlockError.textContent = '';
-      }
+      clearTransientError(siteUnlockError);
     });
 
     siteLockManageDialog?.addEventListener('close', () => {
       siteIdPendingLockManage = null;
-      if (siteLockManageError) {
-        siteLockManageError.textContent = '';
-      }
+      clearTransientError(siteLockManageError);
     });
 
     StorageService.subscribeSites(
