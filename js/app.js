@@ -652,21 +652,22 @@ import { firebaseAuth } from './firebase-core.js';
   }
 
   function getInitialsFromName(name) {
-    const parts = String(name || '')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (!parts.length) {
-      return '??';
-    }
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    const sanitizedName = String(name || '')
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .trim();
+    const initials = sanitizedName.substring(0, 2).toUpperCase();
+    return initials || 'U';
+  }
+
+  function getAvatarFallback(user) {
+    const displayName = String(user?.displayName || user?.name || '').trim();
+    const emailName = String(user?.email || '').split('@')[0].trim();
+    const source = displayName || emailName || 'U';
+    return getInitialsFromName(source);
   }
 
   function getAvatarInitials(authUserData) {
-    return getInitialsFromName(authUserData?.name);
+    return getAvatarFallback(authUserData);
   }
 
   function renderAvatarVisual(container, authUserData) {
@@ -706,7 +707,7 @@ import { firebaseAuth } from './firebase-core.js';
         <div class="bottom-sheet__handle" aria-hidden="true"></div>
         <div class="bottom-sheet__content">
           <div class="bottom-sheet__avatar-wrap">
-            <div class="bottom-sheet__avatar" id="avatarSheetPreview">??</div>
+            <div class="bottom-sheet__avatar" id="avatarSheetPreview">U</div>
           </div>
           <p class="bottom-sheet__name" id="avatarSheetName">Utilisateur</p>
           <button type="button" class="bottom-sheet__action" id="avatarSheetLogout">Déconnexion</button>
