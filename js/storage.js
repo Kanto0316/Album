@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -51,14 +52,6 @@ function normalizeUsername(value) {
 
 function normalizeAvatarUrl(value) {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizeStatus(value) {
-  const status = String(value || '').toLowerCase();
-  if (status === 'approved' || status === 'rejected') {
-    return status;
-  }
-  return 'pending';
 }
 
 function normalizeMaintenanceAccess(value) {
@@ -160,7 +153,9 @@ async function ensureCurrentUser() {
         avatarUrl: '',
         avatar: '',
         role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
-        status: 'pending',
+        status: deleteField(),
+        approved: deleteField(),
+        pending: deleteField(),
         maintenanceAccess: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -173,7 +168,6 @@ async function ensureCurrentUser() {
       username: '',
       avatarUrl: '',
       role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
-      status: 'pending',
       maintenanceAccess: false,
       lastNameChange: null,
       createdAt: null,
@@ -181,12 +175,24 @@ async function ensureCurrentUser() {
   }
 
   const data = snap.data() || {};
+  if ('status' in data || 'approved' in data || 'pending' in data) {
+    await setDoc(
+      ref,
+      {
+        status: deleteField(),
+        approved: deleteField(),
+        pending: deleteField(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
   return {
     email: String(data.email || state.authUser?.email || ''),
     id: snap.id,
     username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
-    status: normalizeStatus(data.status),
     maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
     lastNameChange: data.lastNameChange || null,
     avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
@@ -200,8 +206,7 @@ async function getCurrentUserProfile() {
       id: null,
       username: '',
       email: '',
-      role: 'lecture',
-      status: 'approved',
+      role: 'full',
       maintenanceAccess: false,
       lastNameChange: null,
       avatarUrl: '',
@@ -220,7 +225,6 @@ async function getCurrentUserProfile() {
     id: snap.id,
     username: normalizeUsername(data.username || data.name),
     role: normalizeRole(data.role),
-    status: normalizeStatus(data.status),
     maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
     lastNameChange: data.lastNameChange || null,
     avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
@@ -256,8 +260,10 @@ async function saveUsername(username) {
   };
 
   if (isFirstUsername) {
-    updates.role = 'lecture';
-    updates.status = 'pending';
+    updates.role = 'full';
+    updates.status = deleteField();
+    updates.approved = deleteField();
+    updates.pending = deleteField();
   }
 
   await setDoc(
@@ -324,7 +330,6 @@ async function listUsers() {
         username: normalizeUsername(data.username || data.name),
         avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
         role: normalizeRole(data.role),
-        status: normalizeStatus(data.status),
         maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
         createdAt: data.createdAt || null,
       };
@@ -338,20 +343,6 @@ async function updateUserRole(userId, role) {
     userDocRef(userId),
     {
       role: nextRole,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-
-  return true;
-}
-
-async function updateUserStatus(userId, status) {
-  const nextStatus = normalizeStatus(status);
-  await setDoc(
-    userDocRef(userId),
-    {
-      status: nextStatus,
       updatedAt: serverTimestamp(),
     },
     { merge: true },
@@ -392,7 +383,6 @@ function subscribeCurrentUserProfile(onChange, onError) {
             id: state.userId,
             username: '',
             role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
-            status: 'pending',
             maintenanceAccess: false,
             lastNameChange: null,
             avatarUrl: '',
@@ -406,7 +396,6 @@ function subscribeCurrentUserProfile(onChange, onError) {
           id: snapshot.id,
           username: normalizeUsername(data.username || data.name),
           role: normalizeRole(data.role),
-          status: normalizeStatus(data.status),
           maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
           lastNameChange: data.lastNameChange || null,
           avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
@@ -441,7 +430,6 @@ function subscribeUsers(onChange, onError) {
               username: normalizeUsername(data.username || data.name),
               avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
               role: normalizeRole(data.role),
-              status: normalizeStatus(data.status),
               maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
               createdAt: data.createdAt || null,
             };
@@ -1478,7 +1466,6 @@ window.StorageService = {
   listUsers,
   subscribeUsers,
   updateUserRole,
-  updateUserStatus,
   updateUserMaintenanceAccess,
   deleteUser,
   setMaintenanceState,
