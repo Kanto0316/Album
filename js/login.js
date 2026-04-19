@@ -10,6 +10,16 @@ import {
 import { firebaseAuth } from './firebase-core.js';
 
 console.log('LOGIN PAGE LOADED');
+const GOOGLE_LOGIN_STORAGE_KEY = 'googleLogin';
+
+if (sessionStorage.getItem(GOOGLE_LOGIN_STORAGE_KEY) === 'true') {
+  onAuthStateChanged(firebaseAuth, (user) => {
+    if (user) {
+      sessionStorage.removeItem(GOOGLE_LOGIN_STORAGE_KEY);
+      window.location.replace('index.html');
+    }
+  });
+}
 
 onAuthStateChanged(firebaseAuth, (user) => {
   if (user) {
@@ -28,6 +38,7 @@ onAuthStateChanged(firebaseAuth, (user) => {
 getRedirectResult(firebaseAuth)
   .then((result) => {
     if (result && result.user) {
+      sessionStorage.removeItem(GOOGLE_LOGIN_STORAGE_KEY);
       console.log('Redirect result OK');
       const authPayload = {
         uid: result.user.uid || '',
@@ -279,6 +290,7 @@ googleLoginButton.addEventListener('click', async () => {
     return;
   }
 
+  sessionStorage.setItem(GOOGLE_LOGIN_STORAGE_KEY, 'true');
   isAuthInProgress = true;
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
