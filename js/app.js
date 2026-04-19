@@ -288,21 +288,35 @@ import { firebaseAuth } from './firebase-core.js';
     const userData = getAuthUserData(authUser);
     const isAuthenticated = Boolean(userData);
 
+    setHomeAccessControlVisibility({ showAvatar: false, showLoginButton: false });
+
     if (isAuthenticated) {
-      if (loginButton) {
-        loginButton.hidden = true;
-      }
+      setHomeAccessControlVisibility({ showAvatar: true, showLoginButton: false });
       renderAvatar(userData, onAvatarClick);
       return;
     }
 
     if (avatarButton) {
-      avatarButton.hidden = true;
       avatarButton.onclick = null;
     }
     if (loginButton) {
-      loginButton.hidden = false;
+      setHomeAccessControlVisibility({ showAvatar: false, showLoginButton: true });
       loginButton.onclick = () => UiService.navigate('login.html');
+    }
+  }
+
+  function setHomeAccessControlVisibility({ showAvatar, showLoginButton }) {
+    const avatarButton = document.getElementById('userAvatarButton');
+    const loginButton = document.getElementById('openLoginButton');
+
+    if (avatarButton) {
+      avatarButton.hidden = !showAvatar;
+      avatarButton.style.display = showAvatar ? 'inline-flex' : 'none';
+    }
+
+    if (loginButton) {
+      loginButton.hidden = !showLoginButton;
+      loginButton.style.display = showLoginButton ? 'inline-flex' : 'none';
     }
   }
 
@@ -673,7 +687,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
     renderAvatarVisual(avatarButton, authUserData);
     avatarButton.title = authUserData?.name || authUserData?.email || '';
-    avatarButton.hidden = false;
+    setHomeAccessControlVisibility({ showAvatar: true, showLoginButton: false });
     avatarButton.onclick = onClick;
   }
 
