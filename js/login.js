@@ -29,6 +29,20 @@ function isMobileDevice() {
   return isMobileUserAgent || (touchDevice && smallViewport);
 }
 
+function isInAppBrowser() {
+  return /FBAN|FBAV|Instagram|Messenger|WhatsApp/i.test(navigator.userAgent);
+}
+
+function showInAppBrowserWarning() {
+  if (!isInAppBrowser()) {
+    return;
+  }
+
+  alert('Veuillez ouvrir ce site dans Google Chrome pour vous connecter avec Google.');
+}
+
+showInAppBrowserWarning();
+
 function debugStep(message, { withAlert = false } = {}) {
   const details = `[${new Date().toISOString()}] ${message} | device=${isMobileDevice() ? 'mobile' : 'desktop'}`;
   console.log(details);
