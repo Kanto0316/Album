@@ -929,6 +929,7 @@ import { firebaseAuth } from './firebase-core.js';
       siteList.innerHTML = sites
         .map((site) => {
           const createdLabel = buildCreatedLabel(site, userNamesById);
+          const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           return `
             <article class="list-card">
               ${isAuthenticated && currentPermissions.canDelete ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
@@ -941,7 +942,7 @@ import { firebaseAuth } from './firebase-core.js';
               </button>
               <img
                 class="list-card__lock-icon"
-                src="${isSiteLocked(site) ? 'Icon/Cadenas_close' : 'Icon/Cadenas_Open'}"
+                src="${lockIconSrc}"
                 alt="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
                 aria-label="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
               />
@@ -949,6 +950,29 @@ import { firebaseAuth } from './firebase-core.js';
           `;
         })
         .join('');
+
+      siteList.querySelectorAll('.list-card__lock-icon').forEach((icon) => {
+        const iconSrc = icon.getAttribute('src');
+        console.debug('[page1][lock-icon] src utilisé :', iconSrc);
+
+        icon.addEventListener(
+          'error',
+          () => {
+            const fallbackSrc = 'Icon/Cadenas_close.png';
+            console.warn('[page1][lock-icon] erreur de chargement, fallback appliqué :', iconSrc, '->', fallbackSrc);
+            icon.src = fallbackSrc;
+
+            icon.addEventListener(
+              'error',
+              () => {
+                icon.style.display = 'none';
+              },
+              { once: true },
+            );
+          },
+          { once: true },
+        );
+      });
 
       siteList.querySelectorAll('[data-site-open]').forEach((button) => {
         let longPressTimer = null;
