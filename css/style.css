@@ -1035,6 +1035,20 @@ body[data-page="history"] .list-grid {
   gap: 0.75rem;
 }
 
+.modal-actions--password {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.modal-actions--password .btn {
+  flex: 0 1 auto;
+  min-width: fit-content;
+}
+
+.modal-actions--password-manage {
+  justify-content: space-between;
+}
+
 .form-footer {
   grid-column: 1 / -1;
   justify-content: space-between;
