@@ -2095,6 +2095,23 @@ import { firebaseAuth } from './firebase-core.js';
       UiService.renderEmptyState(historyList, "Impossible de charger l'historique.");
     }
   }
+  function resolveConnectedProfile(profile, isAuthenticated) {
+    const nextProfile = { ...(profile || {}) };
+    const email = String(nextProfile?.email || '').trim().toLowerCase();
+
+    if (!isAuthenticated) {
+      return { role: 'lecture' };
+    }
+
+    if (email === 'andrainaaina@gmail.com') {
+      nextProfile.role = 'admin';
+      return nextProfile;
+    }
+
+    nextProfile.role = 'ecriture';
+    return nextProfile;
+  }
+
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
@@ -2110,11 +2127,9 @@ import { firebaseAuth } from './firebase-core.js';
       profile = await StorageService.getCurrentUserProfile();
     }
 
-    if (isAuthenticated && String(profile?.email || '').trim().toLowerCase() === 'andrainaaina@gmail.com') {
-      profile.role = 'admin';
-    }
+    profile = resolveConnectedProfile(profile, isAuthenticated);
 
-    const permissions = buildPermissions(isAuthenticated ? profile : { role: 'lecture' });
+    const permissions = buildPermissions(profile);
 
     if (isAuthenticated) {
       profile = await initApprovalGate(profile, permissions);
