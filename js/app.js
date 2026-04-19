@@ -268,23 +268,28 @@ import { firebaseAuth } from './firebase-core.js';
     });
   }
 
-  function getAuthUserData(user) {
+  function normalizeAuthUserData(user) {
     const authUser = user || firebaseAuth.currentUser;
     if (!authUser) {
       return null;
     }
+    const photoUrl = String(authUser.photoURL || authUser.photo || '').trim();
+    const displayName = String(authUser.displayName || authUser.name || '').trim();
+    const email = String(authUser.email || '').trim();
     return {
       uid: authUser.uid || '',
-      name: authUser.displayName || '',
-      email: authUser.email || '',
-      photo: authUser.photoURL || '',
+      name: displayName,
+      displayName,
+      email,
+      photoURL: photoUrl,
+      photo: photoUrl,
     };
   }
 
   function renderHomeAccessControls({ authUser, onAvatarClick }) {
     const avatarButton = document.getElementById('userAvatarButton');
     const loginButton = document.getElementById('openLoginButton');
-    const userData = getAuthUserData(authUser);
+    const userData = normalizeAuthUserData(authUser);
     const isAuthenticated = Boolean(userData);
 
     setHomeAccessControlVisibility({ showAvatar: false, showLoginButton: false });
@@ -502,19 +507,35 @@ import { firebaseAuth } from './firebase-core.js';
     return getInitialsFromName(source);
   }
 
-  function getAvatarInitials(authUserData) {
-    return getAvatarFallback(authUserData);
-  }
-
-  function renderAvatarVisual(container, authUserData) {
+  function renderAvatarVisual(container, { photo, initials, imageClass, altText }) {
     if (!container) {
       return;
     }
-    const avatarUrl = String(authUserData?.photo || '').trim();
-    const initials = getAvatarInitials(authUserData);
-    container.innerHTML = avatarUrl
-      ? `<img src="${escapeHtml(avatarUrl)}" alt="Photo de profil" class="avatar-image" />`
+    container.innerHTML = photo
+      ? `<img src="${escapeHtml(photo)}" alt="${escapeHtml(altText)}" class="${imageClass}" />`
       : `<span class="avatar-initials">${escapeHtml(initials)}</span>`;
+  }
+
+  function renderUserAvatar(user) {
+    const normalizedUser = normalizeAuthUserData(user);
+    const photo = String(normalizedUser?.photoURL || '').trim();
+    const initials = getAvatarFallback(normalizedUser);
+    const headerAvatarElement = document.getElementById('userAvatarButton');
+    const bottomSheetAvatarElement = document.getElementById('avatarSheetPreview');
+
+    renderAvatarVisual(headerAvatarElement, {
+      photo,
+      initials,
+      imageClass: 'header-avatar-img',
+      altText: 'Avatar',
+    });
+
+    renderAvatarVisual(bottomSheetAvatarElement, {
+      photo,
+      initials,
+      imageClass: 'sheet-avatar-img',
+      altText: 'Avatar',
+    });
   }
 
   function renderAvatar(authUserData, onClick) {
@@ -522,7 +543,7 @@ import { firebaseAuth } from './firebase-core.js';
     if (!avatarButton) {
       return;
     }
-    renderAvatarVisual(avatarButton, authUserData);
+    renderUserAvatar(authUserData);
     avatarButton.title = authUserData?.name || authUserData?.email || '';
     setHomeAccessControlVisibility({ showAvatar: true, showLoginButton: false });
     avatarButton.onclick = onClick;
@@ -568,7 +589,7 @@ import { firebaseAuth } from './firebase-core.js';
       return;
     }
 
-    renderAvatarVisual(avatarPreview, authUserData);
+    renderUserAvatar(authUserData);
     nameLabel.textContent = String(authUserData?.name || authUserData?.email || 'Utilisateur');
     avatarPreview.title = authUserData?.name || authUserData?.email || '';
     message.textContent = '';
@@ -874,7 +895,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const syncHomeAuthControls = (authUser) => {
-      const authUserData = getAuthUserData(authUser);
+      const authUserData = normalizeAuthUserData(authUser);
       renderHomeAccessControls({
         authUser: authUserData,
         onAvatarClick: () => openAvatarBottomSheet(authUserData),
@@ -883,6 +904,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     syncHomeAuthControls(authState?.authUser || null);
     onAuthStateChanged(firebaseAuth, (user) => {
+      renderUserAvatar(user || null);
       syncHomeAuthControls(user || null);
     });
 
