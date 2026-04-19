@@ -1,8 +1,10 @@
 import {
   GoogleAuthProvider,
+  browserLocalPersistence,
   fetchSignInMethodsForEmail,
   getRedirectResult,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -10,48 +12,43 @@ import {
 import { firebaseAuth } from './firebase-core.js';
 
 console.log('LOGIN PAGE LOADED');
-const GOOGLE_LOGIN_STORAGE_KEY = 'googleLogin';
+console.log('Auth initialized');
 
-if (sessionStorage.getItem(GOOGLE_LOGIN_STORAGE_KEY) === 'true') {
-  onAuthStateChanged(firebaseAuth, (user) => {
-    if (user) {
-      sessionStorage.removeItem(GOOGLE_LOGIN_STORAGE_KEY);
-      window.location.replace('index.html');
-    }
-  });
-}
+const authReadyPromise = setPersistence(firebaseAuth, browserLocalPersistence)
+  .then(() => {
+    onAuthStateChanged(firebaseAuth, (user) => {
+      console.log('Auth state changed:', user ? user.email : 'no user');
+      if (user) {
+        const authPayload = {
+          uid: user.uid || '',
+          displayName: user.displayName || '',
+          email: user.email || '',
+          photoURL: user.photoURL || '',
+        };
+        localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
+        window.location.replace('index.html');
+      }
+    });
 
-onAuthStateChanged(firebaseAuth, (user) => {
-  if (user) {
-    console.log('Utilisateur détecté après redirect');
-    const authPayload = {
-      uid: user.uid || '',
-      displayName: user.displayName || '',
-      email: user.email || '',
-      photoURL: user.photoURL || '',
-    };
-    localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
-    window.location.replace('index.html');
-  }
-});
-
-getRedirectResult(firebaseAuth)
-  .then((result) => {
-    if (result && result.user) {
-      sessionStorage.removeItem(GOOGLE_LOGIN_STORAGE_KEY);
-      console.log('Redirect result OK');
-      const authPayload = {
-        uid: result.user.uid || '',
-        displayName: result.user.displayName || '',
-        email: result.user.email || '',
-        photoURL: result.user.photoURL || '',
-      };
-      localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
-      window.location.replace('index.html');
-    }
+    getRedirectResult(firebaseAuth)
+      .then((result) => {
+        if (result && result.user) {
+          const authPayload = {
+            uid: result.user.uid || '',
+            displayName: result.user.displayName || '',
+            email: result.user.email || '',
+            photoURL: result.user.photoURL || '',
+          };
+          localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
+          window.location.replace('index.html');
+        }
+      })
+      .catch((error) => {
+        console.log('Redirect error:', error.code, error.message);
+      });
   })
   .catch((error) => {
-    console.log('Erreur redirect:', error);
+    console.log('Persistence error:', error.code, error.message);
   });
 
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
@@ -132,6 +129,7 @@ function isMobileDevice() {
 }
 
 async function startGoogleSignIn() {
+  await authReadyPromise;
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -268,6 +266,7 @@ form.addEventListener('submit', async (event) => {
 
   setLoading(true, emailLoginButton);
   try {
+    await authReadyPromise;
     await signInWithEmailAndPassword(firebaseAuth, emailInput.value.trim(), passwordInput.value);
     saveCredentials(emailInput.value.trim(), passwordInput.value);
   } catch (error) {
@@ -290,7 +289,6 @@ googleLoginButton.addEventListener('click', async () => {
     return;
   }
 
-  sessionStorage.setItem(GOOGLE_LOGIN_STORAGE_KEY, 'true');
   isAuthInProgress = true;
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
