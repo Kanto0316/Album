@@ -2,12 +2,10 @@ import {
   GoogleAuthProvider,
   browserLocalPersistence,
   fetchSignInMethodsForEmail,
-  getRedirectResult,
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
@@ -15,6 +13,8 @@ console.log('LOGIN PAGE LOADED');
 alert('LOGIN PAGE LOADED');
 
 const auth = firebaseAuth;
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' });
 
 function isMobileDevice() {
   if (navigator.userAgentData?.mobile) {
@@ -57,11 +57,8 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
   .then(() => {
     debugStep('Persistence set: browserLocalPersistence', { withAlert: true });
 
-    let hasAuthenticatedUser = false;
-
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        hasAuthenticatedUser = true;
         console.log('onAuthStateChanged user.email:', user.email || '');
         debugStep('Authenticated user detected via onAuthStateChanged', { withAlert: true });
         const authPayload = {
@@ -76,36 +73,6 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
         console.log('No authenticated user');
       }
     });
-
-    debugStep('Calling getRedirectResult(auth)', { withAlert: true });
-    getRedirectResult(auth)
-      .then((result) => {
-        console.log('getRedirectResult(auth) full result:', result);
-        if (result && result.user) {
-          debugStep('Redirect result contains user', { withAlert: true });
-          const authPayload = {
-            uid: result.user.uid || '',
-            displayName: result.user.displayName || '',
-            email: result.user.email || '',
-            photoURL: result.user.photoURL || '',
-          };
-          localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
-          window.location.replace('index.html');
-          return;
-        }
-
-        if (!hasAuthenticatedUser) {
-          const failureMessage = 'Redirect flow likely failed before authentication (result=null and no auth state user). Verify Android browser compatibility and avoid in-app browsers.';
-          console.warn(failureMessage);
-          debugStep(failureMessage, { withAlert: true });
-        }
-      })
-      .catch((error) => {
-        console.log('Redirect error code:', error?.code || 'unknown');
-        console.log('Redirect error message:', error?.message || 'No message');
-        console.log('Redirect full error:', error);
-        debugStep('getRedirectResult(auth) failed', { withAlert: true });
-      });
   })
   .catch((error) => {
     console.log('Persistence error:', error.code, error.message);
@@ -146,7 +113,7 @@ function mapGoogleAuthError(error) {
   console.log('MESSAGE:', message || 'Aucun message Firebase');
 
   if (code.includes('auth/popup-blocked')) {
-    return 'La popup Google a été bloquée par le navigateur. Autorisez les popups puis réessayez.';
+    return 'Le navigateur a bloqué la fenêtre de connexion Google. Réessayez dans Chrome ou autorisez les popups.';
   }
   if (code.includes('auth/unauthorized-domain')) {
     return `Domaine non autorisé dans Firebase : "${window.location.hostname}". Ajoutez ce domaine dans Authentication > Settings > Authorized domains.`;
@@ -177,29 +144,10 @@ function setLoading(isLoading, sourceButton = emailLoginButton) {
 
 async function startGoogleSignIn() {
   await authReadyPromise;
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
-
-  if (isMobileDevice()) {
-    debugStep('Launching Google redirect', { withAlert: true });
-    await signInWithRedirect(auth, provider);
-    return 'redirect';
-  }
-
-  try {
-    debugStep('Launching Google popup (desktop)');
-    await signInWithPopup(auth, provider);
-    return 'popup';
-  } catch (error) {
-    logAuthError(error);
-    const code = String(error?.code || '');
-    if (code.includes('popup-blocked') || code.includes('popup-closed-by-user') || code.includes('cancelled-popup-request')) {
-      debugStep('Popup failed, fallback Launching Google redirect', { withAlert: true });
-      await signInWithRedirect(auth, provider);
-      return 'redirect';
-    }
-    throw error;
-  }
+  // signInWithRedirect est évité ici car le projet est hébergé sur GitHub Pages et non sur Firebase Hosting.
+  debugStep(`Launching Google popup (${isMobileDevice() ? 'mobile' : 'desktop'})`);
+  await signInWithPopup(auth, provider);
+  window.location.replace('index.html');
 }
 
 function encodeMemo(email, password) {
@@ -347,10 +295,7 @@ googleLoginButton.addEventListener('click', async () => {
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
-    const flow = await startGoogleSignIn();
-    if (flow === 'redirect') {
-      return;
-    }
+    await startGoogleSignIn();
   } catch (error) {
     logAuthError(error);
     globalError.textContent = mapGoogleAuthError(error);
