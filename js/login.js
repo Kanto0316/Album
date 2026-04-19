@@ -9,9 +9,6 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
-console.log('LOGIN PAGE LOADED');
-alert('LOGIN PAGE LOADED');
-
 const auth = firebaseAuth;
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
@@ -35,32 +32,16 @@ function isInAppBrowser() {
 
 function showInAppBrowserWarning() {
   if (!isInAppBrowser()) {
-    return;
+    return '';
   }
 
-  alert('Veuillez ouvrir ce site dans Google Chrome pour vous connecter avec Google.');
+  return 'Pour une connexion Google plus fiable, ouvrez cette page dans votre navigateur principal (Chrome, Safari, etc.).';
 }
-
-showInAppBrowserWarning();
-
-function debugStep(message, { withAlert = false } = {}) {
-  const details = `[${new Date().toISOString()}] ${message} | device=${isMobileDevice() ? 'mobile' : 'desktop'}`;
-  console.log(details);
-  if (withAlert && isMobileDevice()) {
-    alert(message);
-  }
-}
-
-debugStep('Firebase/Auth references ready', { withAlert: true });
 
 const authReadyPromise = setPersistence(auth, browserLocalPersistence)
   .then(() => {
-    debugStep('Persistence set: browserLocalPersistence', { withAlert: true });
-
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log('onAuthStateChanged user.email:', user.email || '');
-        debugStep('Authenticated user detected via onAuthStateChanged', { withAlert: true });
         const authPayload = {
           uid: user.uid || '',
           displayName: user.displayName || '',
@@ -69,13 +50,11 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
         };
         localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
         window.location.replace('index.html');
-      } else {
-        console.log('No authenticated user');
       }
     });
   })
-  .catch((error) => {
-    console.log('Persistence error:', error.code, error.message);
+  .catch(() => {
+    globalError.textContent = 'Une erreur est survenue lors de la préparation de la connexion. Veuillez réessayer.';
   });
 
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
@@ -91,15 +70,13 @@ const globalError = document.getElementById('globalError');
 const emailLoginButton = document.getElementById('emailLoginButton');
 const googleLoginButton = document.getElementById('googleLoginButton');
 
-let lastEmailCheckId = 0;
-let isAuthInProgress = false;
-
-function logAuthError(error) {
-  console.log('CODE:', error?.code || 'unknown');
-  console.log('MESSAGE:', error?.message || 'Aucun message Firebase');
-  alert(error?.code || 'auth/unknown');
+const inAppBrowserWarning = showInAppBrowserWarning();
+if (inAppBrowserWarning) {
+  globalError.textContent = inAppBrowserWarning;
 }
 
+let lastEmailCheckId = 0;
+let isAuthInProgress = false;
 
 function redirectToHome() {
   window.location.replace('index.html');
@@ -107,19 +84,9 @@ function redirectToHome() {
 
 function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
-  const message = String(error?.message || '');
-
-  console.log('CODE:', code || 'unknown');
-  console.log('MESSAGE:', message || 'Aucun message Firebase');
 
   if (code.includes('auth/popup-blocked')) {
     return 'Le navigateur a bloqué la fenêtre de connexion Google. Réessayez dans Chrome ou autorisez les popups.';
-  }
-  if (code.includes('auth/unauthorized-domain')) {
-    return `Domaine non autorisé dans Firebase : "${window.location.hostname}". Ajoutez ce domaine dans Authentication > Settings > Authorized domains.`;
-  }
-  if (code.includes('auth/operation-not-allowed')) {
-    return 'Google Auth n’est pas activé dans Firebase (Authentication > Sign-in method > Google).';
   }
   if (code.includes('auth/popup-closed-by-user')) {
     return 'Connexion Google annulée : la popup a été fermée avant la validation.';
@@ -145,7 +112,6 @@ function setLoading(isLoading, sourceButton = emailLoginButton) {
 async function startGoogleSignIn() {
   await authReadyPromise;
   // signInWithRedirect est évité ici car le projet est hébergé sur GitHub Pages et non sur Firebase Hosting.
-  debugStep(`Launching Google popup (${isMobileDevice() ? 'mobile' : 'desktop'})`);
   await signInWithPopup(auth, provider);
   window.location.replace('index.html');
 }
@@ -209,8 +175,7 @@ async function validateEmailRealtime() {
       emailError.textContent = 'Email inexistant.';
       return false;
     }
-  } catch (error) {
-    logAuthError(error);
+  } catch (_error) {
     emailError.textContent = 'Vérification email indisponible.';
     return false;
   }
@@ -268,7 +233,6 @@ form.addEventListener('submit', async (event) => {
     await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
     saveCredentials(emailInput.value.trim(), passwordInput.value);
   } catch (error) {
-    logAuthError(error);
     const code = String(error?.code || '');
     if (code.includes('wrong-password') || code.includes('invalid-credential')) {
       passwordError.textContent = 'Mot de passe incorrect.';
@@ -287,17 +251,12 @@ googleLoginButton.addEventListener('click', async () => {
     return;
   }
 
-  console.log('Google button clicked');
-  console.log(`Device type: ${isMobileDevice() ? 'mobile' : 'desktop'}`);
-  debugStep('Google button clicked', { withAlert: true });
-
   isAuthInProgress = true;
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
     await startGoogleSignIn();
   } catch (error) {
-    logAuthError(error);
     globalError.textContent = mapGoogleAuthError(error);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
