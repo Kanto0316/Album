@@ -1053,6 +1053,41 @@ async function setSiteLock(siteId, lockPayload) {
   return { ok: true };
 }
 
+async function clearSiteLock(siteId) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+
+  const timestamp = nowIso();
+  const nextLockState = {
+    isLocked: false,
+    passwordHash: deleteField(),
+    lockedAt: deleteField(),
+    lockedByName: deleteField(),
+    dateModification: timestamp,
+  };
+
+  await setDoc(
+    doc(state.db, 'pages', 'page1', 'items', siteId),
+    nextLockState,
+    { merge: true },
+  );
+
+  state.sites[siteIndex] = {
+    ...state.sites[siteIndex],
+    isLocked: false,
+    passwordHash: '',
+    lockedAt: null,
+    lockedByName: '',
+    dateModification: timestamp,
+  };
+  sortState();
+  persistOfflineState();
+  emitAll();
+  return { ok: true };
+}
+
 async function removeSite(siteId) {
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
@@ -1566,6 +1601,7 @@ window.StorageService = {
   getAllDetails,
   createSite,
   setSiteLock,
+  clearSiteLock,
   removeSite,
   restoreSite,
   createItem,
