@@ -83,7 +83,6 @@
         <form class="modal-content" id="siteLockForm">
           <div class="modal-header">
             <h2>Créer un mot de passe</h2>
-            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
           </div>
           <label class="input-group">
             <span>Entrer un mot de passe</span>
@@ -94,7 +93,7 @@
             <input id="siteLockConfirmPasswordInput" type="password" autocomplete="new-password" />
           </label>
           <p id="siteLockError" class="form-error" aria-live="polite"></p>
-          <div class="modal-actions modal-actions--split">
+          <div class="modal-actions modal-actions--password">
             <button type="button" class="btn" data-close-dialog>Annuler</button>
             <button type="submit" class="btn btn-success">Enregistrer</button>
           </div>
@@ -105,7 +104,6 @@
         <form class="modal-content" id="siteLockManageForm">
           <div class="modal-header">
             <h2>Gestion de l’accès sécurisé</h2>
-            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
           </div>
           <p class="modal-helper-text">Ce site est actuellement protégé par un mot de passe.</p>
           <label class="input-group">
@@ -117,7 +115,7 @@
             <input id="siteLockNewPasswordInput" type="password" autocomplete="new-password" />
           </label>
           <p id="siteLockManageError" class="form-error" aria-live="polite"></p>
-          <div class="modal-actions modal-actions--split">
+          <div class="modal-actions modal-actions--password modal-actions--password-manage">
             <button type="submit" class="btn btn-danger" data-lock-manage-action="unlock">Déverrouiller</button>
             <button type="submit" class="btn btn-success" data-lock-manage-action="update">Mettre à jour le mot de passe</button>
             <button type="button" class="btn" data-close-dialog>Annuler</button>
