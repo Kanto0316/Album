@@ -985,7 +985,7 @@ import { firebaseAuth } from './firebase-core.js';
       currentPermissions = { ...currentPermissions, ...(nextPermissions || {}) };
 
       if (openCreateSite) {
-        openCreateSite.hidden = !currentPermissions.canCreate;
+        openCreateSite.hidden = !currentPermissions.canCreate || !isAuthenticated;
       }
 
       if (importDataButton) {
@@ -1255,7 +1255,8 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const openCreateItem = requireElement('openCreateItem');
-    if (!permissions.canCreate && openCreateItem) {
+    const isAuthenticated = Boolean(firebaseAuth.currentUser);
+    if ((!permissions.canCreate || !isAuthenticated) && openCreateItem) {
       openCreateItem.hidden = true;
     }
 
