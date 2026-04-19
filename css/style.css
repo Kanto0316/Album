@@ -1060,6 +1060,12 @@ body[data-page="history"] .list-grid {
   margin: 0.4rem 0 0;
   color: var(--danger);
   font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.form-error:not(:empty) {
+  opacity: 1;
 }
 
 .empty-state {
