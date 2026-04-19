@@ -87,8 +87,6 @@
       import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
       import { firebaseDb } from './js/firebase-core.js';
 
-      const ADMIN_EMAIL = 'andrainaaina@gmail.com';
-
       function cleanString(value) {
         return String(value || '').trim();
       }
@@ -112,20 +110,15 @@
       }
 
       function resolveRole(user) {
-        if (toLower(user.email) === ADMIN_EMAIL) {
-          return 'admin';
+        const role = cleanString(user.role);
+        const normalized = toLower(role);
+        if (normalized === 'admin' || normalized === 'adjoint') {
+          return 'Adjoint';
         }
-        const role = toLower(user.role);
-        if (role === 'admin') {
-          return 'admin';
+        if (normalized === 'ecriture') {
+          return 'Ecriture';
         }
-        if (role === 'adjoint' || role === 'ecriture') {
-          return role;
-        }
-        if (role === 'full') {
-          return 'adjoint';
-        }
-        return 'ecriture';
+        return 'Ecriture';
       }
 
       function resolveMaintenanceAuthorized(user) {
@@ -145,11 +138,8 @@
         }
 
         const updates = {};
-        const role = resolveRole(user);
         if (!cleanString(user.role)) {
-          updates.role = role === 'admin' ? 'admin' : role;
-        } else if (toLower(user.role) === 'full') {
-          updates.role = 'adjoint';
+          updates.role = 'Ecriture';
         }
 
         const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
@@ -179,7 +169,7 @@
             const role = resolveRole(user);
             const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
             const photoURL = cleanString(user.photoURL || user.avatarUrl || user.avatar);
-            const isPrimaryAdmin = toLower(email) === ADMIN_EMAIL;
+            const isPrimaryAdmin = toLower(role) === 'adjoint' && toLower(email) === 'andrainaaina@gmail.com';
 
             const avatarMarkup = photoURL
               ? `<span class="users-avatar"><img src="${photoURL.replace(/"/g, '&quot;')}" alt="Avatar de ${displayName.replace(/"/g, '&quot;')}" /></span>`
@@ -192,8 +182,8 @@
                 <td class="users-email-cell">${email || '-'}</td>
                 <td>
                   <select class="users-role-select" data-user-role="${user.id}" ${isPrimaryAdmin ? 'disabled' : ''}>
-                    <option value="adjoint" ${role === 'adjoint' || role === 'admin' ? 'selected' : ''}>Adjoint</option>
-                    <option value="ecriture" ${role === 'ecriture' ? 'selected' : ''}>Ecriture</option>
+                    <option value="Adjoint" ${role === 'Adjoint' ? 'selected' : ''}>Adjoint</option>
+                    <option value="Ecriture" ${role === 'Ecriture' ? 'selected' : ''}>Ecriture</option>
                   </select>
                 </td>
                 <td class="maintenance-access-cell">
@@ -218,7 +208,7 @@
         tableBody.querySelectorAll('[data-user-role]').forEach((select) => {
           select.addEventListener('change', async () => {
             const userId = select.getAttribute('data-user-role');
-            const selected = toLower(select.value) === 'adjoint' ? 'admin' : 'ecriture';
+            const selected = toLower(select.value) === 'adjoint' ? 'Adjoint' : 'Ecriture';
             try {
               await setDoc(
                 doc(firebaseDb, 'users', userId),

@@ -43,7 +43,7 @@ function normalizeRole(value) {
   if (role === 'lecture' || role === 'ecriture' || role === 'full' || role === 'admin') {
     return role;
   }
-  return 'full';
+  return 'ecriture';
 }
 
 function normalizeUsername(value) {
@@ -56,6 +56,13 @@ function normalizeAvatarUrl(value) {
 
 function normalizeMaintenanceAccess(value) {
   return Boolean(value);
+}
+
+function normalizeMaintenanceAuthorized(data) {
+  if (typeof data?.maintenanceAuthorized === 'boolean') {
+    return data.maintenanceAuthorized;
+  }
+  return normalizeMaintenanceAccess(data?.maintenanceAccess);
 }
 
 const BLOCKED_USERNAMES = new Set([
@@ -143,38 +150,70 @@ async function ensureCurrentUser() {
   }
   const ref = userDocRef();
   const snap = await getDoc(ref);
+  const authDisplayName = String(state.authUser?.displayName || '').trim();
+  const authEmail = String(state.authUser?.email || '').trim();
+  const authPhotoUrl = String(state.authUser?.photoURL || '').trim();
   if (!snap.exists()) {
     await setDoc(
       ref,
       {
-        username: '',
-        email: state.authUser?.email || '',
-        name: '',
-        avatarUrl: '',
-        avatar: '',
-        role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
+        uid: state.userId,
+        username: authDisplayName,
+        displayName: authDisplayName,
+        email: authEmail,
+        name: authDisplayName,
+        photoURL: authPhotoUrl,
+        avatarUrl: authPhotoUrl,
+        avatar: authPhotoUrl,
+        role: 'Ecriture',
         status: deleteField(),
         approved: deleteField(),
         pending: deleteField(),
+        maintenanceAuthorized: false,
         maintenanceAccess: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
         lastNameChange: null,
       },
       { merge: true },
     );
     return {
       id: state.userId,
-      username: '',
-      avatarUrl: '',
-      role: isAdminEmail(state.authUser?.email) ? 'admin' : 'full',
+      username: authDisplayName,
+      avatarUrl: authPhotoUrl,
+      role: 'ecriture',
       maintenanceAccess: false,
+      maintenanceAuthorized: false,
       lastNameChange: null,
       createdAt: null,
     };
   }
 
   const data = snap.data() || {};
+  const mergedMaintenanceAuthorized = normalizeMaintenanceAuthorized(data);
+  const updates = {
+    uid: state.userId,
+    displayName: authDisplayName,
+    email: authEmail,
+    photoURL: authPhotoUrl,
+    avatarUrl: authPhotoUrl,
+    avatar: authPhotoUrl,
+    lastLoginAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+  if (!Object.prototype.hasOwnProperty.call(data, 'role') || !String(data.role || '').trim()) {
+    updates.role = 'Ecriture';
+  }
+  if (!Object.prototype.hasOwnProperty.call(data, 'maintenanceAuthorized')) {
+    updates.maintenanceAuthorized = false;
+  }
+  if (!Object.prototype.hasOwnProperty.call(data, 'maintenanceAccess')) {
+    updates.maintenanceAccess = mergedMaintenanceAuthorized;
+  }
+
+  await setDoc(ref, updates, { merge: true });
+
   if ('status' in data || 'approved' in data || 'pending' in data) {
     await setDoc(
       ref,
@@ -191,11 +230,12 @@ async function ensureCurrentUser() {
   return {
     email: String(data.email || state.authUser?.email || ''),
     id: snap.id,
-    username: normalizeUsername(data.username || data.name),
+    username: normalizeUsername(data.username || data.displayName || data.name || state.authUser?.displayName),
     role: normalizeRole(data.role),
-    maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
+    maintenanceAccess: normalizeMaintenanceAuthorized(data),
+    maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
     lastNameChange: data.lastNameChange || null,
-    avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+    avatarUrl: normalizeAvatarUrl(data.photoURL || data.avatarUrl || data.avatar),
     createdAt: data.createdAt || null,
   };
 }
@@ -223,11 +263,12 @@ async function getCurrentUserProfile() {
   return {
     email: String(data.email || state.authUser?.email || ''),
     id: snap.id,
-    username: normalizeUsername(data.username || data.name),
+    username: normalizeUsername(data.username || data.displayName || data.name || state.authUser?.displayName),
     role: normalizeRole(data.role),
-    maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
+    maintenanceAccess: normalizeMaintenanceAuthorized(data),
+    maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
     lastNameChange: data.lastNameChange || null,
-    avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+    avatarUrl: normalizeAvatarUrl(data.photoURL || data.avatarUrl || data.avatar),
     createdAt: data.createdAt || null,
   };
 }
