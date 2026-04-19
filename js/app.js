@@ -25,13 +25,17 @@ import { firebaseAuth } from './firebase-core.js';
     element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
 
-  function resolveActorLabel(userId, userMap) {
+  function resolveActorLabel(userId, userMap, fallbackName) {
+    const directName = String(fallbackName || '').trim();
+    if (directName) {
+      return directName;
+    }
     const username = userMap?.[String(userId || '')];
-    return username || 'N/A';
+    return username || 'Utilisateur';
   }
 
   function buildCreatedModifiedLabels(item, userMap) {
-    const createdBy = resolveActorLabel(item?.createdBy, userMap);
+    const createdBy = resolveActorLabel(item?.createdBy, userMap, item?.createdByName);
     const modifiedBy = resolveActorLabel(item?.modifiedBy || item?.updatedBy || item?.createdBy, userMap);
     return {
       createdLabel: `Créé par ${createdBy} le ${UiService.formatDate(item?.dateCreation)}`,
@@ -785,7 +789,7 @@ import { firebaseAuth } from './firebase-core.js';
         const users = await StorageService.listUsers();
         userNamesById = users.reduce((accumulator, user) => {
           if (user?.id) {
-            accumulator[user.id] = user.username || 'N/A';
+            accumulator[user.id] = user.username || 'Utilisateur';
           }
           return accumulator;
         }, {});
@@ -1130,7 +1134,7 @@ import { firebaseAuth } from './firebase-core.js';
         const users = await StorageService.listUsers();
         userNamesById = users.reduce((accumulator, user) => {
           if (user?.id) {
-            accumulator[user.id] = user.username || 'N/A';
+            accumulator[user.id] = user.username || 'Utilisateur';
           }
           return accumulator;
         }, {});

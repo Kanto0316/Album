@@ -591,6 +591,12 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+async function resolveCurrentUserName() {
+  const profile = await getCurrentUserProfile();
+  const rawName = profile?.username || state.authUser?.displayName || '';
+  return sanitizeText(rawName, false) || 'Utilisateur';
+}
+
 function uid() {
   return `local_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -992,10 +998,12 @@ async function createSite(name) {
   }
 
   const timestamp = nowIso();
+  const creatorName = await resolveCurrentUserName();
   const sitePayload = {
     nom: siteName,
     ownerId: state.userId,
     createdBy: state.userId,
+    createdByName: creatorName,
     dateCreation: timestamp,
     dateModification: timestamp,
   };
@@ -1046,11 +1054,13 @@ async function createItem(siteId, numberValue) {
   }
 
   const timestamp = nowIso();
+  const creatorName = await resolveCurrentUserName();
   const itemPayload = {
     siteId,
     numero,
     ownerId: state.userId,
     createdBy: state.userId,
+    createdByName: creatorName,
     dateCreation: timestamp,
     dateModification: timestamp,
   };
