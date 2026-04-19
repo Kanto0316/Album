@@ -1871,7 +1871,35 @@ import { firebaseAuth } from './firebase-core.js';
     const maintenanceStatusText = requireElement('maintenanceStatusText');
     backButton?.addEventListener('click', () => UiService.navigate('index.html'));
 
-    const roleLabel = { lecture: 'Lecture seule', ecriture: 'Écriture seule', full: 'Tout accès' };
+    const roleLabel = { adjoint: 'Adjoint', ecriture: 'Ecriture' };
+
+    function cleanText(value) {
+      return String(value || '').trim();
+    }
+
+    function resolveDisplayName(user) {
+      const displayName = cleanText(user?.username || user?.displayName || user?.name);
+      if (displayName) {
+        return displayName;
+      }
+      const emailPrefix = cleanText(user?.email).split('@')[0];
+      return emailPrefix || 'Utilisateur';
+    }
+
+    function resolveRole(user) {
+      const role = cleanText(user?.role).toLowerCase();
+      return role === 'adjoint' || role === 'admin' ? 'adjoint' : 'ecriture';
+    }
+
+    function resolveMaintenanceAuthorized(user) {
+      if (typeof user?.maintenanceAuthorized === 'boolean') {
+        return user.maintenanceAuthorized;
+      }
+      if (typeof user?.maintenanceAccess === 'boolean') {
+        return user.maintenanceAccess;
+      }
+      return false;
+    }
 
     function updateMaintenanceLabel(isEnabled) {
       if (maintenanceStatusText) {
@@ -1887,17 +1915,17 @@ import { firebaseAuth } from './firebase-core.js';
         .map((user) => `
           <tr>
             <td>
-              ${user.avatarUrl
-      ? `<img class="table-avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(user.username)}" />`
-      : `<span class="table-avatar table-avatar--fallback">${escapeHtml(getInitialsFromName(user.username))}</span>`}
+              ${cleanText(user.avatarUrl)
+      ? `<img class="table-avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(resolveDisplayName(user))}" />`
+      : `<span class="table-avatar table-avatar--fallback">${escapeHtml(getInitialsFromName(resolveDisplayName(user)).slice(0, 2))}</span>`}
             </td>
-            <td>${escapeHtml(user.username)}</td>
+            <td>${escapeHtml(resolveDisplayName(user))}</td>
+            <td class="users-email-cell">${escapeHtml(cleanText(user.email) || '-')}</td>
             <td>
-              ${user.username === 'Admin' ? 'Admin' : `
+              ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com' ? 'Adjoint' : `
               <select data-user-role="${user.id}">
-                <option value="lecture" ${user.role === 'lecture' ? 'selected' : ''}>${roleLabel.lecture}</option>
-                <option value="ecriture" ${user.role === 'ecriture' ? 'selected' : ''}>${roleLabel.ecriture}</option>
-                <option value="full" ${user.role === 'full' ? 'selected' : ''}>${roleLabel.full}</option>
+                <option value="adjoint" ${resolveRole(user) === 'adjoint' ? 'selected' : ''}>${roleLabel.adjoint}</option>
+                <option value="ecriture" ${resolveRole(user) === 'ecriture' ? 'selected' : ''}>${roleLabel.ecriture}</option>
               </select>`}
             </td>
             <td class="maintenance-access-cell">
@@ -1905,12 +1933,12 @@ import { firebaseAuth } from './firebase-core.js';
                 type="checkbox"
                 class="maintenance-access-checkbox"
                 data-user-maintenance-access="${user.id}"
-                ${user.maintenanceAccess ? 'checked' : ''}
-                aria-label="Autoriser ${escapeHtml(user.username)} pendant la maintenance"
+                ${resolveMaintenanceAuthorized(user) ? 'checked' : ''}
+                aria-label="Autoriser ${escapeHtml(resolveDisplayName(user))} pendant la maintenance"
               />
             </td>
             <td>
-              ${user.username === 'Admin'
+              ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com'
       ? '<span class="table-action-disabled">-</span>'
       : `<button type="button" class="table-delete-icon-button" data-delete-user="${user.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`}
             </td>
@@ -1985,6 +2013,15 @@ import { firebaseAuth } from './firebase-core.js';
 
     StorageService.subscribeUsers(
       (users) => {
+        console.log('[users] documents récupérés :', users.length);
+        users.forEach((user) => {
+          console.log('[users] doc:', user.id, {
+            displayName: resolveDisplayName(user),
+            email: cleanText(user.email),
+            role: resolveRole(user),
+            maintenanceAuthorized: resolveMaintenanceAuthorized(user),
+          });
+        });
         renderUsers(users);
       },
       () => {

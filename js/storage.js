@@ -39,9 +39,18 @@ const state = {
 };
 
 function normalizeRole(value) {
-  const role = String(value || '').toLowerCase();
-  if (role === 'lecture' || role === 'ecriture' || role === 'full' || role === 'admin') {
-    return role;
+  const role = String(value || '').trim().toLowerCase();
+  if (role === 'admin') {
+    return 'admin';
+  }
+  if (role === 'adjoint' || role === 'full') {
+    return 'adjoint';
+  }
+  if (role === 'lecture') {
+    return 'lecture';
+  }
+  if (role === 'ecriture' || role === 'écriture') {
+    return 'ecriture';
   }
   return 'ecriture';
 }
@@ -366,16 +375,19 @@ async function listUsers() {
   return snapshot.docs
     .map((snap) => {
       const data = snap.data() || {};
+      const email = String(data.email || '').trim();
+      const fallbackName = email ? email.split('@')[0] : '';
       return {
         id: snap.id,
-        username: normalizeUsername(data.username || data.name),
-        avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+        username: normalizeUsername(data.username || data.displayName || data.name || fallbackName),
+        email,
+        avatarUrl: normalizeAvatarUrl(data.photoURL || data.avatarUrl || data.avatar),
         role: normalizeRole(data.role),
-        maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
+        maintenanceAccess: normalizeMaintenanceAuthorized(data),
+        maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
         createdAt: data.createdAt || null,
       };
-    })
-    .filter((user) => user.username);
+    });
 }
 
 async function updateUserRole(userId, role) {
@@ -463,19 +475,26 @@ function subscribeUsers(onChange, onError) {
     return onSnapshot(
       usersCollection(),
       (snapshot) => {
+        console.log('[users] snapshot size:', snapshot.size);
+        snapshot.docs.forEach((snap) => {
+          console.log('[users] doc id:', snap.id, snap.data());
+        });
         const users = snapshot.docs
           .map((snap) => {
             const data = snap.data() || {};
+            const email = String(data.email || '').trim();
+            const fallbackName = email ? email.split('@')[0] : '';
             return {
               id: snap.id,
-              username: normalizeUsername(data.username || data.name),
-              avatarUrl: normalizeAvatarUrl(data.avatarUrl || data.avatar),
+              username: normalizeUsername(data.username || data.displayName || data.name || fallbackName),
+              email,
+              avatarUrl: normalizeAvatarUrl(data.photoURL || data.avatarUrl || data.avatar),
               role: normalizeRole(data.role),
-              maintenanceAccess: normalizeMaintenanceAccess(data.maintenanceAccess),
+              maintenanceAccess: normalizeMaintenanceAuthorized(data),
+              maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
               createdAt: data.createdAt || null,
             };
-          })
-          .filter((user) => user.username);
+          });
         onChange(users);
       },
       (error) => {
