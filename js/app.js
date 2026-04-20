@@ -52,6 +52,19 @@ import { firebaseAuth } from './firebase-core.js';
     return `Créé par ${createdBy} le ${UiService.formatDate(item?.dateCreation)}`;
   }
 
+  function buildDateAndTimeLabel(dateValue) {
+    if (!dateValue) {
+      return '--';
+    }
+    const parsedDate = new Date(dateValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return '--';
+    }
+    const dateLabel = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short' }).format(parsedDate);
+    const timeLabel = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(parsedDate);
+    return `${dateLabel} · ${timeLabel}`;
+  }
+
   function startOfDay(date) {
     const value = new Date(date);
     value.setHours(0, 0, 0, 0);
@@ -1432,6 +1445,7 @@ import { firebaseAuth } from './firebase-core.js';
     let userNamesById = {};
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
+    const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
 
@@ -1519,7 +1533,7 @@ import { firebaseAuth } from './firebase-core.js';
         return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
       });
 
-      setCountText(itemCount, filteredItems.length, 'élément', 'éléments');
+      itemCount.textContent = `${filteredItems.length} OUT${filteredItems.length > 1 ? 'S' : ''}`;
 
       if (!filteredItems.length) {
         UiService.renderEmptyState(
@@ -1541,15 +1555,17 @@ import { firebaseAuth } from './firebase-core.js';
           `);
         }
         previousLabel = currentLabel;
-        const createdLabel = buildCreatedLabel(item, userNamesById);
+        const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
+        const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
         htmlParts.push(`
             <article class="list-card">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
-                  <span>${detailCountsByItem[item.id] || 0} Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span>
-                  <span>${escapeHtml(createdLabel)}</span>
+                  <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" /><span>${detailCountsByItem[item.id] || 0} Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span></span>
+                  <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" /><span>Créé le ${escapeHtml(createdLabel)}</span></span>
+                  <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" /><span>${escapeHtml(createdBy)}</span></span>
                 </div>
               </button>
             </article>
@@ -1612,9 +1628,29 @@ import { firebaseAuth } from './firebase-core.js';
         selectedDateFilter = 'all';
       }
       itemDateFilter.value = selectedDateFilter;
+      const updateFilterChipsState = () => {
+        filterChipButtons.forEach((chip) => {
+          chip.classList.toggle('is-active', chip.dataset.filterChip === selectedDateFilter);
+        });
+      };
+      updateFilterChipsState();
+      filterChipButtons.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const nextFilter = chip.dataset.filterChip || 'all';
+          if (nextFilter === selectedDateFilter) {
+            return;
+          }
+          selectedDateFilter = nextFilter;
+          itemDateFilter.value = selectedDateFilter;
+          window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
+          updateFilterChipsState();
+          renderItems();
+        });
+      });
       itemDateFilter.addEventListener('change', () => {
         selectedDateFilter = itemDateFilter.value || 'all';
         window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
+        updateFilterChipsState();
         renderItems();
       });
     }
