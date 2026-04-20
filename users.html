@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Gestion des utilisateurs - Suivi Matériel</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      body[data-page='users-management'] {
+        min-height: 100dvh;
+      }
+
+      body[data-page='users-management'] .app-shell.app-shell--wide {
+        min-height: 100dvh;
+        width: min(100%, 100vw);
+      }
+
+      body[data-page='users-management'] .page-content.page-content--wide {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: clamp(0.8rem, 1.3vw, 1.1rem);
+        min-height: 0;
+        flex: 1 1 auto;
+        padding-inline: clamp(0.75rem, 1.8vw, 1.4rem);
+        padding-bottom: clamp(0.75rem, 1.8vw, 1.25rem);
+      }
+
+      body[data-page='users-management'] .surface-card {
+        margin: 0;
+      }
+
+      body[data-page='users-management'] .table-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      body[data-page='users-management'] .table-card .section-title {
+        margin-bottom: 0.75rem;
+      }
+
+      body[data-page='users-management'] .table-wrapper--users {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        height: 100%;
+      }
+
+      body[data-page='users-management'] .maintenance-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      body[data-page='users-management'] .maintenance-card-header .section-title {
+        margin: 0;
+      }
+
+      body[data-page='users-management'] .maintenance-toggle-row {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .users-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #e8edf5;
+        color: #234;
+        font-weight: 700;
+        font-size: 0.8rem;
+      }
+
+      .users-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .users-role-select {
+        min-width: 120px;
+      }
+
+      .users-email-cell {
+        max-width: 260px;
+        word-break: break-word;
+      }
+
+      .maintenance-access-cell {
+        text-align: center;
+      }
+
+      @media (max-width: 920px) {
+        body[data-page='users-management'] .page-content.page-content--wide {
+          grid-template-rows: auto minmax(0, 1fr);
+        }
+
+        body[data-page='users-management'] .maintenance-card-header {
+          align-items: flex-start;
+        }
+
+        body[data-page='users-management'] .maintenance-toggle-row {
+          margin-left: 0;
+        }
+      }
+    </style>
+  </head>
+  <body data-page="users-management">
+    <div class="app-shell app-shell--wide">
+      <header class="app-header app-header--detail">
+        <button id="usersBackButton" class="back-button" type="button" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+        <div class="header-title"><h1>Gestion Admin</h1></div>
+      </header>
+      <main class="page-content page-content--wide">
+        <section class="surface-card details-card">
+          <div class="maintenance-card-header">
+            <h2 class="section-title">Maintenance de la page</h2>
+            <div class="maintenance-toggle-row">
+              <label class="switch" for="maintenanceToggle">
+                <input id="maintenanceToggle" type="checkbox" role="switch" aria-label="Activer ou désactiver la maintenance" />
+                <span class="slider"></span>
+              </label>
+              <span id="maintenanceStatusText" class="maintenance-toggle-row__status">Désactivé</span>
+            </div>
+          </div>
+        </section>
+        <section class="surface-card table-card">
+          <h2 class="section-title">Tous les utilisateurs</h2>
+          <div class="table-wrapper table-wrapper--users">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Photo</th>
+                  <th>Nom</th>
+                  <th>Email</th>
+                  <th>Rôle</th>
+                  <th>Autorisé (maintenance)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+    <script type="module" src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/app.js"></script>
+    <script type="module">
+      import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+      import { firebaseDb } from './js/firebase-core.js';
+
+      function cleanString(value) {
+        return String(value || '').trim();
+      }
+
+      function toLower(value) {
+        return cleanString(value).toLowerCase();
+      }
+
+      function resolveDisplayName(user) {
+        const displayName = cleanString(user.displayName || user.username || user.name);
+        if (displayName) {
+          return displayName;
+        }
+        const emailPrefix = cleanString(user.email).split('@')[0];
+        return emailPrefix || 'Utilisateur';
+      }
+
+      function getInitials(name) {
+        const normalized = cleanString(name).replace(/\s+/g, ' ').replace(/[^\p{L}\p{N} ]/gu, '');
+        return (normalized.slice(0, 2) || 'US').toUpperCase();
+      }
+
+      function resolveRole(user) {
+        const role = cleanString(user.role);
+        const normalized = toLower(role);
+        if (normalized === 'admin') {
+          return 'admin';
+        }
+        if (normalized === 'standard' || normalized === 'adjoint') {
+          return 'Standard';
+        }
+        return 'Limité';
+      }
+
+      function resolveMaintenanceAuthorized(user) {
+        if (typeof user.maintenanceAuthorized === 'boolean') {
+          return user.maintenanceAuthorized;
+        }
+        if (typeof user.maintenanceAccess === 'boolean') {
+          return user.maintenanceAccess;
+        }
+        return false;
+      }
+
+      function syncDefaults(user) {
+        const email = cleanString(user.email);
+        if (!user.id || !email) {
+          return;
+        }
+
+        const updates = {};
+        if (!cleanString(user.role)) {
+          updates.role = 'Limité';
+        }
+
+        const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
+        if (!Object.prototype.hasOwnProperty.call(user, 'maintenanceAuthorized')) {
+          updates.maintenanceAuthorized = maintenanceAuthorized;
+        }
+        if (!Object.prototype.hasOwnProperty.call(user, 'maintenanceAccess')) {
+          updates.maintenanceAccess = maintenanceAuthorized;
+        }
+
+        if (Object.keys(updates).length) {
+          updates.updatedAt = serverTimestamp();
+          setDoc(doc(firebaseDb, 'users', user.id), updates, { merge: true }).catch(() => {});
+        }
+      }
+
+      function renderUsers(users) {
+        const tableBody = document.getElementById('usersTableBody');
+        if (!tableBody) {
+          return;
+        }
+
+        const rows = users
+          .map((user) => {
+            const displayName = resolveDisplayName(user);
+            const email = cleanString(user.email);
+            const role = resolveRole(user);
+            const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
+            const photoURL = cleanString(user.photoURL || user.avatarUrl || user.avatar);
+            const isPrimaryAdmin = toLower(email) === 'andrainaaina@gmail.com';
+
+            const avatarMarkup = photoURL
+              ? `<span class="users-avatar"><img src="${photoURL.replace(/"/g, '&quot;')}" alt="Avatar de ${displayName.replace(/"/g, '&quot;')}" /></span>`
+              : `<span class="users-avatar" aria-hidden="true">${getInitials(displayName)}</span>`;
+
+            return `
+              <tr data-user-id="${user.id}">
+                <td>${avatarMarkup}</td>
+                <td>${displayName}</td>
+                <td class="users-email-cell">${email || '-'}</td>
+                <td>
+                  ${isPrimaryAdmin ? 'admin' : `
+                  <select class="users-role-select" data-user-role="${user.id}">
+                    <option value="Standard" ${role === 'Standard' ? 'selected' : ''}>Standard</option>
+                    <option value="Limité" ${role === 'Limité' ? 'selected' : ''}>Limité</option>
+                  </select>`}
+                </td>
+                <td class="maintenance-access-cell">
+                  <input
+                    type="checkbox"
+                    class="maintenance-access-checkbox"
+                    data-user-maintenance-access="${user.id}"
+                    ${maintenanceAuthorized ? 'checked' : ''}
+                    aria-label="Autoriser ${displayName.replace(/"/g, '&quot;')} pendant la maintenance"
+                  />
+                </td>
+                <td>
+                  <button type="button" class="btn-delete" data-delete-user="${user.id}" ${isPrimaryAdmin ? 'disabled' : ''}>Supprimer</button>
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+
+        tableBody.innerHTML = rows;
+
+        tableBody.querySelectorAll('[data-user-role]').forEach((select) => {
+          select.addEventListener('change', async () => {
+            const userId = select.getAttribute('data-user-role');
+            const selected = toLower(select.value) === 'standard' ? 'Standard' : 'Limité';
+            try {
+              await setDoc(
+                doc(firebaseDb, 'users', userId),
+                {
+                  role: selected,
+                  updatedAt: serverTimestamp(),
+                },
+                { merge: true },
+              );
+              window.UiService?.showToast('Rôle mis à jour.');
+            } catch (_error) {
+              window.UiService?.showToast('Impossible de mettre à jour le rôle.');
+            }
+          });
+        });
+
+        tableBody.querySelectorAll('[data-user-maintenance-access]').forEach((checkbox) => {
+          checkbox.addEventListener('change', async () => {
+            const userId = checkbox.getAttribute('data-user-maintenance-access');
+            const checked = checkbox.checked;
+            try {
+              await setDoc(
+                doc(firebaseDb, 'users', userId),
+                {
+                  maintenanceAuthorized: checked,
+                  maintenanceAccess: checked,
+                  updatedAt: serverTimestamp(),
+                },
+                { merge: true },
+              );
+              window.UiService?.showToast('Accès maintenance mis à jour.');
+            } catch (_error) {
+              checkbox.checked = !checked;
+              window.UiService?.showToast('Impossible de mettre à jour l’accès maintenance.');
+            }
+          });
+        });
+
+        tableBody.querySelectorAll('[data-delete-user]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const userId = button.getAttribute('data-delete-user');
+            if (!userId || !window.StorageService?.deleteUser) {
+              return;
+            }
+            button.disabled = true;
+            try {
+              await window.StorageService.deleteUser(userId);
+              window.UiService?.showToast('Utilisateur supprimé.');
+            } catch (_error) {
+              window.UiService?.showToast('Impossible de supprimer cet utilisateur.');
+            } finally {
+              button.disabled = false;
+            }
+          });
+        });
+      }
+
+      const usersRef = collection(firebaseDb, 'users');
+      onSnapshot(
+        usersRef,
+        (snapshot) => {
+          const users = snapshot.docs.map((entry) => ({ id: entry.id, ...(entry.data() || {}) }));
+          users.forEach(syncDefaults);
+          renderUsers(users);
+        },
+        () => {
+          window.UiService?.showToast('Impossible de charger la liste des utilisateurs.');
+        },
+      );
+    </script>
+  </body>
+</html>
