@@ -973,7 +973,8 @@ import { firebaseAuth } from './firebase-core.js';
 
       siteList.innerHTML = sites
         .map((site) => {
-          const createdLabel = buildCreatedLabel(site, userNamesById);
+          const siteOwnerLabel = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
+          const createdAtLabel = buildDateAndTimeLabel(site?.dateCreation);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const canShowDeleteButton =
             isAuthenticated && currentPermissions.canDelete && !isSiteLocked(site);
@@ -983,8 +984,9 @@ import { firebaseAuth } from './firebase-core.js';
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
-                  <span>${itemCountsBySite[site.id] || 0} OUT${(itemCountsBySite[site.id] || 0) > 1 ? 'S' : ''}</span>
-                  <span>${escapeHtml(createdLabel)}</span>
+                  <span class="list-card__meta-item list-card__meta-item--out"><img src="Icon/OUT.png" alt="" aria-hidden="true" class="icon" /><span>${itemCountsBySite[site.id] || 0} OUT${(itemCountsBySite[site.id] || 0) > 1 ? 'S' : ''}</span></span>
+                  <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(createdAtLabel)}</span></span>
+                  <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(siteOwnerLabel)}</span></span>
                 </div>
               </button>
               <img
