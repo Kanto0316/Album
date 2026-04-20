@@ -17,18 +17,19 @@
       </header>
 
       <main class="page-content">
-        <section class="search-panel search-panel--site surface-card">
+        <section class="search-panel search-panel--site surface-card section">
           <label class="input-group">
             <span class="sr-only">Rechercher (OUT ou article)</span>
             <span class="site-search-icon-wrap" aria-hidden="true"><img src="Icon/Recherche.png" alt="" class="site-search-icon" /></span>
             <input
               id="itemSearchInput"
+              class="search-input"
               type="search"
               placeholder="Rechercher (OUT ou article)"
               autocomplete="off"
             />
           </label>
-          <div class="filter-chip-group" role="group" aria-label="Filtrer les résultats par date">
+          <div class="filter-chip-group filters" role="group" aria-label="Filtrer les résultats par date">
             <button class="filter-chip" type="button" data-filter-chip="all">Tous</button>
             <button class="filter-chip" type="button" data-filter-chip="today">Aujourd’hui</button>
             <button class="filter-chip" type="button" data-filter-chip="yesterday">Hier</button>
@@ -47,7 +48,7 @@
       </main>
 
       <button type="button" id="openExportItems" class="fab fab--export" aria-label="Exporter">
-        <img src="Icon/Exporter.png" alt="" aria-hidden="true" />
+        <img src="Icon/Exporter.png" alt="" aria-hidden="true" class="icon" />
         <span>Exporter</span>
       </button>
       <button id="openCreateItem" class="fab fab-add" type="button" aria-label="Ajouter un numéro OUT">+</button>
