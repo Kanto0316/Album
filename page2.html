@@ -5,49 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Détail liste - Suivi Matériel</title>
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
   <body data-page="site-detail">
     <div class="app-shell">
       <header class="app-header app-header--detail">
         <button class="back-button" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
-        <div class="header-title">
+        <div class="header-title header-title--stacked">
           <h1 id="siteTitle">Chargement...</h1>
+          <p id="itemCount" class="site-detail-subtitle">0 OUTS</p>
         </div>
       </header>
 
       <main class="page-content">
-        <section class="section-heading section-heading--meta surface-card">
-          <p id="itemCount">0 Nombre de OUT</p>
-          <button type="button" id="openExportItems" class="btn btn-success">
-            Exporter
-          </button>
-        </section>
-
-        <section class="search-panel surface-card">
+        <section class="search-panel search-panel--site surface-card">
           <label class="input-group">
-            <span class="label-with-icon"><img src="Icon/chercher.png" alt="" class="label-icon" aria-hidden="true" /><span>Chercher par numéro OUT ou par Article</span></span>
+            <span class="sr-only">Rechercher (OUT ou article)</span>
+            <span class="site-search-icon-wrap" aria-hidden="true"><img src="Icon/Recherche.png" alt="" class="site-search-icon" /></span>
             <input
               id="itemSearchInput"
               type="search"
-              placeholder="Rechercher..."
+              placeholder="Rechercher (OUT ou article)"
               autocomplete="off"
             />
           </label>
-          <label class="input-group search-filter-group">
-            <span class="label-with-icon"><img src="Icon/filtre.png" alt="" class="label-icon" aria-hidden="true" /><span>Filtrer par</span></span>
-            <select id="itemDateFilter" aria-label="Filtrer les résultats par date">
-              <option value="all">Tous</option>
-              <option value="today">Aujourd'hui</option>
-              <option value="yesterday">Hier</option>
-              <option value="lastMonth">Il y a longtemps</option>
-            </select>
-          </label>
+          <div class="filter-chip-group" role="group" aria-label="Filtrer les résultats par date">
+            <button class="filter-chip" type="button" data-filter-chip="all">Tous</button>
+            <button class="filter-chip" type="button" data-filter-chip="today">Aujourd’hui</button>
+            <button class="filter-chip" type="button" data-filter-chip="yesterday">Hier</button>
+            <button class="filter-chip" type="button" data-filter-chip="lastMonth">Plus ancien</button>
+          </div>
+          <label class="sr-only" for="itemDateFilter">Filtrer les résultats par date</label>
+          <select id="itemDateFilter" class="visually-hidden-control" aria-label="Filtrer les résultats par date">
+            <option value="all">Tous</option>
+            <option value="today">Aujourd'hui</option>
+            <option value="yesterday">Hier</option>
+            <option value="lastMonth">Il y a longtemps</option>
+          </select>
         </section>
 
         <section id="itemList" class="list-grid" aria-live="polite"></section>
       </main>
 
+      <button type="button" id="openExportItems" class="fab fab--export" aria-label="Exporter">
+        <img src="Icon/Exporter.png" alt="" aria-hidden="true" />
+        <span>Exporter</span>
+      </button>
       <button id="openCreateItem" class="fab" type="button" aria-label="Ajouter un numéro OUT">+</button>
 
       <dialog id="itemDialog" class="modal-card">
