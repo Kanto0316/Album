@@ -47,11 +47,6 @@ import { firebaseAuth } from './firebase-core.js';
     return username || 'Utilisateur';
   }
 
-  function buildCreatedLabel(item, userMap) {
-    const createdBy = resolveActorLabel(item?.createdBy, userMap, item?.createdByName);
-    return `Créé par ${createdBy} le ${UiService.formatDate(item?.dateCreation)}`;
-  }
-
   function buildDateAndTimeLabel(dateValue) {
     if (!dateValue) {
       return '--';
@@ -961,7 +956,7 @@ import { firebaseAuth } from './firebase-core.js';
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
       const sites = currentSites.filter((site) => String(site.nom || '').toUpperCase().includes(query));
-      setCountText(siteCount, sites.length, 'site', 'sites');
+      siteCount.textContent = String(sites.length);
 
       if (!sites.length) {
         UiService.renderEmptyState(
@@ -973,8 +968,11 @@ import { firebaseAuth } from './firebase-core.js';
 
       siteList.innerHTML = sites
         .map((site) => {
-          const createdLabel = buildCreatedLabel(site, userNamesById);
+          const outCount = itemCountsBySite[site.id] || 0;
+          const createdDateTime = buildDateAndTimeLabel(site?.dateCreation);
+          const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
+          const lockLabel = isSiteLocked(site) ? 'Verrouillé' : 'Déverrouillé';
           const canShowDeleteButton =
             isAuthenticated && currentPermissions.canDelete && !isSiteLocked(site);
           return `
@@ -983,43 +981,29 @@ import { firebaseAuth } from './firebase-core.js';
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
-                  <span>${itemCountsBySite[site.id] || 0} OUT${(itemCountsBySite[site.id] || 0) > 1 ? 'S' : ''}</span>
-                  <span>${escapeHtml(createdLabel)}</span>
+                  <span class="list-card__meta-item list-card__meta-item--outs">
+                    <img src="Icon/OUT.png" alt="" aria-hidden="true" class="icon" />
+                    <span>${outCount} OUT${outCount > 1 ? 'S' : ''}</span>
+                  </span>
+                  <span class="list-card__meta-item">
+                    <img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" />
+                    <span>Créé le ${escapeHtml(createdDateTime)}</span>
+                  </span>
+                  <span class="list-card__meta-item">
+                    <img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" />
+                    <span>${escapeHtml(createdBy)}</span>
+                  </span>
                 </div>
+                <span class="list-card__divider" aria-hidden="true"></span>
+                <span class="list-card__status ${isSiteLocked(site) ? 'list-card__status--locked' : 'list-card__status--unlocked'}">
+                  <img src="${lockIconSrc}" alt="" aria-hidden="true" class="list-card__status-icon" />
+                  <span>${lockLabel}</span>
+                </span>
               </button>
-              <img
-                class="list-card__lock-icon ${canShowDeleteButton ? 'list-card__lock-icon--with-delete' : ''}"
-                src="${lockIconSrc}"
-                alt="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
-                aria-label="${isSiteLocked(site) ? 'Site verrouillé' : 'Site non verrouillé'}"
-              />
             </article>
           `;
         })
         .join('');
-
-      siteList.querySelectorAll('.list-card__lock-icon').forEach((icon) => {
-        const iconSrc = icon.getAttribute('src');
-        console.debug('[page1][lock-icon] src utilisé :', iconSrc);
-
-        icon.addEventListener(
-          'error',
-          () => {
-            const fallbackSrc = 'Icon/Cadenas_close.png';
-            console.warn('[page1][lock-icon] erreur de chargement, fallback appliqué :', iconSrc, '->', fallbackSrc);
-            icon.src = fallbackSrc;
-
-            icon.addEventListener(
-              'error',
-              () => {
-                icon.style.display = 'none';
-              },
-              { once: true },
-            );
-          },
-          { once: true },
-        );
-      });
 
       siteList.querySelectorAll('[data-site-open]').forEach((button) => {
         let longPressTimer = null;
