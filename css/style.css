@@ -15,6 +15,7 @@
   --radius-sm: 12px;
   --header-height: 5.75rem;
   --header-side-width: 3rem;
+  --primary-color: #2e6ce5;
 }
 
 * {
@@ -1833,7 +1834,7 @@ body[data-page="site-detail"] .app-header--detail {
   align-items: flex-start;
   padding-top: 1.1rem;
   padding-bottom: 1.15rem;
-  background: linear-gradient(140deg, #4f9cf8 0%, #2e6ce5 62%, #2f5fce 100%);
+  background: var(--primary-color);
 }
 
 body[data-page="site-detail"] .header-title {
@@ -1903,7 +1904,7 @@ body[data-page="site-detail"] #itemSearchInput {
 
 body[data-page="site-detail"] #itemSearchInput:focus {
   outline: none;
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--primary-color);
   box-shadow: 0 0 0 4px rgba(46, 108, 229, 0.12);
 }
 
@@ -1925,7 +1926,7 @@ body[data-page="site-detail"] .filter-chip {
 }
 
 body[data-page="site-detail"] .filter-chip:hover {
-  border-color: #aac2ea;
+  border-color: #cbd5e1;
 }
 
 body[data-page="site-detail"] .filter-chip:active {
@@ -1933,8 +1934,8 @@ body[data-page="site-detail"] .filter-chip:active {
 }
 
 body[data-page="site-detail"] .filter-chip.is-active {
-  background: #2e6ce5;
-  border-color: #2e6ce5;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
   color: #fff;
 }
 
@@ -1966,7 +1967,7 @@ body[data-page="site-detail"] .list-card::before {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, #4f9cf8 0%, #2e6ce5 100%);
+  background: var(--primary-color);
 }
 
 body[data-page="site-detail"] .list-card:hover {
@@ -2061,13 +2062,25 @@ body[data-page="site-detail"] #openCreateItem {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #3b82f6;
+  background: var(--primary-color);
   color: #fff;
   border: 0;
   font-size: 28px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   z-index: 40;
   transition: all 0.2s ease;
+}
+
+body[data-page="site-detail"] .fab-add:hover,
+body[data-page="site-detail"] #openCreateItem:hover {
+  background: var(--primary-color);
+}
+
+body[data-page="site-detail"] .fab-add:focus-visible,
+body[data-page="site-detail"] #openCreateItem:focus-visible,
+body[data-page="site-detail"] .filter-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 108, 229, 0.22);
 }
 
 body[data-page="site-detail"] .fab-add:active,
@@ -2384,7 +2397,7 @@ body[data-page="site-detail"] .app-header--detail {
   min-height: var(--header-height);
   height: var(--header-height);
   padding: 0.75rem clamp(0.75rem, 2.3vw, 1.2rem);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: var(--primary-color);
   display: grid;
   grid-template-columns: var(--detail-side-size) minmax(0, 1fr) var(--detail-side-size);
   align-items: center;
