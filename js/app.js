@@ -1735,6 +1735,9 @@ import { firebaseAuth } from './firebase-core.js';
     const detailForm = requireElement('detailForm');
     const detailFormSection = requireElement('detailFormSection');
     const detailFormError = requireElement('detailFormError');
+    const detailFormModal = requireElement('detailFormModal');
+    const openDetailFormButton = requireElement('openDetailFormButton');
+    const cancelDetailFormButton = requireElement('cancelDetailFormButton');
     const detailCount = requireElement('detailCount');
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
@@ -1753,6 +1756,32 @@ import { firebaseAuth } from './firebase-core.js';
     let codeSuggestionSource = [];
     let visibleCodeSuggestions = [];
     let activeSuggestionIndex = -1;
+
+    function setDetailModalOpenState(isOpen) {
+      document.body.classList.toggle('item-detail-modal-open', isOpen);
+    }
+
+    function closeDetailModal() {
+      if (!detailFormModal?.open) {
+        setDetailModalOpenState(false);
+        return;
+      }
+      detailFormModal.close();
+      setDetailModalOpenState(false);
+      hideCodeSuggestions();
+      detailFormError.textContent = '';
+    }
+
+    function openDetailModal() {
+      if (!detailFormModal || !permissions.canCreate || permissions.isLecture) {
+        return;
+      }
+      detailFormModal.showModal();
+      setDetailModalOpenState(true);
+      window.setTimeout(() => {
+        codeInput?.focus();
+      }, 60);
+    }
 
     function buildCodeSuggestionSource(details) {
       const suggestionsByCode = new Map();
@@ -1903,6 +1932,11 @@ import { firebaseAuth } from './firebase-core.js';
 
     if (!permissions.canCreate || permissions.isLecture) {
       detailFormSection.hidden = true;
+      if (openDetailFormButton) {
+        openDetailFormButton.hidden = true;
+      }
+    } else if (detailFormSection) {
+      detailFormSection.hidden = false;
     }
 
     function renderTitle() {
@@ -2069,8 +2103,34 @@ import { firebaseAuth } from './firebase-core.js';
       detailForm.reset();
       requireElement('uniteInput').value = 'm';
       hideCodeSuggestions();
+      closeDetailModal();
       UiService.showToast('Article ajoutée .');
     });
+
+    if (openDetailFormButton) {
+      openDetailFormButton.addEventListener('click', openDetailModal);
+    }
+
+    if (cancelDetailFormButton) {
+      cancelDetailFormButton.addEventListener('click', closeDetailModal);
+    }
+
+    if (detailFormModal) {
+      detailFormModal.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        closeDetailModal();
+      });
+
+      detailFormModal.addEventListener('click', (event) => {
+        if (event.target === detailFormModal) {
+          closeDetailModal();
+        }
+      });
+
+      detailFormModal.addEventListener('close', () => {
+        setDetailModalOpenState(false);
+      });
+    }
 
     if (codeInput && codeSuggestions) {
       codeInput.addEventListener('focus', () => {
