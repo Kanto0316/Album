@@ -13,15 +13,16 @@
 
       body[data-page="item-detail"] .search-input__icon-wrap {
         position: absolute;
-        left: 0.95rem;
+        left: 0.85rem;
         top: 50%;
         transform: translateY(-50%);
-        width: 16px;
-        height: 16px;
+        width: 19px;
+        height: 19px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        opacity: 0.55;
+        opacity: 0.72;
+        filter: grayscale(1) brightness(0.65);
         pointer-events: none;
       }
 
@@ -32,7 +33,7 @@
       }
 
       body[data-page="item-detail"] #detailSearchInput {
-        padding-left: 2.6rem;
+        padding-left: 2.9rem;
       }
     </style>
   </head>
@@ -56,11 +57,10 @@
           </div>
           <div class="search-panel search-panel--inline">
             <label class="input-group">
-              <span>Recherche</span>
               <span class="search-input__icon-wrap" aria-hidden="true">
                 <img src="Icon/Recherche.png" alt="" class="search-input__icon" />
               </span>
-              <input id="detailSearchInput" class="search-input" type="text" placeholder="Entrer votre Recherche..." autocomplete="off" />
+              <input id="detailSearchInput" class="search-input" type="text" placeholder="Entrer votre recherche..." autocomplete="off" />
             </label>
           </div>
           <div class="table-container table-container--card" id="detailTableContainer">
