@@ -1188,6 +1188,7 @@ import { firebaseAuth } from './firebase-core.js';
       isAuthenticated = Boolean(user);
       renderUserAvatar(user || null);
       mettreAJourHeaderUtilisateur(user || null);
+      mettreAJourPermissionsUI(currentPermissions);
       renderSites();
     });
 
@@ -1579,10 +1580,20 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const openCreateItem = requireElement('openCreateItem');
-    const isAuthenticated = Boolean(firebaseAuth.currentUser);
-    if ((!permissions.canCreate || !isAuthenticated) && openCreateItem) {
-      openCreateItem.hidden = true;
+    let isAuthenticated = Boolean(firebaseAuth.currentUser);
+
+    function updateCreateItemButtonVisibility() {
+      if (!openCreateItem) {
+        return;
+      }
+      openCreateItem.hidden = !permissions.canCreate || !isAuthenticated;
     }
+
+    updateCreateItemButtonVisibility();
+    onAuthStateChanged(firebaseAuth, (user) => {
+      isAuthenticated = Boolean(user);
+      updateCreateItemButtonVisibility();
+    });
 
     openCreateItem?.addEventListener('click', () => {
       itemForm.reset();
@@ -1930,14 +1941,23 @@ import { firebaseAuth } from './firebase-core.js';
       document.querySelector('.data-table')?.classList.add('data-table--hide-action');
     }
 
+    function updateDetailCreateButtonVisibility(isAuthenticated) {
+      if (!openDetailFormButton) {
+        return;
+      }
+      openDetailFormButton.hidden = !permissions.canCreate || permissions.isLecture || !isAuthenticated;
+    }
+
     if (!permissions.canCreate || permissions.isLecture) {
       detailFormSection.hidden = true;
-      if (openDetailFormButton) {
-        openDetailFormButton.hidden = true;
-      }
     } else if (detailFormSection) {
       detailFormSection.hidden = false;
     }
+
+    updateDetailCreateButtonVisibility(Boolean(firebaseAuth.currentUser));
+    onAuthStateChanged(firebaseAuth, (user) => {
+      updateDetailCreateButtonVisibility(Boolean(user));
+    });
 
     function renderTitle() {
       const itemTitle = requireElement('itemTitle');
