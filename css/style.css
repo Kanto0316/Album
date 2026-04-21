@@ -1536,8 +1536,8 @@ body[data-page="item-detail"] .detail-form-modal__section {
 
 body[data-page="item-detail"] .detail-form-row--qte-unit {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  flex-wrap: nowrap;
+  gap: 1rem;
   align-items: stretch;
 }
 
@@ -1546,11 +1546,11 @@ body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field {
 }
 
 body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field--qte {
-  flex: 7 1 13rem;
+  flex: 1 1 0;
 }
 
 body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field--unit {
-  flex: 3 1 7rem;
+  flex: 1 1 0;
 }
 
 body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field > input,
