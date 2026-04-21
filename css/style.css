@@ -1533,6 +1533,25 @@ body[data-page="item-detail"] .detail-form-modal__section {
   background: transparent;
 }
 
+body[data-page="item-detail"] .detail-form-modal .form-footer {
+  align-items: stretch;
+}
+
+body[data-page="item-detail"] #detailFormError {
+  flex-basis: 100%;
+}
+
+body[data-page="item-detail"] .detail-form-actions {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+body[data-page="item-detail"] .detail-form-actions .btn {
+  flex: 1 1 50%;
+  min-width: 0;
+}
 
 body[data-page="item-detail"] .detail-form-row--qte-unit {
   display: flex;
