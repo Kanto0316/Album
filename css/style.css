@@ -2555,8 +2555,8 @@ body[data-page="site-detail"] .list-separator {
   }
 
   body[data-page="home"] .app-header--home {
-    min-height: clamp(4.5rem, 16vw, 5.2rem);
-    height: auto;
+    min-height: var(--header-height);
+    height: var(--header-height);
     padding-block: 0.6rem;
   }
 
@@ -2600,8 +2600,8 @@ body[data-page="site-detail"] .list-separator {
 
   body[data-page="site-detail"] .app-header--detail {
     --detail-side-size: 2.5rem;
-    min-height: clamp(4.5rem, 16vw, 5.2rem);
-    height: auto;
+    min-height: var(--header-height);
+    height: var(--header-height);
     padding-block: 0.6rem;
   }
 
