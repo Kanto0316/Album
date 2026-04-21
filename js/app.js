@@ -1019,6 +1019,9 @@ import { firebaseAuth } from './firebase-core.js';
         };
 
         const openLockDialog = () => {
+          if (!isAuthenticated) {
+            return;
+          }
           const targetSite = currentSites.find((site) => site.id === siteId);
           if (isSiteLocked(targetSite)) {
             if (
@@ -1050,7 +1053,7 @@ import { firebaseAuth } from './firebase-core.js';
         };
 
         button.addEventListener('pointerdown', (event) => {
-          if (event.button !== 0) {
+          if (event.button !== 0 || !isAuthenticated) {
             return;
           }
           skipClickAfterLongPress = false;
@@ -1065,6 +1068,9 @@ import { firebaseAuth } from './firebase-core.js';
         button.addEventListener('pointerleave', clearLongPressTimer);
         button.addEventListener('pointercancel', clearLongPressTimer);
         button.addEventListener('contextmenu', (event) => {
+          if (!isAuthenticated) {
+            return;
+          }
           event.preventDefault();
           clearLongPressTimer();
           skipClickAfterLongPress = true;
