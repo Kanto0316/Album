@@ -1534,23 +1534,29 @@ body[data-page="item-detail"] .detail-form-modal__section {
 }
 
 body[data-page="item-detail"] .detail-form-modal .form-footer {
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 0.65rem;
+  align-items: start;
 }
 
 body[data-page="item-detail"] #detailFormError {
-  flex-basis: 100%;
+  margin: 0;
+  min-height: 1.2rem;
 }
 
 body[data-page="item-detail"] .detail-form-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
   width: 100%;
-  gap: 10px;
-  flex-wrap: nowrap;
+  gap: 0.7rem;
 }
 
 body[data-page="item-detail"] .detail-form-actions .btn {
-  flex: 1 1 50%;
+  width: 100%;
   min-width: 0;
+  min-height: 3.35rem;
+  padding-inline: 1rem;
 }
 
 body[data-page="item-detail"] .detail-form-row--qte-unit {
