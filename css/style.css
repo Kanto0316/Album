@@ -1403,6 +1403,11 @@ body[data-page="item-detail"] .table-wrapper--shared {
   padding-bottom: 1.5rem;
 }
 
+body[data-page="item-detail"] .app-header--detail {
+  min-height: var(--header-height);
+  height: var(--header-height);
+}
+
 body[data-page="item-detail"] .table-container input,
 body[data-page="item-detail"] .table-container select,
 body[data-page="item-detail"] .table-container button,
