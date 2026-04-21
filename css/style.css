@@ -1533,6 +1533,31 @@ body[data-page="item-detail"] .detail-form-modal__section {
   background: transparent;
 }
 
+
+body[data-page="item-detail"] .detail-form-row--qte-unit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field {
+  min-width: 0;
+}
+
+body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field--qte {
+  flex: 7 1 13rem;
+}
+
+body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field--unit {
+  flex: 3 1 7rem;
+}
+
+body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field > input,
+body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field > select {
+  height: 100%;
+}
+
 @keyframes detailModalIn {
   to {
     transform: translateY(0) scale(1);

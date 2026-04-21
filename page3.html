@@ -108,17 +108,19 @@
                 <span>Désignation</span>
                 <input id="designationInput" name="designation" type="text" maxlength="120" required />
               </label>
-              <label class="input-group">
-                <span>Qté Sortie</span>
-                <input id="qteSortieInput" name="qteSortie" type="number" min="0" step="1" />
-              </label>
-              <label class="input-group">
-                <span>Unité</span>
-                <select id="uniteInput" name="unite">
-                  <option value="m">m</option>
-                  <option value="Pcs">Pcs</option>
-                </select>
-              </label>
+              <div class="detail-form-row detail-form-row--qte-unit">
+                <label class="input-group detail-form-field detail-form-field--qte">
+                  <span>Qté Sortie</span>
+                  <input id="qteSortieInput" name="qteSortie" type="number" min="0" step="1" />
+                </label>
+                <label class="input-group detail-form-field detail-form-field--unit">
+                  <span>Unité</span>
+                  <select id="uniteInput" name="unite">
+                    <option value="m">m</option>
+                    <option value="Pcs">Pcs</option>
+                  </select>
+                </label>
+              </div>
               <div class="form-footer">
                 <p id="detailFormError" class="form-error" aria-live="polite"></p>
                 <button type="button" class="btn" id="cancelDetailFormButton">Annuler</button>
