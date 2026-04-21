@@ -1163,7 +1163,7 @@ import { firebaseAuth } from './firebase-core.js';
       currentPermissions = { ...currentPermissions, ...(nextPermissions || {}) };
 
       if (openCreateSite) {
-        openCreateSite.hidden = !currentPermissions.canCreate || !isAuthenticated;
+        openCreateSite.hidden = !isAuthenticated;
       }
 
       if (importDataButton) {
@@ -1586,7 +1586,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (!openCreateItem) {
         return;
       }
-      openCreateItem.hidden = !permissions.canCreate || !isAuthenticated;
+      openCreateItem.hidden = !isAuthenticated;
     }
 
     updateCreateItemButtonVisibility();
@@ -1945,7 +1945,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (!openDetailFormButton) {
         return;
       }
-      openDetailFormButton.hidden = !permissions.canCreate || permissions.isLecture || !isAuthenticated;
+      openDetailFormButton.hidden = !isAuthenticated;
     }
 
     if (!permissions.canCreate || permissions.isLecture) {
