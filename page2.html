@@ -9,11 +9,16 @@
   <body data-page="site-detail">
     <div class="app-shell">
       <header class="app-header app-header--detail">
-        <button class="back-button" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
-        <div class="header-title header-title--stacked">
-          <h1 id="siteTitle">Chargement...</h1>
-          <p id="itemCount" class="site-detail-subtitle">0 OUTS</p>
+        <div class="detail-header__side detail-header__side--left">
+          <button class="back-button" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
+        <div class="detail-header__center">
+          <div class="header-title header-title--stacked">
+            <h1 id="siteTitle">Chargement...</h1>
+            <p id="itemCount" class="site-detail-subtitle">0 OUTS</p>
+          </div>
+        </div>
+        <div class="detail-header__side detail-header__side--right" aria-hidden="true"></div>
       </header>
 
       <main class="page-content">
