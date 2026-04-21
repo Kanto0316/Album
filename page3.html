@@ -17,37 +17,6 @@
       </header>
 
       <main class="page-content page-content--wide">
-        <section id="detailFormSection" class="surface-card form-card section">
-          <form id="detailForm" class="responsive-form" novalidate>
-            <label class="input-group">
-              <span>Code</span>
-              <div class="typeahead" id="codeTypeahead">
-                <input id="codeInput" name="code" type="text" maxlength="40" aria-label="Code" autocomplete="off" />
-                <div id="codeSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de code" hidden></div>
-              </div>
-            </label>
-            <label class="input-group input-group--wide">
-              <span>Désignation</span>
-              <input id="designationInput" name="designation" type="text" maxlength="120" required />
-            </label>
-            <label class="input-group">
-              <span>Qté Sortie</span>
-              <input id="qteSortieInput" name="qteSortie" type="number" min="0" step="1" />
-            </label>
-            <label class="input-group">
-              <span>Unité</span>
-              <select id="uniteInput" name="unite">
-                <option value="m">m</option>
-                <option value="Pcs">Pcs</option>
-              </select>
-            </label>
-            <div class="form-footer">
-              <p id="detailFormError" class="form-error" aria-live="polite"></p>
-              <button type="submit" class="btn btn-success">Enregistrer</button>
-            </div>
-          </form>
-        </section>
-
         <section class="surface-card table-card section">
           <div class="section-heading section-heading--table">
             <div>
@@ -86,6 +55,47 @@
           </div>
         </section>
       </main>
+
+      <button type="button" id="openDetailFormButton" class="fab-add fab-add--item-detail" aria-label="Ajouter une donnée">+</button>
+
+      <dialog id="detailFormModal" class="modal-card detail-form-modal">
+        <div class="modal-content detail-form-modal__content">
+          <div class="modal-header">
+            <h2>Ajouter une donnée</h2>
+          </div>
+          <section id="detailFormSection" class="surface-card form-card section detail-form-modal__section">
+            <form id="detailForm" class="responsive-form" novalidate>
+              <label class="input-group">
+                <span>Code</span>
+                <div class="typeahead" id="codeTypeahead">
+                  <input id="codeInput" name="code" type="text" maxlength="40" aria-label="Code" autocomplete="off" />
+                  <div id="codeSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de code" hidden></div>
+                </div>
+              </label>
+              <label class="input-group input-group--wide">
+                <span>Désignation</span>
+                <input id="designationInput" name="designation" type="text" maxlength="120" required />
+              </label>
+              <label class="input-group">
+                <span>Qté Sortie</span>
+                <input id="qteSortieInput" name="qteSortie" type="number" min="0" step="1" />
+              </label>
+              <label class="input-group">
+                <span>Unité</span>
+                <select id="uniteInput" name="unite">
+                  <option value="m">m</option>
+                  <option value="Pcs">Pcs</option>
+                </select>
+              </label>
+              <div class="form-footer">
+                <p id="detailFormError" class="form-error" aria-live="polite"></p>
+                <button type="button" class="btn" id="cancelDetailFormButton">Annuler</button>
+                <button type="submit" class="btn btn-success">Enregistrer</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </dialog>
 
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>

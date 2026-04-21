@@ -1460,6 +1460,86 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
   text-align: left;
 }
 
+body[data-page="item-detail"] {
+  --detail-primary: var(--primary-dark);
+  --detail-primary-focus: rgba(39, 141, 218, 0.22);
+  --detail-primary-shadow: rgba(39, 141, 218, 0.32);
+}
+
+body[data-page="item-detail"].item-detail-modal-open {
+  overflow: hidden;
+}
+
+body[data-page="item-detail"] .fab-add--item-detail {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+  box-shadow: 0 10px 22px var(--detail-primary-shadow);
+  z-index: 45;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+body[data-page="item-detail"] .fab-add--item-detail:hover {
+  background: linear-gradient(135deg, #66beff 0%, var(--detail-primary) 100%);
+  box-shadow: 0 14px 28px var(--detail-primary-shadow);
+}
+
+body[data-page="item-detail"] .fab-add--item-detail:active {
+  transform: scale(0.95);
+}
+
+body[data-page="item-detail"] .fab-add--item-detail:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--detail-primary-focus);
+}
+
+body[data-page="item-detail"] .detail-form-modal {
+  width: min(92vw, 32rem);
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body[data-page="item-detail"] .detail-form-modal::backdrop {
+  background: rgba(15, 23, 42, 0.52);
+}
+
+body[data-page="item-detail"] .detail-form-modal__content {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(216, 226, 236, 0.85);
+  background: linear-gradient(165deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: 0 28px 55px rgba(31, 42, 55, 0.18);
+  transform: translateY(10px) scale(0.98);
+  opacity: 0;
+  animation: detailModalIn 0.24s ease forwards;
+}
+
+body[data-page="item-detail"] .detail-form-modal__section {
+  margin-bottom: 0;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+@keyframes detailModalIn {
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
 .field-badge {
   display: inline-flex;
   align-items: center;
