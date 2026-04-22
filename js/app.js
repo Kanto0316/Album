@@ -1439,6 +1439,7 @@ import { firebaseAuth } from './firebase-core.js';
       closeSheet: null,
       closeConfirmation: null,
       hasHistoryEntry: false,
+      ignoreNextPopstate: false,
     };
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
@@ -1575,8 +1576,16 @@ import { firebaseAuth } from './firebase-core.js';
       text.textContent = `Voulez-vous vraiment supprimer ${itemLabel} ? Cette action peut être annulée depuis la notification.`;
 
       return new Promise((resolve) => {
+        const closeAnimationDurationMs = 170;
+        let closeAnimationTimer = null;
+        let isClosing = false;
         const cleanup = () => {
+          if (closeAnimationTimer) {
+            window.clearTimeout(closeAnimationTimer);
+            closeAnimationTimer = null;
+          }
           overlay.hidden = true;
+          overlay.classList.remove('is-open');
           overlay.onclick = null;
           cancelButton.onclick = null;
           confirmButton.onclick = null;
@@ -1584,8 +1593,15 @@ import { firebaseAuth } from './firebase-core.js';
           itemActionState.closeConfirmation = null;
         };
         const close = (value) => {
-          cleanup();
-          resolve(value);
+          if (isClosing) {
+            return;
+          }
+          isClosing = true;
+          overlay.classList.remove('is-open');
+          closeAnimationTimer = window.setTimeout(() => {
+            cleanup();
+            resolve(value);
+          }, closeAnimationDurationMs);
         };
         const handleKeyDown = (event) => {
           if (event.key === 'Escape') {
@@ -1603,6 +1619,9 @@ import { firebaseAuth } from './firebase-core.js';
         };
         document.addEventListener('keydown', handleKeyDown);
         overlay.hidden = false;
+        window.requestAnimationFrame(() => {
+          overlay.classList.add('is-open');
+        });
       });
     }
 
@@ -1619,6 +1638,10 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     window.addEventListener('popstate', () => {
+      if (itemActionState.ignoreNextPopstate) {
+        itemActionState.ignoreNextPopstate = false;
+        return;
+      }
       closeActiveTransientLayer();
     });
 
@@ -1670,6 +1693,7 @@ import { firebaseAuth } from './firebase-core.js';
             itemActionState.closeSheet = null;
             if (itemActionState.hasHistoryEntry && !fromPopState) {
               itemActionState.hasHistoryEntry = false;
+              itemActionState.ignoreNextPopstate = true;
               window.history.back();
             } else if (fromPopState) {
               itemActionState.hasHistoryEntry = false;
