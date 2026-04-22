@@ -1036,6 +1036,38 @@ body[data-page="history"] .list-grid {
   background: rgba(31, 42, 55, 0.08);
 }
 
+.list-card__menu-button {
+  position: absolute;
+  top: 0.72rem;
+  right: 0.72rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.62;
+  transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.list-card__menu-button:hover,
+.list-card__menu-button:focus-visible {
+  background: rgba(17, 24, 39, 0.07);
+  opacity: 1;
+}
+
+.list-card__menu-button:active {
+  transform: scale(0.96);
+}
+
+.list-card__menu-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  object-fit: contain;
+}
+
 .list-card__lock-icon {
   position: absolute;
   right: 0.85rem;
@@ -2225,6 +2257,100 @@ body[data-page="site-detail"] .list-card__button {
   padding: 1rem 2.9rem 1rem 1.05rem;
   display: grid;
   gap: 0.62rem;
+}
+
+body[data-page="site-detail"] .list-card__menu-button {
+  top: 0.92rem;
+  right: 0.86rem;
+}
+
+body[data-page="site-detail"] .list-card__menu-icon {
+  width: 0.88rem;
+  height: 0.88rem;
+}
+
+body[data-page="site-detail"] .item-action-sheet-overlay {
+  z-index: 1250;
+  transition: background 0.22s ease;
+}
+
+body[data-page="site-detail"] .item-action-sheet-overlay.is-open {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+body[data-page="site-detail"] .item-action-sheet {
+  width: min(100%, 28rem);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(226, 232, 240, 0.96);
+  border-bottom: 0;
+  transform: translateY(100%);
+  transition: transform 0.23s ease;
+  padding: 0.62rem 1rem calc(0.95rem + env(safe-area-inset-bottom, 0px));
+}
+
+body[data-page="site-detail"] .bottom-sheet-overlay.is-open .item-action-sheet {
+  transform: translateY(0);
+}
+
+body[data-page="site-detail"] .item-action-sheet .bottom-sheet__handle {
+  width: 2.45rem;
+  height: 0.27rem;
+  margin-bottom: 0.65rem;
+  background: #cbd5e1;
+}
+
+body[data-page="site-detail"] .item-action-sheet__content {
+  display: grid;
+  gap: 0.35rem;
+}
+
+body[data-page="site-detail"] .item-action-sheet__row {
+  border: 0;
+  width: 100%;
+  min-height: 3.1rem;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.68rem;
+  padding: 0.72rem 0.95rem;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 0.98rem;
+  text-align: left;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="site-detail"] .item-action-sheet__row:active {
+  transform: scale(0.99);
+}
+
+body[data-page="site-detail"] .item-action-sheet__row--danger {
+  color: #c92a2f;
+  background: #fff5f5;
+}
+
+body[data-page="site-detail"] .item-action-sheet__row--danger:hover,
+body[data-page="site-detail"] .item-action-sheet__row--danger:focus-visible {
+  background: #ffe9ea;
+}
+
+body[data-page="site-detail"] .item-action-sheet__icon {
+  width: 1.06rem;
+  height: 1.06rem;
+  object-fit: contain;
+}
+
+body[data-page="site-detail"] .item-delete-confirm-overlay {
+  z-index: 1260;
+}
+
+body[data-page="site-detail"] .item-delete-confirm-card {
+  width: min(90vw, 22rem);
+  border-radius: 20px;
+  border: 1px solid #dbe3ef;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.2);
 }
 
 body[data-page="site-detail"] .list-card__button:active {
