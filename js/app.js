@@ -2311,6 +2311,7 @@ import { firebaseAuth } from './firebase-core.js';
     const detailFormModal = requireElement('detailFormModal');
     const openDetailFormButton = requireElement('openDetailFormButton');
     const cancelDetailFormButton = requireElement('cancelDetailFormButton');
+    const detailCreateSubmitButton = requireElement('detailCreateSubmitButton');
     const detailCount = requireElement('detailCount');
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
@@ -2358,6 +2359,14 @@ import { firebaseAuth } from './firebase-core.js';
       window.setTimeout(() => {
         codeInput?.focus();
       }, 60);
+    }
+
+    function setDetailFormSavingState(isSaving) {
+      if (!detailCreateSubmitButton) {
+        return;
+      }
+      detailCreateSubmitButton.disabled = isSaving;
+      detailCreateSubmitButton.classList.toggle('is-loading', isSaving);
     }
 
     function buildCodeSuggestionSource(details) {
@@ -2681,24 +2690,29 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
 
-      const result = await StorageService.createDetail(siteId, itemId, {
-        code: requireElement('codeInput').value,
-        designation: designationInput.value,
-        qteSortie: requireElement('qteSortieInput').value,
-        unite: requireElement('uniteInput').value,
-      });
-      if (!result?.ok) {
-        detailFormError.textContent =
-          result?.reason === 'duplicate_designation'
-            ? 'Cette désignation existe déjà pour ce N° OUT.'
-            : 'Création impossible. Vérifiez la désignation.';
-        return;
+      setDetailFormSavingState(true);
+      try {
+        const result = await StorageService.createDetail(siteId, itemId, {
+          code: requireElement('codeInput').value,
+          designation: designationInput.value,
+          qteSortie: requireElement('qteSortieInput').value,
+          unite: requireElement('uniteInput').value,
+        });
+        if (!result?.ok) {
+          detailFormError.textContent =
+            result?.reason === 'duplicate_designation'
+              ? 'Cette désignation existe déjà pour ce N° OUT.'
+              : 'Création impossible. Vérifiez la désignation.';
+          return;
+        }
+        detailForm.reset();
+        requireElement('uniteInput').value = 'm';
+        hideCodeSuggestions();
+        closeDetailModal();
+        UiService.showToast('Article ajoutée .');
+      } finally {
+        setDetailFormSavingState(false);
       }
-      detailForm.reset();
-      requireElement('uniteInput').value = 'm';
-      hideCodeSuggestions();
-      closeDetailModal();
-      UiService.showToast('Article ajoutée .');
     });
 
     if (openDetailFormButton) {
