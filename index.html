@@ -67,18 +67,21 @@
       <button id="openCreateSite" class="fab" type="button" aria-label="Créer un site">+</button>
 
       <dialog id="siteDialog" class="modal-card">
-        <form class="modal-content" id="siteForm">
+        <form class="modal-content modal-content--site-create" id="siteForm">
           <div class="modal-header">
             <h2>Entrer nom du site</h2>
-            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
           </div>
-          <label class="input-group">
+          <label class="input-group input-group--site-create">
             <span>Nom du site</span>
             <input id="siteNameInput" name="siteName" type="text" maxlength="20" />
           </label>
           <p id="siteFormError" class="form-error" aria-live="polite"></p>
-          <div class="modal-actions">
-            <button type="submit" class="btn btn-success">Créer</button>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
+            <button id="siteCreateSubmitButton" type="submit" class="btn btn-success">
+              <span class="btn-label-default">Créer</span>
+              <span class="btn-label-loading" aria-hidden="true">Création...</span>
+            </button>
           </div>
         </form>
       </dialog>

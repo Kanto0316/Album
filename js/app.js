@@ -788,6 +788,7 @@ import { firebaseAuth } from './firebase-core.js';
     const siteForm = requireElement('siteForm');
     const siteNameInput = requireElement('siteNameInput');
     const siteFormError = requireElement('siteFormError');
+    const siteCreateSubmitButton = requireElement('siteCreateSubmitButton');
     const homeMenuButton = requireElement('homeMenuButton');
     const homeMenuPanel = requireElement('homeMenuPanel');
     const importDataButton = requireElement('importDataButton');
@@ -825,6 +826,17 @@ import { firebaseAuth } from './firebase-core.js';
       ignoreNextPopstate: false,
     };
     const transientErrorTimers = new WeakMap();
+    let isSiteCreationPending = false;
+
+    function setSiteCreateLoadingState(isLoading) {
+      isSiteCreationPending = Boolean(isLoading);
+      if (!siteCreateSubmitButton) {
+        return;
+      }
+      siteCreateSubmitButton.disabled = isSiteCreationPending;
+      siteCreateSubmitButton.classList.toggle('is-loading', isSiteCreationPending);
+      siteCreateSubmitButton.setAttribute('aria-busy', String(isSiteCreationPending));
+    }
 
     function clearTransientError(errorElement) {
       if (!errorElement) {
@@ -1462,6 +1474,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
       siteForm.reset();
       siteFormError.textContent = '';
+      setSiteCreateLoadingState(false);
       siteDialog.showModal();
       siteNameInput.focus();
     });
@@ -1470,6 +1483,9 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (isSiteCreationPending) {
+        return;
+      }
       const name = siteNameInput.value.trim();
       if (!name) {
         siteFormError.textContent = 'Veuillez remplir ce champ';
@@ -1482,20 +1498,24 @@ import { firebaseAuth } from './firebase-core.js';
       }
 
       try {
+        setSiteCreateLoadingState(true);
         const result = await StorageService.createSite(name);
         if (!result?.ok) {
           siteFormError.textContent =
             result?.reason === 'duplicate_site'
               ? 'Ce nom de site existe déjà.'
               : 'Création impossible. Vérifiez le nom du site.';
+          setSiteCreateLoadingState(false);
           return;
         }
 
+        setSiteCreateLoadingState(false);
         siteDialog.close();
         UiService.showToast('Site créé avec succés.');
       } catch (error) {
         console.error('Erreur lors de la création du site :', error);
         siteFormError.textContent = "Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.";
+        setSiteCreateLoadingState(false);
       }
     });
 
