@@ -1088,11 +1088,26 @@ body[data-page="history"] .list-grid {
   border-radius: 999px;
   padding: 0.8rem 1.25rem;
   font-weight: 700;
+  min-height: 44px;
+  transition: transform 0.16s ease, filter 0.2s ease, opacity 0.2s ease;
 }
 
 .btn-success {
   color: #fff;
   background: var(--success);
+}
+
+.btn-neutral {
+  color: #273241;
+  background: #e8edf3;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn[disabled] {
+  cursor: not-allowed;
 }
 
 .modal-actions--split {
@@ -1184,6 +1199,14 @@ body[data-page="history"] .list-grid {
   padding: 1rem;
 }
 
+.modal-content--site-create {
+  padding: 1.15rem;
+}
+
+.input-group--site-create {
+  margin-top: 0.35rem;
+}
+
 .modal-helper-text {
   margin: -0.2rem 0 0.9rem;
   color: var(--text-muted);
@@ -1223,6 +1246,39 @@ body[data-page="history"] .list-grid {
   justify-content: flex-end;
   align-items: center;
   gap: 0.75rem;
+}
+
+.modal-actions--site-create {
+  margin-top: 0.75rem;
+  gap: 0.7rem;
+}
+
+.modal-actions--site-create .btn {
+  flex: 1 1 50%;
+  width: 50%;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+}
+
+#siteCreateSubmitButton {
+  position: relative;
+}
+
+#siteCreateSubmitButton .btn-label-loading {
+  display: none;
+}
+
+#siteCreateSubmitButton.is-loading {
+  filter: saturate(0.95);
+}
+
+#siteCreateSubmitButton.is-loading .btn-label-default {
+  display: none;
+}
+
+#siteCreateSubmitButton.is-loading .btn-label-loading {
+  display: inline-flex;
 }
 
 .modal-actions--password {
