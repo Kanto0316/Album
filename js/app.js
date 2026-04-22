@@ -1585,20 +1585,24 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
-    const openCreateItem = requireElement('openCreateItem');
-    let isAuthenticated = false;
+    const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
 
-    function updateCreateItemButtonVisibility() {
+    function isFirebaseUserAuthenticated(user) {
+      return Boolean(user?.uid);
+    }
+
+    function updateCreateItemButtonVisibility(user) {
       if (!openCreateItem) {
         return;
       }
+      const isAuthenticated = isFirebaseUserAuthenticated(user);
       openCreateItem.hidden = !isAuthenticated;
+      openCreateItem.style.display = isAuthenticated ? 'inline-flex' : 'none';
     }
 
-    updateCreateItemButtonVisibility();
+    updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => {
-      isAuthenticated = Boolean(user);
-      updateCreateItemButtonVisibility();
+      updateCreateItemButtonVisibility(user || null);
     });
 
     openCreateItem?.addEventListener('click', () => {
