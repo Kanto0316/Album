@@ -1586,7 +1586,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const openCreateItem = requireElement('openCreateItem');
-    let isAuthenticated = Boolean(firebaseAuth.currentUser);
+    let isAuthenticated = false;
 
     function updateCreateItemButtonVisibility() {
       if (!openCreateItem) {
