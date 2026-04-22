@@ -496,7 +496,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
     overlay = document.createElement('div');
     overlay.id = 'maintenanceOverlay';
-    overlay.className = 'maintenance-overlay';
+    overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
     overlay.hidden = true;
     overlay.innerHTML = `
       <article class="maintenance-card" role="alertdialog" aria-modal="true" aria-labelledby="maintenanceTitle">
@@ -634,12 +634,12 @@ import { firebaseAuth } from './firebase-core.js';
     overlay.className = 'maintenance-overlay';
     overlay.hidden = true;
     overlay.innerHTML = `
-      <article class="maintenance-card" role="alertdialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
+      <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
         <h3 id="logoutConfirmTitle">Déconnexion</h3>
-        <p>Voulez-vous vraiment vous déconnecter ?</p>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" id="logoutConfirmCancel">Annuler</button>
-          <button type="button" class="btn btn-danger" id="logoutConfirmSubmit">Déconnexion</button>
+        <p>Voulez-vous vous déconnecter ?</p>
+        <div class="modal-actions item-delete-confirm-actions">
+          <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="logoutConfirmCancel">Annuler</button>
+          <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger" id="logoutConfirmSubmit">Déconnexion</button>
         </div>
       </article>
     `;
@@ -658,6 +658,7 @@ import { firebaseAuth } from './firebase-core.js';
     return new Promise((resolve) => {
       const cleanup = () => {
         overlay.hidden = true;
+        overlay.classList.remove('is-open');
         overlay.onclick = null;
         cancelButton.onclick = null;
         submitButton.onclick = null;
@@ -675,6 +676,9 @@ import { firebaseAuth } from './firebase-core.js';
         }
       };
       overlay.hidden = false;
+      window.requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
     });
   }
 
