@@ -1526,6 +1526,7 @@ import { firebaseAuth } from './firebase-core.js';
       overlay.innerHTML = `
         <div class="bottom-sheet item-action-sheet" id="itemActionSheet" role="dialog" aria-modal="true" aria-label="Actions de l'élément">
           <div class="bottom-sheet__handle" aria-hidden="true"></div>
+          <p class="item-action-sheet__title" id="itemActionSheetTitle">Actions</p>
           <div class="item-action-sheet__content">
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="itemActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
@@ -1624,8 +1625,9 @@ import { firebaseAuth } from './firebase-core.js';
     function openItemActionSheet(itemId) {
       const overlay = ensureItemActionBottomSheet();
       const sheet = overlay.querySelector('#itemActionSheet');
+      const title = overlay.querySelector('#itemActionSheetTitle');
       const deleteButton = overlay.querySelector('#itemActionDeleteButton');
-      if (!sheet || !deleteButton) {
+      if (!sheet || !title || !deleteButton) {
         return;
       }
 
@@ -1635,6 +1637,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
 
       itemActionState.activeItemId = itemId;
+      title.textContent = String(activeItem.numero || '').trim() || 'Actions';
       const closeTransitionDurationMs = 280;
 
       const clearCloseListeners = () => {
@@ -1687,20 +1690,25 @@ import { firebaseAuth } from './firebase-core.js';
 
       itemActionState.closeSheet = closeSheet;
       deleteButton.onclick = async () => {
-        await closeSheet();
-        const shouldDelete = await askItemDeleteConfirmation(activeItem.numero || "cet élément");
-        if (!shouldDelete) {
-          return;
+        deleteButton.disabled = true;
+        try {
+          await closeSheet();
+          const shouldDelete = await askItemDeleteConfirmation(activeItem.numero || "cet élément");
+          if (!shouldDelete) {
+            return;
+          }
+          const removedSnapshot = await StorageService.removeItem(siteId, itemId);
+          if (!removedSnapshot) {
+            UiService.showToast('Suppression impossible.');
+            return;
+          }
+          UiService.showUndoSnackbar('Élément supprimé.', async () => {
+            const restored = await StorageService.restoreItem(removedSnapshot);
+            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+          });
+        } finally {
+          deleteButton.disabled = false;
         }
-        const removedSnapshot = await StorageService.removeItem(siteId, itemId);
-        if (!removedSnapshot) {
-          UiService.showToast('Suppression impossible.');
-          return;
-        }
-        UiService.showUndoSnackbar('Élément supprimé.', async () => {
-          const restored = await StorageService.restoreItem(removedSnapshot);
-          UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
-        });
       };
 
       overlay.onclick = (event) => {
