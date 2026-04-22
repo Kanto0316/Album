@@ -1774,6 +1774,10 @@ import { firebaseAuth } from './firebase-core.js';
     let currentSite = StorageService.getSite(siteId);
     let currentItem = StorageService.getItem(siteId, itemId);
     let currentDetails = [];
+    let hasResolvedInitialDetails = false;
+    let isDetailSkeletonVisible = false;
+    let detailSkeletonTimerId = null;
+    let animateNextTableRender = false;
     let codeSuggestionSource = [];
     let visibleCodeSuggestions = [];
     let activeSuggestionIndex = -1;
@@ -2044,11 +2048,12 @@ import { firebaseAuth } from './firebase-core.js';
 
       detailTableBody.innerHTML = filteredDetails
         .map(
-          (detail) => {
+          (detail, index) => {
             const ecart = computeEcart(detail);
             const ecartClassName = typeof ecart === 'number' && ecart !== 0 ? ' cell-input--ecart-alert' : '';
+            const enterAnimationStyle = animateNextTableRender ? ` style="--detail-row-enter-delay:${Math.min(index, 5) * 40}ms"` : '';
             return `
-            <tr data-detail-id="${detail.id}">
+            <tr data-detail-id="${detail.id}" class="${animateNextTableRender ? 'detail-row-enter' : ''}"${enterAnimationStyle}>
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input cell-input--autosize cell-input--left" data-field="code" value="${escapeHtml(detail.code)}" size="${Math.max(String(detail.code || '').length + 1, 10)}" /></td>
               <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
@@ -2074,6 +2079,7 @@ import { firebaseAuth } from './firebase-core.js';
           },
         )
         .join('');
+      animateNextTableRender = false;
 
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
         if (!canEditDetails) {
@@ -2237,6 +2243,33 @@ import { firebaseAuth } from './firebase-core.js';
       exportButton.addEventListener('click', exportDetails);
     }
 
+    function showDetailTableSkeleton() {
+      if (hasResolvedInitialDetails || isDetailSkeletonVisible) {
+        return;
+      }
+      isDetailSkeletonVisible = true;
+      detailTableBody.innerHTML = Array.from({ length: 4 }, (_, rowIndex) => `
+        <tr class="detail-skeleton-row" aria-hidden="true">
+          ${Array.from({ length: 11 }, (_, columnIndex) => {
+    const shouldUseShortBlock = (rowIndex + columnIndex) % 3 === 0;
+    return `<td><span class="detail-skeleton-block${shouldUseShortBlock ? ' detail-skeleton-block--short' : ''}"></span></td>`;
+  }).join('')}
+        </tr>
+      `).join('');
+    }
+
+    function hideDetailTableSkeleton() {
+      if (!isDetailSkeletonVisible) {
+        return;
+      }
+      isDetailSkeletonVisible = false;
+      detailTableBody.innerHTML = '';
+    }
+
+    detailSkeletonTimerId = window.setTimeout(() => {
+      showDetailTableSkeleton();
+    }, 120);
+
     StorageService.subscribeSites((sites) => {
       currentSite = sites.find((site) => site.id === siteId) || currentSite;
       renderTitle();
@@ -2256,6 +2289,13 @@ import { firebaseAuth } from './firebase-core.js';
       siteId,
       itemId,
       (details) => {
+        hasResolvedInitialDetails = true;
+        if (detailSkeletonTimerId !== null) {
+          window.clearTimeout(detailSkeletonTimerId);
+          detailSkeletonTimerId = null;
+        }
+        animateNextTableRender = isDetailSkeletonVisible;
+        hideDetailTableSkeleton();
         currentDetails = details;
         renderTable();
       },
