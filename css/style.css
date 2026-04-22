@@ -1521,6 +1521,53 @@ body[data-page="item-detail"] .data-table td:nth-child(3) {
   text-align: left;
 }
 
+body[data-page="item-detail"] .detail-skeleton-row td {
+  padding-top: 0.72rem;
+  padding-bottom: 0.72rem;
+}
+
+body[data-page="item-detail"] .detail-skeleton-block {
+  display: block;
+  height: 0.82rem;
+  width: clamp(48px, 11vw, 122px);
+  margin-inline: auto;
+  border-radius: 999px;
+  background: linear-gradient(110deg, #e6ebf2 8%, #f3f6fa 18%, #e6ebf2 33%);
+  background-size: 220% 100%;
+  animation: detailSkeletonShimmer 1.25s ease-in-out infinite;
+}
+
+body[data-page="item-detail"] .detail-skeleton-block--short {
+  width: clamp(34px, 7vw, 80px);
+}
+
+body[data-page="item-detail"] .detail-row-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: detailRowEnter 0.24s ease-out forwards;
+  animation-delay: var(--detail-row-enter-delay, 0ms);
+}
+
+@keyframes detailSkeletonShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes detailRowEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 body[data-page="item-detail"] {
   --detail-primary: var(--primary-dark);
   --detail-primary-focus: rgba(39, 141, 218, 0.22);
