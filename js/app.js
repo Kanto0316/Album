@@ -631,7 +631,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     overlay = document.createElement('div');
     overlay.id = 'logoutConfirmOverlay';
-    overlay.className = 'maintenance-overlay';
+    overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
     overlay.hidden = true;
     overlay.innerHTML = `
       <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
@@ -656,16 +656,36 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     return new Promise((resolve) => {
+      const closeAnimationDurationMs = 170;
+      let closeAnimationTimer = null;
+      let isClosing = false;
       const cleanup = () => {
+        if (closeAnimationTimer) {
+          window.clearTimeout(closeAnimationTimer);
+          closeAnimationTimer = null;
+        }
         overlay.hidden = true;
         overlay.classList.remove('is-open');
         overlay.onclick = null;
         cancelButton.onclick = null;
         submitButton.onclick = null;
+        document.removeEventListener('keydown', handleKeyDown);
       };
       const close = (value) => {
-        cleanup();
-        resolve(value);
+        if (isClosing) {
+          return;
+        }
+        isClosing = true;
+        overlay.classList.remove('is-open');
+        closeAnimationTimer = window.setTimeout(() => {
+          cleanup();
+          resolve(value);
+        }, closeAnimationDurationMs);
+      };
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape') {
+          close(false);
+        }
       };
 
       cancelButton.onclick = () => close(false);
@@ -675,6 +695,7 @@ import { firebaseAuth } from './firebase-core.js';
           close(false);
         }
       };
+      document.addEventListener('keydown', handleKeyDown);
       overlay.hidden = false;
       window.requestAnimationFrame(() => {
         overlay.classList.add('is-open');
