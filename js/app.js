@@ -1434,6 +1434,12 @@ import { firebaseAuth } from './firebase-core.js';
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
     let userNamesById = {};
+    const itemActionState = {
+      activeItemId: null,
+      closeSheet: null,
+      closeConfirmation: null,
+      hasHistoryEntry: false,
+    };
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
@@ -1507,6 +1513,228 @@ import { firebaseAuth } from './firebase-core.js';
       downloadExcelFile(`${title}.xls`, 'Export Excel', workbook);
     }
 
+    function ensureItemActionBottomSheet() {
+      let overlay = document.getElementById('itemActionSheetOverlay');
+      if (overlay) {
+        return overlay;
+      }
+
+      overlay = document.createElement('div');
+      overlay.id = 'itemActionSheetOverlay';
+      overlay.className = 'bottom-sheet-overlay item-action-sheet-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <div class="bottom-sheet item-action-sheet" id="itemActionSheet" role="dialog" aria-modal="true" aria-label="Actions de l'élément">
+          <div class="bottom-sheet__handle" aria-hidden="true"></div>
+          <div class="item-action-sheet__content">
+            <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="itemActionDeleteButton">
+              <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <span>Supprimer</span>
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function ensureItemDeleteConfirmationDialog() {
+      let overlay = document.getElementById('itemDeleteConfirmOverlay');
+      if (overlay) {
+        return overlay;
+      }
+
+      overlay = document.createElement('div');
+      overlay.id = 'itemDeleteConfirmOverlay';
+      overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="itemDeleteConfirmTitle">
+          <h3 id="itemDeleteConfirmTitle">Supprimer cet OUT ?</h3>
+          <p id="itemDeleteConfirmText">Cette action peut être annulée depuis la notification.</p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-ghost" id="itemDeleteCancelButton">Annuler</button>
+            <button type="button" class="btn btn-danger" id="itemDeleteConfirmButton">Supprimer</button>
+          </div>
+        </article>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function askItemDeleteConfirmation(itemLabel) {
+      const overlay = ensureItemDeleteConfirmationDialog();
+      const text = overlay.querySelector('#itemDeleteConfirmText');
+      const cancelButton = overlay.querySelector('#itemDeleteCancelButton');
+      const confirmButton = overlay.querySelector('#itemDeleteConfirmButton');
+      if (!text || !cancelButton || !confirmButton) {
+        return Promise.resolve(false);
+      }
+
+      text.textContent = `Voulez-vous vraiment supprimer ${itemLabel} ? Cette action peut être annulée depuis la notification.`;
+
+      return new Promise((resolve) => {
+        const cleanup = () => {
+          overlay.hidden = true;
+          overlay.onclick = null;
+          cancelButton.onclick = null;
+          confirmButton.onclick = null;
+          document.removeEventListener('keydown', handleKeyDown);
+          itemActionState.closeConfirmation = null;
+        };
+        const close = (value) => {
+          cleanup();
+          resolve(value);
+        };
+        const handleKeyDown = (event) => {
+          if (event.key === 'Escape') {
+            close(false);
+          }
+        };
+
+        itemActionState.closeConfirmation = () => close(false);
+        cancelButton.onclick = () => close(false);
+        confirmButton.onclick = () => close(true);
+        overlay.onclick = (event) => {
+          if (event.target === overlay) {
+            close(false);
+          }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        overlay.hidden = false;
+      });
+    }
+
+    function closeActiveTransientLayer() {
+      if (typeof itemActionState.closeConfirmation === 'function') {
+        itemActionState.closeConfirmation();
+        return true;
+      }
+      if (typeof itemActionState.closeSheet === 'function') {
+        itemActionState.closeSheet({ fromPopState: true });
+        return true;
+      }
+      return false;
+    }
+
+    window.addEventListener('popstate', () => {
+      closeActiveTransientLayer();
+    });
+
+    function openItemActionSheet(itemId) {
+      const overlay = ensureItemActionBottomSheet();
+      const sheet = overlay.querySelector('#itemActionSheet');
+      const deleteButton = overlay.querySelector('#itemActionDeleteButton');
+      if (!sheet || !deleteButton) {
+        return;
+      }
+
+      const activeItem = currentItems.find((item) => item.id === itemId);
+      if (!activeItem) {
+        return;
+      }
+
+      itemActionState.activeItemId = itemId;
+      const closeTransitionDurationMs = 280;
+
+      const clearCloseListeners = () => {
+        if (overlay.__closeTimerId) {
+          window.clearTimeout(overlay.__closeTimerId);
+          overlay.__closeTimerId = null;
+        }
+        if (overlay.__closeTransitionHandler) {
+          overlay.removeEventListener('transitionend', overlay.__closeTransitionHandler);
+          overlay.__closeTransitionHandler = null;
+        }
+      };
+
+      const closeSheet = ({ fromPopState = false } = {}) =>
+        new Promise((resolve) => {
+          if (overlay.hidden) {
+            resolve();
+            return;
+          }
+          let isResolved = false;
+          const finish = () => {
+            if (isResolved) {
+              return;
+            }
+            isResolved = true;
+            clearCloseListeners();
+            overlay.hidden = true;
+            overlay.classList.remove('is-open');
+            itemActionState.activeItemId = null;
+            itemActionState.closeSheet = null;
+            if (itemActionState.hasHistoryEntry && !fromPopState) {
+              itemActionState.hasHistoryEntry = false;
+              window.history.back();
+            } else if (fromPopState) {
+              itemActionState.hasHistoryEntry = false;
+            }
+            resolve();
+          };
+
+          overlay.classList.remove('is-open');
+          overlay.__closeTransitionHandler = (event) => {
+            if (event.target !== overlay && event.target !== sheet) {
+              return;
+            }
+            finish();
+          };
+          overlay.addEventListener('transitionend', overlay.__closeTransitionHandler);
+          overlay.__closeTimerId = window.setTimeout(finish, closeTransitionDurationMs);
+        });
+
+      itemActionState.closeSheet = closeSheet;
+      deleteButton.onclick = async () => {
+        await closeSheet();
+        const shouldDelete = await askItemDeleteConfirmation(activeItem.numero || "cet élément");
+        if (!shouldDelete) {
+          return;
+        }
+        const removedSnapshot = await StorageService.removeItem(siteId, itemId);
+        if (!removedSnapshot) {
+          UiService.showToast('Suppression impossible.');
+          return;
+        }
+        UiService.showUndoSnackbar('Élément supprimé.', async () => {
+          const restored = await StorageService.restoreItem(removedSnapshot);
+          UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+        });
+      };
+
+      overlay.onclick = (event) => {
+        if (event.target === overlay) {
+          closeSheet();
+        }
+      };
+
+      let touchStartY = null;
+      sheet.ontouchstart = (event) => {
+        touchStartY = event.touches[0]?.clientY ?? null;
+      };
+      sheet.ontouchend = (event) => {
+        if (touchStartY === null) {
+          return;
+        }
+        const touchEndY = event.changedTouches[0]?.clientY ?? touchStartY;
+        if (touchEndY - touchStartY > 60) {
+          closeSheet();
+        }
+        touchStartY = null;
+      };
+
+      overlay.hidden = false;
+      clearCloseListeners();
+      if (!itemActionState.hasHistoryEntry) {
+        window.history.pushState({ itemActionSheet: true }, '');
+        itemActionState.hasHistoryEntry = true;
+      }
+      window.requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
+    }
+
     function renderItems() {
       const query = itemSearchInput.value.trim().toUpperCase();
       const filteredItems = currentItems.filter((item) => {
@@ -1550,7 +1778,7 @@ import { firebaseAuth } from './firebase-core.js';
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
         htmlParts.push(`
             <article class="list-card">
-              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__delete-button" type="button" data-item-delete="${item.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
+              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
@@ -1570,17 +1798,10 @@ import { firebaseAuth } from './firebase-core.js';
         });
       });
 
-      itemList.querySelectorAll('[data-item-delete]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          const removedSnapshot = await StorageService.removeItem(siteId, button.dataset.itemDelete);
-          if (!removedSnapshot) {
-            UiService.showToast('Suppression impossible.');
-            return;
-          }
-          UiService.showUndoSnackbar('Élément supprimé.', async () => {
-            const restored = await StorageService.restoreItem(removedSnapshot);
-            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
-          });
+      itemList.querySelectorAll('[data-item-menu]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          openItemActionSheet(button.dataset.itemMenu);
         });
       });
     }
