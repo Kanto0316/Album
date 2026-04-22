@@ -1701,6 +1701,7 @@ import { firebaseAuth } from './firebase-core.js';
     const itemForm = requireElement('itemForm');
     const itemNumberInput = requireElement('itemNumberInput');
     const itemFormError = requireElement('itemFormError');
+    const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
     const openExportItems = requireElement('openExportItems');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
@@ -2143,6 +2144,8 @@ import { firebaseAuth } from './firebase-core.js';
     openCreateItem?.addEventListener('click', () => {
       itemForm.reset();
       itemFormError.textContent = '';
+      itemCreateSubmitButton.disabled = false;
+      itemCreateSubmitButton.classList.remove('is-loading');
       itemDialog.showModal();
       itemNumberInput.focus();
     });
@@ -2197,6 +2200,9 @@ import { firebaseAuth } from './firebase-core.js';
 
     itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (itemCreateSubmitButton.disabled) {
+        return;
+      }
       const value = itemNumberInput.value.trim();
       if (!value) {
         itemFormError.textContent = 'Veuillez remplir ce champ';
@@ -2214,16 +2220,27 @@ import { firebaseAuth } from './firebase-core.js';
         itemFormError.textContent = 'Action non autorisée.';
         return;
       }
-      const result = await StorageService.createItem(siteId, value);
-      if (!result?.ok) {
-        itemFormError.textContent =
-          result?.reason === 'duplicate_out'
-            ? 'Ce N° OUT existe déjà pour ce site.'
-            : 'Veuillez saisir au moins 4 chiffres.';
-        return;
+      itemCreateSubmitButton.disabled = true;
+      itemCreateSubmitButton.classList.add('is-loading');
+      try {
+        const result = await StorageService.createItem(siteId, value);
+        if (!result?.ok) {
+          itemFormError.textContent =
+            result?.reason === 'duplicate_out'
+              ? 'Ce N° OUT existe déjà pour ce site.'
+              : 'Veuillez saisir au moins 4 chiffres.';
+          return;
+        }
+        itemCreateSubmitButton.classList.remove('is-loading');
+        itemCreateSubmitButton.disabled = false;
+        itemDialog.close();
+        UiService.showToast('N° OUT ajouté .');
+      } finally {
+        if (itemDialog.open) {
+          itemCreateSubmitButton.classList.remove('is-loading');
+          itemCreateSubmitButton.disabled = false;
+        }
       }
-      itemDialog.close();
-      UiService.showToast('N° OUT ajouté .');
     });
 
     StorageService.subscribeSites((sites) => {

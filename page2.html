@@ -59,13 +59,12 @@
       <button id="openCreateItem" class="fab fab-add" type="button" aria-label="Ajouter un numéro OUT">+</button>
 
       <dialog id="itemDialog" class="modal-card">
-        <form method="dialog" class="modal-content" id="itemForm">
+        <form method="dialog" class="modal-content modal-content--site-create modal-content--item-create" id="itemForm">
           <div class="modal-header">
-            <h2>N° OUT-</h2>
-            <button type="button" class="icon-button" data-close-dialog aria-label="Fermer">×</button>
+            <h2>Créer un numéro OUT</h2>
           </div>
-          <label class="input-group">
-            <span>Numéro</span>
+          <label class="input-group input-group--site-create input-group--item-create">
+            <span>Numéro OUT</span>
             <input
               id="itemNumberInput"
               name="itemNumber"
@@ -78,8 +77,12 @@
             />
           </label>
           <p id="itemFormError" class="form-error" aria-live="polite"></p>
-          <div class="modal-actions">
-            <button type="submit" class="btn btn-success">Créer</button>
+          <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
+            <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
+            <button id="itemCreateSubmitButton" type="submit" class="btn btn-success">
+              <span class="btn-label-default">Créer</span>
+              <span class="btn-label-loading" aria-hidden="true">Création...</span>
+            </button>
           </div>
         </form>
       </dialog>

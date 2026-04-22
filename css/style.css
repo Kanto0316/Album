@@ -1203,8 +1203,16 @@ body[data-page="history"] .list-grid {
   padding: 1.15rem;
 }
 
+.modal-content--item-create {
+  padding-bottom: 1.2rem;
+}
+
 .input-group--site-create {
   margin-top: 0.35rem;
+}
+
+.input-group--item-create {
+  margin-bottom: 0.3rem;
 }
 
 .modal-helper-text {
@@ -1253,12 +1261,36 @@ body[data-page="history"] .list-grid {
   gap: 0.7rem;
 }
 
+.modal-actions--item-create {
+  margin-top: 1.1rem;
+}
+
 .modal-actions--site-create .btn {
   flex: 1 1 50%;
   width: 50%;
   justify-content: center;
   display: inline-flex;
   align-items: center;
+}
+
+#itemCreateSubmitButton {
+  position: relative;
+}
+
+#itemCreateSubmitButton .btn-label-loading {
+  display: none;
+}
+
+#itemCreateSubmitButton.is-loading {
+  filter: saturate(0.95);
+}
+
+#itemCreateSubmitButton.is-loading .btn-label-default {
+  display: none;
+}
+
+#itemCreateSubmitButton.is-loading .btn-label-loading {
+  display: inline-flex;
 }
 
 #siteCreateSubmitButton {
