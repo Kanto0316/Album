@@ -125,7 +125,10 @@
                 <p id="detailFormError" class="form-error" aria-live="polite"></p>
                 <div class="detail-form-actions">
                   <button type="button" class="btn" id="cancelDetailFormButton">Annuler</button>
-                  <button type="submit" class="btn btn-success">Enregistrer</button>
+                  <button type="submit" class="btn btn-success" id="detailCreateSubmitButton">
+                    <span class="btn-label-default">Enregistrer</span>
+                    <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
+                  </button>
                 </div>
               </div>
             </form>
