@@ -270,6 +270,67 @@ button {
   gap: 0.75rem;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.page-content > :not(.page-inline-loader) {
+  transition: opacity 0.2s ease;
+}
+
+body.app-content-loading .page-content > :not(.page-inline-loader) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-inline-loader {
+  display: none;
+  gap: 0.6rem;
+  padding: 0.3rem 0;
+}
+
+body.app-content-loading .page-inline-loader {
+  display: grid;
+}
+
+.page-inline-loader__block {
+  height: 0.95rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ebf1f7 15%, #f7fafd 50%, #ebf1f7 85%);
+  background-size: 210% 100%;
+  animation: inline-loader-shimmer 1.1s ease-in-out infinite;
+}
+
+.page-inline-loader__block--title {
+  width: min(65%, 17rem);
+  height: 1.25rem;
+  margin-bottom: 0.2rem;
+}
+
+.page-inline-loader__block--short {
+  width: min(42%, 10rem);
+}
+
+@keyframes inline-loader-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+body.app-content-pending .fab,
+body.app-content-loading .fab,
+body.app-content-pending .fab-add,
+body.app-content-loading .fab-add,
+body.app-content-pending .fab-add--item-detail,
+body.app-content-loading .fab-add--item-detail,
+body.app-content-pending .fab--export,
+body.app-content-loading .fab--export,
+body.app-content-pending #exportDetailsButton,
+body.app-content-loading #exportDetailsButton {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .page-content--wide {
@@ -1941,15 +2002,6 @@ body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field > se
   border-top-color: var(--primary-dark);
   border-radius: 50%;
   animation: global-spinner-rotate 0.9s linear infinite;
-}
-
-.global-loader-text {
-  margin-top: 0.65rem;
-  color: #666;
-  font-size: 15px;
-  font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
-  line-height: 1.3;
-  text-align: center;
 }
 
 @keyframes global-spinner-rotate {

@@ -4,10 +4,18 @@
   const DEFAULT_SNACKBAR_DURATION = 5000;
   const GLOBAL_LOADER_ID = "globalPageLoader";
   const GLOBAL_LOADER_HIDDEN_CLASS = "global-loader-overlay--hidden";
+  const APP_LOADED_STORAGE_KEY = "albumAppHasLoadedOnce";
+  const CONTENT_PENDING_CLASS = "app-content-pending";
+  const CONTENT_LOADING_CLASS = "app-content-loading";
+  const CONTENT_READY_CLASS = "app-content-ready";
+  const INLINE_LOADER_ID = "pageInlineLoader";
+  const CONTENT_LOADING_DELAY_MS = 120;
   let hideTimerId = null;
   let globalLoader = null;
   let hasWindowLoaded = document.readyState === "complete";
   let isAppReady = false;
+  let shouldUseGlobalLoader = false;
+  let inlineLoaderTimerId = null;
 
   function ensureGlobalLoader() {
     if (globalLoader) {
@@ -34,11 +42,6 @@
     spinner.setAttribute("aria-hidden", "true");
     loaderContent.appendChild(spinner);
 
-    const loaderText = document.createElement("p");
-    loaderText.className = "global-loader-text";
-    loaderText.textContent = "Chargement en cours...";
-    loaderContent.appendChild(loaderText);
-
     overlay.appendChild(loaderContent);
 
     document.body.appendChild(overlay);
@@ -51,7 +54,57 @@
   }
 
   function hideGlobalLoader() {
-    ensureGlobalLoader().classList.add(GLOBAL_LOADER_HIDDEN_CLASS);
+    if (!globalLoader) {
+      return;
+    }
+    globalLoader.classList.add(GLOBAL_LOADER_HIDDEN_CLASS);
+  }
+
+  function ensureInlineLoader() {
+    const pageContent = document.querySelector(".page-content");
+    if (!pageContent) {
+      return null;
+    }
+
+    let inlineLoader = document.getElementById(INLINE_LOADER_ID);
+    if (inlineLoader) {
+      return inlineLoader;
+    }
+
+    inlineLoader = document.createElement("div");
+    inlineLoader.id = INLINE_LOADER_ID;
+    inlineLoader.className = "page-inline-loader";
+    inlineLoader.setAttribute("aria-hidden", "true");
+    inlineLoader.innerHTML = `
+      <div class="page-inline-loader__block page-inline-loader__block--title"></div>
+      <div class="page-inline-loader__block"></div>
+      <div class="page-inline-loader__block"></div>
+      <div class="page-inline-loader__block page-inline-loader__block--short"></div>
+    `;
+    pageContent.prepend(inlineLoader);
+    return inlineLoader;
+  }
+
+  function startContentLoadingState() {
+    document.body.classList.add(CONTENT_PENDING_CLASS);
+    document.body.classList.remove(CONTENT_LOADING_CLASS, CONTENT_READY_CLASS);
+
+    inlineLoaderTimerId = window.setTimeout(() => {
+      if (isAppReady) {
+        return;
+      }
+      ensureInlineLoader();
+      document.body.classList.add(CONTENT_LOADING_CLASS);
+    }, CONTENT_LOADING_DELAY_MS);
+  }
+
+  function stopContentLoadingState() {
+    if (inlineLoaderTimerId) {
+      window.clearTimeout(inlineLoaderTimerId);
+      inlineLoaderTimerId = null;
+    }
+    document.body.classList.remove(CONTENT_PENDING_CLASS, CONTENT_LOADING_CLASS);
+    document.body.classList.add(CONTENT_READY_CLASS);
   }
 
   function waitForImagesReady() {
@@ -81,6 +134,12 @@
 
   function markAppReady() {
     isAppReady = true;
+    stopContentLoadingState();
+    try {
+      sessionStorage.setItem(APP_LOADED_STORAGE_KEY, "1");
+    } catch (_error) {
+      // Ignore storage restrictions.
+    }
     maybeHideGlobalLoader();
   }
 
@@ -179,16 +238,28 @@
   }
 
   function navigate(url) {
-    showGlobalLoader();
     window.requestAnimationFrame(() => {
       window.location.href = url;
     });
   }
 
-  ensureGlobalLoader();
-  showGlobalLoader();
+  try {
+    shouldUseGlobalLoader = sessionStorage.getItem(APP_LOADED_STORAGE_KEY) !== "1";
+  } catch (_error) {
+    shouldUseGlobalLoader = true;
+  }
 
-  window.addEventListener("beforeunload", showGlobalLoader);
+  if (shouldUseGlobalLoader) {
+    ensureGlobalLoader();
+    showGlobalLoader();
+  }
+  startContentLoadingState();
+
+  window.addEventListener("beforeunload", () => {
+    if (shouldUseGlobalLoader) {
+      showGlobalLoader();
+    }
+  });
   window.addEventListener("load", () => {
     hasWindowLoaded = true;
     maybeHideGlobalLoader();
