@@ -1578,7 +1578,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (title) {
         title.textContent = `Supprimer cet ${normalizedLabel} ?`;
       }
-      text.textContent = 'Cette action peut être annulée depuis la notification.';
+      text.textContent = 'Confirmer si OUI .';
 
       return new Promise((resolve) => {
         const closeAnimationDurationMs = 170;
