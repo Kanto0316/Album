@@ -817,6 +817,13 @@ import { firebaseAuth } from './firebase-core.js';
     let siteIdPendingLock = null;
     let siteIdPendingUnlock = null;
     let siteIdPendingLockManage = null;
+    const siteActionState = {
+      activeSiteId: null,
+      closeSheet: null,
+      closeConfirmation: null,
+      hasHistoryEntry: false,
+      ignoreNextPopstate: false,
+    };
     const transientErrorTimers = new WeakMap();
 
     function clearTransientError(errorElement) {
@@ -953,6 +960,264 @@ import { firebaseAuth } from './firebase-core.js';
       fileInput.click();
     }
 
+    function ensureSiteActionBottomSheet() {
+      let overlay = document.getElementById('siteActionSheetOverlay');
+      if (overlay) {
+        return overlay;
+      }
+
+      overlay = document.createElement('div');
+      overlay.id = 'siteActionSheetOverlay';
+      overlay.className = 'bottom-sheet-overlay item-action-sheet-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <div class="bottom-sheet item-action-sheet" id="siteActionSheet" role="dialog" aria-modal="true" aria-label="Actions du site">
+          <div class="bottom-sheet__handle" aria-hidden="true"></div>
+          <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
+          <div class="item-action-sheet__content">
+            <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
+              <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <span>Supprimer</span>
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function ensureSiteDeleteConfirmationDialog() {
+      let overlay = document.getElementById('siteDeleteConfirmOverlay');
+      if (overlay) {
+        return overlay;
+      }
+
+      overlay = document.createElement('div');
+      overlay.id = 'siteDeleteConfirmOverlay';
+      overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteConfirmTitle">
+          <h3 id="siteDeleteConfirmTitle">Supprimer ce site ?</h3>
+          <p id="siteDeleteConfirmText">Cette action est irréversible.</p>
+          <div class="modal-actions item-delete-confirm-actions">
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="siteDeleteCancelButton">Annuler</button>
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger" id="siteDeleteConfirmButton">Supprimer</button>
+          </div>
+        </article>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function askSiteDeleteConfirmation(siteName) {
+      const overlay = ensureSiteDeleteConfirmationDialog();
+      const text = overlay.querySelector('#siteDeleteConfirmText');
+      const cancelButton = overlay.querySelector('#siteDeleteCancelButton');
+      const confirmButton = overlay.querySelector('#siteDeleteConfirmButton');
+      if (!text || !cancelButton || !confirmButton) {
+        return Promise.resolve(false);
+      }
+
+      const title = overlay.querySelector('#siteDeleteConfirmTitle');
+      const normalizedSiteName = String(siteName || '').trim() || 'inconnu';
+      if (title) {
+        title.textContent = `Supprimer ce site ${normalizedSiteName} ?`;
+      }
+      text.textContent = 'Cette action est irréversible.';
+
+      return new Promise((resolve) => {
+        const closeAnimationDurationMs = 170;
+        let closeAnimationTimer = null;
+        let isClosing = false;
+        const cleanup = () => {
+          if (closeAnimationTimer) {
+            window.clearTimeout(closeAnimationTimer);
+            closeAnimationTimer = null;
+          }
+          overlay.hidden = true;
+          overlay.classList.remove('is-open');
+          overlay.onclick = null;
+          cancelButton.onclick = null;
+          confirmButton.onclick = null;
+          document.removeEventListener('keydown', handleKeyDown);
+          siteActionState.closeConfirmation = null;
+        };
+        const close = (value) => {
+          if (isClosing) {
+            return;
+          }
+          isClosing = true;
+          overlay.classList.remove('is-open');
+          closeAnimationTimer = window.setTimeout(() => {
+            cleanup();
+            resolve(value);
+          }, closeAnimationDurationMs);
+        };
+        const handleKeyDown = (event) => {
+          if (event.key === 'Escape') {
+            close(false);
+          }
+        };
+
+        siteActionState.closeConfirmation = () => close(false);
+        cancelButton.onclick = () => close(false);
+        confirmButton.onclick = () => close(true);
+        overlay.onclick = (event) => {
+          if (event.target === overlay) {
+            close(false);
+          }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        overlay.hidden = false;
+        window.requestAnimationFrame(() => {
+          overlay.classList.add('is-open');
+        });
+      });
+    }
+
+    function closeActiveSiteTransientLayer() {
+      if (typeof siteActionState.closeConfirmation === 'function') {
+        siteActionState.closeConfirmation();
+        return true;
+      }
+      if (typeof siteActionState.closeSheet === 'function') {
+        siteActionState.closeSheet({ fromPopState: true });
+        return true;
+      }
+      return false;
+    }
+
+    window.addEventListener('popstate', () => {
+      if (siteActionState.ignoreNextPopstate) {
+        siteActionState.ignoreNextPopstate = false;
+        return;
+      }
+      closeActiveSiteTransientLayer();
+    });
+
+    function openSiteActionSheet(siteId) {
+      const overlay = ensureSiteActionBottomSheet();
+      const sheet = overlay.querySelector('#siteActionSheet');
+      const title = overlay.querySelector('#siteActionSheetTitle');
+      const deleteButton = overlay.querySelector('#siteActionDeleteButton');
+      if (!sheet || !title || !deleteButton) {
+        return;
+      }
+
+      const activeSite = currentSites.find((site) => site.id === siteId);
+      if (!activeSite) {
+        return;
+      }
+
+      siteActionState.activeSiteId = siteId;
+      title.textContent = String(activeSite.nom || '').trim() || 'Actions';
+      const closeTransitionDurationMs = 280;
+
+      const clearCloseListeners = () => {
+        if (overlay.__closeTimerId) {
+          window.clearTimeout(overlay.__closeTimerId);
+          overlay.__closeTimerId = null;
+        }
+        if (overlay.__closeTransitionHandler) {
+          overlay.removeEventListener('transitionend', overlay.__closeTransitionHandler);
+          overlay.__closeTransitionHandler = null;
+        }
+      };
+
+      const closeSheet = ({ fromPopState = false } = {}) =>
+        new Promise((resolve) => {
+          if (overlay.hidden) {
+            resolve();
+            return;
+          }
+          let isResolved = false;
+          const finish = () => {
+            if (isResolved) {
+              return;
+            }
+            isResolved = true;
+            clearCloseListeners();
+            overlay.hidden = true;
+            overlay.classList.remove('is-open');
+            siteActionState.activeSiteId = null;
+            siteActionState.closeSheet = null;
+            if (siteActionState.hasHistoryEntry && !fromPopState) {
+              siteActionState.hasHistoryEntry = false;
+              siteActionState.ignoreNextPopstate = true;
+              window.history.back();
+            } else if (fromPopState) {
+              siteActionState.hasHistoryEntry = false;
+            }
+            resolve();
+          };
+
+          overlay.classList.remove('is-open');
+          overlay.__closeTransitionHandler = (event) => {
+            if (event.target !== overlay && event.target !== sheet) {
+              return;
+            }
+            finish();
+          };
+          overlay.addEventListener('transitionend', overlay.__closeTransitionHandler);
+          overlay.__closeTimerId = window.setTimeout(finish, closeTransitionDurationMs);
+        });
+
+      siteActionState.closeSheet = closeSheet;
+      deleteButton.onclick = async () => {
+        deleteButton.disabled = true;
+        try {
+          await closeSheet();
+          const shouldDelete = await askSiteDeleteConfirmation(activeSite.nom || 'inconnu');
+          if (!shouldDelete) {
+            return;
+          }
+          const removedSnapshot = await StorageService.removeSite(siteId);
+          if (!removedSnapshot) {
+            UiService.showToast('Suppression impossible.');
+            return;
+          }
+          UiService.showUndoSnackbar('Site supprimé.', async () => {
+            const restored = await StorageService.restoreSite(removedSnapshot);
+            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+          });
+        } finally {
+          deleteButton.disabled = false;
+        }
+      };
+
+      overlay.onclick = (event) => {
+        if (event.target === overlay) {
+          closeSheet();
+        }
+      };
+
+      let touchStartY = null;
+      sheet.ontouchstart = (event) => {
+        touchStartY = event.touches[0]?.clientY ?? null;
+      };
+      sheet.ontouchend = (event) => {
+        if (touchStartY === null) {
+          return;
+        }
+        const touchEndY = event.changedTouches[0]?.clientY ?? touchStartY;
+        if (touchEndY - touchStartY > 60) {
+          closeSheet();
+        }
+        touchStartY = null;
+      };
+
+      overlay.hidden = false;
+      clearCloseListeners();
+      if (!siteActionState.hasHistoryEntry) {
+        window.history.pushState({ siteActionSheet: true }, '');
+        siteActionState.hasHistoryEntry = true;
+      }
+      window.requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
+    }
+
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
       const sites = currentSites.filter((site) => String(site.nom || '').toUpperCase().includes(query));
@@ -977,7 +1242,7 @@ import { firebaseAuth } from './firebase-core.js';
             isAuthenticated && currentPermissions.canDelete && !isSiteLocked(site);
           return `
             <article class="list-card">
-              ${canShowDeleteButton ? `<button class="list-card__delete-button" type="button" data-site-delete="${site.id}" aria-label="Supprimer" title="Supprimer">×</button>` : ''}
+              ${canShowDeleteButton ? `<button class="list-card__menu-button" type="button" data-site-menu="${site.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
@@ -1098,17 +1363,9 @@ import { firebaseAuth } from './firebase-core.js';
         });
       });
 
-      siteList.querySelectorAll('[data-site-delete]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          const removedSnapshot = await StorageService.removeSite(button.dataset.siteDelete);
-          if (!removedSnapshot) {
-            UiService.showToast('Suppression impossible.');
-            return;
-          }
-          UiService.showUndoSnackbar('Site supprimé.', async () => {
-            const restored = await StorageService.restoreSite(removedSnapshot);
-            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
-          });
+      siteList.querySelectorAll('[data-site-menu]').forEach((button) => {
+        button.addEventListener('click', () => {
+          openSiteActionSheet(button.dataset.siteMenu);
         });
       });
     }
