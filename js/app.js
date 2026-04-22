@@ -1554,9 +1554,9 @@ import { firebaseAuth } from './firebase-core.js';
         <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="itemDeleteConfirmTitle">
           <h3 id="itemDeleteConfirmTitle">Supprimer cet OUT ?</h3>
           <p id="itemDeleteConfirmText">Cette action peut être annulée depuis la notification.</p>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-ghost" id="itemDeleteCancelButton">Annuler</button>
-            <button type="button" class="btn btn-danger" id="itemDeleteConfirmButton">Supprimer</button>
+          <div class="modal-actions item-delete-confirm-actions">
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="itemDeleteCancelButton">Annuler</button>
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger" id="itemDeleteConfirmButton">Supprimer</button>
           </div>
         </article>
       `;
@@ -1573,7 +1573,12 @@ import { firebaseAuth } from './firebase-core.js';
         return Promise.resolve(false);
       }
 
-      text.textContent = `Voulez-vous vraiment supprimer ${itemLabel} ? Cette action peut être annulée depuis la notification.`;
+      const title = overlay.querySelector('#itemDeleteConfirmTitle');
+      const normalizedLabel = String(itemLabel || '').trim() || 'OUT inconnu';
+      if (title) {
+        title.textContent = `Supprimer cet ${normalizedLabel} ?`;
+      }
+      text.textContent = 'Cette action peut être annulée depuis la notification.';
 
       return new Promise((resolve) => {
         const closeAnimationDurationMs = 170;
