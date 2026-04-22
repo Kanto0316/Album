@@ -1951,11 +1951,17 @@ import { firebaseAuth } from './firebase-core.js';
       document.querySelector('.data-table')?.classList.add('data-table--hide-action');
     }
 
-    function updateDetailCreateButtonVisibility(isAuthenticated) {
+    function isFirebaseUserAuthenticated(user) {
+      return Boolean(user?.uid);
+    }
+
+    function updateDetailCreateButtonVisibility(user) {
       if (!openDetailFormButton) {
         return;
       }
+      const isAuthenticated = isFirebaseUserAuthenticated(user);
       openDetailFormButton.hidden = !isAuthenticated;
+      openDetailFormButton.style.display = isAuthenticated ? 'inline-flex' : 'none';
     }
 
     if (!permissions.canCreate || permissions.isLecture) {
@@ -1964,9 +1970,9 @@ import { firebaseAuth } from './firebase-core.js';
       detailFormSection.hidden = false;
     }
 
-    updateDetailCreateButtonVisibility(Boolean(firebaseAuth.currentUser));
+    updateDetailCreateButtonVisibility(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => {
-      updateDetailCreateButtonVisibility(Boolean(user));
+      updateDetailCreateButtonVisibility(user || null);
     });
 
     function renderTitle() {
