@@ -140,8 +140,11 @@ button {
   line-height: 1;
 }
 
-.header-menu__trigger span {
-  transform: translateY(-0.08em);
+.header-menu__icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  object-fit: contain;
+  display: block;
 }
 
 .header-menu__panel {
@@ -3259,10 +3262,6 @@ body[data-page="site-detail"] .list-separator {
   body[data-page="home"] .header-menu__trigger {
     width: 2.45rem;
     height: 2.45rem;
-  }
-
-  body[data-page="home"] .header-menu__trigger {
-    font-size: 1.65rem;
   }
 
   body[data-page="home"] .page-content {
