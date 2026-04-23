@@ -1012,6 +1012,10 @@ import { firebaseAuth } from './firebase-core.js';
           <div class="bottom-sheet__handle" aria-hidden="true"></div>
           <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
           <div class="item-action-sheet__content">
+            <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton">
+              <img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <span id="siteActionLockToggleLabel">Verrouiller</span>
+            </button>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
@@ -1125,6 +1129,40 @@ import { firebaseAuth } from './firebase-core.js';
       return false;
     }
 
+    function openSiteLockActionDialog(siteId) {
+      if (!isAuthenticated) {
+        return;
+      }
+      const targetSite = currentSites.find((site) => site.id === siteId);
+      if (isSiteLocked(targetSite)) {
+        if (
+          !siteLockManageDialog ||
+          !siteLockCurrentPasswordInput ||
+          !siteLockNewPasswordInput ||
+          !siteLockManageError
+        ) {
+          return;
+        }
+        siteIdPendingLockManage = siteId;
+        siteLockCurrentPasswordInput.value = '';
+        siteLockNewPasswordInput.value = '';
+        clearTransientError(siteLockManageError);
+        siteLockManageDialog.showModal();
+        siteLockCurrentPasswordInput.focus();
+        return;
+      }
+
+      if (!siteLockDialog || !siteLockPasswordInput || !siteLockConfirmPasswordInput || !siteLockError) {
+        return;
+      }
+      siteIdPendingLock = siteId;
+      siteLockPasswordInput.value = '';
+      siteLockConfirmPasswordInput.value = '';
+      clearTransientError(siteLockError);
+      siteLockDialog.showModal();
+      siteLockPasswordInput.focus();
+    }
+
     window.addEventListener('popstate', () => {
       if (siteActionState.ignoreNextPopstate) {
         siteActionState.ignoreNextPopstate = false;
@@ -1137,8 +1175,10 @@ import { firebaseAuth } from './firebase-core.js';
       const overlay = ensureSiteActionBottomSheet();
       const sheet = overlay.querySelector('#siteActionSheet');
       const title = overlay.querySelector('#siteActionSheetTitle');
+      const lockToggleButton = overlay.querySelector('#siteActionLockToggleButton');
+      const lockToggleLabel = overlay.querySelector('#siteActionLockToggleLabel');
       const deleteButton = overlay.querySelector('#siteActionDeleteButton');
-      if (!sheet || !title || !deleteButton) {
+      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !deleteButton) {
         return;
       }
 
@@ -1149,6 +1189,10 @@ import { firebaseAuth } from './firebase-core.js';
 
       siteActionState.activeSiteId = siteId;
       title.textContent = String(activeSite.nom || '').trim() || 'Actions';
+      const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !isSiteLocked(activeSite);
+      lockToggleLabel.textContent = isSiteLocked(activeSite) ? 'Déverrouiller' : 'Verrouiller';
+      deleteButton.hidden = !canDeleteSite;
+      deleteButton.disabled = !canDeleteSite;
       const closeTransitionDurationMs = 280;
 
       const clearCloseListeners = () => {
@@ -1201,6 +1245,10 @@ import { firebaseAuth } from './firebase-core.js';
         });
 
       siteActionState.closeSheet = closeSheet;
+      lockToggleButton.onclick = async () => {
+        await closeSheet();
+        openSiteLockActionDialog(siteId);
+      };
       deleteButton.onclick = async () => {
         deleteButton.disabled = true;
         try {
@@ -1275,11 +1323,10 @@ import { firebaseAuth } from './firebase-core.js';
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const lockLabel = isSiteLocked(site) ? 'Verrouillé' : 'Déverrouillé';
-          const canShowDeleteButton =
-            isAuthenticated && currentPermissions.canDelete && !isSiteLocked(site);
+          const canShowSiteActions = isAuthenticated;
           return `
             <article class="list-card">
-              ${canShowDeleteButton ? `<button class="list-card__menu-button" type="button" data-site-menu="${site.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
+              ${canShowSiteActions ? `<button class="list-card__menu-button" type="button" data-site-menu="${site.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <div class="list-card__meta">
@@ -1321,37 +1368,7 @@ import { firebaseAuth } from './firebase-core.js';
         };
 
         const openLockDialog = () => {
-          if (!isAuthenticated) {
-            return;
-          }
-          const targetSite = currentSites.find((site) => site.id === siteId);
-          if (isSiteLocked(targetSite)) {
-            if (
-              !siteLockManageDialog ||
-              !siteLockCurrentPasswordInput ||
-              !siteLockNewPasswordInput ||
-              !siteLockManageError
-            ) {
-              return;
-            }
-            siteIdPendingLockManage = siteId;
-            siteLockCurrentPasswordInput.value = '';
-            siteLockNewPasswordInput.value = '';
-            clearTransientError(siteLockManageError);
-            siteLockManageDialog.showModal();
-            siteLockCurrentPasswordInput.focus();
-            return;
-          }
-
-          if (!siteLockDialog || !siteLockPasswordInput || !siteLockConfirmPasswordInput || !siteLockError) {
-            return;
-          }
-          siteIdPendingLock = siteId;
-          siteLockPasswordInput.value = '';
-          siteLockConfirmPasswordInput.value = '';
-          clearTransientError(siteLockError);
-          siteLockDialog.showModal();
-          siteLockPasswordInput.focus();
+          openSiteLockActionDialog(siteId);
         };
 
         button.addEventListener('pointerdown', (event) => {
