@@ -117,8 +117,13 @@
   <body data-page="users-management">
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
-        <button id="usersBackButton" class="back-button" type="button" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
-        <div class="header-title"><h1>Gestion Admin</h1></div>
+        <div class="app-header__side app-header__side--left">
+          <button id="usersBackButton" class="back-button" type="button" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+        </div>
+        <div class="app-header__center">
+          <div class="header-title"><h1>Gestion Admin</h1></div>
+        </div>
+        <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
       </header>
       <main class="page-content page-content--wide">
         <section class="surface-card details-card">

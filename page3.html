@@ -40,10 +40,15 @@
   <body data-page="item-detail">
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
-        <button class="back-button" type="button" id="itemBackButton" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
-        <div class="header-title header-title--stacked">
-          <h1 id="itemTitle">Chargement...</h1>
+        <div class="app-header__side app-header__side--left">
+          <button class="back-button" type="button" id="itemBackButton" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
+        <div class="app-header__center">
+          <div class="header-title header-title--stacked">
+            <h1 id="itemTitle">Chargement...</h1>
+          </div>
+        </div>
+        <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
       </header>
 
       <main class="page-content page-content--wide">

@@ -10,33 +10,41 @@
   <body data-page="home">
     <div class="app-shell">
       <header class="app-header app-header--home">
-        <button id="userAvatarButton" class="avatar-button" type="button" aria-label="Profil" hidden>U</button>
-        <button id="openLoginButton" class="header-login-button" type="button" hidden>Se connecter</button>
-        <h1>Suivi Matériel</h1>
-        <div class="header-menu">
-          <button
-            id="homeMenuButton"
-            class="icon-button header-menu__trigger"
-            type="button"
-            aria-label="Plus d'options"
-            aria-haspopup="menu"
-            aria-expanded="false"
-          >
-            <img src="Icon/Trois point.png" alt="" aria-hidden="true" class="header-menu__icon" />
-          </button>
-          <div id="homeMenuPanel" class="header-menu__panel" role="menu" hidden>
-            <button id="historyButton" class="header-menu__option" type="button" role="menuitem">
-              Historiques
+        <div class="app-header__side app-header__side--left">
+          <button id="userAvatarButton" class="avatar-button" type="button" aria-label="Profil" hidden>U</button>
+          <button id="openLoginButton" class="header-login-button" type="button" hidden>Se connecter</button>
+        </div>
+        <div class="app-header__center">
+          <div class="header-title">
+            <h1>Suivi Matériel</h1>
+          </div>
+        </div>
+        <div class="app-header__side app-header__side--right">
+          <div class="header-menu">
+            <button
+              id="homeMenuButton"
+              class="icon-button header-menu__trigger"
+              type="button"
+              aria-label="Plus d'options"
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <img src="Icon/Trois point.png" alt="" aria-hidden="true" class="header-menu__icon" />
             </button>
-            <button id="importDataButton" class="header-menu__option" type="button" role="menuitem">
-              Importer les données
-            </button>
-            <button id="exportDataButton" class="header-menu__option" type="button" role="menuitem">
-              Exporter les données
-            </button>
-            <button id="manageUsersButton" class="header-menu__option" type="button" role="menuitem" hidden>
-              Gestion des utilisateurs
-            </button>
+            <div id="homeMenuPanel" class="header-menu__panel" role="menu" hidden>
+              <button id="historyButton" class="header-menu__option" type="button" role="menuitem">
+                Historiques
+              </button>
+              <button id="importDataButton" class="header-menu__option" type="button" role="menuitem">
+                Importer les données
+              </button>
+              <button id="exportDataButton" class="header-menu__option" type="button" role="menuitem">
+                Exporter les données
+              </button>
+              <button id="manageUsersButton" class="header-menu__option" type="button" role="menuitem" hidden>
+                Gestion des utilisateurs
+              </button>
+            </div>
           </div>
         </div>
       </header>
