@@ -123,9 +123,13 @@
           </label>
           <p id="siteLockManageError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--password modal-actions--password-manage">
-            <button type="submit" class="btn btn-danger" data-lock-manage-action="unlock">Déverrouiller</button>
-            <button type="submit" class="btn btn-success" data-lock-manage-action="update">Mettre à jour</button>
-            <button type="button" class="btn" data-close-dialog>Annuler</button>
+            <div class="modal-actions__row modal-actions__row--pair">
+              <button type="button" class="btn" data-close-dialog>Annuler</button>
+              <button type="submit" class="btn btn-success" data-lock-manage-action="update">Mettre à jour</button>
+            </div>
+            <div class="modal-actions__row modal-actions__row--single">
+              <button type="submit" class="btn btn-danger" data-lock-manage-action="unlock">Déverrouiller</button>
+            </div>
           </div>
         </form>
       </dialog>

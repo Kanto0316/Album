@@ -1330,12 +1330,46 @@ body[data-page="history"] .list-grid {
 }
 
 .modal-actions--password .btn {
-  flex: 0 1 auto;
-  min-width: fit-content;
+  flex: 1 1 50%;
+  width: 50%;
+  min-height: 3.35rem;
+  padding: 0.8rem 1.25rem;
 }
 
 .modal-actions--password-manage {
-  justify-content: space-between;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.modal-actions__row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.modal-actions__row--pair .btn {
+  flex: 1 1 50%;
+  width: 50%;
+}
+
+.modal-actions__row--single .btn {
+  width: 100%;
+  flex: 1 1 100%;
+}
+
+body[data-page="home"] .modal-actions--password {
+  width: 100%;
+}
+
+body[data-page="home"] .modal-actions--password:not(.modal-actions--password-manage) {
+  flex-wrap: nowrap;
+}
+
+body[data-page="home"] .modal-actions--password:not(.modal-actions--password-manage) .btn {
+  flex: 1 1 50%;
+  width: 50%;
 }
 
 .form-footer {
