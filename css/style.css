@@ -2944,7 +2944,7 @@ body[data-page="home"] .item-action-sheet .bottom-sheet__handle {
 }
 
 body[data-page="home"] .item-action-sheet__title {
-  margin: 0 0 0.75rem;
+  margin: 0.2rem 0 0.75rem;
   text-align: center;
   font-size: 0.88rem;
   font-weight: 500;
