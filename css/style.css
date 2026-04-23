@@ -1253,24 +1253,6 @@ body[data-page="history"] .list-grid {
   margin-bottom: 1rem;
 }
 
-.modal-header .icon-button {
-  width: 2.25rem;
-  height: 2.25rem;
-  background: rgba(31, 42, 55, 0.08);
-  color: var(--text);
-  font-size: 1.4rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.modal-header .icon-button:hover,
-.modal-header .icon-button:focus-visible {
-  background: rgba(31, 42, 55, 0.16);
-}
-
 .modal-actions,
 .form-footer {
   display: flex;
