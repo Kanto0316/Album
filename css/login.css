@@ -97,6 +97,3 @@ body {
 .btn.is-loading .btn__loader { display: inline-block; }
 .btn.is-loading .btn__label { opacity: .7; }
 @keyframes spin { to { transform: rotate(360deg);} }
-@media (max-width: 480px) {
-  .login-card { padding: 1rem; border-radius: 1rem; }
-}
