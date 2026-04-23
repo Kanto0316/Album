@@ -1233,6 +1233,18 @@ body[data-page="history"] .list-grid {
   line-height: 1.45;
 }
 
+#siteLockManageDialog .input-group {
+  gap: 0;
+}
+
+#siteLockManageDialog .input-group span {
+  margin-bottom: 8px;
+}
+
+#siteLockManageDialog .input-group + .input-group {
+  margin-top: 16px;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
