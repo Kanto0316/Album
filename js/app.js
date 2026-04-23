@@ -846,6 +846,7 @@ import { firebaseAuth } from './firebase-core.js';
     const siteActionState = {
       activeSiteId: null,
       closeSheet: null,
+      refreshSheetContent: null,
       closeConfirmation: null,
       hasHistoryEntry: false,
       ignoreNextPopstate: false,
@@ -1181,20 +1182,22 @@ import { firebaseAuth } from './firebase-core.js';
       if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !deleteButton) {
         return;
       }
-
-      const activeSite = currentSites.find((site) => site.id === siteId);
-      if (!activeSite) {
-        return;
-      }
-
-      siteActionState.activeSiteId = siteId;
-      title.textContent = String(activeSite.nom || '').trim() || 'Actions';
-      const siteIsLocked = isSiteLocked(activeSite);
-      const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !siteIsLocked;
-      lockToggleLabel.textContent = siteIsLocked ? 'Déverrouiller' : 'Verrouiller';
-      deleteButton.hidden = !canDeleteSite;
-      deleteButton.disabled = !canDeleteSite;
       const closeTransitionDurationMs = 280;
+      const refreshSiteActionSheetContent = () => {
+        const latestSite = currentSites.find((site) => site.id === siteId);
+        if (!latestSite) {
+          closeSheet();
+          return null;
+        }
+
+        title.textContent = String(latestSite.nom || '').trim() || 'Actions';
+        const siteIsLocked = isSiteLocked(latestSite);
+        const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !siteIsLocked;
+        lockToggleLabel.textContent = siteIsLocked ? 'Déverrouiller' : 'Verrouiller';
+        deleteButton.hidden = !canDeleteSite;
+        deleteButton.disabled = !canDeleteSite;
+        return latestSite;
+      };
 
       const clearCloseListeners = () => {
         if (overlay.__closeTimerId) {
@@ -1224,6 +1227,7 @@ import { firebaseAuth } from './firebase-core.js';
             overlay.classList.remove('is-open');
             siteActionState.activeSiteId = null;
             siteActionState.closeSheet = null;
+            siteActionState.refreshSheetContent = null;
             if (siteActionState.hasHistoryEntry && !fromPopState) {
               siteActionState.hasHistoryEntry = false;
               siteActionState.ignoreNextPopstate = true;
@@ -1245,7 +1249,13 @@ import { firebaseAuth } from './firebase-core.js';
           overlay.__closeTimerId = window.setTimeout(finish, closeTransitionDurationMs);
         });
 
+      siteActionState.activeSiteId = siteId;
       siteActionState.closeSheet = closeSheet;
+      siteActionState.refreshSheetContent = refreshSiteActionSheetContent;
+      const activeSite = refreshSiteActionSheetContent();
+      if (!activeSite) {
+        return;
+      }
       lockToggleButton.onclick = async () => {
         await closeSheet();
         openSiteLockActionDialog(siteId);
@@ -1715,6 +1725,9 @@ import { firebaseAuth } from './firebase-core.js';
       (sites) => {
         currentSites = sites;
         renderSites();
+        if (siteActionState.activeSiteId && typeof siteActionState.refreshSheetContent === 'function') {
+          siteActionState.refreshSheetContent();
+        }
       },
       () => {
         UiService.showToast('Synchronisation indisponible.');
