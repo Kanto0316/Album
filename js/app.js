@@ -1380,52 +1380,13 @@ import { firebaseAuth } from './firebase-core.js';
         .join('');
 
       siteList.querySelectorAll('[data-site-open]').forEach((button) => {
-        let longPressTimer = null;
-        let skipClickAfterLongPress = false;
         const siteId = button.dataset.siteOpen;
 
-        const clearLongPressTimer = () => {
-          if (!longPressTimer) {
-            return;
-          }
-          window.clearTimeout(longPressTimer);
-          longPressTimer = null;
-        };
-
-        const openLockDialog = () => {
-          openSiteLockActionDialog(siteId);
-        };
-
-        button.addEventListener('pointerdown', (event) => {
-          if (event.button !== 0 || !isAuthenticated) {
-            return;
-          }
-          skipClickAfterLongPress = false;
-          clearLongPressTimer();
-          longPressTimer = window.setTimeout(() => {
-            skipClickAfterLongPress = true;
-            openLockDialog();
-          }, 650);
-        });
-
-        button.addEventListener('pointerup', clearLongPressTimer);
-        button.addEventListener('pointerleave', clearLongPressTimer);
-        button.addEventListener('pointercancel', clearLongPressTimer);
         button.addEventListener('contextmenu', (event) => {
-          if (!isAuthenticated) {
-            return;
-          }
           event.preventDefault();
-          clearLongPressTimer();
-          skipClickAfterLongPress = true;
-          openLockDialog();
         });
 
         button.addEventListener('click', () => {
-          if (skipClickAfterLongPress) {
-            skipClickAfterLongPress = false;
-            return;
-          }
           const targetSite = getLatestSiteState(siteId);
           if (!isSiteLocked(targetSite)) {
             UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
