@@ -1218,6 +1218,14 @@ body[data-page="history"] .list-grid {
   margin-bottom: 0.3rem;
 }
 
+.input-group--site-lock-create {
+  gap: 0.65rem;
+}
+
+.input-group--site-lock-create + .input-group--site-lock-create {
+  margin-top: 0.35rem;
+}
+
 .modal-helper-text {
   margin: -0.2rem 0 0.9rem;
   color: var(--text-muted);
