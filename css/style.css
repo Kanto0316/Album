@@ -2946,6 +2946,15 @@ body[data-page="home"] .list-card__menu-icon {
   height: 0.88rem;
 }
 
+body[data-page="home"] .list-card__button:active {
+  transform: scale(0.98);
+  transition: transform 0.2s ease;
+}
+
+body[data-page="home"] .list-card:active {
+  transform: scale(0.98);
+}
+
 body[data-page="home"] .item-action-sheet-overlay {
   z-index: 1250;
   transition: background-color 0.28s ease;
