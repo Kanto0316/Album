@@ -1189,8 +1189,9 @@ import { firebaseAuth } from './firebase-core.js';
 
       siteActionState.activeSiteId = siteId;
       title.textContent = String(activeSite.nom || '').trim() || 'Actions';
-      const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !isSiteLocked(activeSite);
-      lockToggleLabel.textContent = isSiteLocked(activeSite) ? 'Déverrouiller' : 'Verrouiller';
+      const siteIsLocked = isSiteLocked(activeSite);
+      const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !siteIsLocked;
+      lockToggleLabel.textContent = siteIsLocked ? 'Déverrouiller' : 'Verrouiller';
       deleteButton.hidden = !canDeleteSite;
       deleteButton.disabled = !canDeleteSite;
       const closeTransitionDurationMs = 280;
@@ -1250,6 +1251,11 @@ import { firebaseAuth } from './firebase-core.js';
         openSiteLockActionDialog(siteId);
       };
       deleteButton.onclick = async () => {
+        const latestSiteState = currentSites.find((site) => site.id === siteId);
+        if (!latestSiteState || isSiteLocked(latestSiteState)) {
+          UiService.showToast('Suppression impossible tant que le site est verrouillé.');
+          return;
+        }
         deleteButton.disabled = true;
         try {
           await closeSheet();
