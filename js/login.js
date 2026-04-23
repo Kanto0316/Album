@@ -13,19 +13,6 @@ const auth = firebaseAuth;
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 
-function isMobileDevice() {
-  if (navigator.userAgentData?.mobile) {
-    return true;
-  }
-
-  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
-  const smallViewport = window.matchMedia('(max-width: 900px)').matches;
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobileUserAgent = /android|iphone|ipad|ipod|mobile/.test(userAgent);
-
-  return isMobileUserAgent || (touchDevice && smallViewport);
-}
-
 function isInAppBrowser() {
   return /FBAN|FBAV|Instagram|Messenger|WhatsApp/i.test(navigator.userAgent);
 }
