@@ -2771,20 +2771,21 @@ body[data-page="site-detail"] .fab--export {
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   width: auto;
   min-width: 7rem;
-  height: 2.35rem;
-  border-radius: 12px;
-  background: rgba(24, 168, 95, 0.95);
-  color: #fff;
+  height: 2.25rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #18a85f;
+  border: 1.5px solid #18a85f;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  padding-inline: 0.8rem;
-  font-size: 0.875rem;
+  padding-inline: 0.95rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  box-shadow: 0 8px 16px rgba(8, 112, 62, 0.2);
+  box-shadow: 0 4px 10px rgba(8, 112, 62, 0.08);
   z-index: 40;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 body[data-page="site-detail"] .fab--export img {
@@ -2794,12 +2795,13 @@ body[data-page="site-detail"] .fab--export img {
 }
 
 body[data-page="site-detail"] .fab--export:hover {
-  background: rgba(21, 145, 84, 0.95);
-  box-shadow: 0 10px 18px rgba(8, 112, 62, 0.24);
+  background: rgba(24, 168, 95, 0.12);
+  box-shadow: 0 6px 12px rgba(8, 112, 62, 0.12);
 }
 
 body[data-page="site-detail"] .fab--export:active {
-  transform: scale(0.95);
+  background: rgba(24, 168, 95, 0.18);
+  transform: scale(0.97);
 }
 
 body[data-page="site-detail"] .fab-add,
@@ -3528,4 +3530,3 @@ body[data-page="home"] .app-header--home > h1 {
   width: auto;
   padding-inline: 0;
 }
-
