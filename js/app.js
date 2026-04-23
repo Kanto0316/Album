@@ -1130,11 +1130,18 @@ import { firebaseAuth } from './firebase-core.js';
       return false;
     }
 
+    function getLatestSiteState(siteId) {
+      if (!siteId) {
+        return null;
+      }
+      return StorageService.getSite(siteId) || currentSites.find((site) => site.id === siteId) || null;
+    }
+
     function openSiteLockActionDialog(siteId) {
       if (!isAuthenticated) {
         return;
       }
-      const targetSite = currentSites.find((site) => site.id === siteId);
+      const targetSite = getLatestSiteState(siteId);
       if (isSiteLocked(targetSite)) {
         if (
           !siteLockManageDialog ||
@@ -1184,7 +1191,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
       const closeTransitionDurationMs = 280;
       const refreshSiteActionSheetContent = () => {
-        const latestSite = currentSites.find((site) => site.id === siteId);
+        const latestSite = getLatestSiteState(siteId);
         if (!latestSite) {
           closeSheet();
           return null;
@@ -1195,6 +1202,7 @@ import { firebaseAuth } from './firebase-core.js';
         const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !siteIsLocked;
         lockToggleLabel.textContent = siteIsLocked ? 'Déverrouiller' : 'Verrouiller';
         deleteButton.hidden = !canDeleteSite;
+        deleteButton.style.display = canDeleteSite ? 'inline-flex' : 'none';
         deleteButton.disabled = !canDeleteSite;
         return latestSite;
       };
@@ -1261,9 +1269,10 @@ import { firebaseAuth } from './firebase-core.js';
         openSiteLockActionDialog(siteId);
       };
       deleteButton.onclick = async () => {
-        const latestSiteState = currentSites.find((site) => site.id === siteId);
+        const latestSiteState = getLatestSiteState(siteId);
         if (!latestSiteState || isSiteLocked(latestSiteState)) {
           UiService.showToast('Suppression impossible tant que le site est verrouillé.');
+          refreshSiteActionSheetContent();
           return;
         }
         deleteButton.disabled = true;
@@ -1417,7 +1426,7 @@ import { firebaseAuth } from './firebase-core.js';
             skipClickAfterLongPress = false;
             return;
           }
-          const targetSite = currentSites.find((site) => site.id === siteId);
+          const targetSite = getLatestSiteState(siteId);
           if (!isSiteLocked(targetSite)) {
             UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
             return;
@@ -1623,7 +1632,7 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
 
-      const targetSite = currentSites.find((site) => site.id === siteIdPendingUnlock);
+      const targetSite = getLatestSiteState(siteIdPendingUnlock);
       if (!isSiteLocked(targetSite)) {
         siteUnlockDialog?.close();
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteIdPendingUnlock)}`);
@@ -1656,7 +1665,7 @@ import { firebaseAuth } from './firebase-core.js';
       const submittedAction = event.submitter?.dataset?.lockManageAction;
       const currentPasswordValue = siteLockCurrentPasswordInput?.value || '';
       const newPasswordValue = siteLockNewPasswordInput?.value || '';
-      const targetSite = currentSites.find((site) => site.id === siteIdPendingLockManage);
+      const targetSite = getLatestSiteState(siteIdPendingLockManage);
       if (!isSiteLocked(targetSite)) {
         siteLockManageDialog?.close();
         siteIdPendingLockManage = null;
