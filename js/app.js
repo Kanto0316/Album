@@ -2382,6 +2382,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     if (siteDetailFabStack) {
+      const siteDetailScrollContainer = document.querySelector('body[data-page="site-detail"] .page-content');
       let siteDetailScrollTimerId = null;
       const SCROLL_IDLE_DELAY_MS = 180;
 
@@ -2400,7 +2401,7 @@ import { firebaseAuth } from './firebase-core.js';
         }, SCROLL_IDLE_DELAY_MS);
       };
 
-      window.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
+      siteDetailScrollContainer?.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
     }
 
     itemSearchInput.addEventListener('input', () => {
