@@ -34,6 +34,14 @@
               autocomplete="off"
             />
           </label>
+          <section class="auth-required-card auth-required-card--embedded section" data-auth-required-card hidden>
+            <span class="auth-required-card__icon" aria-hidden="true">i</span>
+            <p class="auth-required-card__message">Vous devez vous connecter pour modifier les données.</p>
+            <button type="button" class="auth-required-card__action" data-auth-login-action>
+              <span>Se connecter</span>
+              <span aria-hidden="true">›</span>
+            </button>
+          </section>
           <div class="filter-chip-group filters" role="group" aria-label="Filtrer les résultats par date">
             <button class="filter-chip" type="button" data-filter-chip="all">Tous</button>
             <button class="filter-chip" type="button" data-filter-chip="today">Aujourd’hui</button>
