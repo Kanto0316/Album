@@ -2896,6 +2896,13 @@ body[data-page="site-detail"] .site-detail-fab-stack.is-scroll-hidden {
   pointer-events: none;
 }
 
+body[data-page="site-detail"].app-content-loading .site-detail-fab-stack,
+body[data-page="site-detail"].app-content-pending .site-detail-fab-stack {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+}
+
 body[data-page="site-detail"] .site-detail-fab-row {
   display: inline-flex;
   align-items: center;
