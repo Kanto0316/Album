@@ -1435,6 +1435,31 @@ body[data-page="history"] .list-grid {
   display: inline-flex;
 }
 
+#siteExportSubmitButton,
+#detailExportSubmitButton {
+  position: relative;
+}
+
+#siteExportSubmitButton .btn-label-loading,
+#detailExportSubmitButton .btn-label-loading {
+  display: none;
+}
+
+#siteExportSubmitButton.is-loading,
+#detailExportSubmitButton.is-loading {
+  filter: saturate(0.95);
+}
+
+#siteExportSubmitButton.is-loading .btn-label-default,
+#detailExportSubmitButton.is-loading .btn-label-default {
+  display: none;
+}
+
+#siteExportSubmitButton.is-loading .btn-label-loading,
+#detailExportSubmitButton.is-loading .btn-label-loading {
+  display: inline-flex;
+}
+
 .modal-actions--password {
   justify-content: flex-end;
   flex-wrap: wrap;
