@@ -1818,6 +1818,7 @@ import { firebaseAuth } from './firebase-core.js';
     const itemDialog = requireElement('itemDialog');
     const itemForm = requireElement('itemForm');
     const itemNumberInput = requireElement('itemNumberInput');
+    const itemNumberCounter = requireElement('itemNumberCounter');
     const itemFormError = requireElement('itemFormError');
     const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
     const openExportItems = requireElement('openExportItems');
@@ -2310,6 +2311,37 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
+    function getItemNumberMaxLength() {
+      return itemNumberInput.maxLength > 0 ? itemNumberInput.maxLength : null;
+    }
+
+    function normalizeItemNumberInput(rawValue) {
+      const digitsOnly = String(rawValue || '').replace(/\D/g, '');
+      const maxLength = getItemNumberMaxLength();
+      if (!maxLength) {
+        return digitsOnly;
+      }
+      return digitsOnly.slice(0, maxLength);
+    }
+
+    function updateItemNumberCounter() {
+      const maxLength = getItemNumberMaxLength();
+      const currentLength = itemNumberInput.value.length;
+      itemNumberCounter.textContent = `${currentLength} / ${maxLength ?? currentLength}`;
+
+      itemNumberCounter.classList.remove('is-warning', 'is-limit');
+      if (!maxLength || maxLength <= 0) {
+        return;
+      }
+
+      const ratio = currentLength / maxLength;
+      if (ratio >= 1) {
+        itemNumberCounter.classList.add('is-limit');
+      } else if (ratio >= 0.8) {
+        itemNumberCounter.classList.add('is-warning');
+      }
+    }
+
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
@@ -2320,16 +2352,56 @@ import { firebaseAuth } from './firebase-core.js';
       itemFormError.textContent = '';
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
+      updateItemNumberCounter();
       itemDialog.showModal();
       itemNumberInput.focus();
     });
 
-    itemNumberInput.addEventListener('input', () => {
-      const digitsOnly = itemNumberInput.value.replace(/\D/g, '');
-      if (itemNumberInput.value !== digitsOnly) {
-        itemNumberInput.value = digitsOnly;
+    itemNumberInput.addEventListener('beforeinput', (event) => {
+      const maxLength = getItemNumberMaxLength();
+      if (!maxLength || event.inputType.startsWith('delete')) {
+        return;
+      }
+
+      const selectionStart = itemNumberInput.selectionStart ?? itemNumberInput.value.length;
+      const selectionEnd = itemNumberInput.selectionEnd ?? itemNumberInput.value.length;
+      const selectedLength = Math.max(0, selectionEnd - selectionStart);
+      const nextAllowedLength = maxLength - (itemNumberInput.value.length - selectedLength);
+      if (nextAllowedLength <= 0) {
+        event.preventDefault();
       }
     });
+
+    itemNumberInput.addEventListener('paste', (event) => {
+      const clipboardText = event.clipboardData?.getData('text') ?? '';
+      const sanitizedClipboardText = String(clipboardText).replace(/\D/g, '');
+      if (!sanitizedClipboardText) {
+        event.preventDefault();
+        updateItemNumberCounter();
+        return;
+      }
+
+      event.preventDefault();
+      const maxLength = getItemNumberMaxLength();
+      const selectionStart = itemNumberInput.selectionStart ?? itemNumberInput.value.length;
+      const selectionEnd = itemNumberInput.selectionEnd ?? itemNumberInput.value.length;
+      const selectedLength = Math.max(0, selectionEnd - selectionStart);
+      const remainingLength = maxLength
+        ? Math.max(0, maxLength - (itemNumberInput.value.length - selectedLength))
+        : sanitizedClipboardText.length;
+      const insertedValue = sanitizedClipboardText.slice(0, remainingLength);
+      itemNumberInput.setRangeText(insertedValue, selectionStart, selectionEnd, 'end');
+      updateItemNumberCounter();
+    });
+
+    itemNumberInput.addEventListener('input', () => {
+      const normalizedValue = normalizeItemNumberInput(itemNumberInput.value);
+      if (itemNumberInput.value !== normalizedValue) {
+        itemNumberInput.value = normalizedValue;
+      }
+      updateItemNumberCounter();
+    });
+    updateItemNumberCounter();
 
     if (openExportItems) {
       openExportItems.addEventListener('click', openSiteExportDialog);

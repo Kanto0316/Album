@@ -1327,6 +1327,22 @@ body[data-page="history"] .list-grid {
   margin-bottom: 0.3rem;
 }
 
+.input-char-counter {
+  align-self: flex-end;
+  margin-top: 0.2rem;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.input-char-counter.is-warning {
+  color: #d17a00;
+}
+
+.input-char-counter.is-limit {
+  color: var(--danger);
+}
+
 .input-group--site-lock-create {
   gap: 0.65rem;
 }
