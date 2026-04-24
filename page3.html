@@ -68,6 +68,14 @@
               <input id="detailSearchInput" class="search-input" type="text" placeholder="Entrer votre recherche..." autocomplete="off" />
             </label>
           </div>
+          <section class="auth-required-card auth-required-card--embedded section" data-auth-required-card hidden>
+            <span class="auth-required-card__icon" aria-hidden="true">i</span>
+            <p class="auth-required-card__message">Vous devez vous connecter pour modifier les données.</p>
+            <button type="button" class="auth-required-card__action" data-auth-login-action>
+              <span>Se connecter</span>
+              <span aria-hidden="true">›</span>
+            </button>
+          </section>
           <div class="table-container table-container--card" id="detailTableContainer">
             <div class="table-wrapper table-wrapper--shared" id="detailTableWrapper">
               <table class="data-table" id="detailDataTable">

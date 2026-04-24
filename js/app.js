@@ -330,6 +330,33 @@ import { firebaseAuth } from './firebase-core.js';
     }
   }
 
+  function initAuthRequiredNoticeCard() {
+    const cards = Array.from(document.querySelectorAll('[data-auth-required-card]'));
+    if (!cards.length) {
+      return;
+    }
+
+    const loginActions = Array.from(document.querySelectorAll('[data-auth-login-action]'));
+    const updateCardVisibility = (user) => {
+      const isAuthenticated = Boolean(user?.uid);
+      cards.forEach((card) => {
+        card.hidden = isAuthenticated;
+        card.style.display = isAuthenticated ? 'none' : '';
+      });
+    };
+
+    loginActions.forEach((actionButton) => {
+      actionButton.addEventListener('click', () => {
+        UiService.navigate('login.html');
+      });
+    });
+
+    updateCardVisibility(firebaseAuth.currentUser);
+    onAuthStateChanged(firebaseAuth, (user) => {
+      updateCardVisibility(user || null);
+    });
+  }
+
   function setHomeAccessControlVisibility({ showAvatar, showLoginButton }) {
     const avatarButton = document.getElementById('userAvatarButton');
     const loginButton = document.getElementById('openLoginButton');
@@ -806,6 +833,8 @@ import { firebaseAuth } from './firebase-core.js';
   }
 
   function initHomePage(permissions, authState) {
+    initAuthRequiredNoticeCard();
+
     const searchInput = requireElement('searchInput');
     const siteList = requireElement('siteList');
     const siteCount = requireElement('siteCount');
@@ -1718,6 +1747,8 @@ import { firebaseAuth } from './firebase-core.js';
   }
 
   function initSiteDetailPage(permissions) {
+    initAuthRequiredNoticeCard();
+
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
     if (!siteId) {
@@ -2324,6 +2355,8 @@ import { firebaseAuth } from './firebase-core.js';
   }
 
   function initItemDetailPage(permissions) {
+    initAuthRequiredNoticeCard();
+
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
     const itemId = params.get('itemId');
