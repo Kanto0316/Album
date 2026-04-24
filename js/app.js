@@ -2223,6 +2223,29 @@ import { firebaseAuth } from './firebase-core.js';
       openExportItems.addEventListener('click', exportItems);
     }
 
+    const siteDetailScrollContainer = document.querySelector('body[data-page="site-detail"] .page-content');
+    if (openExportItems && siteDetailScrollContainer) {
+      let exportButtonScrollTimerId = null;
+      const SCROLL_IDLE_DELAY_MS = 400;
+
+      const setExportButtonScrollingState = (isScrolling) => {
+        openExportItems.classList.toggle('is-scrolling', isScrolling);
+      };
+
+      const handleSiteDetailScroll = () => {
+        setExportButtonScrollingState(true);
+        if (exportButtonScrollTimerId) {
+          window.clearTimeout(exportButtonScrollTimerId);
+        }
+        exportButtonScrollTimerId = window.setTimeout(() => {
+          setExportButtonScrollingState(false);
+          exportButtonScrollTimerId = null;
+        }, SCROLL_IDLE_DELAY_MS);
+      };
+
+      siteDetailScrollContainer.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
+    }
+
     itemSearchInput.addEventListener('input', () => {
       window.localStorage.setItem(searchStorageKey, itemSearchInput.value);
       renderItems();
