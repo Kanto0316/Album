@@ -60,11 +60,18 @@
         <section id="itemList" class="list-grid" aria-live="polite"></section>
       </main>
 
-      <button type="button" id="openExportItems" class="fab fab--export" aria-label="Exporter">
-        <img src="Icon/Exporter.png" alt="" aria-hidden="true" class="fab--export__icon" />
-        <span class="fab--export__label">Exporter</span>
-      </button>
-      <button id="openCreateItem" class="fab fab-add" type="button" aria-label="Ajouter un numéro OUT">+</button>
+      <div class="site-detail-fab-stack" aria-hidden="false">
+        <div class="site-detail-fab-row" data-fab-row="create">
+          <span class="site-detail-fab-label site-detail-fab-label--create">Créé</span>
+          <button id="openCreateItem" class="fab fab-add" type="button" aria-label="Ajouter un numéro OUT">+</button>
+        </div>
+        <div class="site-detail-fab-row" data-fab-row="export">
+          <span class="site-detail-fab-label site-detail-fab-label--export">Exporter</span>
+          <button type="button" id="openExportItems" class="fab fab--export" aria-label="Exporter">
+            <img src="Icon/Exporter.png" alt="" aria-hidden="true" class="fab--export__icon" />
+          </button>
+        </div>
+      </div>
 
       <dialog id="itemDialog" class="modal-card">
         <form method="dialog" class="modal-content modal-content--site-create modal-content--item-create" id="itemForm">
