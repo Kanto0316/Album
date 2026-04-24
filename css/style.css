@@ -1811,6 +1811,10 @@ body[data-page="item-detail"] .app-header--detail {
   height: var(--header-height);
 }
 
+body[data-page="item-detail"] .auth-required-card--embedded {
+  margin-bottom: 20px;
+}
+
 body[data-page="item-detail"] .table-container input,
 body[data-page="item-detail"] .table-container select,
 body[data-page="item-detail"] .table-container button,
