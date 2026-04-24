@@ -2291,6 +2291,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
+    const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -2303,6 +2304,10 @@ import { firebaseAuth } from './firebase-core.js';
       const isAuthenticated = isFirebaseUserAuthenticated(user);
       openCreateItem.hidden = !isAuthenticated;
       openCreateItem.style.display = isAuthenticated ? 'inline-flex' : 'none';
+      const createButtonRow = openCreateItem.closest('[data-fab-row="create"]');
+      if (createButtonRow) {
+        createButtonRow.hidden = !isAuthenticated;
+      }
     }
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
@@ -2376,37 +2381,26 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
-    const siteDetailScrollContainer = document.querySelector('body[data-page="site-detail"] .page-content');
-    if (openExportItems && siteDetailScrollContainer) {
-      let exportButtonScrollTimerId = null;
-      const SCROLL_IDLE_DELAY_MS = 400;
+    if (siteDetailFabStack) {
+      let siteDetailScrollTimerId = null;
+      const SCROLL_IDLE_DELAY_MS = 180;
 
-      const syncExportButtonExpandedWidth = () => {
-        openExportItems.classList.remove('is-scrolling');
-        const measuredWidth = openExportItems.scrollWidth;
-        if (measuredWidth > 0) {
-          openExportItems.style.setProperty('--export-button-expanded-width', `${measuredWidth}px`);
-        }
-      };
-
-      const setExportButtonScrollingState = (isScrolling) => {
-        openExportItems.classList.toggle('is-scrolling', isScrolling);
+      const setFabStackScrollingState = (isScrolling) => {
+        siteDetailFabStack.classList.toggle('is-scroll-hidden', isScrolling);
       };
 
       const handleSiteDetailScroll = () => {
-        setExportButtonScrollingState(true);
-        if (exportButtonScrollTimerId) {
-          window.clearTimeout(exportButtonScrollTimerId);
+        setFabStackScrollingState(true);
+        if (siteDetailScrollTimerId) {
+          window.clearTimeout(siteDetailScrollTimerId);
         }
-        exportButtonScrollTimerId = window.setTimeout(() => {
-          setExportButtonScrollingState(false);
-          exportButtonScrollTimerId = null;
+        siteDetailScrollTimerId = window.setTimeout(() => {
+          setFabStackScrollingState(false);
+          siteDetailScrollTimerId = null;
         }, SCROLL_IDLE_DELAY_MS);
       };
 
-      syncExportButtonExpandedWidth();
-      window.addEventListener('resize', syncExportButtonExpandedWidth);
-      siteDetailScrollContainer.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
+      window.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
     }
 
     itemSearchInput.addEventListener('input', () => {
