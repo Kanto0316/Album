@@ -1824,7 +1824,6 @@ import { firebaseAuth } from './firebase-core.js';
     const siteExportDialog = requireElement('siteExportDialog');
     const siteExportForm = requireElement('siteExportForm');
     const siteExportFileNameInput = requireElement('siteExportFileNameInput');
-    const siteExportFileNameSuggestions = requireElement('siteExportFileNameSuggestions');
     const siteExportFileNameError = requireElement('siteExportFileNameError');
     const siteExportSubmitButton = requireElement('siteExportSubmitButton');
     const siteExportCancelButton = requireElement('siteExportCancelButton');
@@ -1849,7 +1848,6 @@ import { firebaseAuth } from './firebase-core.js';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
-    let siteExportSuggestions = [];
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -1920,66 +1918,6 @@ import { firebaseAuth } from './firebase-core.js';
       saveExportFileNameToHistory(fileBaseName);
     }
 
-    function getSiteExportFileNameSuggestions() {
-      const defaults = currentSite?.nom ? [`SUIVI MATERIEL . ${currentSite.nom}`] : [];
-      const history = readExportFileNameHistory();
-      const orderedValues = [...defaults, ...history];
-      const uniqueValues = [];
-      orderedValues.forEach((value) => {
-        const normalized = sanitizeExportFileName(value);
-        if (!normalized) {
-          return;
-        }
-        if (uniqueValues.some((entry) => entry.toLowerCase() === normalized.toLowerCase())) {
-          return;
-        }
-        uniqueValues.push(normalized);
-      });
-      return uniqueValues.slice(0, EXPORT_FILE_NAME_HISTORY_LIMIT);
-    }
-
-    function hideSiteExportSuggestions() {
-      siteExportSuggestions = [];
-      if (!siteExportFileNameSuggestions) {
-        return;
-      }
-      siteExportFileNameSuggestions.hidden = true;
-      siteExportFileNameSuggestions.style.display = 'none';
-      siteExportFileNameSuggestions.innerHTML = '';
-    }
-
-    function renderSiteExportSuggestions(query) {
-      if (!siteExportFileNameSuggestions) {
-        return;
-      }
-      const normalizedQuery = String(query || '').trim().toLowerCase();
-      if (!normalizedQuery) {
-        hideSiteExportSuggestions();
-        return;
-      }
-      const source = getSiteExportFileNameSuggestions();
-      siteExportSuggestions = source
-        .filter((entry) => entry.toLowerCase().includes(normalizedQuery))
-        .slice(0, 8);
-
-      if (!siteExportSuggestions.length) {
-        hideSiteExportSuggestions();
-        return;
-      }
-
-      siteExportFileNameSuggestions.hidden = false;
-      siteExportFileNameSuggestions.style.display = 'block';
-      siteExportFileNameSuggestions.innerHTML = siteExportSuggestions
-        .map(
-          (entry, index) => `
-            <button type="button" class="typeahead__option" role="option" data-site-export-name-index="${index}">
-              <span class="typeahead__code">${highlightMatchText(entry, query)}</span>
-            </button>
-          `,
-        )
-        .join('');
-    }
-
     function updateSiteExportSubmitState() {
       if (!siteExportSubmitButton || !siteExportFileNameInput) {
         return;
@@ -1992,7 +1930,6 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function closeSiteExportDialog() {
-      hideSiteExportSuggestions();
       if (siteExportFileNameError) {
         siteExportFileNameError.textContent = '';
       }
@@ -2017,7 +1954,6 @@ import { firebaseAuth } from './firebase-core.js';
         siteExportSubmitButton.classList.remove('is-loading');
       }
       updateSiteExportSubmitState();
-      hideSiteExportSuggestions();
       siteExportDialog.showModal();
       window.setTimeout(() => {
         siteExportFileNameInput.focus();
@@ -2411,33 +2347,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     if (siteExportFileNameInput) {
-      siteExportFileNameInput.addEventListener('focus', () => {
-        renderSiteExportSuggestions(siteExportFileNameInput.value);
-      });
       siteExportFileNameInput.addEventListener('input', () => {
-        updateSiteExportSubmitState();
-        renderSiteExportSuggestions(siteExportFileNameInput.value);
-      });
-      siteExportFileNameInput.addEventListener('blur', () => {
-        window.setTimeout(hideSiteExportSuggestions, 140);
-      });
-    }
-
-    if (siteExportFileNameSuggestions) {
-      siteExportFileNameSuggestions.addEventListener('mousedown', (event) => {
-        event.preventDefault();
-      });
-      siteExportFileNameSuggestions.addEventListener('click', (event) => {
-        const option = event.target.closest('[data-site-export-name-index]');
-        if (!option || !siteExportFileNameInput) {
-          return;
-        }
-        const selectedName = siteExportSuggestions[Number(option.dataset.siteExportNameIndex)];
-        if (!selectedName) {
-          return;
-        }
-        siteExportFileNameInput.value = selectedName;
-        hideSiteExportSuggestions();
         updateSiteExportSubmitState();
       });
     }
@@ -2659,7 +2569,6 @@ import { firebaseAuth } from './firebase-core.js';
     const detailExportDialog = requireElement('detailExportDialog');
     const detailExportForm = requireElement('detailExportForm');
     const detailExportFileNameInput = requireElement('detailExportFileNameInput');
-    const detailExportFileNameSuggestions = requireElement('detailExportFileNameSuggestions');
     const detailExportFileNameError = requireElement('detailExportFileNameError');
     const detailExportSubmitButton = requireElement('detailExportSubmitButton');
     const detailExportCancelButton = requireElement('detailExportCancelButton');
@@ -2681,7 +2590,6 @@ import { firebaseAuth } from './firebase-core.js';
     let codeSuggestionSource = [];
     let visibleCodeSuggestions = [];
     let activeSuggestionIndex = -1;
-    let detailExportSuggestions = [];
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -2943,66 +2851,6 @@ import { firebaseAuth } from './firebase-core.js';
       saveExportFileNameToHistory(baseName);
     }
 
-    function getDetailExportFileNameSuggestions() {
-      const defaults = [];
-      if (currentSite?.nom && currentItem?.numero) {
-        defaults.push(`${currentSite.nom} · ${currentItem.numero}`);
-      }
-      const history = readExportFileNameHistory();
-      const orderedValues = [...defaults, ...history];
-      const uniqueValues = [];
-      orderedValues.forEach((value) => {
-        const normalized = sanitizeExportFileName(value);
-        if (!normalized) {
-          return;
-        }
-        if (uniqueValues.some((entry) => entry.toLowerCase() === normalized.toLowerCase())) {
-          return;
-        }
-        uniqueValues.push(normalized);
-      });
-      return uniqueValues.slice(0, EXPORT_FILE_NAME_HISTORY_LIMIT);
-    }
-
-    function hideDetailExportSuggestions() {
-      detailExportSuggestions = [];
-      if (!detailExportFileNameSuggestions) {
-        return;
-      }
-      detailExportFileNameSuggestions.hidden = true;
-      detailExportFileNameSuggestions.style.display = 'none';
-      detailExportFileNameSuggestions.innerHTML = '';
-    }
-
-    function renderDetailExportSuggestions(query) {
-      if (!detailExportFileNameSuggestions) {
-        return;
-      }
-      const normalizedQuery = String(query || '').trim().toLowerCase();
-      if (!normalizedQuery) {
-        hideDetailExportSuggestions();
-        return;
-      }
-      detailExportSuggestions = getDetailExportFileNameSuggestions()
-        .filter((entry) => entry.toLowerCase().includes(normalizedQuery))
-        .slice(0, 8);
-      if (!detailExportSuggestions.length) {
-        hideDetailExportSuggestions();
-        return;
-      }
-      detailExportFileNameSuggestions.hidden = false;
-      detailExportFileNameSuggestions.style.display = 'block';
-      detailExportFileNameSuggestions.innerHTML = detailExportSuggestions
-        .map(
-          (entry, index) => `
-            <button type="button" class="typeahead__option" role="option" data-detail-export-name-index="${index}">
-              <span class="typeahead__code">${highlightMatchText(entry, query)}</span>
-            </button>
-          `,
-        )
-        .join('');
-    }
-
     function updateDetailExportSubmitState() {
       if (!detailExportSubmitButton || !detailExportFileNameInput) {
         return;
@@ -3015,7 +2863,6 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function closeDetailExportDialog() {
-      hideDetailExportSuggestions();
       if (detailExportFileNameError) {
         detailExportFileNameError.textContent = '';
       }
@@ -3042,7 +2889,6 @@ import { firebaseAuth } from './firebase-core.js';
         detailExportSubmitButton.classList.remove('is-loading');
       }
       updateDetailExportSubmitState();
-      hideDetailExportSuggestions();
       detailExportDialog.showModal();
       window.setTimeout(() => {
         detailExportFileNameInput.focus();
@@ -3283,33 +3129,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     if (detailExportFileNameInput) {
-      detailExportFileNameInput.addEventListener('focus', () => {
-        renderDetailExportSuggestions(detailExportFileNameInput.value);
-      });
       detailExportFileNameInput.addEventListener('input', () => {
-        updateDetailExportSubmitState();
-        renderDetailExportSuggestions(detailExportFileNameInput.value);
-      });
-      detailExportFileNameInput.addEventListener('blur', () => {
-        window.setTimeout(hideDetailExportSuggestions, 140);
-      });
-    }
-
-    if (detailExportFileNameSuggestions) {
-      detailExportFileNameSuggestions.addEventListener('mousedown', (event) => {
-        event.preventDefault();
-      });
-      detailExportFileNameSuggestions.addEventListener('click', (event) => {
-        const option = event.target.closest('[data-detail-export-name-index]');
-        if (!option || !detailExportFileNameInput) {
-          return;
-        }
-        const selectedName = detailExportSuggestions[Number(option.dataset.detailExportNameIndex)];
-        if (!selectedName) {
-          return;
-        }
-        detailExportFileNameInput.value = selectedName;
-        hideDetailExportSuggestions();
         updateDetailExportSubmitState();
       });
     }
