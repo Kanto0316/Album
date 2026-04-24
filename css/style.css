@@ -2854,7 +2854,7 @@ body[data-page="site-detail"] .fab--export {
   position: fixed;
   right: 1rem;
   bottom: calc(30px + env(safe-area-inset-bottom, 0px));
-  width: auto;
+  width: var(--export-button-expanded-width, 7.6rem);
   min-width: 7rem;
   height: 2.25rem;
   border-radius: 22px;
@@ -2871,13 +2871,8 @@ body[data-page="site-detail"] .fab--export {
   box-shadow: 0 4px 10px rgba(8, 112, 62, 0.08);
   z-index: 40;
   overflow: hidden;
-  transition:
-    width 0.25s ease,
-    transform 0.25s ease,
-    box-shadow 0.25s ease,
-    background-color 0.25s ease,
-    border-color 0.25s ease,
-    padding-inline 0.25s ease;
+  will-change: transform, width;
+  transition: width 0.25s ease, opacity 0.2s ease, transform 0.2s ease;
 }
 
 body[data-page="site-detail"] .fab--export__icon {
@@ -2892,7 +2887,7 @@ body[data-page="site-detail"] .fab--export__label {
   opacity: 1;
   transform: translateX(0);
   max-width: 10ch;
-  transition: opacity 0.25s ease, transform 0.25s ease, max-width 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, max-width 0.2s ease;
 }
 
 body[data-page="site-detail"] .fab--export.is-scrolling {
@@ -2900,7 +2895,7 @@ body[data-page="site-detail"] .fab--export.is-scrolling {
   min-width: 2.25rem;
   padding-inline: 0;
   gap: 0;
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 body[data-page="site-detail"] .fab--export.is-scrolling .fab--export__label {

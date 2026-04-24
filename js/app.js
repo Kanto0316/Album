@@ -2228,6 +2228,14 @@ import { firebaseAuth } from './firebase-core.js';
       let exportButtonScrollTimerId = null;
       const SCROLL_IDLE_DELAY_MS = 400;
 
+      const syncExportButtonExpandedWidth = () => {
+        openExportItems.classList.remove('is-scrolling');
+        const measuredWidth = openExportItems.scrollWidth;
+        if (measuredWidth > 0) {
+          openExportItems.style.setProperty('--export-button-expanded-width', `${measuredWidth}px`);
+        }
+      };
+
       const setExportButtonScrollingState = (isScrolling) => {
         openExportItems.classList.toggle('is-scrolling', isScrolling);
       };
@@ -2243,6 +2251,8 @@ import { firebaseAuth } from './firebase-core.js';
         }, SCROLL_IDLE_DELAY_MS);
       };
 
+      syncExportButtonExpandedWidth();
+      window.addEventListener('resize', syncExportButtonExpandedWidth);
       siteDetailScrollContainer.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
     }
 
