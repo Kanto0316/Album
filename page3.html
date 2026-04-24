@@ -149,6 +149,30 @@
         </div>
       </dialog>
 
+      <dialog id="detailExportDialog" class="modal-card">
+        <form method="dialog" class="modal-content modal-content--site-create" id="detailExportForm">
+          <div class="modal-header">
+            <h2>Exporter les données</h2>
+          </div>
+          <p class="modal-helper-text">Choisissez un nom de fichier avant l’export.</p>
+          <label class="input-group input-group--site-create">
+            <span>Nom du fichier</span>
+            <div class="typeahead">
+              <input id="detailExportFileNameInput" name="detailExportFileName" type="text" placeholder="Ex : export-materiel" autocomplete="off" />
+              <div id="detailExportFileNameSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de noms de fichier" hidden></div>
+            </div>
+          </label>
+          <p id="detailExportFileNameError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button type="button" id="detailExportCancelButton" class="btn btn-neutral">Annuler</button>
+            <button id="detailExportSubmitButton" type="submit" class="btn btn-success" disabled>
+              <span class="btn-label-default">Exporter</span>
+              <span class="btn-label-loading" aria-hidden="true">Exportation...</span>
+            </button>
+          </div>
+        </form>
+      </dialog>
+
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
