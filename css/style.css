@@ -2561,7 +2561,7 @@ body[data-page="item-detail"] #exportDetailsButton.export-details-button {
   justify-content: center;
   gap: 0.45rem;
   background: #ffffff;
-  border: 2px solid #22c55e;
+  border: 1.5px solid #22c55e;
   color: #22c55e;
   font-weight: 600;
 }
