@@ -2777,6 +2777,41 @@ body[data-page="home"] #siteDialog #siteNameCounter {
   opacity: 1;
 }
 
+body[data-page="home"] #siteDialog #siteNameInput {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="home"] #siteDialog #siteNameInput.is-error,
+body[data-page="home"] #siteDialog #siteNameInput.is-error:focus {
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.14);
+}
+
+body[data-page="home"] #siteDialog #siteNameInput.is-shaking {
+  animation: site-name-input-shake 300ms ease-in-out 1;
+}
+
+@keyframes site-name-input-shake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
   gap: 0.45rem;
 }
