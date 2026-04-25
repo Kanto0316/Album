@@ -111,19 +111,21 @@
           <section id="detailFormSection" class="surface-card form-card section detail-form-modal__section">
             <form id="detailForm" class="responsive-form" novalidate>
               <label class="input-group">
-                <span>Code</span>
+                <span>Code <span class="required-asterisk" aria-hidden="true">*</span></span>
                 <div class="typeahead" id="codeTypeahead">
                   <input id="codeInput" name="code" type="text" maxlength="40" aria-label="Code" autocomplete="off" />
                   <div id="codeSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de code" hidden></div>
                 </div>
                 <div class="detail-input-feedback-row">
+                  <p id="codeInputError" class="form-error detail-field-error" aria-live="polite"></p>
                   <span id="codeInputCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
                 </div>
               </label>
               <label class="input-group input-group--wide">
-                <span>Désignation</span>
+                <span>Désignation <span class="required-asterisk" aria-hidden="true">*</span></span>
                 <input id="designationInput" name="designation" type="text" maxlength="120" required />
                 <div class="detail-input-feedback-row">
+                  <p id="designationInputError" class="form-error detail-field-error" aria-live="polite"></p>
                   <span id="designationInputCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
                 </div>
               </label>

@@ -2820,8 +2820,10 @@ import { firebaseAuth } from './firebase-core.js';
     const detailExportCancelButton = requireElement('detailExportCancelButton');
     const codeInput = requireElement('codeInput');
     const codeInputCounter = requireElement('codeInputCounter');
+    const codeInputError = requireElement('codeInputError');
     const designationInput = requireElement('designationInput');
     const designationInputCounter = requireElement('designationInputCounter');
+    const designationInputError = requireElement('designationInputError');
     const codeSuggestions = requireElement('codeSuggestions');
     const isAuthenticatedUser = Boolean(firebaseAuth.currentUser);
     const canEditDetails = permissions.canEdit && isAuthenticatedUser;
@@ -2839,6 +2841,10 @@ import { firebaseAuth } from './firebase-core.js';
     let visibleCodeSuggestions = [];
     let activeSuggestionIndex = -1;
     let detailFormErrorTimeoutId = null;
+    let codeInputErrorTimeoutId = null;
+    let designationInputErrorTimeoutId = null;
+    let codeInputErrorStateTimeoutId = null;
+    let designationInputErrorStateTimeoutId = null;
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -2853,6 +2859,7 @@ import { firebaseAuth } from './firebase-core.js';
       setDetailModalOpenState(false);
       hideCodeSuggestions();
       clearDetailFormError();
+      clearDetailRequiredFieldErrors();
     }
 
     function openDetailModal() {
@@ -2863,6 +2870,7 @@ import { firebaseAuth } from './firebase-core.js';
       requireElement('uniteInput').value = 'm';
       setDetailFormSavingState(false);
       clearDetailFormError();
+      clearDetailRequiredFieldErrors();
       updateDetailInputCounters();
       detailFormModal.showModal();
       setDetailModalOpenState(true);
@@ -2970,6 +2978,94 @@ import { firebaseAuth } from './firebase-core.js';
         detailFormErrorTimeoutId = null;
       }
       detailFormError.textContent = '';
+    }
+
+    function getDetailFieldElements(fieldName) {
+      if (fieldName === 'code') {
+        return { input: codeInput, error: codeInputError };
+      }
+      if (fieldName === 'designation') {
+        return { input: designationInput, error: designationInputError };
+      }
+      return { input: null, error: null };
+    }
+
+    function clearDetailFieldErrorTimeout(fieldName) {
+      if (fieldName === 'code' && codeInputErrorTimeoutId) {
+        window.clearTimeout(codeInputErrorTimeoutId);
+        codeInputErrorTimeoutId = null;
+      }
+      if (fieldName === 'designation' && designationInputErrorTimeoutId) {
+        window.clearTimeout(designationInputErrorTimeoutId);
+        designationInputErrorTimeoutId = null;
+      }
+    }
+
+    function clearDetailFieldErrorStateTimeout(fieldName) {
+      if (fieldName === 'code' && codeInputErrorStateTimeoutId) {
+        window.clearTimeout(codeInputErrorStateTimeoutId);
+        codeInputErrorStateTimeoutId = null;
+      }
+      if (fieldName === 'designation' && designationInputErrorStateTimeoutId) {
+        window.clearTimeout(designationInputErrorStateTimeoutId);
+        designationInputErrorStateTimeoutId = null;
+      }
+    }
+
+    function clearDetailFieldErrorState(fieldName) {
+      const { input, error } = getDetailFieldElements(fieldName);
+      clearDetailFieldErrorTimeout(fieldName);
+      clearDetailFieldErrorStateTimeout(fieldName);
+      if (error) {
+        error.textContent = '';
+      }
+      if (input) {
+        input.classList.remove('is-error', 'is-shaking');
+      }
+    }
+
+    function showDetailFieldError(fieldName, message, durationMs = 2400) {
+      const { input, error } = getDetailFieldElements(fieldName);
+      if (!input || !error) {
+        return;
+      }
+      clearDetailFieldErrorState(fieldName);
+      clearDetailFormError();
+      error.textContent = message;
+      input.classList.remove('is-shaking');
+      void input.offsetWidth;
+      input.classList.add('is-error', 'is-shaking');
+
+      const errorTimeoutId = window.setTimeout(() => {
+        error.textContent = '';
+        if (fieldName === 'code') {
+          codeInputErrorTimeoutId = null;
+        } else if (fieldName === 'designation') {
+          designationInputErrorTimeoutId = null;
+        }
+      }, durationMs);
+
+      const errorStateTimeoutId = window.setTimeout(() => {
+        input.classList.remove('is-error', 'is-shaking');
+        if (fieldName === 'code') {
+          codeInputErrorStateTimeoutId = null;
+        } else if (fieldName === 'designation') {
+          designationInputErrorStateTimeoutId = null;
+        }
+      }, durationMs);
+
+      if (fieldName === 'code') {
+        codeInputErrorTimeoutId = errorTimeoutId;
+        codeInputErrorStateTimeoutId = errorStateTimeoutId;
+      } else if (fieldName === 'designation') {
+        designationInputErrorTimeoutId = errorTimeoutId;
+        designationInputErrorStateTimeoutId = errorStateTimeoutId;
+      }
+    }
+
+    function clearDetailRequiredFieldErrors() {
+      clearDetailFieldErrorState('code');
+      clearDetailFieldErrorState('designation');
     }
 
     function showDetailFormError(message) {
@@ -3344,8 +3440,16 @@ import { firebaseAuth } from './firebase-core.js';
     detailForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       clearDetailFormError();
-      if (!designationInput.value.trim()) {
-        showDetailFormError('Veuillez remplir le champ.');
+      let hasFieldError = false;
+      if (!String(codeInput.value || '').trim()) {
+        showDetailFieldError('code', 'Veuillez remplir ce champ');
+        hasFieldError = true;
+      }
+      if (!String(designationInput.value || '').trim()) {
+        showDetailFieldError('designation', 'Veuillez remplir ce champ');
+        hasFieldError = true;
+      }
+      if (hasFieldError) {
         return;
       }
       if (!permissions.canCreate) {
@@ -3417,6 +3521,7 @@ import { firebaseAuth } from './firebase-core.js';
 
       codeInput.addEventListener('input', () => {
         clearDetailFormError();
+        clearDetailFieldErrorState('code');
         updateInputCharCounter(codeInput, codeInputCounter);
         renderCodeSuggestions(codeInput.value);
       });
@@ -3481,6 +3586,7 @@ import { firebaseAuth } from './firebase-core.js';
     if (designationInput) {
       designationInput.addEventListener('input', () => {
         clearDetailFormError();
+        clearDetailFieldErrorState('designation');
         updateInputCharCounter(designationInput, designationInputCounter);
       });
       designationInput.addEventListener('beforeinput', (event) => {
