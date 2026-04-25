@@ -2314,6 +2314,19 @@ body[data-page="item-detail"] #detailStore {
   flex-wrap: wrap;
 }
 
+body[data-page="item-detail"] .section-heading--table {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+body[data-page="item-detail"] .section-heading--table .section-heading__text-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 body[data-page="item-detail"] .detail-store-label {
   color: var(--text-muted);
 }
