@@ -53,20 +53,37 @@ body {
   transform: translateY(-1px);
 }
 .password-wrap { position: relative; }
-.password-wrap input { padding-right: 3rem; }
+.password-wrap input { padding-right: 3.1rem; }
 .password-toggle {
   position: absolute;
   top: 50%;
   right: .45rem;
   transform: translateY(-50%);
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.125rem;
+  height: 2.125rem;
   border: 0;
-  border-radius: 50%;
+  border-radius: 999px;
   background: rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.password-toggle img { width: 1.2rem; height: 1.2rem; object-fit: contain; }
-.field-error { min-height: 1.1rem; color: #ffe4e6; font-size: .8rem; }
+.password-toggle img { width: 1.3125rem; height: 1.3125rem; object-fit: contain; }
+.field-error {
+  min-height: 1rem;
+  margin-top: .1rem;
+  text-align: left;
+  color: #ffe4e6;
+  font-size: .82rem;
+}
+.field-group input.is-error,
+.field-group input.is-error:focus {
+  border-color: #e57373;
+  box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
+}
+.field-group input.is-shaking {
+  animation: login-input-shake 300ms ease-in-out 1;
+}
 .btn {
   border: 0;
   border-radius: .85rem;
@@ -97,3 +114,11 @@ body {
 .btn.is-loading .btn__loader { display: inline-block; }
 .btn.is-loading .btn__label { opacity: .7; }
 @keyframes spin { to { transform: rotate(360deg);} }
+@keyframes login-input-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
