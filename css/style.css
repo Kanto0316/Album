@@ -2555,6 +2555,20 @@ body[data-page="item-detail"] .detail-form-actions .btn {
   justify-content: center;
 }
 
+body[data-page="item-detail"] #exportDetailsButton.export-details-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+body[data-page="item-detail"] .export-details-button__icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 body[data-page="item-detail"] #detailCreateSubmitButton .btn-label-loading {
   display: none;
 }
