@@ -2246,6 +2246,9 @@ import { firebaseAuth } from './firebase-core.js';
     const itemDialog = requireElement('itemDialog');
     const itemForm = requireElement('itemForm');
     const itemNumberInput = requireElement('itemNumberInput');
+    const itemStoreSelect = requireElement('itemStoreSelect');
+    const itemStoreOtherGroup = requireElement('itemStoreOtherGroup');
+    const itemStoreOtherInput = requireElement('itemStoreOtherInput');
     const itemNumberCounter = requireElement('itemNumberCounter');
     const itemFormError = requireElement('itemFormError');
     const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
@@ -2754,6 +2757,29 @@ import { firebaseAuth } from './firebase-core.js';
       return digitsOnly.slice(0, maxLength);
     }
 
+    function updateItemStoreOtherVisibility() {
+      if (!itemStoreSelect || !itemStoreOtherGroup) {
+        return;
+      }
+      const shouldShowOtherField = itemStoreSelect.value === 'Autre à préciser';
+      itemStoreOtherGroup.hidden = !shouldShowOtherField;
+      if (!shouldShowOtherField && itemStoreOtherInput) {
+        itemStoreOtherInput.value = '';
+      }
+    }
+
+    function resolveItemStoreValue() {
+      const selectedValue = String(itemStoreSelect?.value || '').trim();
+      if (!selectedValue) {
+        return 'None';
+      }
+      if (selectedValue === 'Autre à préciser') {
+        const customStore = String(itemStoreOtherInput?.value || '').trim();
+        return customStore || 'None';
+      }
+      return selectedValue;
+    }
+
     function updateItemNumberCounter() {
       const maxLength = getItemNumberMaxLength();
       const currentLength = itemNumberInput.value.length;
@@ -2817,8 +2843,13 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
+      updateItemStoreOtherVisibility();
       itemDialog.showModal();
       itemNumberInput.focus();
+    });
+
+    itemStoreSelect?.addEventListener('change', () => {
+      updateItemStoreOtherVisibility();
     });
 
     itemNumberInput.addEventListener('beforeinput', (event) => {
@@ -2875,6 +2906,7 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.classList.remove('is-loading');
       itemCreateSubmitButton.disabled = false;
       updateItemNumberCounter();
+      updateItemStoreOtherVisibility();
     });
 
     if (openExportItems) {
@@ -3012,7 +3044,7 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.disabled = true;
       itemCreateSubmitButton.classList.add('is-loading');
       try {
-        const result = await StorageService.createItem(siteId, value);
+        const result = await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
         if (!result?.ok) {
           showItemFormError(
             result?.reason === 'duplicate_out'
@@ -3106,6 +3138,7 @@ import { firebaseAuth } from './firebase-core.js';
     const cancelDetailFormButton = requireElement('cancelDetailFormButton');
     const detailCreateSubmitButton = requireElement('detailCreateSubmitButton');
     const detailCount = requireElement('detailCount');
+    const detailStore = requireElement('detailStore');
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
     const exportButton = requireElement('exportDetailsButton');
@@ -3563,6 +3596,15 @@ import { firebaseAuth } from './firebase-core.js';
       secondaryLine.className = 'header-title__line header-title__line--secondary';
       secondaryLine.textContent = currentItem.numero;
       itemTitle.append(primaryLine, secondaryLine);
+    }
+
+    function renderStoreLabel() {
+      if (!detailStore) {
+        return;
+      }
+      const storeValue = String(currentItem?.magasin || '').trim();
+      const hasDefinedStore = Boolean(storeValue) && storeValue !== 'None';
+      detailStore.textContent = hasDefinedStore ? `Magasin : ${storeValue}` : 'Magasin : Non défini';
     }
 
     function getSearchQuery() {
@@ -4105,6 +4147,7 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
       renderTitle();
+      renderStoreLabel();
     });
 
     StorageService.subscribeDetails(
@@ -4127,6 +4170,7 @@ import { firebaseAuth } from './firebase-core.js';
     );
 
     renderTitle();
+    renderStoreLabel();
     updateDetailInputCounters();
     refreshCodeSuggestionSource();
   }

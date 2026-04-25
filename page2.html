@@ -95,6 +95,20 @@
               <span id="itemNumberCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
             </div>
           </label>
+          <label class="input-group input-group--site-create input-group--item-create">
+            <span>Magasin</span>
+            <select id="itemStoreSelect" name="itemStore">
+              <option value="">-- Sélectionner --</option>
+              <option value="TIT I">TIT I</option>
+              <option value="HAG 36">HAG 36</option>
+              <option value="BY Pass">BY Pass</option>
+              <option value="Autre à préciser">Autre à préciser</option>
+            </select>
+          </label>
+          <label id="itemStoreOtherGroup" class="input-group input-group--site-create input-group--item-create" hidden>
+            <span>Préciser le magasin</span>
+            <input id="itemStoreOtherInput" name="itemStoreOther" type="text" placeholder="Ex : Dépôt secondaire" />
+          </label>
           <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
             <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
             <button id="itemCreateSubmitButton" type="submit" class="btn btn-success">
