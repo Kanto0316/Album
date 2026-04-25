@@ -2726,6 +2726,8 @@ import { firebaseAuth } from './firebase-core.js';
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
     let itemFormErrorTimeoutId = null;
     let itemNumberErrorClearTimer = null;
+    let itemStoreOtherHideTimer = null;
+    const itemStoreOtherTransitionDurationMs = 200;
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -2757,15 +2759,43 @@ import { firebaseAuth } from './firebase-core.js';
       return digitsOnly.slice(0, maxLength);
     }
 
-    function updateItemStoreOtherVisibility() {
+    function updateItemStoreOtherVisibility(options = {}) {
       if (!itemStoreSelect || !itemStoreOtherGroup) {
         return;
       }
+      const immediate = Boolean(options.immediate);
       const shouldShowOtherField = itemStoreSelect.value === 'Autre à préciser';
-      itemStoreOtherGroup.hidden = !shouldShowOtherField;
-      if (!shouldShowOtherField && itemStoreOtherInput) {
+      if (itemStoreOtherHideTimer) {
+        window.clearTimeout(itemStoreOtherHideTimer);
+        itemStoreOtherHideTimer = null;
+      }
+
+      if (shouldShowOtherField) {
+        itemStoreOtherGroup.hidden = false;
+        itemStoreOtherGroup.classList.remove('is-hiding');
+        window.requestAnimationFrame(() => {
+          itemStoreOtherGroup.classList.add('is-visible');
+        });
+        return;
+      }
+
+      if (itemStoreOtherInput) {
         itemStoreOtherInput.value = '';
       }
+
+      if (immediate || itemStoreOtherGroup.hidden) {
+        itemStoreOtherGroup.classList.remove('is-visible', 'is-hiding');
+        itemStoreOtherGroup.hidden = true;
+        return;
+      }
+
+      itemStoreOtherGroup.classList.remove('is-visible');
+      itemStoreOtherGroup.classList.add('is-hiding');
+      itemStoreOtherHideTimer = window.setTimeout(() => {
+        itemStoreOtherGroup.hidden = true;
+        itemStoreOtherGroup.classList.remove('is-hiding');
+        itemStoreOtherHideTimer = null;
+      }, itemStoreOtherTransitionDurationMs);
     }
 
     function resolveItemStoreValue() {
@@ -2843,7 +2873,7 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
-      updateItemStoreOtherVisibility();
+      updateItemStoreOtherVisibility({ immediate: true });
       itemDialog.showModal();
       itemNumberInput.focus();
     });
@@ -2906,7 +2936,7 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.classList.remove('is-loading');
       itemCreateSubmitButton.disabled = false;
       updateItemNumberCounter();
-      updateItemStoreOtherVisibility();
+      updateItemStoreOtherVisibility({ immediate: true });
     });
 
     if (openExportItems) {
