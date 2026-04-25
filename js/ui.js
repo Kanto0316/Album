@@ -5,8 +5,6 @@
   const DEFAULT_TOAST_DURATION = 2800;
   const DEFAULT_SNACKBAR_DURATION = 5000;
   const TOAST_HIDE_ANIMATION_DURATION = 220;
-  const GLOBAL_LOADER_ID = "globalPageLoader";
-  const GLOBAL_LOADER_HIDDEN_CLASS = "global-loader-overlay--hidden";
   const APP_LOADED_STORAGE_KEY = "albumAppHasLoadedOnce";
   const CONTENT_PENDING_CLASS = "app-content-pending";
   const CONTENT_LOADING_CLASS = "app-content-loading";
@@ -17,53 +15,18 @@
   let toastClearTimerId = null;
   const toastQueue = [];
   let activeToast = null;
-  let globalLoader = null;
   let hasWindowLoaded = document.readyState === "complete";
   let isAppReady = false;
-  let shouldUseGlobalLoader = false;
   let inlineLoaderTimerId = null;
 
-  function ensureGlobalLoader() {
-    if (globalLoader) {
-      return globalLoader;
-    }
-
-    globalLoader = document.getElementById(GLOBAL_LOADER_ID);
-    if (globalLoader) {
-      return globalLoader;
-    }
-
-    const overlay = document.createElement("div");
-    overlay.id = GLOBAL_LOADER_ID;
-    overlay.className = "global-loader-overlay";
-    overlay.setAttribute("role", "status");
-    overlay.setAttribute("aria-live", "polite");
-    overlay.setAttribute("aria-label", "Chargement en cours");
-
-    const loaderContent = document.createElement("div");
-    loaderContent.className = "global-loader-content";
-
-    const spinner = document.createElement("div");
-    spinner.className = "global-loader-spinner";
-    spinner.setAttribute("aria-hidden", "true");
-    loaderContent.appendChild(spinner);
-
-    overlay.appendChild(loaderContent);
-
-    document.body.appendChild(overlay);
-    globalLoader = overlay;
-    return globalLoader;
-  }
-
   function showGlobalLoader() {
-    ensureGlobalLoader().classList.remove(GLOBAL_LOADER_HIDDEN_CLASS);
+    ensureInlineLoader();
+    document.body.classList.remove(CONTENT_READY_CLASS);
+    document.body.classList.add(CONTENT_LOADING_CLASS);
   }
 
   function hideGlobalLoader() {
-    if (!globalLoader) {
-      return;
-    }
-    globalLoader.classList.add(GLOBAL_LOADER_HIDDEN_CLASS);
+    stopContentLoadingState();
   }
 
   function ensureInlineLoader() {
@@ -356,22 +319,12 @@
   }
 
   try {
-    shouldUseGlobalLoader = sessionStorage.getItem(APP_LOADED_STORAGE_KEY) !== "1";
+    sessionStorage.getItem(APP_LOADED_STORAGE_KEY);
   } catch (_error) {
-    shouldUseGlobalLoader = true;
-  }
-
-  if (shouldUseGlobalLoader) {
-    ensureGlobalLoader();
-    showGlobalLoader();
+    // Ignore storage restrictions.
   }
   startContentLoadingState();
 
-  window.addEventListener("beforeunload", () => {
-    if (shouldUseGlobalLoader) {
-      showGlobalLoader();
-    }
-  });
   window.addEventListener("load", () => {
     hasWindowLoaded = true;
     maybeHideGlobalLoader();
