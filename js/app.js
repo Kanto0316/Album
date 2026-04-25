@@ -3175,6 +3175,8 @@ import { firebaseAuth } from './firebase-core.js';
     const detailFormError = requireElement('detailFormError');
     const detailFormModal = requireElement('detailFormModal');
     const openDetailFormButton = requireElement('openDetailFormButton');
+    const itemDetailFabLabel = document.querySelector('body[data-page="item-detail"] #itemDetailFabLabel');
+    const itemDetailFabRow = openDetailFormButton?.closest('[data-fab-row="create"]');
     const cancelDetailFormButton = requireElement('cancelDetailFormButton');
     const detailCreateSubmitButton = requireElement('detailCreateSubmitButton');
     const detailCount = requireElement('detailCount');
@@ -3609,6 +3611,14 @@ import { firebaseAuth } from './firebase-core.js';
       const isAuthenticated = isFirebaseUserAuthenticated(user);
       openDetailFormButton.hidden = !isAuthenticated;
       openDetailFormButton.style.display = isAuthenticated ? 'inline-flex' : 'none';
+      if (itemDetailFabLabel) {
+        itemDetailFabLabel.hidden = !isAuthenticated;
+        itemDetailFabLabel.style.display = isAuthenticated ? '' : 'none';
+      }
+      if (itemDetailFabRow) {
+        itemDetailFabRow.hidden = !isAuthenticated;
+        itemDetailFabRow.style.display = isAuthenticated ? '' : 'none';
+      }
     }
 
     if (!permissions.canCreate || permissions.isLecture) {
