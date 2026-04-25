@@ -2307,6 +2307,33 @@ body[data-page="item-detail"] .auth-required-card--embedded {
   margin-bottom: 20px;
 }
 
+body[data-page="item-detail"] #detailStore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+body[data-page="item-detail"] .detail-store-label {
+  color: var(--text-muted);
+}
+
+body[data-page="item-detail"] .detail-store-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.62rem;
+  border-radius: 999px;
+  background: #e8f3ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+body[data-page="item-detail"] .detail-store-badge--muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 body[data-page="item-detail"] .table-container input,
 body[data-page="item-detail"] .table-container select,
 body[data-page="item-detail"] .table-container button,
