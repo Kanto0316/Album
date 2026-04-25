@@ -2559,7 +2559,15 @@ body[data-page="item-detail"] #exportDetailsButton.export-details-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  background: #ffffff;
+  border: 2px solid #22c55e;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+body[data-page="item-detail"] #exportDetailsButton.export-details-button:hover {
+  background: rgba(34, 197, 94, 0.08);
 }
 
 body[data-page="item-detail"] .export-details-button__icon {
