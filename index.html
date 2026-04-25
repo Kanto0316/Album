@@ -155,22 +155,51 @@
             <h2>Gestion de l’accès sécurisé</h2>
           </div>
           <p class="modal-helper-text">Ce site est actuellement protégé par un mot de passe.</p>
-          <label class="input-group">
+          <label class="input-group input-group--site-lock-manage">
             <span>Mot de passe actuel</span>
-            <input id="siteLockCurrentPasswordInput" type="password" autocomplete="current-password" />
+            <div class="password-wrap password-wrap--site-lock-manage">
+              <input id="siteLockCurrentPasswordInput" type="password" autocomplete="current-password" />
+              <button
+                id="siteLockCurrentPasswordToggle"
+                class="password-toggle password-toggle--site-lock-manage"
+                type="button"
+                aria-label="Afficher le mot de passe"
+              >
+                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
+              </button>
+            </div>
+            <p id="siteLockCurrentPasswordError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
-          <label class="input-group">
+          <label class="input-group input-group--site-lock-manage">
             <span>Nouveau mot de passe</span>
-            <input id="siteLockNewPasswordInput" type="password" autocomplete="new-password" />
+            <div class="password-wrap password-wrap--site-lock-manage">
+              <input id="siteLockNewPasswordInput" type="password" autocomplete="new-password" />
+              <button
+                id="siteLockNewPasswordToggle"
+                class="password-toggle password-toggle--site-lock-manage"
+                type="button"
+                aria-label="Afficher le mot de passe"
+              >
+                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
+              </button>
+            </div>
+            <p id="siteLockNewPasswordError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
-          <p id="siteLockManageError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--password modal-actions--password-manage">
             <div class="modal-actions__row modal-actions__row--pair">
               <button type="button" class="btn" data-close-dialog>Annuler</button>
-              <button type="submit" class="btn btn-success" data-lock-manage-action="update">Mettre à jour</button>
+              <button id="siteLockManageUpdateButton" type="submit" class="btn btn-success" data-lock-manage-action="update">
+                <span class="btn-label-default">Mettre à jour</span>
+                <span class="btn-loading-spinner" aria-hidden="true"></span>
+                <span class="btn-label-loading" aria-hidden="true">Mise à jour...</span>
+              </button>
             </div>
             <div class="modal-actions__row modal-actions__row--single">
-              <button type="submit" class="btn btn-danger" data-lock-manage-action="unlock">Déverrouiller</button>
+              <button id="siteLockManageUnlockButton" type="submit" class="btn btn-danger" data-lock-manage-action="unlock">
+                <span class="btn-label-default">Déverrouiller</span>
+                <span class="btn-loading-spinner" aria-hidden="true"></span>
+                <span class="btn-label-loading" aria-hidden="true">Déverrouillage...</span>
+              </button>
             </div>
           </div>
         </form>

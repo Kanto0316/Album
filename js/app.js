@@ -924,7 +924,12 @@ import { firebaseAuth } from './firebase-core.js';
     const siteLockManageForm = requireElement('siteLockManageForm');
     const siteLockCurrentPasswordInput = requireElement('siteLockCurrentPasswordInput');
     const siteLockNewPasswordInput = requireElement('siteLockNewPasswordInput');
-    const siteLockManageError = requireElement('siteLockManageError');
+    const siteLockCurrentPasswordError = requireElement('siteLockCurrentPasswordError');
+    const siteLockNewPasswordError = requireElement('siteLockNewPasswordError');
+    const siteLockCurrentPasswordToggle = requireElement('siteLockCurrentPasswordToggle');
+    const siteLockNewPasswordToggle = requireElement('siteLockNewPasswordToggle');
+    const siteLockManageUpdateButton = requireElement('siteLockManageUpdateButton');
+    const siteLockManageUnlockButton = requireElement('siteLockManageUnlockButton');
 
     let currentSites = [];
     let itemCountsBySite = {};
@@ -947,6 +952,8 @@ import { firebaseAuth } from './firebase-core.js';
     let siteNameErrorClearTimer = null;
     const siteLockFieldStateTimers = new WeakMap();
     let isSiteUnlockPending = false;
+    let isSiteLockManageUpdatePending = false;
+    let isSiteLockManageUnlockPending = false;
 
     function setSiteCreateLoadingState(isLoading) {
       isSiteCreationPending = Boolean(isLoading);
@@ -970,6 +977,26 @@ import { firebaseAuth } from './firebase-core.js';
       siteUnlockSubmitButton.disabled = isSiteUnlockPending;
       siteUnlockSubmitButton.classList.toggle('is-loading', isSiteUnlockPending);
       siteUnlockSubmitButton.setAttribute('aria-busy', String(isSiteUnlockPending));
+    }
+
+    function setSiteLockManageActionLoadingState(action, isLoading) {
+      if (action === 'unlock') {
+        isSiteLockManageUnlockPending = Boolean(isLoading);
+        if (!siteLockManageUnlockButton) {
+          return;
+        }
+        siteLockManageUnlockButton.disabled = isSiteLockManageUnlockPending;
+        siteLockManageUnlockButton.classList.toggle('is-loading', isSiteLockManageUnlockPending);
+        siteLockManageUnlockButton.setAttribute('aria-busy', String(isSiteLockManageUnlockPending));
+        return;
+      }
+      isSiteLockManageUpdatePending = Boolean(isLoading);
+      if (!siteLockManageUpdateButton) {
+        return;
+      }
+      siteLockManageUpdateButton.disabled = isSiteLockManageUpdatePending;
+      siteLockManageUpdateButton.classList.toggle('is-loading', isSiteLockManageUpdatePending);
+      siteLockManageUpdateButton.setAttribute('aria-busy', String(isSiteLockManageUpdatePending));
     }
 
     function enforceSiteNameMaxLength() {
@@ -1073,6 +1100,24 @@ import { firebaseAuth } from './firebase-core.js';
         siteLockFieldStateTimers.delete(inputElement);
       }, durationMs);
       siteLockFieldStateTimers.set(inputElement, timer);
+    }
+
+    function clearSiteLockManageFieldErrorState(inputElement, errorElement) {
+      clearSiteLockFieldErrorState(inputElement, errorElement);
+    }
+
+    function showSiteLockManageFieldError(inputElement, errorElement, message, durationMs = 2300) {
+      showSiteLockFieldError(inputElement, errorElement, message, durationMs);
+    }
+
+    function clearSiteLockManageErrors() {
+      clearSiteLockManageFieldErrorState(siteLockCurrentPasswordInput, siteLockCurrentPasswordError);
+      clearSiteLockManageFieldErrorState(siteLockNewPasswordInput, siteLockNewPasswordError);
+    }
+
+    function clearSiteLockManageLoadingStates() {
+      setSiteLockManageActionLoadingState('update', false);
+      setSiteLockManageActionLoadingState('unlock', false);
     }
 
     function clearSiteUnlockFieldErrorState() {
@@ -1418,14 +1463,18 @@ import { firebaseAuth } from './firebase-core.js';
           !siteLockManageDialog ||
           !siteLockCurrentPasswordInput ||
           !siteLockNewPasswordInput ||
-          !siteLockManageError
+          !siteLockCurrentPasswordError ||
+          !siteLockNewPasswordError
         ) {
           return;
         }
         siteIdPendingLockManage = siteId;
         siteLockCurrentPasswordInput.value = '';
         siteLockNewPasswordInput.value = '';
-        clearTransientError(siteLockManageError);
+        clearSiteLockManageErrors();
+        clearSiteLockManageLoadingStates();
+        setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, false);
+        setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, false);
         siteLockManageDialog.showModal();
         siteLockCurrentPasswordInput.focus();
         return;
@@ -1934,6 +1983,24 @@ import { firebaseAuth } from './firebase-core.js';
       setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, nextIsVisible);
     });
 
+    siteLockCurrentPasswordInput?.addEventListener('input', () => {
+      clearSiteLockManageFieldErrorState(siteLockCurrentPasswordInput, siteLockCurrentPasswordError);
+    });
+
+    siteLockNewPasswordInput?.addEventListener('input', () => {
+      clearSiteLockManageFieldErrorState(siteLockNewPasswordInput, siteLockNewPasswordError);
+    });
+
+    siteLockCurrentPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteLockCurrentPasswordInput?.type === 'password';
+      setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, nextIsVisible);
+    });
+
+    siteLockNewPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteLockNewPasswordInput?.type === 'password';
+      setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, nextIsVisible);
+    });
+
     siteUnlockForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!siteIdPendingUnlock || isSiteUnlockPending) {
@@ -1979,34 +2046,63 @@ import { firebaseAuth } from './firebase-core.js';
       if (!siteIdPendingLockManage) {
         return;
       }
-      clearTransientError(siteLockManageError);
 
-      const submittedAction = event.submitter?.dataset?.lockManageAction;
+      const submittedAction = event.submitter?.dataset?.lockManageAction === 'unlock' ? 'unlock' : 'update';
+      if (
+        (submittedAction === 'unlock' && isSiteLockManageUnlockPending) ||
+        (submittedAction === 'update' && isSiteLockManageUpdatePending)
+      ) {
+        return;
+      }
+
+      clearSiteLockManageErrors();
+
       const currentPasswordValue = siteLockCurrentPasswordInput?.value || '';
       const newPasswordValue = siteLockNewPasswordInput?.value || '';
       const targetSite = getLatestSiteState(siteIdPendingLockManage);
       if (!isSiteLocked(targetSite)) {
+        clearSiteLockManageLoadingStates();
         siteLockManageDialog?.close();
         siteIdPendingLockManage = null;
         return;
       }
 
       if (!currentPasswordValue.trim()) {
-        showTransientError(siteLockManageError, 'Mot de passe actuel incorrect.');
+        showSiteLockManageFieldError(
+          siteLockCurrentPasswordInput,
+          siteLockCurrentPasswordError,
+          'Veuillez remplir ce champ',
+        );
+        return;
+      }
+
+      if (submittedAction === 'update' && !newPasswordValue.trim()) {
+        showSiteLockManageFieldError(siteLockNewPasswordInput, siteLockNewPasswordError, 'Veuillez remplir ce champ');
         return;
       }
 
       try {
+        setSiteLockManageActionLoadingState(submittedAction, true);
         const currentPasswordHash = await hashPassword(currentPasswordValue);
         if (currentPasswordHash !== targetSite.passwordHash) {
-          showTransientError(siteLockManageError, 'Mot de passe actuel incorrect.');
+          showSiteLockManageFieldError(
+            siteLockCurrentPasswordInput,
+            siteLockCurrentPasswordError,
+            'Mot de passe actuel incorrect.',
+          );
+          setSiteLockManageActionLoadingState(submittedAction, false);
           return;
         }
 
         if (submittedAction === 'unlock') {
           const result = await StorageService.clearSiteLock(siteIdPendingLockManage);
           if (!result?.ok) {
-            showTransientError(siteLockManageError, 'Impossible de retirer le verrouillage.');
+            showSiteLockManageFieldError(
+              siteLockCurrentPasswordInput,
+              siteLockCurrentPasswordError,
+              'Impossible de retirer le verrouillage.',
+            );
+            setSiteLockManageActionLoadingState('unlock', false);
             return;
           }
           siteLockManageDialog?.close();
@@ -2015,22 +2111,36 @@ import { firebaseAuth } from './firebase-core.js';
           return;
         }
 
-        if (!newPasswordValue.trim()) {
-          showTransientError(siteLockManageError, 'Veuillez saisir un nouveau mot de passe.');
-          return;
-        }
-
         const nextPasswordHash = await hashPassword(newPasswordValue);
         const result = await StorageService.setSiteLock(siteIdPendingLockManage, { passwordHash: nextPasswordHash });
         if (!result?.ok) {
-          showTransientError(siteLockManageError, 'Impossible de mettre à jour le mot de passe.');
+          showSiteLockManageFieldError(
+            siteLockNewPasswordInput,
+            siteLockNewPasswordError,
+            'Impossible de mettre à jour le mot de passe.',
+          );
+          setSiteLockManageActionLoadingState('update', false);
           return;
         }
         siteLockManageDialog?.close();
         siteIdPendingLockManage = null;
         UiService.showToast('Le mot de passe a été mis à jour avec succès.');
       } catch (_error) {
-        showTransientError(siteLockManageError, 'Erreur pendant la gestion du mot de passe.');
+        if (submittedAction === 'unlock') {
+          showSiteLockManageFieldError(
+            siteLockCurrentPasswordInput,
+            siteLockCurrentPasswordError,
+            'Erreur pendant la gestion du mot de passe.',
+          );
+          setSiteLockManageActionLoadingState('unlock', false);
+          return;
+        }
+        showSiteLockManageFieldError(
+          siteLockNewPasswordInput,
+          siteLockNewPasswordError,
+          'Erreur pendant la gestion du mot de passe.',
+        );
+        setSiteLockManageActionLoadingState('update', false);
       }
     });
 
@@ -2051,7 +2161,10 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteLockManageDialog?.addEventListener('close', () => {
       siteIdPendingLockManage = null;
-      clearTransientError(siteLockManageError);
+      clearSiteLockManageErrors();
+      clearSiteLockManageLoadingStates();
+      setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, false);
+      setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, false);
     });
 
     StorageService.subscribeSites(
