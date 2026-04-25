@@ -2661,7 +2661,9 @@ import { firebaseAuth } from './firebase-core.js';
     const detailExportSubmitButton = requireElement('detailExportSubmitButton');
     const detailExportCancelButton = requireElement('detailExportCancelButton');
     const codeInput = requireElement('codeInput');
+    const codeInputCounter = requireElement('codeInputCounter');
     const designationInput = requireElement('designationInput');
+    const designationInputCounter = requireElement('designationInputCounter');
     const codeSuggestions = requireElement('codeSuggestions');
     const isAuthenticatedUser = Boolean(firebaseAuth.currentUser);
     const canEditDetails = permissions.canEdit && isAuthenticatedUser;
@@ -2698,6 +2700,11 @@ import { firebaseAuth } from './firebase-core.js';
       if (!detailFormModal || !permissions.canCreate || permissions.isLecture) {
         return;
       }
+      detailForm.reset();
+      requireElement('uniteInput').value = 'm';
+      setDetailFormSavingState(false);
+      detailFormError.textContent = '';
+      updateDetailInputCounters();
       detailFormModal.showModal();
       setDetailModalOpenState(true);
       window.setTimeout(() => {
@@ -2711,6 +2718,77 @@ import { firebaseAuth } from './firebase-core.js';
       }
       detailCreateSubmitButton.disabled = isSaving;
       detailCreateSubmitButton.classList.toggle('is-loading', isSaving);
+    }
+
+    function getInputMaxLength(input) {
+      return input?.maxLength > 0 ? input.maxLength : null;
+    }
+
+    function updateInputCharCounter(input, counter) {
+      if (!input || !counter) {
+        return;
+      }
+      const maxLength = getInputMaxLength(input);
+      const currentLength = input.value.length;
+      counter.textContent = `${currentLength} / ${maxLength ?? currentLength}`;
+      counter.classList.remove('is-warning', 'is-limit');
+      if (!maxLength || maxLength <= 0) {
+        return;
+      }
+      const ratio = currentLength / maxLength;
+      if (ratio >= 1) {
+        counter.classList.add('is-limit');
+      } else if (ratio >= 0.8) {
+        counter.classList.add('is-warning');
+      }
+    }
+
+    function enforceMaxLengthOnBeforeInput(event, input) {
+      const maxLength = getInputMaxLength(input);
+      if (!input || !maxLength || event.inputType.startsWith('delete')) {
+        return;
+      }
+      const selectionStart = input.selectionStart ?? input.value.length;
+      const selectionEnd = input.selectionEnd ?? input.value.length;
+      const selectedLength = Math.max(0, selectionEnd - selectionStart);
+      const nextAllowedLength = maxLength - (input.value.length - selectedLength);
+      if (nextAllowedLength <= 0) {
+        event.preventDefault();
+      }
+    }
+
+    function enforceMaxLengthOnPaste(event, input, counter) {
+      if (!input) {
+        return;
+      }
+      const maxLength = getInputMaxLength(input);
+      if (!maxLength) {
+        return;
+      }
+      const clipboardText = event.clipboardData?.getData('text') ?? '';
+      event.preventDefault();
+
+      const selectionStart = input.selectionStart ?? input.value.length;
+      const selectionEnd = input.selectionEnd ?? input.value.length;
+      const prefix = input.value.slice(0, selectionStart);
+      const suffix = input.value.slice(selectionEnd);
+      const remainingLength = maxLength - (prefix.length + suffix.length);
+      if (remainingLength <= 0) {
+        updateInputCharCounter(input, counter);
+        return;
+      }
+
+      const insertedText = clipboardText.slice(0, remainingLength);
+      const nextValue = `${prefix}${insertedText}${suffix}`;
+      input.value = nextValue.slice(0, maxLength);
+      const caretPosition = prefix.length + insertedText.length;
+      input.setSelectionRange(caretPosition, caretPosition);
+      updateInputCharCounter(input, counter);
+    }
+
+    function updateDetailInputCounters() {
+      updateInputCharCounter(codeInput, codeInputCounter);
+      updateInputCharCounter(designationInput, designationInputCounter);
     }
 
     function buildCodeSuggestionSource(details) {
@@ -2806,6 +2884,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
       codeInput.value = entry.code;
       designationInput.value = entry.designation || '';
+      updateDetailInputCounters();
       hideCodeSuggestions();
     }
 
@@ -3098,6 +3177,7 @@ import { firebaseAuth } from './firebase-core.js';
         }
         detailForm.reset();
         requireElement('uniteInput').value = 'm';
+        updateDetailInputCounters();
         hideCodeSuggestions();
         closeDetailModal();
         UiService.showToast('Article ajoutée .');
@@ -3141,6 +3221,16 @@ import { firebaseAuth } from './firebase-core.js';
       });
 
       codeInput.addEventListener('input', () => {
+        updateInputCharCounter(codeInput, codeInputCounter);
+        renderCodeSuggestions(codeInput.value);
+      });
+
+      codeInput.addEventListener('beforeinput', (event) => {
+        enforceMaxLengthOnBeforeInput(event, codeInput);
+      });
+
+      codeInput.addEventListener('paste', (event) => {
+        enforceMaxLengthOnPaste(event, codeInput, codeInputCounter);
         renderCodeSuggestions(codeInput.value);
       });
 
@@ -3189,6 +3279,18 @@ import { firebaseAuth } from './firebase-core.js';
         }
         const suggestion = visibleCodeSuggestions[Number(option.dataset.typeaheadIndex)];
         applyCodeSuggestion(suggestion);
+      });
+    }
+
+    if (designationInput) {
+      designationInput.addEventListener('input', () => {
+        updateInputCharCounter(designationInput, designationInputCounter);
+      });
+      designationInput.addEventListener('beforeinput', (event) => {
+        enforceMaxLengthOnBeforeInput(event, designationInput);
+      });
+      designationInput.addEventListener('paste', (event) => {
+        enforceMaxLengthOnPaste(event, designationInput, designationInputCounter);
       });
     }
 
@@ -3308,6 +3410,7 @@ import { firebaseAuth } from './firebase-core.js';
     );
 
     renderTitle();
+    updateDetailInputCounters();
     refreshCodeSuggestionSource();
   }
 
