@@ -597,6 +597,10 @@ async function resolveCurrentUserName() {
   return sanitizeText(rawName, false) || 'Utilisateur';
 }
 
+function resolveCurrentUserEmail() {
+  return String(state.authUser?.email || firebaseAuth.currentUser?.email || '').trim();
+}
+
 function uid() {
   return `local_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -1025,11 +1029,14 @@ async function setSiteLock(siteId, lockPayload) {
 
   const timestamp = nowIso();
   const lockerName = (await resolveCurrentUserName()) || 'Utilisateur';
+  const lockerEmail = resolveCurrentUserEmail();
   const nextLockState = {
     isLocked: true,
     passwordHash: sanitizeText(lockPayload?.passwordHash, false),
     lockedAt: timestamp,
+    lockedBy: lockerEmail,
     lockedByName: lockerName,
+    unlockedBy: deleteField(),
     dateModification: timestamp,
   };
 
@@ -1060,11 +1067,14 @@ async function clearSiteLock(siteId) {
   }
 
   const timestamp = nowIso();
+  const unlockerEmail = resolveCurrentUserEmail();
   const nextLockState = {
     isLocked: false,
     passwordHash: deleteField(),
     lockedAt: deleteField(),
     lockedByName: deleteField(),
+    lockedBy: deleteField(),
+    unlockedBy: unlockerEmail,
     dateModification: timestamp,
   };
 
@@ -1079,7 +1089,9 @@ async function clearSiteLock(siteId) {
     isLocked: false,
     passwordHash: '',
     lockedAt: null,
+    lockedBy: '',
     lockedByName: '',
+    unlockedBy: unlockerEmail,
     dateModification: timestamp,
   };
   sortState();
