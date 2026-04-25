@@ -1453,12 +1453,26 @@ body[data-page="history"] .list-grid {
   display: none;
 }
 
+#siteCreateSubmitButton .btn-loading-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  display: none;
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
 #siteCreateSubmitButton.is-loading {
   filter: saturate(0.95);
 }
 
 #siteCreateSubmitButton.is-loading .btn-label-default {
   display: none;
+}
+
+#siteCreateSubmitButton.is-loading .btn-loading-spinner {
+  display: inline-flex;
 }
 
 #siteCreateSubmitButton.is-loading .btn-label-loading {
@@ -2701,6 +2715,40 @@ body[data-page="site-detail"] #itemDialog .modal-actions--item-create {
 }
 
 body[data-page="site-detail"] #itemDialog #itemCreateSubmitButton.is-loading {
+  gap: 0.45rem;
+}
+
+body[data-page="home"] #siteDialog .site-input-feedback-row {
+  width: 100%;
+  margin-top: 0.24rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body[data-page="home"] #siteDialog #siteFormError {
+  width: auto;
+  margin-top: 0;
+  text-align: left;
+  color: #c95e68;
+  font-size: 0.82rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body[data-page="home"] #siteDialog #siteNameCounter {
+  width: auto;
+  text-align: right;
+  margin-top: 0;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #9e9e9e;
+  font-weight: 400;
+  opacity: 1;
+}
+
+body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
   gap: 0.45rem;
 }
 
