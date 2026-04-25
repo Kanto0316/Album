@@ -3262,6 +3262,26 @@ body[data-page="site-detail"] #itemDialog .input-group--item-create input:focus 
   box-shadow: 0 0 0 3px var(--detail-primary-focus);
 }
 
+body[data-page="site-detail"] #itemDialog #itemStoreOtherGroup {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+body[data-page="site-detail"] #itemDialog #itemStoreOtherGroup[hidden] {
+  display: none;
+}
+
+body[data-page="site-detail"] #itemDialog #itemStoreOtherGroup.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body[data-page="site-detail"] #itemDialog #itemStoreOtherGroup.is-hiding {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 body[data-page="site-detail"] #itemDialog #itemNumberInput {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
