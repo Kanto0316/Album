@@ -939,6 +939,7 @@ import { firebaseAuth } from './firebase-core.js';
     };
     const transientErrorTimers = new WeakMap();
     let isSiteCreationPending = false;
+    let siteNameErrorClearTimer = null;
 
     function setSiteCreateLoadingState(isLoading) {
       isSiteCreationPending = Boolean(isLoading);
@@ -993,6 +994,26 @@ import { firebaseAuth } from './firebase-core.js';
         transientErrorTimers.delete(errorElement);
       }
       errorElement.textContent = '';
+    }
+
+    function clearSiteNameErrorState() {
+      if (siteNameErrorClearTimer) {
+        window.clearTimeout(siteNameErrorClearTimer);
+        siteNameErrorClearTimer = null;
+      }
+      siteNameInput.classList.remove('is-error', 'is-shaking');
+    }
+
+    function showSiteNameError(message, durationMs = 2300) {
+      clearSiteNameErrorState();
+      showTransientError(siteFormError, message);
+      siteNameInput.classList.remove('is-shaking');
+      // Force un reflow pour rejouer l'animation à chaque nouvelle erreur.
+      void siteNameInput.offsetWidth;
+      siteNameInput.classList.add('is-error', 'is-shaking');
+      siteNameErrorClearTimer = window.setTimeout(() => {
+        clearSiteNameErrorState();
+      }, durationMs);
     }
 
     function showTransientError(errorElement, message) {
@@ -1666,6 +1687,7 @@ import { firebaseAuth } from './firebase-core.js';
       }
       siteForm.reset();
       clearTransientError(siteFormError);
+      clearSiteNameErrorState();
       setSiteCreateLoadingState(false);
       updateSiteNameCounter();
       siteDialog.showModal();
@@ -1691,11 +1713,13 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteNameInput.addEventListener('input', () => {
       clearTransientError(siteFormError);
+      clearSiteNameErrorState();
       updateSiteNameCounter();
     });
 
     siteDialog.addEventListener('close', () => {
       clearTransientError(siteFormError);
+      clearSiteNameErrorState();
       setSiteCreateLoadingState(false);
       updateSiteNameCounter();
     });
@@ -1707,12 +1731,12 @@ import { firebaseAuth } from './firebase-core.js';
       }
       const name = siteNameInput.value.trim();
       if (!name) {
-        showTransientError(siteFormError, 'Veuillez remplir ce champ');
+        showSiteNameError('Veuillez remplir ce champ');
         return;
       }
 
       if (!currentPermissions.canCreate) {
-        showTransientError(siteFormError, 'Action non autorisée.');
+        showSiteNameError('Action non autorisée.');
         return;
       }
 
@@ -1720,8 +1744,7 @@ import { firebaseAuth } from './firebase-core.js';
         setSiteCreateLoadingState(true);
         const result = await StorageService.createSite(name);
         if (!result?.ok) {
-          showTransientError(
-            siteFormError,
+          showSiteNameError(
             result?.reason === 'duplicate_site'
               ? 'Ce nom de site existe déjà.'
               : 'Création impossible. Vérifiez le nom du site.',
@@ -1735,7 +1758,7 @@ import { firebaseAuth } from './firebase-core.js';
         UiService.showToast('Site créé avec succés.');
       } catch (error) {
         console.error('Erreur lors de la création du site :', error);
-        showTransientError(siteFormError, "Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.");
+        showSiteNameError("Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.");
         setSiteCreateLoadingState(false);
       }
     });
