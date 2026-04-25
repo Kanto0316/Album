@@ -2149,9 +2149,26 @@ body[data-page="item-detail"] .detail-input-feedback-row {
   width: 100%;
   margin-top: 0.24rem;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+}
+
+body[data-page="item-detail"] .required-asterisk {
+  color: #d65f68;
+  font-size: 0.88em;
+  margin-left: 0.18rem;
+  vertical-align: baseline;
+}
+
+body[data-page="item-detail"] .detail-field-error {
+  width: auto;
+  margin-top: 0;
+  text-align: left;
+  color: #c95e68;
+  font-size: 0.82rem;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 body[data-page="item-detail"] .detail-input-feedback-row .input-char-counter {
@@ -2186,6 +2203,45 @@ body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field--uni
 body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field > input,
 body[data-page="item-detail"] .detail-form-row--qte-unit .detail-form-field > select {
   height: 100%;
+}
+
+body[data-page="item-detail"] #codeInput,
+body[data-page="item-detail"] #designationInput {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="item-detail"] #codeInput.is-error,
+body[data-page="item-detail"] #designationInput.is-error,
+body[data-page="item-detail"] #codeInput.is-error:focus,
+body[data-page="item-detail"] #designationInput.is-error:focus {
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.14);
+}
+
+body[data-page="item-detail"] #codeInput.is-shaking,
+body[data-page="item-detail"] #designationInput.is-shaking {
+  animation: detail-required-input-shake 300ms ease-in-out 1;
+}
+
+@keyframes detail-required-input-shake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 
 @keyframes detailModalIn {
