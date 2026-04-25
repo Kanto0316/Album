@@ -474,7 +474,9 @@ body.app-content-loading .fab-add--item-detail,
 body.app-content-pending .fab--export,
 body.app-content-loading .fab--export,
 body.app-content-pending #exportDetailsButton,
-body.app-content-loading #exportDetailsButton {
+body.app-content-loading #exportDetailsButton,
+body.app-content-pending .item-detail-fab-row,
+body.app-content-loading .item-detail-fab-row {
   opacity: 0;
   pointer-events: none;
 }
@@ -2494,6 +2496,44 @@ body[data-page="item-detail"] .fab-add--item-detail {
   box-shadow: 0 10px 22px var(--detail-primary-shadow);
   z-index: 45;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+body[data-page="item-detail"] .item-detail-fab-row {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 45;
+}
+
+body[data-page="item-detail"] .item-detail-fab-row .fab-add--item-detail {
+  position: relative;
+  right: auto;
+  left: auto;
+  bottom: auto;
+}
+
+body[data-page="item-detail"] .site-detail-fab-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 125, 233, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(4px);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+body[data-page="item-detail"] .site-detail-fab-label--create {
+  color: var(--detail-primary);
 }
 
 body[data-page="item-detail"] .fab-add--item-detail:hover {
