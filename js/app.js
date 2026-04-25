@@ -1029,19 +1029,63 @@ import { firebaseAuth } from './firebase-core.js';
       return `Exporter.${datePart}.su`;
     }
 
+    const HOME_MENU_TRANSITION_MS = 220;
+    let homeMenuCloseTimer = null;
+
+    function finalizeHomeMenuClose() {
+      if (!homeMenuPanel) {
+        return;
+      }
+      homeMenuPanel.hidden = true;
+      homeMenuPanel.classList.remove('is-open', 'is-closing');
+    }
+
     function closeHomeMenu() {
       if (!homeMenuPanel || !homeMenuButton) {
         return;
       }
-      homeMenuPanel.hidden = true;
+      if (homeMenuCloseTimer) {
+        window.clearTimeout(homeMenuCloseTimer);
+        homeMenuCloseTimer = null;
+      }
       homeMenuButton.setAttribute('aria-expanded', 'false');
+      if (homeMenuPanel.hidden || homeMenuPanel.classList.contains('is-closing')) {
+        finalizeHomeMenuClose();
+        return;
+      }
+
+      homeMenuPanel.classList.remove('is-open');
+      homeMenuPanel.classList.add('is-closing');
+      const onTransitionEnd = (event) => {
+        if (event.target !== homeMenuPanel) {
+          return;
+        }
+        finalizeHomeMenuClose();
+      };
+      homeMenuPanel.addEventListener('transitionend', onTransitionEnd, { once: true });
+      homeMenuCloseTimer = window.setTimeout(() => {
+        homeMenuPanel.removeEventListener('transitionend', onTransitionEnd);
+        finalizeHomeMenuClose();
+        homeMenuCloseTimer = null;
+      }, HOME_MENU_TRANSITION_MS + 50);
     }
 
     function openHomeMenu() {
       if (!homeMenuPanel || !homeMenuButton) {
         return;
       }
+      if (homeMenuCloseTimer) {
+        window.clearTimeout(homeMenuCloseTimer);
+        homeMenuCloseTimer = null;
+      }
       homeMenuPanel.hidden = false;
+      homeMenuPanel.classList.remove('is-closing');
+      window.requestAnimationFrame(() => {
+        if (homeMenuPanel.hidden) {
+          return;
+        }
+        homeMenuPanel.classList.add('is-open');
+      });
       homeMenuButton.setAttribute('aria-expanded', 'true');
     }
 
@@ -1554,6 +1598,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     if (importDataButton) {
       importDataButton.addEventListener('click', () => {
+        closeHomeMenu();
         openImportFilePicker();
       });
     }
