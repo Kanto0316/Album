@@ -2425,6 +2425,7 @@ import { firebaseAuth } from './firebase-core.js';
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
     let itemFormErrorTimeoutId = null;
+    let itemNumberErrorClearTimer = null;
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -2482,13 +2483,29 @@ import { firebaseAuth } from './firebase-core.js';
       itemFormError.textContent = '';
     }
 
-    function showItemFormError(message) {
+    function clearItemNumberErrorState() {
+      if (itemNumberErrorClearTimer) {
+        window.clearTimeout(itemNumberErrorClearTimer);
+        itemNumberErrorClearTimer = null;
+      }
+      itemNumberInput.classList.remove('is-error', 'is-shaking');
+    }
+
+    function showItemFormError(message, durationMs = 2300) {
+      clearItemNumberErrorState();
       clearItemFormError();
       itemFormError.textContent = message;
       itemFormErrorTimeoutId = window.setTimeout(() => {
         itemFormError.textContent = '';
         itemFormErrorTimeoutId = null;
-      }, 2600);
+      }, 2000);
+      itemNumberInput.classList.remove('is-shaking');
+      // Force un reflow pour rejouer l'animation à chaque nouvelle erreur.
+      void itemNumberInput.offsetWidth;
+      itemNumberInput.classList.add('is-error', 'is-shaking');
+      itemNumberErrorClearTimer = window.setTimeout(() => {
+        clearItemNumberErrorState();
+      }, durationMs);
     }
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
@@ -2499,6 +2516,7 @@ import { firebaseAuth } from './firebase-core.js';
     openCreateItem?.addEventListener('click', () => {
       itemForm.reset();
       clearItemFormError();
+      clearItemNumberErrorState();
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
@@ -2549,9 +2567,18 @@ import { firebaseAuth } from './firebase-core.js';
         itemNumberInput.value = normalizedValue;
       }
       clearItemFormError();
+      clearItemNumberErrorState();
       updateItemNumberCounter();
     });
     updateItemNumberCounter();
+
+    itemDialog.addEventListener('close', () => {
+      clearItemFormError();
+      clearItemNumberErrorState();
+      itemCreateSubmitButton.classList.remove('is-loading');
+      itemCreateSubmitButton.disabled = false;
+      updateItemNumberCounter();
+    });
 
     if (openExportItems) {
       openExportItems.addEventListener('click', openSiteExportDialog);

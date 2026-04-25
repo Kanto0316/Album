@@ -2709,6 +2709,41 @@ body[data-page="site-detail"] #itemDialog .input-group--item-create input:focus 
   box-shadow: 0 0 0 3px var(--detail-primary-focus);
 }
 
+body[data-page="site-detail"] #itemDialog #itemNumberInput {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="site-detail"] #itemDialog #itemNumberInput.is-error,
+body[data-page="site-detail"] #itemDialog #itemNumberInput.is-error:focus {
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.14);
+}
+
+body[data-page="site-detail"] #itemDialog #itemNumberInput.is-shaking {
+  animation: item-number-input-shake 300ms ease-in-out 1;
+}
+
+@keyframes item-number-input-shake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 body[data-page="site-detail"] #itemDialog .input-group--item-create .input-char-counter {
   width: auto;
   text-align: right;
