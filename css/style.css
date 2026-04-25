@@ -2329,7 +2329,27 @@ body[data-page="item-detail"] .detail-store-badge {
   line-height: 1.25;
 }
 
-body[data-page="item-detail"] .detail-store-badge--muted {
+body[data-page="item-detail"] .detail-store-badge--tit-i {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+body[data-page="item-detail"] .detail-store-badge--hag-36 {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+body[data-page="item-detail"] .detail-store-badge--by-pass {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+body[data-page="item-detail"] .detail-store-badge--custom {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+body[data-page="item-detail"] .detail-store-badge--undefined {
   background: #f1f5f9;
   color: #64748b;
 }

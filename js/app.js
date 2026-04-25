@@ -3632,15 +3632,31 @@ import { firebaseAuth } from './firebase-core.js';
       if (!detailStore) {
         return;
       }
-      const storeValue = String(currentItem?.magasin || '').trim();
-      const hasDefinedStore = Boolean(storeValue) && storeValue !== 'None';
-      const displayValue = hasDefinedStore ? storeValue : 'Non défini';
+      const rawStoreValue = String(currentItem?.magasin || '').trim();
+      const normalizedStoreValue = rawStoreValue.toLowerCase();
+      let displayValue = rawStoreValue;
+      let badgeVariantClass = 'detail-store-badge--custom';
+
+      if (!rawStoreValue || normalizedStoreValue === 'none' || normalizedStoreValue === 'null') {
+        displayValue = 'Non défini';
+        badgeVariantClass = 'detail-store-badge--undefined';
+      } else if (normalizedStoreValue === 'tit i') {
+        displayValue = 'TIT I';
+        badgeVariantClass = 'detail-store-badge--tit-i';
+      } else if (normalizedStoreValue === 'hag 36') {
+        displayValue = 'HAG 36';
+        badgeVariantClass = 'detail-store-badge--hag-36';
+      } else if (normalizedStoreValue === 'by pass') {
+        displayValue = 'BY Pass';
+        badgeVariantClass = 'detail-store-badge--by-pass';
+      }
+
       detailStore.textContent = '';
       const storeLabel = document.createElement('span');
       storeLabel.className = 'detail-store-label';
       storeLabel.textContent = 'Magasin :';
       const storeBadge = document.createElement('span');
-      storeBadge.className = `detail-store-badge${hasDefinedStore ? '' : ' detail-store-badge--muted'}`;
+      storeBadge.className = `detail-store-badge ${badgeVariantClass}`;
       storeBadge.textContent = displayValue;
       detailStore.append(storeLabel, storeBadge);
     }
