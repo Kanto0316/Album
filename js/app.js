@@ -912,8 +912,8 @@ import { firebaseAuth } from './firebase-core.js';
     const siteLockConfirmPasswordInput = requireElement('siteLockConfirmPasswordInput');
     const siteLockPasswordError = requireElement('siteLockPasswordError');
     const siteLockConfirmPasswordError = requireElement('siteLockConfirmPasswordError');
-    const siteLockPasswordToggle = requireElement('siteLockPasswordToggle');
-    const siteLockConfirmPasswordToggle = requireElement('siteLockConfirmPasswordToggle');
+    const siteLockStrengthIndicator = requireElement('siteLockStrengthIndicator');
+    const siteLockStrengthLabel = requireElement('siteLockStrengthLabel');
     const siteUnlockDialog = requireElement('siteUnlockDialog');
     const siteUnlockForm = requireElement('siteUnlockForm');
     const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
@@ -1159,6 +1159,46 @@ import { firebaseAuth } from './firebase-core.js';
       if (iconElement) {
         iconElement.src = isVisible ? 'Icon/Eye_ON.png' : 'Icon/Eye_OFF.png';
       }
+    }
+
+    function getPasswordStrength(passwordValue) {
+      const value = String(passwordValue || '');
+      const length = value.length;
+      if (!length) {
+        return null;
+      }
+      const bonusCount = [/[A-Z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)].filter(Boolean).length;
+      if (length < 6) {
+        return 'weak';
+      }
+      if (length >= 10 && bonusCount >= 2) {
+        return 'strong';
+      }
+      if ((length >= 6 && length <= 9) || bonusCount >= 1) {
+        return 'medium';
+      }
+      return 'weak';
+    }
+
+    function updateSiteLockStrengthIndicator() {
+      if (!siteLockStrengthIndicator || !siteLockStrengthLabel) {
+        return;
+      }
+      const passwordValue = siteLockPasswordInput?.value || '';
+      const strength = getPasswordStrength(passwordValue);
+      if (!strength) {
+        siteLockStrengthIndicator.hidden = true;
+        siteLockStrengthIndicator.removeAttribute('data-strength');
+        return;
+      }
+      const strengthLabelByKey = {
+        weak: 'Mot de passe faible',
+        medium: 'Mot de passe moyen',
+        strong: 'Mot de passe fort',
+      };
+      siteLockStrengthIndicator.hidden = false;
+      siteLockStrengthIndicator.dataset.strength = strength;
+      siteLockStrengthLabel.textContent = strengthLabelByKey[strength] || strengthLabelByKey.weak;
     }
 
     async function loadUserNames() {
@@ -1495,8 +1535,7 @@ import { firebaseAuth } from './firebase-core.js';
       siteLockConfirmPasswordInput.value = '';
       clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
       clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
-      setPasswordVisibility(siteLockPasswordInput, siteLockPasswordToggle, false);
-      setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, false);
+      updateSiteLockStrengthIndicator();
       siteLockDialog.showModal();
       siteLockPasswordInput.focus();
     }
@@ -1959,20 +1998,11 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteLockPasswordInput?.addEventListener('input', () => {
       clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+      updateSiteLockStrengthIndicator();
     });
 
     siteLockConfirmPasswordInput?.addEventListener('input', () => {
       clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
-    });
-
-    siteLockPasswordToggle?.addEventListener('click', () => {
-      const nextIsVisible = siteLockPasswordInput?.type === 'password';
-      setPasswordVisibility(siteLockPasswordInput, siteLockPasswordToggle, nextIsVisible);
-    });
-
-    siteLockConfirmPasswordToggle?.addEventListener('click', () => {
-      const nextIsVisible = siteLockConfirmPasswordInput?.type === 'password';
-      setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, nextIsVisible);
     });
 
     siteUnlockPasswordInput?.addEventListener('input', () => {
@@ -2149,8 +2179,7 @@ import { firebaseAuth } from './firebase-core.js';
       siteIdPendingLock = null;
       clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
       clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
-      setPasswordVisibility(siteLockPasswordInput, siteLockPasswordToggle, false);
-      setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, false);
+      updateSiteLockStrengthIndicator();
     });
 
     siteUnlockDialog?.addEventListener('close', () => {

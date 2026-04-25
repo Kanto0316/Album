@@ -115,30 +115,20 @@
           <label class="input-group input-group--site-lock-create">
             <span>Entrer un mot de passe</span>
             <div class="password-wrap password-wrap--site-lock">
-              <input id="siteLockPasswordInput" type="password" autocomplete="new-password" />
-              <button
-                id="siteLockPasswordToggle"
-                class="password-toggle password-toggle--site-lock"
-                type="button"
-                aria-label="Afficher le mot de passe"
-              >
-                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
-              </button>
+              <input id="siteLockPasswordInput" type="text" autocomplete="new-password" />
+            </div>
+            <div id="siteLockStrengthIndicator" class="password-strength" hidden>
+              <div class="password-strength__track" aria-hidden="true">
+                <span id="siteLockStrengthBar" class="password-strength__bar"></span>
+              </div>
+              <p id="siteLockStrengthLabel" class="password-strength__text">Mot de passe faible</p>
             </div>
             <p id="siteLockPasswordError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
           <label class="input-group input-group--site-lock-create">
             <span>Confirmer le mot de passe</span>
             <div class="password-wrap password-wrap--site-lock">
-              <input id="siteLockConfirmPasswordInput" type="password" autocomplete="new-password" />
-              <button
-                id="siteLockConfirmPasswordToggle"
-                class="password-toggle password-toggle--site-lock"
-                type="button"
-                aria-label="Afficher le mot de passe"
-              >
-                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
-              </button>
+              <input id="siteLockConfirmPasswordInput" type="text" autocomplete="new-password" />
             </div>
             <p id="siteLockConfirmPasswordError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
