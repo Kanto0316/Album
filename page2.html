@@ -90,9 +90,11 @@
               minlength="4"
               placeholder="Exemple : 26050200"
             />
-            <span id="itemNumberCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
+            <div class="item-input-feedback-row">
+              <p id="itemFormError" class="form-error" aria-live="polite"></p>
+              <span id="itemNumberCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
+            </div>
           </label>
-          <p id="itemFormError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
             <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
             <button id="itemCreateSubmitButton" type="submit" class="btn btn-success">
