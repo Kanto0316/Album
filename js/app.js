@@ -917,6 +917,8 @@ import { firebaseAuth } from './firebase-core.js';
     const siteUnlockDialog = requireElement('siteUnlockDialog');
     const siteUnlockForm = requireElement('siteUnlockForm');
     const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
+    const siteUnlockPasswordToggle = requireElement('siteUnlockPasswordToggle');
+    const siteUnlockSubmitButton = requireElement('siteUnlockSubmitButton');
     const siteUnlockError = requireElement('siteUnlockError');
     const siteLockManageDialog = requireElement('siteLockManageDialog');
     const siteLockManageForm = requireElement('siteLockManageForm');
@@ -944,6 +946,7 @@ import { firebaseAuth } from './firebase-core.js';
     let isSiteCreationPending = false;
     let siteNameErrorClearTimer = null;
     const siteLockFieldStateTimers = new WeakMap();
+    let isSiteUnlockPending = false;
 
     function setSiteCreateLoadingState(isLoading) {
       isSiteCreationPending = Boolean(isLoading);
@@ -957,6 +960,16 @@ import { firebaseAuth } from './firebase-core.js';
 
     function getSiteNameMaxLength() {
       return siteNameInput.maxLength > 0 ? siteNameInput.maxLength : null;
+    }
+
+    function setSiteUnlockLoadingState(isLoading) {
+      isSiteUnlockPending = Boolean(isLoading);
+      if (!siteUnlockSubmitButton) {
+        return;
+      }
+      siteUnlockSubmitButton.disabled = isSiteUnlockPending;
+      siteUnlockSubmitButton.classList.toggle('is-loading', isSiteUnlockPending);
+      siteUnlockSubmitButton.setAttribute('aria-busy', String(isSiteUnlockPending));
     }
 
     function enforceSiteNameMaxLength() {
@@ -1060,6 +1073,35 @@ import { firebaseAuth } from './firebase-core.js';
         siteLockFieldStateTimers.delete(inputElement);
       }, durationMs);
       siteLockFieldStateTimers.set(inputElement, timer);
+    }
+
+    function clearSiteUnlockFieldErrorState() {
+      if (!siteUnlockPasswordInput || !siteUnlockError) {
+        return;
+      }
+      clearTransientError(siteUnlockError);
+      const timer = siteLockFieldStateTimers.get(siteUnlockPasswordInput);
+      if (timer) {
+        window.clearTimeout(timer);
+        siteLockFieldStateTimers.delete(siteUnlockPasswordInput);
+      }
+      siteUnlockPasswordInput.classList.remove('is-error', 'is-shaking');
+    }
+
+    function showSiteUnlockFieldError(message, durationMs = 2300) {
+      if (!siteUnlockPasswordInput || !siteUnlockError) {
+        return;
+      }
+      clearSiteUnlockFieldErrorState();
+      showTransientError(siteUnlockError, message);
+      siteUnlockPasswordInput.classList.remove('is-shaking');
+      void siteUnlockPasswordInput.offsetWidth;
+      siteUnlockPasswordInput.classList.add('is-error', 'is-shaking');
+      const timer = window.setTimeout(() => {
+        siteUnlockPasswordInput.classList.remove('is-error', 'is-shaking');
+        siteLockFieldStateTimers.delete(siteUnlockPasswordInput);
+      }, durationMs);
+      siteLockFieldStateTimers.set(siteUnlockPasswordInput, timer);
     }
 
     function setPasswordVisibility(inputElement, toggleButton, isVisible) {
@@ -1635,7 +1677,9 @@ import { firebaseAuth } from './firebase-core.js';
           }
           siteIdPendingUnlock = siteId;
           siteUnlockPasswordInput.value = '';
-          clearTransientError(siteUnlockError);
+          clearSiteUnlockFieldErrorState();
+          setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, false);
+          setSiteUnlockLoadingState(false);
           siteUnlockDialog.showModal();
           siteUnlockPasswordInput.focus();
         });
@@ -1881,30 +1925,43 @@ import { firebaseAuth } from './firebase-core.js';
       setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, nextIsVisible);
     });
 
+    siteUnlockPasswordInput?.addEventListener('input', () => {
+      clearSiteUnlockFieldErrorState();
+    });
+
+    siteUnlockPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteUnlockPasswordInput?.type === 'password';
+      setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, nextIsVisible);
+    });
+
     siteUnlockForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (!siteIdPendingUnlock) {
+      if (!siteIdPendingUnlock || isSiteUnlockPending) {
         return;
       }
-      clearTransientError(siteUnlockError);
+      clearSiteUnlockFieldErrorState();
       const passwordValue = siteUnlockPasswordInput?.value || '';
       if (!passwordValue.trim()) {
-        showTransientError(siteUnlockError, 'Veuillez entrer le mot de passe.');
+        showSiteUnlockFieldError('Veuillez entrer le mot de passe.');
         return;
       }
 
       const targetSite = getLatestSiteState(siteIdPendingUnlock);
       if (!isSiteLocked(targetSite)) {
+        setSiteUnlockLoadingState(true);
         siteUnlockDialog?.close();
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteIdPendingUnlock)}`);
         siteIdPendingUnlock = null;
+        setSiteUnlockLoadingState(false);
         return;
       }
 
       try {
+        setSiteUnlockLoadingState(true);
         const passwordHash = await hashPassword(passwordValue);
         if (passwordHash !== targetSite.passwordHash) {
-          showTransientError(siteUnlockError, 'Mot de passe incorrect.');
+          showSiteUnlockFieldError('Mot de passe incorrect.');
+          setSiteUnlockLoadingState(false);
           return;
         }
         const openSiteId = siteIdPendingUnlock;
@@ -1912,7 +1969,8 @@ import { firebaseAuth } from './firebase-core.js';
         siteIdPendingUnlock = null;
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(openSiteId)}`);
       } catch (_error) {
-        showTransientError(siteUnlockError, 'Erreur pendant la vérification.');
+        showSiteUnlockFieldError('Erreur pendant la vérification.');
+        setSiteUnlockLoadingState(false);
       }
     });
 
@@ -1986,7 +2044,9 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteUnlockDialog?.addEventListener('close', () => {
       siteIdPendingUnlock = null;
-      clearTransientError(siteUnlockError);
+      clearSiteUnlockFieldErrorState();
+      setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, false);
+      setSiteUnlockLoadingState(false);
     });
 
     siteLockManageDialog?.addEventListener('close', () => {
