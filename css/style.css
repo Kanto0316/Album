@@ -2399,6 +2399,109 @@ body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-lo
   display: inline-flex;
 }
 
+body[data-page="item-detail"] .detail-delete-confirm-overlay {
+  z-index: 1260;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-overlay.is-open {
+  opacity: 1;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-card {
+  width: min(92vw, 24rem);
+  border-radius: 22px;
+  border: 1px solid #d7e0ee;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  padding: 1.25rem 1rem 1rem;
+  transform: translateY(8px) scale(0.985);
+  opacity: 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-overlay.is-open .detail-delete-confirm-card {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-card h3 {
+  margin: 0;
+  font-size: 1.16rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: #111827;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-card p {
+  margin-top: 0.82rem;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  font-weight: 500;
+  text-align: center;
+  color: #4b5563;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-actions {
+  margin-top: 1.1rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-actions .item-delete-confirm-button {
+  flex: 1 1 50%;
+  width: 50%;
+  min-height: 3.35rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.72rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-actions .item-delete-confirm-button--cancel {
+  background: #eceff3;
+  color: #1f2937;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-actions .item-delete-confirm-button--danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-submit .btn-label-loading,
+body[data-page="item-detail"] .detail-delete-confirm-submit .btn-loading-spinner {
+  display: none;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-submit .btn-loading-spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-submit.is-loading {
+  gap: 0.45rem;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-submit.is-loading .btn-label-default {
+  display: none;
+}
+
+body[data-page="item-detail"] .detail-delete-confirm-submit.is-loading .btn-loading-spinner,
+body[data-page="item-detail"] .detail-delete-confirm-submit.is-loading .btn-label-loading {
+  display: inline-flex;
+}
+
 body[data-page="item-detail"] .detail-input-feedback-row {
   width: 100%;
   margin-top: 0.24rem;

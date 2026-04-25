@@ -3612,6 +3612,121 @@ import { firebaseAuth } from './firebase-core.js';
       }, 40);
     }
 
+    function ensureDetailDeleteConfirmationDialog() {
+      let overlay = document.getElementById('detailDeleteConfirmOverlay');
+      if (overlay) {
+        return overlay;
+      }
+
+      overlay = document.createElement('div');
+      overlay.id = 'detailDeleteConfirmOverlay';
+      overlay.className = 'maintenance-overlay item-delete-confirm-overlay detail-delete-confirm-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <article class="maintenance-card item-delete-confirm-card detail-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="detailDeleteConfirmTitle">
+          <h3 id="detailDeleteConfirmTitle">Supprimer cette donnée ?</h3>
+          <p id="detailDeleteConfirmText">Cette action est définitive.</p>
+          <div class="modal-actions item-delete-confirm-actions detail-delete-confirm-actions">
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="detailDeleteCancelButton">Annuler</button>
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger detail-delete-confirm-submit" id="detailDeleteConfirmButton">
+              <span class="btn-label-default">Supprimer</span>
+              <span class="btn-loading-spinner" aria-hidden="true"></span>
+              <span class="btn-label-loading" aria-hidden="true">Suppression...</span>
+            </button>
+          </div>
+        </article>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function askDetailDeleteConfirmation(detailId) {
+      const overlay = ensureDetailDeleteConfirmationDialog();
+      const cancelButton = overlay.querySelector('#detailDeleteCancelButton');
+      const confirmButton = overlay.querySelector('#detailDeleteConfirmButton');
+      if (!cancelButton || !confirmButton) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        const closeAnimationDurationMs = 170;
+        let closeAnimationTimer = null;
+        let isClosing = false;
+        let isDeleting = false;
+
+        const setLoadingState = (isLoading) => {
+          confirmButton.disabled = isLoading;
+          confirmButton.classList.toggle('is-loading', isLoading);
+          cancelButton.disabled = isLoading;
+        };
+
+        const cleanup = () => {
+          if (closeAnimationTimer) {
+            window.clearTimeout(closeAnimationTimer);
+            closeAnimationTimer = null;
+          }
+          setLoadingState(false);
+          overlay.hidden = true;
+          overlay.classList.remove('is-open');
+          overlay.onclick = null;
+          cancelButton.onclick = null;
+          confirmButton.onclick = null;
+          document.removeEventListener('keydown', handleKeyDown);
+        };
+
+        const close = () => {
+          if (isClosing) {
+            return;
+          }
+          isClosing = true;
+          overlay.classList.remove('is-open');
+          closeAnimationTimer = window.setTimeout(() => {
+            cleanup();
+            resolve();
+          }, closeAnimationDurationMs);
+        };
+
+        const handleKeyDown = (event) => {
+          if (event.key === 'Escape' && !isDeleting) {
+            close();
+          }
+        };
+
+        cancelButton.onclick = () => {
+          if (!isDeleting) {
+            close();
+          }
+        };
+
+        confirmButton.onclick = async () => {
+          if (isDeleting) {
+            return;
+          }
+          isDeleting = true;
+          setLoadingState(true);
+          const removed = await StorageService.removeDetail(siteId, itemId, detailId);
+          UiService.showToast(removed ? 'Article supprimée.' : 'Suppression impossible.');
+          if (removed) {
+            close();
+            return;
+          }
+          isDeleting = false;
+          setLoadingState(false);
+        };
+
+        overlay.onclick = (event) => {
+          if (event.target === overlay && !isDeleting) {
+            close();
+          }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        overlay.hidden = false;
+        window.requestAnimationFrame(() => {
+          overlay.classList.add('is-open');
+        });
+      });
+    }
+
     function renderTable() {
       if (!currentItem) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
@@ -3691,8 +3806,7 @@ import { firebaseAuth } from './firebase-core.js';
 
       detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
         button.addEventListener('click', async () => {
-          const removed = await StorageService.removeDetail(siteId, itemId, button.dataset.detailDelete);
-          UiService.showToast(removed ? 'Article supprimée.' : 'Suppression impossible.');
+          await askDetailDeleteConfirmation(button.dataset.detailDelete);
         });
       });
     }
