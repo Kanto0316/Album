@@ -1,6 +1,8 @@
 (function () {
   const TOAST_VISIBLE_CLASS = "toast--visible";
-  const DEFAULT_TOAST_DURATION = 3000;
+  const TOAST_WITH_ACTION_CLASS = "toast--with-action";
+  const TOAST_TYPES = new Set(["success", "error", "warning", "info"]);
+  const DEFAULT_TOAST_DURATION = 2800;
   const DEFAULT_SNACKBAR_DURATION = 5000;
   const GLOBAL_LOADER_ID = "globalPageLoader";
   const GLOBAL_LOADER_HIDDEN_CLASS = "global-loader-overlay--hidden";
@@ -157,8 +159,69 @@
     return new URLSearchParams(window.location.search);
   }
 
+  function createTypeIcon(type) {
+    const icon = document.createElement("span");
+    icon.className = "toast__icon";
+    icon.setAttribute("aria-hidden", "true");
+
+    const iconByType = {
+      success: "✓",
+      error: "⚠",
+      warning: "!",
+      info: "i",
+    };
+
+    icon.textContent = iconByType[type] || iconByType.info;
+    return icon;
+  }
+
+  function inferToastType(message) {
+    const normalizedMessage = String(message ?? "").toLowerCase();
+    if (/(impossible|erreur|échec|invalide|indisponible)/.test(normalizedMessage)) {
+      return "error";
+    }
+    if (/(attention|avertissement|verrouillé)/.test(normalizedMessage)) {
+      return "warning";
+    }
+    if (/(succès|succ[eé]d|supprim|ajout|mis [àa] jour|import|export|lanc[ée])/.test(normalizedMessage)) {
+      return "success";
+    }
+    return "info";
+  }
+
+  function normalizeToastOptions(messageOrOptions, maybeOptions = {}) {
+    if (typeof messageOrOptions === "object" && messageOrOptions !== null) {
+      const options = { ...messageOrOptions };
+      options.message = String(options.message ?? "");
+      const safeType = TOAST_TYPES.has(options.type) ? options.type : inferToastType(options.message);
+      options.type = safeType;
+      options.duration = Number.isFinite(options.duration) ? Number(options.duration) : DEFAULT_TOAST_DURATION;
+      return options;
+    }
+
+    const message = String(messageOrOptions ?? "");
+    const options = { ...maybeOptions, message };
+    const safeType = TOAST_TYPES.has(options.type) ? options.type : inferToastType(message);
+    options.type = safeType;
+    options.duration = Number.isFinite(options.duration) ? Number(options.duration) : DEFAULT_TOAST_DURATION;
+    return options;
+  }
+
   function getToastElement() {
-    return document.getElementById("toast");
+    let toast = document.getElementById("toast");
+    if (toast) {
+      toast.classList.add("toast");
+      return toast;
+    }
+
+    toast = document.createElement("div");
+    toast.id = "toast";
+    toast.className = "toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    toast.setAttribute("aria-atomic", "true");
+    document.body.appendChild(toast);
+    return toast;
   }
 
   function hideToast() {
@@ -166,12 +229,13 @@
     if (!toast) {
       return;
     }
-    toast.classList.remove(TOAST_VISIBLE_CLASS);
+    toast.classList.remove(TOAST_VISIBLE_CLASS, TOAST_WITH_ACTION_CLASS);
+    toast.removeAttribute("data-type");
     window.setTimeout(() => {
       if (!toast.classList.contains(TOAST_VISIBLE_CLASS)) {
         toast.textContent = "";
       }
-    }, 250);
+    }, 260);
   }
 
   function scheduleHide(delay = DEFAULT_TOAST_DURATION) {
@@ -184,36 +248,46 @@
     }, delay);
   }
 
-  function showToast(message) {
+  function renderToast(options) {
     const toast = getToastElement();
     if (!toast) {
       return;
     }
-    toast.textContent = String(message ?? "");
-    toast.classList.add(TOAST_VISIBLE_CLASS);
-    scheduleHide(DEFAULT_TOAST_DURATION);
-  }
 
-  function showUndoSnackbar(message, onUndo, actionLabel = "Annuler") {
-    const toast = getToastElement();
-    if (!toast) {
-      return;
-    }
+    const { message, type = "info", actionLabel, onAction } = options;
+    const hasAction = typeof onAction === "function";
 
     toast.textContent = "";
-    const messageNode = document.createElement("span");
-    messageNode.textContent = String(message ?? "");
-    toast.appendChild(messageNode);
+    toast.classList.toggle(TOAST_WITH_ACTION_CLASS, hasAction);
+    toast.dataset.type = type;
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", type === "error" ? "assertive" : "polite");
 
-    if (typeof onUndo === "function") {
+    const content = document.createElement("div");
+    content.className = "toast__content";
+
+    content.appendChild(createTypeIcon(type));
+
+    const messageNode = document.createElement("span");
+    messageNode.className = "toast__message";
+    messageNode.textContent = String(message ?? "");
+    content.appendChild(messageNode);
+
+    toast.appendChild(content);
+
+    if (hasAction) {
       const actionButton = document.createElement("button");
       actionButton.type = "button";
       actionButton.className = "toast__action";
-      actionButton.textContent = actionLabel;
+      actionButton.textContent = actionLabel || "Annuler";
       actionButton.addEventListener(
         "click",
         () => {
-          onUndo();
+          onAction();
+          if (hideTimerId) {
+            window.clearTimeout(hideTimerId);
+            hideTimerId = null;
+          }
           hideToast();
         },
         { once: true },
@@ -222,7 +296,22 @@
     }
 
     toast.classList.add(TOAST_VISIBLE_CLASS);
-    scheduleHide(DEFAULT_SNACKBAR_DURATION);
+    scheduleHide(options.duration);
+  }
+
+  function showToast(messageOrOptions, maybeOptions = {}) {
+    const options = normalizeToastOptions(messageOrOptions, maybeOptions);
+    renderToast(options);
+  }
+
+  function showUndoSnackbar(message, onUndo, actionLabel = "Annuler") {
+    const options = normalizeToastOptions(message, {
+      type: "warning",
+      duration: DEFAULT_SNACKBAR_DURATION,
+      actionLabel,
+      onAction: onUndo,
+    });
+    renderToast(options);
   }
 
   function renderEmptyState(container, message) {
