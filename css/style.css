@@ -1541,6 +1541,70 @@ body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking 
   margin-top: 16px;
 }
 
+body[data-page="home"] #siteLockManageDialog .input-group--site-lock-manage {
+  gap: 0.65rem;
+}
+
+body[data-page="home"] #siteLockManageDialog .password-wrap--site-lock-manage {
+  position: relative;
+  width: 100%;
+}
+
+body[data-page="home"] #siteLockManageDialog .password-wrap--site-lock-manage input {
+  padding-right: 2.8rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage img {
+  width: 1.3125rem;
+  height: 1.3125rem;
+  object-fit: contain;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage:hover img,
+body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage:focus-visible img {
+  opacity: 1;
+}
+
+body[data-page="home"] #siteLockManageDialog .form-error--field {
+  margin-top: 0.1rem;
+  min-height: 1rem;
+  text-align: left;
+  color: #c95e68;
+  font-size: 0.82rem;
+}
+
+body[data-page="home"] #siteLockManageDialog #siteLockCurrentPasswordInput.is-error,
+body[data-page="home"] #siteLockManageDialog #siteLockCurrentPasswordInput.is-error:focus,
+body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-error,
+body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-error:focus {
+  border-color: #e57373;
+  box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
+}
+
+body[data-page="home"] #siteLockManageDialog #siteLockCurrentPasswordInput.is-shaking,
+body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-shaking {
+  animation: site-lock-input-shake 300ms ease-in-out 1;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1650,15 +1714,21 @@ body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking 
   display: inline-flex;
 }
 
-#siteUnlockSubmitButton {
+#siteUnlockSubmitButton,
+#siteLockManageUpdateButton,
+#siteLockManageUnlockButton {
   position: relative;
 }
 
-#siteUnlockSubmitButton .btn-label-loading {
+#siteUnlockSubmitButton .btn-label-loading,
+#siteLockManageUpdateButton .btn-label-loading,
+#siteLockManageUnlockButton .btn-label-loading {
   display: none;
 }
 
-#siteUnlockSubmitButton .btn-loading-spinner {
+#siteUnlockSubmitButton .btn-loading-spinner,
+#siteLockManageUpdateButton .btn-loading-spinner,
+#siteLockManageUnlockButton .btn-loading-spinner {
   width: 0.95rem;
   height: 0.95rem;
   border-radius: 50%;
@@ -1668,19 +1738,27 @@ body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking 
   animation: btn-spinner-rotate 0.7s linear infinite;
 }
 
-#siteUnlockSubmitButton.is-loading {
+#siteUnlockSubmitButton.is-loading,
+#siteLockManageUpdateButton.is-loading,
+#siteLockManageUnlockButton.is-loading {
   filter: saturate(0.95);
 }
 
-#siteUnlockSubmitButton.is-loading .btn-label-default {
+#siteUnlockSubmitButton.is-loading .btn-label-default,
+#siteLockManageUpdateButton.is-loading .btn-label-default,
+#siteLockManageUnlockButton.is-loading .btn-label-default {
   display: none;
 }
 
-#siteUnlockSubmitButton.is-loading .btn-loading-spinner {
+#siteUnlockSubmitButton.is-loading .btn-loading-spinner,
+#siteLockManageUpdateButton.is-loading .btn-loading-spinner,
+#siteLockManageUnlockButton.is-loading .btn-loading-spinner {
   display: inline-flex;
 }
 
-#siteUnlockSubmitButton.is-loading .btn-label-loading {
+#siteUnlockSubmitButton.is-loading .btn-label-loading,
+#siteLockManageUpdateButton.is-loading .btn-label-loading,
+#siteLockManageUnlockButton.is-loading .btn-label-loading {
   display: inline-flex;
 }
 
