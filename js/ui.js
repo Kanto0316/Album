@@ -4,6 +4,7 @@
   const TOAST_TYPES = new Set(["success", "error", "warning", "info"]);
   const DEFAULT_TOAST_DURATION = 2800;
   const DEFAULT_SNACKBAR_DURATION = 5000;
+  const TOAST_HIDE_ANIMATION_DURATION = 220;
   const GLOBAL_LOADER_ID = "globalPageLoader";
   const GLOBAL_LOADER_HIDDEN_CLASS = "global-loader-overlay--hidden";
   const APP_LOADED_STORAGE_KEY = "albumAppHasLoadedOnce";
@@ -13,6 +14,9 @@
   const INLINE_LOADER_ID = "pageInlineLoader";
   const CONTENT_LOADING_DELAY_MS = 120;
   let hideTimerId = null;
+  let toastClearTimerId = null;
+  const toastQueue = [];
+  let activeToast = null;
   let globalLoader = null;
   let hasWindowLoaded = document.readyState === "complete";
   let isAppReady = false;
@@ -229,13 +233,26 @@
     if (!toast) {
       return;
     }
+
+    if (hideTimerId) {
+      window.clearTimeout(hideTimerId);
+      hideTimerId = null;
+    }
+    if (toastClearTimerId) {
+      window.clearTimeout(toastClearTimerId);
+      toastClearTimerId = null;
+    }
+
     toast.classList.remove(TOAST_VISIBLE_CLASS, TOAST_WITH_ACTION_CLASS);
     toast.removeAttribute("data-type");
-    window.setTimeout(() => {
+    toastClearTimerId = window.setTimeout(() => {
       if (!toast.classList.contains(TOAST_VISIBLE_CLASS)) {
         toast.textContent = "";
       }
-    }, 260);
+      activeToast = null;
+      toastClearTimerId = null;
+      processToastQueue();
+    }, TOAST_HIDE_ANIMATION_DURATION);
   }
 
   function scheduleHide(delay = DEFAULT_TOAST_DURATION) {
@@ -246,6 +263,14 @@
       hideTimerId = null;
       hideToast();
     }, delay);
+  }
+
+  function processToastQueue() {
+    if (activeToast || toastQueue.length === 0) {
+      return;
+    }
+    activeToast = toastQueue.shift();
+    renderToast(activeToast);
   }
 
   function renderToast(options) {
@@ -284,10 +309,6 @@
         "click",
         () => {
           onAction();
-          if (hideTimerId) {
-            window.clearTimeout(hideTimerId);
-            hideTimerId = null;
-          }
           hideToast();
         },
         { once: true },
@@ -301,7 +322,8 @@
 
   function showToast(messageOrOptions, maybeOptions = {}) {
     const options = normalizeToastOptions(messageOrOptions, maybeOptions);
-    renderToast(options);
+    toastQueue.push(options);
+    processToastQueue();
   }
 
   function showUndoSnackbar(message, onUndo, actionLabel = "Annuler") {
@@ -311,7 +333,8 @@
       actionLabel,
       onAction: onUndo,
     });
-    renderToast(options);
+    toastQueue.push(options);
+    processToastQueue();
   }
 
   function renderEmptyState(container, message) {
