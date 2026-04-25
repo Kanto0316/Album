@@ -2075,16 +2075,47 @@ body[data-page="item-detail"] #detailCreateSubmitButton .btn-label-loading {
   display: none;
 }
 
+body[data-page="item-detail"] #detailCreateSubmitButton .btn-loading-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  display: none;
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
 body[data-page="item-detail"] #detailCreateSubmitButton.is-loading {
   filter: saturate(0.95);
+  gap: 0.45rem;
 }
 
 body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-default {
   display: none;
 }
 
+body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-loading-spinner {
+  display: inline-flex;
+}
+
 body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-loading {
   display: inline-flex;
+}
+
+body[data-page="item-detail"] .detail-input-feedback-row {
+  width: 100%;
+  margin-top: 0.24rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body[data-page="item-detail"] .detail-input-feedback-row .input-char-counter {
+  width: auto;
+  text-align: right;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 body[data-page="item-detail"] .detail-form-row--qte-unit {

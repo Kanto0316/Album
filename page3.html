@@ -116,10 +116,16 @@
                   <input id="codeInput" name="code" type="text" maxlength="40" aria-label="Code" autocomplete="off" />
                   <div id="codeSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de code" hidden></div>
                 </div>
+                <div class="detail-input-feedback-row">
+                  <span id="codeInputCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
+                </div>
               </label>
               <label class="input-group input-group--wide">
                 <span>Désignation</span>
                 <input id="designationInput" name="designation" type="text" maxlength="120" required />
+                <div class="detail-input-feedback-row">
+                  <span id="designationInputCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
+                </div>
               </label>
               <div class="detail-form-row detail-form-row--qte-unit">
                 <label class="input-group detail-form-field detail-form-field--qte">
@@ -140,6 +146,7 @@
                   <button type="button" class="btn" id="cancelDetailFormButton">Annuler</button>
                   <button type="submit" class="btn btn-success" id="detailCreateSubmitButton">
                     <span class="btn-label-default">Enregistrer</span>
+                    <span class="btn-loading-spinner" aria-hidden="true"></span>
                     <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
                   </button>
                 </div>
