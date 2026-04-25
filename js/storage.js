@@ -1126,7 +1126,7 @@ async function removeSite(siteId) {
   return { site: clone(site), items, details };
 }
 
-async function createItem(siteId, numberValue) {
+async function createItem(siteId, numberValue, options = {}) {
   const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ''));
   if (cleanNumber.length < 4) {
     return { ok: false, reason: 'invalid_out' };
@@ -1141,6 +1141,7 @@ async function createItem(siteId, numberValue) {
   const itemPayload = {
     siteId,
     numero,
+    magasin: sanitizeText(options?.magasin || 'None', true) || 'None',
     ownerId: state.userId,
     createdBy: state.userId,
     createdByName: creatorName,
