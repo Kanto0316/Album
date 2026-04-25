@@ -181,14 +181,28 @@
           <div class="modal-header">
             <h2>Site verrouillé</h2>
           </div>
-          <label class="input-group">
+          <label class="input-group input-group--site-unlock">
             <span>Mot de passe</span>
-            <input id="siteUnlockPasswordInput" type="password" autocomplete="current-password" />
+            <div class="password-wrap password-wrap--site-unlock">
+              <input id="siteUnlockPasswordInput" type="password" autocomplete="current-password" />
+              <button
+                id="siteUnlockPasswordToggle"
+                class="password-toggle password-toggle--site-unlock"
+                type="button"
+                aria-label="Afficher le mot de passe"
+              >
+                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
+              </button>
+            </div>
+            <p id="siteUnlockError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
-          <p id="siteUnlockError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--password">
             <button type="button" class="btn" data-close-dialog>Annuler</button>
-            <button type="submit" class="btn btn-success">Valider</button>
+            <button id="siteUnlockSubmitButton" type="submit" class="btn btn-success">
+              <span class="btn-label-default">Valider</span>
+              <span class="btn-loading-spinner" aria-hidden="true"></span>
+              <span class="btn-label-loading" aria-hidden="true">Validation...</span>
+            </button>
           </div>
         </form>
       </dialog>

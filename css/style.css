@@ -1380,6 +1380,67 @@ body[data-page="history"] .list-grid {
   margin-top: 0.35rem;
 }
 
+body[data-page="home"] #siteUnlockDialog .input-group--site-unlock {
+  gap: 0.65rem;
+}
+
+body[data-page="home"] #siteUnlockDialog .password-wrap--site-unlock {
+  position: relative;
+  width: 100%;
+}
+
+body[data-page="home"] #siteUnlockDialog .password-wrap--site-unlock input {
+  padding-right: 2.8rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="home"] #siteUnlockDialog .password-toggle--site-unlock {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-page="home"] #siteUnlockDialog .password-toggle--site-unlock img {
+  width: 1.3125rem;
+  height: 1.3125rem;
+  object-fit: contain;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+body[data-page="home"] #siteUnlockDialog .password-toggle--site-unlock:hover img,
+body[data-page="home"] #siteUnlockDialog .password-toggle--site-unlock:focus-visible img {
+  opacity: 1;
+}
+
+body[data-page="home"] #siteUnlockDialog .form-error--field {
+  margin-top: 0.1rem;
+  min-height: 1rem;
+  text-align: left;
+  color: #c95e68;
+  font-size: 0.82rem;
+}
+
+body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-error,
+body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-error:focus {
+  border-color: #e57373;
+  box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
+}
+
+body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-shaking {
+  animation: site-lock-input-shake 300ms ease-in-out 1;
+}
+
 body[data-page="home"] #siteLockDialog .password-wrap--site-lock {
   position: relative;
   width: 100%;
@@ -1586,6 +1647,40 @@ body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking 
 }
 
 #siteCreateSubmitButton.is-loading .btn-label-loading {
+  display: inline-flex;
+}
+
+#siteUnlockSubmitButton {
+  position: relative;
+}
+
+#siteUnlockSubmitButton .btn-label-loading {
+  display: none;
+}
+
+#siteUnlockSubmitButton .btn-loading-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  display: none;
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
+#siteUnlockSubmitButton.is-loading {
+  filter: saturate(0.95);
+}
+
+#siteUnlockSubmitButton.is-loading .btn-label-default {
+  display: none;
+}
+
+#siteUnlockSubmitButton.is-loading .btn-loading-spinner {
+  display: inline-flex;
+}
+
+#siteUnlockSubmitButton.is-loading .btn-label-loading {
   display: inline-flex;
 }
 
