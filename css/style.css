@@ -3927,11 +3927,28 @@ body[data-page="home"] .list-card__status {
   gap: 0.42rem;
   font-size: 0.88rem;
   font-weight: 700;
+  min-width: 0;
+}
+
+body[data-page="home"] .list-card__status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+body[data-page="home"] .list-card__status-main {
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 body[data-page="home"] .list-card__status-actor {
+  color: #6b7280;
   opacity: 0.8;
-  font-weight: 600;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 body[data-page="home"] .list-card__status-icon {
