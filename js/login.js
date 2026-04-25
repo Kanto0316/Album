@@ -64,6 +64,8 @@ if (inAppBrowserWarning) {
 
 let lastEmailCheckId = 0;
 let isAuthInProgress = false;
+const fieldErrorTimers = new Map();
+const fieldStateTimers = new Map();
 
 function redirectToHome() {
   window.location.replace('index.html');
@@ -94,6 +96,18 @@ function setLoading(isLoading, sourceButton = emailLoginButton) {
   emailLoginButton.setAttribute('aria-busy', String(isLoading));
   googleLoginButton.setAttribute('aria-busy', String(isLoading));
   sourceButton?.classList.toggle('is-loading', isLoading);
+  if (sourceButton) {
+    const labelElement = sourceButton.querySelector('.btn__label');
+    if (labelElement) {
+      const defaultLabel = sourceButton.dataset.defaultLabel || labelElement.textContent || '';
+      sourceButton.dataset.defaultLabel = defaultLabel;
+      if (isLoading && sourceButton === emailLoginButton) {
+        labelElement.textContent = 'Connexion…';
+      } else {
+        labelElement.textContent = defaultLabel;
+      }
+    }
+  }
 }
 
 async function startGoogleSignIn() {
@@ -141,14 +155,13 @@ function isEmailFormatValid(email) {
 
 async function validateEmailRealtime() {
   const email = emailInput.value.trim();
-  emailError.textContent = '';
 
   if (!email) {
-    emailError.textContent = 'Email vide.';
+    showFieldError(emailInput, emailError, 'Email requis.');
     return false;
   }
   if (!isEmailFormatValid(email)) {
-    emailError.textContent = 'Format email invalide.';
+    showFieldError(emailInput, emailError, 'Format email invalide.');
     return false;
   }
 
@@ -159,11 +172,11 @@ async function validateEmailRealtime() {
       return false;
     }
     if (!methods.length) {
-      emailError.textContent = 'Email inexistant.';
+      showFieldError(emailInput, emailError, 'Email inexistant.');
       return false;
     }
   } catch (_error) {
-    emailError.textContent = 'Vérification email indisponible.';
+    showFieldError(emailInput, emailError, 'Vérification email indisponible.');
     return false;
   }
   return true;
@@ -171,27 +184,64 @@ async function validateEmailRealtime() {
 
 function validatePasswordRealtime() {
   const password = passwordInput.value;
-  passwordError.textContent = '';
   if (!password) {
-    passwordError.textContent = 'Mot de passe requis.';
+    showFieldError(passwordInput, passwordError, 'Mot de passe requis.');
     return false;
   }
   if (password.length < 6) {
-    passwordError.textContent = 'Mot de passe trop court (minimum 6 caractères).';
+    showFieldError(passwordInput, passwordError, 'Mot de passe trop court (minimum 6 caractères).');
     return false;
   }
   return true;
+}
+
+function clearFieldError(errorElement) {
+  const timer = fieldErrorTimers.get(errorElement);
+  if (timer) {
+    window.clearTimeout(timer);
+    fieldErrorTimers.delete(errorElement);
+  }
+  errorElement.textContent = '';
+}
+
+function clearFieldState(inputElement, errorElement) {
+  clearFieldError(errorElement);
+  const timer = fieldStateTimers.get(inputElement);
+  if (timer) {
+    window.clearTimeout(timer);
+    fieldStateTimers.delete(inputElement);
+  }
+  inputElement.classList.remove('is-error', 'is-shaking');
+}
+
+function showFieldError(inputElement, errorElement, message, durationMs = 2300) {
+  clearFieldState(inputElement, errorElement);
+  errorElement.textContent = message;
+  const errorTimer = window.setTimeout(() => {
+    errorElement.textContent = '';
+    fieldErrorTimers.delete(errorElement);
+  }, durationMs);
+  fieldErrorTimers.set(errorElement, errorTimer);
+
+  inputElement.classList.remove('is-shaking');
+  void inputElement.offsetWidth;
+  inputElement.classList.add('is-error', 'is-shaking');
+  const stateTimer = window.setTimeout(() => {
+    inputElement.classList.remove('is-error', 'is-shaking');
+    fieldStateTimers.delete(inputElement);
+  }, durationMs);
+  fieldStateTimers.set(inputElement, stateTimer);
 }
 
 emailInput.addEventListener('focus', applyMemoIfAny);
 passwordInput.addEventListener('focus', applyMemoIfAny);
 emailInput.addEventListener('input', () => {
   globalError.textContent = '';
-  validateEmailRealtime();
+  clearFieldState(emailInput, emailError);
 });
 passwordInput.addEventListener('input', () => {
   globalError.textContent = '';
-  validatePasswordRealtime();
+  clearFieldState(passwordInput, passwordError);
 });
 
 togglePasswordButton.addEventListener('click', () => {
@@ -206,11 +256,13 @@ form.addEventListener('submit', async (event) => {
   if (isAuthInProgress) {
     return;
   }
+  isAuthInProgress = true;
   globalError.textContent = '';
 
   const isEmailValid = await validateEmailRealtime();
   const isPasswordValid = validatePasswordRealtime();
   if (!isEmailValid || !isPasswordValid) {
+    isAuthInProgress = false;
     return;
   }
 
@@ -222,13 +274,14 @@ form.addEventListener('submit', async (event) => {
   } catch (error) {
     const code = String(error?.code || '');
     if (code.includes('wrong-password') || code.includes('invalid-credential')) {
-      passwordError.textContent = 'Mot de passe incorrect.';
+      showFieldError(passwordInput, passwordError, 'Mot de passe incorrect.');
     } else if (code.includes('user-not-found')) {
-      emailError.textContent = 'Email inexistant.';
+      showFieldError(emailInput, emailError, 'Email inexistant.');
     } else {
       globalError.textContent = 'Connexion impossible. Veuillez réessayer.';
     }
   } finally {
+    isAuthInProgress = false;
     setLoading(false, emailLoginButton);
   }
 });
