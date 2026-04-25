@@ -3634,7 +3634,15 @@ import { firebaseAuth } from './firebase-core.js';
       }
       const storeValue = String(currentItem?.magasin || '').trim();
       const hasDefinedStore = Boolean(storeValue) && storeValue !== 'None';
-      detailStore.textContent = hasDefinedStore ? `Magasin : ${storeValue}` : 'Magasin : Non défini';
+      const displayValue = hasDefinedStore ? storeValue : 'Non défini';
+      detailStore.textContent = '';
+      const storeLabel = document.createElement('span');
+      storeLabel.className = 'detail-store-label';
+      storeLabel.textContent = 'Magasin :';
+      const storeBadge = document.createElement('span');
+      storeBadge.className = `detail-store-badge${hasDefinedStore ? '' : ' detail-store-badge--muted'}`;
+      storeBadge.textContent = displayValue;
+      detailStore.append(storeLabel, storeBadge);
     }
 
     function getSearchQuery() {
