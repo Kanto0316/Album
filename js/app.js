@@ -2680,6 +2680,7 @@ import { firebaseAuth } from './firebase-core.js';
     let codeSuggestionSource = [];
     let visibleCodeSuggestions = [];
     let activeSuggestionIndex = -1;
+    let detailFormErrorTimeoutId = null;
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -2693,7 +2694,7 @@ import { firebaseAuth } from './firebase-core.js';
       detailFormModal.close();
       setDetailModalOpenState(false);
       hideCodeSuggestions();
-      detailFormError.textContent = '';
+      clearDetailFormError();
     }
 
     function openDetailModal() {
@@ -2703,7 +2704,7 @@ import { firebaseAuth } from './firebase-core.js';
       detailForm.reset();
       requireElement('uniteInput').value = 'm';
       setDetailFormSavingState(false);
-      detailFormError.textContent = '';
+      clearDetailFormError();
       updateDetailInputCounters();
       detailFormModal.showModal();
       setDetailModalOpenState(true);
@@ -2789,6 +2790,29 @@ import { firebaseAuth } from './firebase-core.js';
     function updateDetailInputCounters() {
       updateInputCharCounter(codeInput, codeInputCounter);
       updateInputCharCounter(designationInput, designationInputCounter);
+    }
+
+    function clearDetailFormError() {
+      if (!detailFormError) {
+        return;
+      }
+      if (detailFormErrorTimeoutId) {
+        window.clearTimeout(detailFormErrorTimeoutId);
+        detailFormErrorTimeoutId = null;
+      }
+      detailFormError.textContent = '';
+    }
+
+    function showDetailFormError(message) {
+      if (!detailFormError) {
+        return;
+      }
+      clearDetailFormError();
+      detailFormError.textContent = message;
+      detailFormErrorTimeoutId = window.setTimeout(() => {
+        detailFormError.textContent = '';
+        detailFormErrorTimeoutId = null;
+      }, 2600);
     }
 
     function buildCodeSuggestionSource(details) {
@@ -3150,13 +3174,13 @@ import { firebaseAuth } from './firebase-core.js';
 
     detailForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      detailFormError.textContent = '';
+      clearDetailFormError();
       if (!designationInput.value.trim()) {
-        detailFormError.textContent = 'Veuillez remplir le champ.';
+        showDetailFormError('Veuillez remplir le champ.');
         return;
       }
       if (!permissions.canCreate) {
-        detailFormError.textContent = 'Action non autorisée.';
+        showDetailFormError('Action non autorisée.');
         return;
       }
 
@@ -3169,16 +3193,18 @@ import { firebaseAuth } from './firebase-core.js';
           unite: requireElement('uniteInput').value,
         });
         if (!result?.ok) {
-          detailFormError.textContent =
+          showDetailFormError(
             result?.reason === 'duplicate_designation'
               ? 'Cette désignation existe déjà pour ce N° OUT.'
-              : 'Création impossible. Vérifiez la désignation.';
+              : 'Création impossible. Vérifiez la désignation.',
+          );
           return;
         }
         detailForm.reset();
         requireElement('uniteInput').value = 'm';
         updateDetailInputCounters();
         hideCodeSuggestions();
+        clearDetailFormError();
         closeDetailModal();
         UiService.showToast('Article ajoutée .');
       } finally {
@@ -3221,6 +3247,7 @@ import { firebaseAuth } from './firebase-core.js';
       });
 
       codeInput.addEventListener('input', () => {
+        clearDetailFormError();
         updateInputCharCounter(codeInput, codeInputCounter);
         renderCodeSuggestions(codeInput.value);
       });
@@ -3284,6 +3311,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     if (designationInput) {
       designationInput.addEventListener('input', () => {
+        clearDetailFormError();
         updateInputCharCounter(designationInput, designationInputCounter);
       });
       designationInput.addEventListener('beforeinput', (event) => {
@@ -3293,6 +3321,9 @@ import { firebaseAuth } from './firebase-core.js';
         enforceMaxLengthOnPaste(event, designationInput, designationInputCounter);
       });
     }
+
+    requireElement('qteSortieInput')?.addEventListener('input', clearDetailFormError);
+    requireElement('uniteInput')?.addEventListener('change', clearDetailFormError);
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', renderTable);
