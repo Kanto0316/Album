@@ -1333,6 +1333,7 @@ import { firebaseAuth } from './firebase-core.js';
               <img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span id="siteActionLockToggleLabel">Verrouiller</span>
             </button>
+            <div class="item-action-sheet__divider" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
