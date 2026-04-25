@@ -2293,6 +2293,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
+    let itemFormErrorTimeoutId = null;
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -2342,6 +2343,23 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
+    function clearItemFormError() {
+      if (itemFormErrorTimeoutId) {
+        window.clearTimeout(itemFormErrorTimeoutId);
+        itemFormErrorTimeoutId = null;
+      }
+      itemFormError.textContent = '';
+    }
+
+    function showItemFormError(message) {
+      clearItemFormError();
+      itemFormError.textContent = message;
+      itemFormErrorTimeoutId = window.setTimeout(() => {
+        itemFormError.textContent = '';
+        itemFormErrorTimeoutId = null;
+      }, 2600);
+    }
+
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
@@ -2349,7 +2367,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     openCreateItem?.addEventListener('click', () => {
       itemForm.reset();
-      itemFormError.textContent = '';
+      clearItemFormError();
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
@@ -2399,6 +2417,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (itemNumberInput.value !== normalizedValue) {
         itemNumberInput.value = normalizedValue;
       }
+      clearItemFormError();
       updateItemNumberCounter();
     });
     updateItemNumberCounter();
@@ -2520,19 +2539,19 @@ import { firebaseAuth } from './firebase-core.js';
       }
       const value = itemNumberInput.value.trim();
       if (!value) {
-        itemFormError.textContent = 'Veuillez remplir ce champ';
+        showItemFormError('Veuillez remplir ce champ');
         return;
       }
       if (!/^\d+$/.test(value)) {
-        itemFormError.textContent = 'Veuillez saisir des chiffres uniquement.';
+        showItemFormError('Veuillez saisir des chiffres uniquement.');
         return;
       }
       if (value.length < 4) {
-        itemFormError.textContent = 'Veuillez saisir au moins 4 chiffres.';
+        showItemFormError('Veuillez saisir au moins 4 chiffres.');
         return;
       }
       if (!permissions.canCreate) {
-        itemFormError.textContent = 'Action non autorisée.';
+        showItemFormError('Action non autorisée.');
         return;
       }
       itemCreateSubmitButton.disabled = true;
@@ -2540,12 +2559,14 @@ import { firebaseAuth } from './firebase-core.js';
       try {
         const result = await StorageService.createItem(siteId, value);
         if (!result?.ok) {
-          itemFormError.textContent =
+          showItemFormError(
             result?.reason === 'duplicate_out'
               ? 'Ce N° OUT existe déjà pour ce site.'
-              : 'Veuillez saisir au moins 4 chiffres.';
+              : 'Veuillez saisir au moins 4 chiffres.',
+          );
           return;
         }
+        clearItemFormError();
         itemCreateSubmitButton.classList.remove('is-loading');
         itemCreateSubmitButton.disabled = false;
         itemDialog.close();
