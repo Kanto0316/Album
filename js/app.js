@@ -3640,8 +3640,8 @@ import { firebaseAuth } from './firebase-core.js';
       if (!rawStoreValue || normalizedStoreValue === 'none' || normalizedStoreValue === 'null') {
         displayValue = 'Non défini';
         badgeVariantClass = 'detail-store-badge--undefined';
-      } else if (normalizedStoreValue === 'tit i') {
-        displayValue = 'TIT I';
+      } else if (normalizedStoreValue === 'tit i' || normalizedStoreValue === 'titan i') {
+        displayValue = 'TITAN I';
         badgeVariantClass = 'detail-store-badge--tit-i';
       } else if (normalizedStoreValue === 'hag 36') {
         displayValue = 'HAG 36';
