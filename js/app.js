@@ -910,7 +910,10 @@ import { firebaseAuth } from './firebase-core.js';
     const siteLockForm = requireElement('siteLockForm');
     const siteLockPasswordInput = requireElement('siteLockPasswordInput');
     const siteLockConfirmPasswordInput = requireElement('siteLockConfirmPasswordInput');
-    const siteLockError = requireElement('siteLockError');
+    const siteLockPasswordError = requireElement('siteLockPasswordError');
+    const siteLockConfirmPasswordError = requireElement('siteLockConfirmPasswordError');
+    const siteLockPasswordToggle = requireElement('siteLockPasswordToggle');
+    const siteLockConfirmPasswordToggle = requireElement('siteLockConfirmPasswordToggle');
     const siteUnlockDialog = requireElement('siteUnlockDialog');
     const siteUnlockForm = requireElement('siteUnlockForm');
     const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
@@ -940,6 +943,7 @@ import { firebaseAuth } from './firebase-core.js';
     const transientErrorTimers = new WeakMap();
     let isSiteCreationPending = false;
     let siteNameErrorClearTimer = null;
+    const siteLockFieldStateTimers = new WeakMap();
 
     function setSiteCreateLoadingState(isLoading) {
       isSiteCreationPending = Boolean(isLoading);
@@ -1027,6 +1031,47 @@ import { firebaseAuth } from './firebase-core.js';
         transientErrorTimers.delete(errorElement);
       }, 2000);
       transientErrorTimers.set(errorElement, hideTimer);
+    }
+
+    function clearSiteLockFieldErrorState(inputElement, errorElement) {
+      if (!inputElement || !errorElement) {
+        return;
+      }
+      clearTransientError(errorElement);
+      const timer = siteLockFieldStateTimers.get(inputElement);
+      if (timer) {
+        window.clearTimeout(timer);
+        siteLockFieldStateTimers.delete(inputElement);
+      }
+      inputElement.classList.remove('is-error', 'is-shaking');
+    }
+
+    function showSiteLockFieldError(inputElement, errorElement, message, durationMs = 2300) {
+      if (!inputElement || !errorElement) {
+        return;
+      }
+      clearSiteLockFieldErrorState(inputElement, errorElement);
+      showTransientError(errorElement, message);
+      inputElement.classList.remove('is-shaking');
+      void inputElement.offsetWidth;
+      inputElement.classList.add('is-error', 'is-shaking');
+      const timer = window.setTimeout(() => {
+        inputElement.classList.remove('is-error', 'is-shaking');
+        siteLockFieldStateTimers.delete(inputElement);
+      }, durationMs);
+      siteLockFieldStateTimers.set(inputElement, timer);
+    }
+
+    function setPasswordVisibility(inputElement, toggleButton, isVisible) {
+      if (!inputElement || !toggleButton) {
+        return;
+      }
+      const iconElement = toggleButton.querySelector('img');
+      inputElement.type = isVisible ? 'text' : 'password';
+      toggleButton.setAttribute('aria-label', isVisible ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
+      if (iconElement) {
+        iconElement.src = isVisible ? 'Icon/Eye_ON.png' : 'Icon/Eye_OFF.png';
+      }
     }
 
     async function loadUserNames() {
@@ -1344,13 +1389,22 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
 
-      if (!siteLockDialog || !siteLockPasswordInput || !siteLockConfirmPasswordInput || !siteLockError) {
+      if (
+        !siteLockDialog ||
+        !siteLockPasswordInput ||
+        !siteLockConfirmPasswordInput ||
+        !siteLockPasswordError ||
+        !siteLockConfirmPasswordError
+      ) {
         return;
       }
       siteIdPendingLock = siteId;
       siteLockPasswordInput.value = '';
       siteLockConfirmPasswordInput.value = '';
-      clearTransientError(siteLockError);
+      clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+      clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
+      setPasswordVisibility(siteLockPasswordInput, siteLockPasswordToggle, false);
+      setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, false);
       siteLockDialog.showModal();
       siteLockPasswordInput.focus();
     }
@@ -1768,17 +1822,29 @@ import { firebaseAuth } from './firebase-core.js';
       if (!siteIdPendingLock) {
         return;
       }
-      clearTransientError(siteLockError);
+      clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+      clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
       const passwordValue = siteLockPasswordInput?.value || '';
       const confirmValue = siteLockConfirmPasswordInput?.value || '';
 
-      if (!passwordValue.trim() || !confirmValue.trim()) {
-        showTransientError(siteLockError, 'Veuillez remplir tous les champs.');
+      const isPasswordMissing = !passwordValue.trim();
+      const isConfirmMissing = !confirmValue.trim();
+      if (isPasswordMissing || isConfirmMissing) {
+        if (isPasswordMissing) {
+          showSiteLockFieldError(siteLockPasswordInput, siteLockPasswordError, 'Veuillez remplir ce champ');
+        }
+        if (isConfirmMissing) {
+          showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Veuillez remplir ce champ');
+        }
         return;
       }
 
       if (passwordValue !== confirmValue) {
-        showTransientError(siteLockError, 'Les mots de passe ne correspondent pas.');
+        showSiteLockFieldError(
+          siteLockConfirmPasswordInput,
+          siteLockConfirmPasswordError,
+          'Les mots de passe ne correspondent pas.',
+        );
         return;
       }
 
@@ -1786,15 +1852,33 @@ import { firebaseAuth } from './firebase-core.js';
         const passwordHash = await hashPassword(passwordValue);
         const result = await StorageService.setSiteLock(siteIdPendingLock, { passwordHash });
         if (!result?.ok) {
-          showTransientError(siteLockError, 'Impossible de verrouiller ce site.');
+          showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Impossible de verrouiller ce site.');
           return;
         }
         siteLockDialog?.close();
         siteIdPendingLock = null;
         UiService.showToast('Site verrouillé.');
       } catch (_error) {
-        showTransientError(siteLockError, 'Erreur pendant le verrouillage.');
+        showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Erreur pendant le verrouillage.');
       }
+    });
+
+    siteLockPasswordInput?.addEventListener('input', () => {
+      clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+    });
+
+    siteLockConfirmPasswordInput?.addEventListener('input', () => {
+      clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
+    });
+
+    siteLockPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteLockPasswordInput?.type === 'password';
+      setPasswordVisibility(siteLockPasswordInput, siteLockPasswordToggle, nextIsVisible);
+    });
+
+    siteLockConfirmPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteLockConfirmPasswordInput?.type === 'password';
+      setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, nextIsVisible);
     });
 
     siteUnlockForm?.addEventListener('submit', async (event) => {
@@ -1894,7 +1978,10 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteLockDialog?.addEventListener('close', () => {
       siteIdPendingLock = null;
-      clearTransientError(siteLockError);
+      clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+      clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
+      setPasswordVisibility(siteLockPasswordInput, siteLockPasswordToggle, false);
+      setPasswordVisibility(siteLockConfirmPasswordInput, siteLockConfirmPasswordToggle, false);
     });
 
     siteUnlockDialog?.addEventListener('close', () => {

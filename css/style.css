@@ -1380,6 +1380,80 @@ body[data-page="history"] .list-grid {
   margin-top: 0.35rem;
 }
 
+body[data-page="home"] #siteLockDialog .password-wrap--site-lock {
+  position: relative;
+  width: 100%;
+}
+
+body[data-page="home"] #siteLockDialog .password-wrap--site-lock input {
+  padding-right: 3.1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="home"] #siteLockDialog .password-toggle--site-lock {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-page="home"] #siteLockDialog .password-toggle--site-lock img {
+  width: 1.45rem;
+  height: 1.45rem;
+  object-fit: contain;
+}
+
+body[data-page="home"] #siteLockDialog .form-error--field {
+  margin-top: 0.1rem;
+  min-height: 1rem;
+  text-align: left;
+  color: #c95e68;
+  font-size: 0.82rem;
+}
+
+body[data-page="home"] #siteLockDialog #siteLockPasswordInput.is-error,
+body[data-page="home"] #siteLockDialog #siteLockPasswordInput.is-error:focus,
+body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-error,
+body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-error:focus {
+  border-color: #e57373;
+  box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
+}
+
+body[data-page="home"] #siteLockDialog #siteLockPasswordInput.is-shaking,
+body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking {
+  animation: site-lock-input-shake 300ms ease-in-out 1;
+}
+
+@keyframes site-lock-input-shake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .modal-helper-text {
   margin: -0.2rem 0 0.9rem;
   color: var(--text-muted);
