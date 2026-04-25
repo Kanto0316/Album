@@ -1716,7 +1716,12 @@ import { firebaseAuth } from './firebase-core.js';
           const createdDateTime = buildDateAndTimeLabel(site?.dateCreation);
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
-          const lockLabel = isSiteLocked(site) ? 'Verrouillé' : 'Déverrouillé';
+          const lockActorEmail = isSiteLocked(site)
+            ? String(site?.lockedBy || '').trim()
+            : String(site?.unlockedBy || '').trim();
+          const lockLabel = isSiteLocked(site)
+            ? `🔒 Verrouillé${lockActorEmail ? ' par' : ''}`
+            : `🔓 Déverrouillé${lockActorEmail ? ' par' : ''}`;
           const canShowSiteActions = isAuthenticated;
           return `
             <article class="list-card">
@@ -1740,7 +1745,10 @@ import { firebaseAuth } from './firebase-core.js';
                 <span class="list-card__divider" aria-hidden="true"></span>
                 <span class="list-card__status ${isSiteLocked(site) ? 'list-card__status--locked' : 'list-card__status--unlocked'}">
                   <img src="${lockIconSrc}" alt="" aria-hidden="true" class="list-card__status-icon" />
-                  <span>${lockLabel}</span>
+                  <span>
+                    ${escapeHtml(lockLabel)}
+                    ${lockActorEmail ? `<span class="list-card__status-actor"> ${escapeHtml(lockActorEmail)}</span>` : ''}
+                  </span>
                 </span>
               </button>
             </article>

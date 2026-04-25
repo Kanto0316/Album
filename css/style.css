@@ -3929,6 +3929,11 @@ body[data-page="home"] .list-card__status {
   font-weight: 700;
 }
 
+body[data-page="home"] .list-card__status-actor {
+  opacity: 0.8;
+  font-weight: 600;
+}
+
 body[data-page="home"] .list-card__status-icon {
   width: 16px;
   height: 16px;
