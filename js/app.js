@@ -2723,6 +2723,9 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
+    const createItemLabel = document.querySelector(
+      'body[data-page="site-detail"] .site-detail-fab-label--create',
+    );
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
     let itemFormErrorTimeoutId = null;
     let itemNumberErrorClearTimer = null;
@@ -2734,15 +2737,22 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function updateCreateItemButtonVisibility(user) {
-      if (!openCreateItem) {
+      if (!openCreateItem && !createItemLabel) {
         return;
       }
       const isAuthenticated = isFirebaseUserAuthenticated(user);
-      openCreateItem.hidden = !isAuthenticated;
-      openCreateItem.style.display = isAuthenticated ? 'inline-flex' : 'none';
-      const createButtonRow = openCreateItem.closest('[data-fab-row="create"]');
+      if (openCreateItem) {
+        openCreateItem.hidden = !isAuthenticated;
+        openCreateItem.style.display = isAuthenticated ? 'inline-flex' : 'none';
+      }
+      if (createItemLabel) {
+        createItemLabel.hidden = !isAuthenticated;
+        createItemLabel.style.display = isAuthenticated ? '' : 'none';
+      }
+      const createButtonRow = openCreateItem?.closest('[data-fab-row="create"]');
       if (createButtonRow) {
         createButtonRow.hidden = !isAuthenticated;
+        createButtonRow.style.display = isAuthenticated ? '' : 'none';
       }
     }
 
