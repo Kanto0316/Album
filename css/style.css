@@ -2633,17 +2633,29 @@ body[data-page="site-detail"] #itemDialog .input-group--item-create input:focus 
 }
 
 body[data-page="site-detail"] #itemDialog .input-group--item-create .input-char-counter {
-  width: 100%;
+  width: auto;
   text-align: right;
-  margin-top: 0.3rem;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+body[data-page="site-detail"] #itemDialog .item-input-feedback-row {
+  width: 100%;
+  margin-top: 0.24rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 body[data-page="site-detail"] #itemDialog #itemFormError {
-  width: 100%;
-  margin-top: 0.24rem;
-  text-align: right;
+  width: auto;
+  margin-top: 0;
+  text-align: left;
   color: #c95e68;
   font-size: 0.82rem;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 body[data-page="site-detail"] #itemDialog .modal-actions--item-create {
