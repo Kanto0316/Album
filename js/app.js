@@ -954,7 +954,18 @@ import { firebaseAuth } from './firebase-core.js';
       return siteNameInput.maxLength > 0 ? siteNameInput.maxLength : null;
     }
 
+    function enforceSiteNameMaxLength() {
+      const maxLength = getSiteNameMaxLength();
+      if (!maxLength || maxLength <= 0) {
+        return;
+      }
+      if (siteNameInput.value.length > maxLength) {
+        siteNameInput.value = siteNameInput.value.slice(0, maxLength);
+      }
+    }
+
     function updateSiteNameCounter() {
+      enforceSiteNameMaxLength();
       const maxLength = getSiteNameMaxLength();
       const currentLength = siteNameInput.value.length;
       siteNameCounter.textContent = `${currentLength} / ${maxLength ?? currentLength}`;
@@ -2777,10 +2788,21 @@ import { firebaseAuth } from './firebase-core.js';
       return input?.maxLength > 0 ? input.maxLength : null;
     }
 
+    function enforceInputMaxLength(input) {
+      const maxLength = getInputMaxLength(input);
+      if (!input || !maxLength || maxLength <= 0) {
+        return;
+      }
+      if (input.value.length > maxLength) {
+        input.value = input.value.slice(0, maxLength);
+      }
+    }
+
     function updateInputCharCounter(input, counter) {
       if (!input || !counter) {
         return;
       }
+      enforceInputMaxLength(input);
       const maxLength = getInputMaxLength(input);
       const currentLength = input.value.length;
       counter.textContent = `${currentLength} / ${maxLength ?? currentLength}`;
