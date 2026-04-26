@@ -3667,7 +3667,7 @@ import { firebaseAuth } from './firebase-core.js';
         displayValue = 'HAG 36';
         badgeVariantClass = 'detail-store-badge--hag-36';
       } else if (normalizedStoreValue === 'by pass') {
-        displayValue = 'BY Pass';
+        displayValue = 'BYPASS';
         badgeVariantClass = 'detail-store-badge--by-pass';
       }
 
