@@ -2343,8 +2343,48 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
 
+      const sortedRows = [...rows].sort((a, b) => {
+        const designationA = String(a?.designation || '').trim();
+        const designationB = String(b?.designation || '').trim();
+
+        if (!designationA && !designationB) {
+          return 0;
+        }
+        if (!designationA) {
+          return 1;
+        }
+        if (!designationB) {
+          return -1;
+        }
+
+        const byDesignation = designationA.localeCompare(designationB, 'fr', {
+          sensitivity: 'base',
+          numeric: true,
+        });
+        if (byDesignation !== 0) {
+          return byDesignation;
+        }
+
+        const outA = String(a?.out || '').trim();
+        const outB = String(b?.out || '').trim();
+        const byOut = outA.localeCompare(outB, 'fr', {
+          sensitivity: 'base',
+          numeric: true,
+        });
+        if (byOut !== 0) {
+          return byOut;
+        }
+
+        const codeA = String(a?.code || '').trim();
+        const codeB = String(b?.code || '').trim();
+        return codeA.localeCompare(codeB, 'fr', {
+          sensitivity: 'base',
+          numeric: true,
+        });
+      });
+
       const title = `SUIVI MATERIEL . ${currentSite.nom}`;
-      const workbook = buildSiteExcelContent(title, rows);
+      const workbook = buildSiteExcelContent(title, sortedRows);
       const fileBaseName = normalizeExportBaseName(fileNameOverride || title, title);
       downloadExcelFile(`${fileBaseName}.xls`, 'Export Excel', workbook);
       saveExportFileNameToHistory(fileBaseName);
