@@ -2317,7 +2317,7 @@ body[data-page="item-detail"] .header-top,
 .page3 .page3-summary-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 
@@ -2334,51 +2334,50 @@ body[data-page="item-detail"] .title-block .section-title,
   color: #1f2937;
 }
 
+.page3-sub-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  gap: 12px;
+}
+
 .page3 .article-count,
 .page3 .page3-article-count {
-  margin-top: 6px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .page3 .count-number,
 .page3 .page3-count-number {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 9px;
-  border-radius: 12px;
-  background: #eaf7ef;
-  color: #2e7d32;
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  color: #2e7d32;
 }
 
 .page3 .count-label,
 .page3 .page3-count-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #6b7280;
+  font-size: 13px;
+  color: #888;
 }
 
-body[data-page="item-detail"] .magasin-block,
+.page3 .store-info,
 .page3 .page3-info-row {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
+.page3 .page3-info-row {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 
 .page3 .page3-info-row + .search-panel {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 body[data-page="item-detail"] .detail-store-label,
