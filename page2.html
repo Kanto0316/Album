@@ -8,17 +8,15 @@
   </head>
   <body data-page="site-detail">
     <div class="app-shell">
-      <header class="app-header app-header--detail">
+      <header class="app-header app-header--detail page2-header">
         <div class="app-header__side app-header__side--left">
-          <button class="back-button" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+          <button class="back-button back-btn" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
-        <div class="app-header__center">
-          <div class="header-title header-title--stacked">
-            <h1 id="siteTitle">Chargement...</h1>
-            <p id="itemCount" class="site-detail-subtitle outs-count"><span class="outs-number">0</span><span class="outs-label">OUTS</span></p>
-          </div>
+        <div class="app-header__center page2-header-center">
+          <h1 id="siteTitle" class="page2-title">Chargement...</h1>
+          <div id="itemCount" class="site-detail-subtitle outs-count page2-header-subtitle"><span class="outs-number">0</span><span class="outs-label">OUTS</span></div>
         </div>
-        <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
+        <div class="app-header__side app-header__side--right page2-header-spacer" aria-hidden="true"></div>
       </header>
 
       <main class="page-content">
