@@ -9,6 +9,7 @@
   const CONTENT_PENDING_CLASS = "app-content-pending";
   const CONTENT_LOADING_CLASS = "app-content-loading";
   const CONTENT_READY_CLASS = "app-content-ready";
+  const LEGACY_LOADING_CLASS = "is-loading";
   const INLINE_LOADER_ID = "pageInlineLoader";
   const CONTENT_LOADING_DELAY_MS = 120;
   let hideTimerId = null;
@@ -22,7 +23,7 @@
   function showGlobalLoader() {
     ensureInlineLoader();
     document.body.classList.remove(CONTENT_READY_CLASS);
-    document.body.classList.add(CONTENT_LOADING_CLASS);
+    document.body.classList.add(CONTENT_LOADING_CLASS, LEGACY_LOADING_CLASS);
   }
 
   function hideGlobalLoader() {
@@ -42,20 +43,56 @@
 
     inlineLoader = document.createElement("div");
     inlineLoader.id = INLINE_LOADER_ID;
-    inlineLoader.className = "page-inline-loader";
+    inlineLoader.className = "page-inline-loader global-skeleton";
     inlineLoader.setAttribute("aria-hidden", "true");
-    inlineLoader.innerHTML = `
-      <div class="page-inline-loader__block page-inline-loader__block--title"></div>
-      <div class="page-inline-loader__block"></div>
-      <div class="page-inline-loader__block"></div>
-      <div class="page-inline-loader__block page-inline-loader__block--short"></div>
-    `;
+
+    const pageName = document.body?.dataset?.page || "";
+    const skeletonByPage = {
+      home: `
+        <div class="skeleton-card skeleton-card--search"><span class="skeleton-line skeleton-line--input"></span></div>
+        <div class="skeleton-heading-row">
+          <span class="skeleton-line skeleton-line--heading"></span>
+          <span class="skeleton-pill"></span>
+        </div>
+        <div class="skeleton-card skeleton-card--list">
+          <span class="skeleton-line skeleton-line--title"></span>
+          <span class="skeleton-line skeleton-line--meta"></span>
+          <span class="skeleton-line skeleton-line--meta"></span>
+          <span class="skeleton-line skeleton-line--meta"></span>
+          <span class="skeleton-divider"></span>
+          <span class="skeleton-line skeleton-line--lock"></span>
+        </div>
+      `,
+      "site-detail": `
+        <div class="skeleton-card skeleton-card--search"><span class="skeleton-line skeleton-line--input"></span></div>
+        <div class="skeleton-chip-row">
+          <span class="skeleton-chip"></span><span class="skeleton-chip"></span><span class="skeleton-chip"></span><span class="skeleton-chip"></span>
+        </div>
+        <div class="skeleton-separator"><span class="skeleton-line skeleton-line--separator"></span></div>
+        <div class="skeleton-card skeleton-card--list"><span class="skeleton-line skeleton-line--title"></span><span class="skeleton-line skeleton-line--meta"></span><span class="skeleton-line skeleton-line--meta"></span><span class="skeleton-line skeleton-line--meta"></span></div>
+        <div class="skeleton-card skeleton-card--list"><span class="skeleton-line skeleton-line--title"></span><span class="skeleton-line skeleton-line--meta"></span><span class="skeleton-line skeleton-line--meta"></span><span class="skeleton-line skeleton-line--meta"></span></div>
+      `,
+      "item-detail": `
+        <div class="skeleton-card skeleton-card--table-wrap">
+          <div class="skeleton-table-header">
+            <div><span class="skeleton-line skeleton-line--table-title"></span><span class="skeleton-line skeleton-line--meta"></span><span class="skeleton-line skeleton-line--meta"></span></div>
+            <span class="skeleton-button"></span>
+          </div>
+          <div class="skeleton-card skeleton-card--search-inline"><span class="skeleton-line skeleton-line--input"></span></div>
+          <div class="skeleton-table-head"></div>
+          <div class="skeleton-table-row"><span class="skeleton-index"></span><span class="skeleton-cell"></span><span class="skeleton-cell"></span></div>
+          <div class="skeleton-table-row"><span class="skeleton-index"></span><span class="skeleton-cell"></span><span class="skeleton-cell"></span></div>
+          <div class="skeleton-table-row"><span class="skeleton-index"></span><span class="skeleton-cell"></span><span class="skeleton-cell"></span></div>
+        </div>
+      `,
+    };
+    inlineLoader.innerHTML = skeletonByPage[pageName] || `<div class="page-inline-loader__block page-inline-loader__block--title"></div>`;
     pageContent.prepend(inlineLoader);
     return inlineLoader;
   }
 
   function startContentLoadingState() {
-    document.body.classList.add(CONTENT_PENDING_CLASS);
+    document.body.classList.add(CONTENT_PENDING_CLASS, LEGACY_LOADING_CLASS);
     document.body.classList.remove(CONTENT_LOADING_CLASS, CONTENT_READY_CLASS);
 
     inlineLoaderTimerId = window.setTimeout(() => {
@@ -63,7 +100,7 @@
         return;
       }
       ensureInlineLoader();
-      document.body.classList.add(CONTENT_LOADING_CLASS);
+      document.body.classList.add(CONTENT_LOADING_CLASS, LEGACY_LOADING_CLASS);
     }, CONTENT_LOADING_DELAY_MS);
   }
 
@@ -72,7 +109,7 @@
       window.clearTimeout(inlineLoaderTimerId);
       inlineLoaderTimerId = null;
     }
-    document.body.classList.remove(CONTENT_PENDING_CLASS, CONTENT_LOADING_CLASS);
+    document.body.classList.remove(CONTENT_PENDING_CLASS, CONTENT_LOADING_CLASS, LEGACY_LOADING_CLASS);
     document.body.classList.add(CONTENT_READY_CLASS);
   }
 
