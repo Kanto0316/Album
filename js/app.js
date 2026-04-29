@@ -3713,10 +3713,10 @@ import { firebaseAuth } from './firebase-core.js';
 
       detailStore.textContent = '';
       const storeLabel = document.createElement('span');
-      storeLabel.className = 'detail-store-label';
+      storeLabel.className = 'detail-store-label page3-info-label';
       storeLabel.textContent = 'Magasin :';
       const storeBadge = document.createElement('span');
-      storeBadge.className = `detail-store-badge badge ${badgeVariantClass}`;
+      storeBadge.className = `detail-store-badge page3-store-badge badge ${badgeVariantClass}`;
       storeBadge.textContent = displayValue;
       detailStore.append(storeLabel, storeBadge);
     }

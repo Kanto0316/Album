@@ -2313,65 +2313,91 @@ body[data-page="item-detail"] .section-heading--table {
   display: block;
 }
 
-body[data-page="item-detail"] .header-top {
+body[data-page="item-detail"] .header-top,
+.page3 .page3-summary-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-body[data-page="item-detail"] .title-block {
+body[data-page="item-detail"] .title-block,
+.page3 .page3-title-block {
   min-width: 0;
 }
 
-body[data-page="item-detail"] .title-block .section-title {
+body[data-page="item-detail"] .title-block .section-title,
+.page3 .page3-title-block h2 {
   margin: 0;
-  font-size: 18px;
-}
-
-.page3 .article-count {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.page3 .count-number {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
-  color: #2e7d32;
-  line-height: 1;
-  background: #e6f4ea;
-  padding: 2px 10px;
-  border-radius: 10px;
+  color: #1f2937;
 }
 
-.page3 .count-label {
-  font-size: 13px;
-  color: #888;
-  font-weight: 500;
-}
-
-body[data-page="item-detail"] .magasin-block {
-  margin-top: 10px;
+.page3 .article-count,
+.page3 .page3-article-count {
+  margin-top: 6px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+}
+
+.page3 .count-number,
+.page3 .page3-count-number {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 12px;
+  background: #eaf7ef;
+  color: #2e7d32;
+  font-size: 21px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.page3 .count-label,
+.page3 .page3-count-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+body[data-page="item-detail"] .magasin-block,
+.page3 .page3-info-row {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-body[data-page="item-detail"] .detail-store-label {
-  color: var(--text-muted);
+
+.page3 .page3-info-row + .search-panel {
+  margin-top: 18px;
 }
 
-body[data-page="item-detail"] .detail-store-badge {
+body[data-page="item-detail"] .detail-store-label,
+.page3 .page3-info-label {
+  font-size: 16px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+body[data-page="item-detail"] .detail-store-badge,
+.page3 .page3-store-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.16rem 0.62rem;
-  border-radius: 999px;
-  background: #e8f3ff;
-  color: #1d4ed8;
-  font-weight: 600;
+  background: #e8f1ff;
+  color: #2563eb;
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
   line-height: 1.25;
 }
 
