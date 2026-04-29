@@ -27,10 +27,6 @@
             <div class="header-top page3-summary-header">
               <div class="title-block page3-title-block">
                 <h2 class="section-title">Tableau des données</h2>
-                <div id="detailCount" class="article-count page3-article-count">
-                  <span class="count-number page3-count-number">0</span>
-                  <span class="count-label page3-count-label">Articles</span>
-                </div>
               </div>
               <button type="button" id="exportDetailsButton" class="btn btn-success export-details-button btn-export">
                 <img src="Icon/Exporter.png" alt="" class="export-details-button__icon" aria-hidden="true" />
@@ -38,7 +34,14 @@
               </button>
             </div>
           </div>
-          <div id="detailStore" class="magasin-block page3-info-row">Magasin : Non défini</div>
+          <div class="page3-sub-info">
+            <div id="detailCount" class="article-count page3-article-count">
+              <span class="count-number page3-count-number">0</span>
+              <span class="count-label page3-count-label">Articles</span>
+            </div>
+
+            <div id="detailStore" class="store-info magasin-block page3-info-row">Magasin : Non défini</div>
+          </div>
           <div class="search-panel search-panel--inline">
             <label class="input-group">
               <span class="search-input__icon-wrap" aria-hidden="true">
