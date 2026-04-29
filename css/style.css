@@ -3174,12 +3174,29 @@ body[data-page="item-detail"] #designationInput.is-shaking {
 
 .site-detail-subtitle {
   margin: 0;
+  margin-top: 6px;
   width: 100%;
   text-align: center;
-  font-size: var(--header-subtitle-size);
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.2;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.app-header--detail .app-header__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-detail-subtitle .outs-number {
+  color: #43a047;
+  font-weight: 700;
+}
+
+.site-detail-subtitle .outs-label {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .app-header .back-button,
