@@ -4913,3 +4913,60 @@ body.is-loading .header-menu__panel {
 .skeleton-table-row { display:grid; grid-template-columns: 30px 1fr 1fr; gap:8px; align-items:center; }
 .skeleton-index { width: 26px; height: 26px; border-radius: 999px; }
 .skeleton-cell { height: 20px; }
+
+/* Page 2 header centering hard-fix */
+body[data-page="site-detail"] .page2-header {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: center;
+}
+
+body[data-page="site-detail"] .page2-header .app-header__side {
+  width: 56px;
+  justify-content: center;
+}
+
+body[data-page="site-detail"] .page2-header-center {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+body[data-page="site-detail"] .page2-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+}
+
+body[data-page="site-detail"] .page2-header-subtitle {
+  margin-top: 4px;
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  position: static;
+  left: auto;
+  transform: none;
+  align-self: center;
+  float: none;
+  width: auto;
+}
+
+body[data-page="site-detail"] .page2-header-subtitle .outs-number {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+body[data-page="site-detail"] .page2-header-subtitle .outs-label {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
