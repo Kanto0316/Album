@@ -3910,6 +3910,26 @@ body[data-page="site-detail"] .list-card__meta-item--article {
   font-weight: 600;
 }
 
+body[data-page="home"] .outs-count,
+body[data-page="site-detail"] .outs-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+}
+
+body[data-page="home"] .outs-number,
+body[data-page="site-detail"] .outs-number {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+body[data-page="home"] .outs-label,
+body[data-page="site-detail"] .outs-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
 body[data-page="site-detail"] .site-detail-fab-stack {
   position: fixed;
   right: 20px;

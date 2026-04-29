@@ -1730,7 +1730,7 @@ import { firebaseAuth } from './firebase-core.js';
                 <div class="list-card__meta">
                   <span class="list-card__meta-item list-card__meta-item--outs">
                     <img src="Icon/OUT.png" alt="" aria-hidden="true" class="icon" />
-                    <span>${outCount} OUT${outCount > 1 ? 'S' : ''}</span>
+                    <span class="outs-count"><span class="outs-number">${outCount}</span><span class="outs-label">OUT${outCount > 1 ? 'S' : ''}</span></span>
                   </span>
                   <span class="list-card__meta-item">
                     <img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" />
@@ -2708,7 +2708,7 @@ import { firebaseAuth } from './firebase-core.js';
         return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
       });
 
-      itemCount.textContent = `${filteredItems.length} OUT${filteredItems.length > 1 ? 'S' : ''}`;
+      itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
 
       if (!filteredItems.length) {
         UiService.renderEmptyState(
@@ -2738,7 +2738,7 @@ import { firebaseAuth } from './firebase-core.js';
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
-                  <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${detailCountsByItem[item.id] || 0} Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span></span>
+                  <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountsByItem[item.id] || 0}</span><span class="outs-label">Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span></span></span>
                   <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(createdLabel)}</span></span>
                   <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(createdBy)}</span></span>
                 </div>
