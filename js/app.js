@@ -3734,11 +3734,18 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function updateCount(filteredCount, totalCount) {
-      if (filteredCount === totalCount) {
-        setCountText(detailCount, totalCount, 'Article', 'Article');
+      const countNumber = detailCount?.querySelector('.count-number');
+      const countLabel = detailCount?.querySelector('.count-label');
+      if (!countNumber || !countLabel) {
         return;
       }
-      detailCount.textContent = `${filteredCount} Article${filteredCount > 1 ? 's' : ''} affichée${filteredCount > 1 ? 's' : ''} / ${totalCount}`;
+
+      countNumber.textContent = String(filteredCount);
+      if (filteredCount === totalCount) {
+        countLabel.textContent = filteredCount > 1 ? 'Articles' : 'Article';
+        return;
+      }
+      countLabel.textContent = `${filteredCount > 1 ? 'Articles' : 'Article'} affiché${filteredCount > 1 ? 's' : ''} / ${totalCount}`;
     }
 
     function exportDetails(fileNameOverride) {

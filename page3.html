@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
-  <body data-page="item-detail">
+  <body data-page="item-detail" class="page3">
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
         <div class="app-header__side app-header__side--left">
@@ -27,7 +27,10 @@
             <div class="header-top">
               <div class="title-block">
                 <h2 class="section-title">Tableau des données</h2>
-                <p id="detailCount" class="count">0 OUT</p>
+                <div id="detailCount" class="article-count">
+                  <span class="count-number">0</span>
+                  <span class="count-label">Articles</span>
+                </div>
               </div>
               <button type="button" id="exportDetailsButton" class="btn btn-success export-details-button">
                 <img src="Icon/Exporter.png" alt="" class="export-details-button__icon" aria-hidden="true" />
