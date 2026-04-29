@@ -3716,7 +3716,7 @@ import { firebaseAuth } from './firebase-core.js';
       storeLabel.className = 'detail-store-label';
       storeLabel.textContent = 'Magasin :';
       const storeBadge = document.createElement('span');
-      storeBadge.className = `detail-store-badge ${badgeVariantClass}`;
+      storeBadge.className = `detail-store-badge badge ${badgeVariantClass}`;
       storeBadge.textContent = displayValue;
       detailStore.append(storeLabel, storeBadge);
     }
