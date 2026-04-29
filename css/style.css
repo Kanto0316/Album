@@ -2342,6 +2342,10 @@ body[data-page="item-detail"] .title-block .section-title,
   gap: 12px;
 }
 
+.page3 .page3-sub-info {
+  margin-top: 12px;
+}
+
 .page3 .article-count,
 .page3 .page3-article-count {
   display: flex;
