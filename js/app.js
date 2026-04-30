@@ -900,6 +900,12 @@ import { firebaseAuth } from './firebase-core.js';
     const siteNameCounter = requireElement('siteNameCounter');
     const siteFormError = requireElement('siteFormError');
     const siteCreateSubmitButton = requireElement('siteCreateSubmitButton');
+    const siteEditNameDialog = requireElement('siteEditNameDialog');
+    const siteEditNameForm = requireElement('siteEditNameForm');
+    const siteEditNameInput = requireElement('siteEditNameInput');
+    const siteEditNameCounter = requireElement('siteEditNameCounter');
+    const siteEditNameError = requireElement('siteEditNameError');
+    const siteEditNameSubmitButton = requireElement('siteEditNameSubmitButton');
     const homeMenuButton = requireElement('homeMenuButton');
     const homeMenuPanel = requireElement('homeMenuPanel');
     const importDataButton = requireElement('importDataButton');
@@ -950,6 +956,8 @@ import { firebaseAuth } from './firebase-core.js';
     const transientErrorTimers = new WeakMap();
     let isSiteCreationPending = false;
     let siteNameErrorClearTimer = null;
+    let siteNameEditErrorClearTimer = null;
+    let isSiteNameEditPending = false;
     const siteLockFieldStateTimers = new WeakMap();
     let isSiteUnlockPending = false;
     let isSiteLockManageUpdatePending = false;
@@ -967,6 +975,10 @@ import { firebaseAuth } from './firebase-core.js';
 
     function getSiteNameMaxLength() {
       return siteNameInput.maxLength > 0 ? siteNameInput.maxLength : null;
+    }
+
+    function getSiteEditNameMaxLength() {
+      return siteEditNameInput?.maxLength > 0 ? siteEditNameInput.maxLength : 25;
     }
 
     function setSiteUnlockLoadingState(isLoading) {
@@ -1028,6 +1040,25 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
+    function updateSiteEditNameCounter() {
+      if (!siteEditNameInput || !siteEditNameCounter) {
+        return;
+      }
+      const maxLength = getSiteEditNameMaxLength();
+      if (siteEditNameInput.value.length > maxLength) {
+        siteEditNameInput.value = siteEditNameInput.value.slice(0, maxLength);
+      }
+      const currentLength = siteEditNameInput.value.length;
+      siteEditNameCounter.textContent = `${currentLength} / ${maxLength}`;
+      siteEditNameCounter.classList.remove('is-warning', 'is-limit');
+      const ratio = currentLength / maxLength;
+      if (ratio >= 1) {
+        siteEditNameCounter.classList.add('is-limit');
+      } else if (ratio >= 0.8) {
+        siteEditNameCounter.classList.add('is-warning');
+      }
+    }
+
     function clearTransientError(errorElement) {
       if (!errorElement) {
         return;
@@ -1058,6 +1089,33 @@ import { firebaseAuth } from './firebase-core.js';
       siteNameErrorClearTimer = window.setTimeout(() => {
         clearSiteNameErrorState();
       }, durationMs);
+    }
+
+    function clearSiteEditNameErrorState() {
+      if (siteNameEditErrorClearTimer) {
+        window.clearTimeout(siteNameEditErrorClearTimer);
+        siteNameEditErrorClearTimer = null;
+      }
+      siteEditNameInput?.classList.remove('is-error', 'is-shaking');
+    }
+
+    function showSiteEditNameError(message, durationMs = 2300) {
+      clearSiteEditNameErrorState();
+      showTransientError(siteEditNameError, message);
+      siteEditNameInput?.classList.remove('is-shaking');
+      void siteEditNameInput?.offsetWidth;
+      siteEditNameInput?.classList.add('is-error', 'is-shaking');
+      siteNameEditErrorClearTimer = window.setTimeout(() => {
+        clearSiteEditNameErrorState();
+      }, durationMs);
+    }
+
+    function setSiteEditNameLoadingState(isLoading) {
+      isSiteNameEditPending = Boolean(isLoading);
+      if (!siteEditNameSubmitButton) {
+        return;
+      }
+      siteEditNameSubmitButton.disabled = isSiteNameEditPending;
     }
 
     function showTransientError(errorElement, message) {
@@ -1374,6 +1432,11 @@ import { firebaseAuth } from './firebase-core.js';
               <span id="siteActionLockToggleLabel">Verrouiller</span>
             </button>
             <div class="item-action-sheet__divider" aria-hidden="true"></div>
+            <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton">
+              <img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <span>Modifier le nom</span>
+            </button>
+            <div class="item-action-sheet__divider" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
@@ -1554,8 +1617,9 @@ import { firebaseAuth } from './firebase-core.js';
       const title = overlay.querySelector('#siteActionSheetTitle');
       const lockToggleButton = overlay.querySelector('#siteActionLockToggleButton');
       const lockToggleLabel = overlay.querySelector('#siteActionLockToggleLabel');
+      const editNameButton = overlay.querySelector('#siteActionEditNameButton');
       const deleteButton = overlay.querySelector('#siteActionDeleteButton');
-      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !deleteButton) {
+      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !editNameButton || !deleteButton) {
         return;
       }
       const closeTransitionDurationMs = 280;
@@ -1636,6 +1700,21 @@ import { firebaseAuth } from './firebase-core.js';
       lockToggleButton.onclick = async () => {
         await closeSheet();
         openSiteLockActionDialog(siteId);
+      };
+      editNameButton.onclick = async () => {
+        await closeSheet();
+        const targetSite = getLatestSiteState(siteId);
+        if (!targetSite || !siteEditNameDialog || !siteEditNameInput) {
+          return;
+        }
+        siteActionState.activeSiteId = siteId;
+        siteEditNameInput.value = String(targetSite.nom || '').trim();
+        clearTransientError(siteEditNameError);
+        clearSiteEditNameErrorState();
+        setSiteEditNameLoadingState(false);
+        updateSiteEditNameCounter();
+        siteEditNameDialog.showModal();
+        siteEditNameInput.focus();
       };
       deleteButton.onclick = async () => {
         const latestSiteState = getLatestSiteState(siteId);
@@ -1904,11 +1983,29 @@ import { firebaseAuth } from './firebase-core.js';
         event.preventDefault();
       }
     });
+    siteEditNameInput?.addEventListener('beforeinput', (event) => {
+      const maxLength = getSiteEditNameMaxLength();
+      if (!maxLength || event.inputType.startsWith('delete')) {
+        return;
+      }
+      const selectionStart = siteEditNameInput.selectionStart ?? siteEditNameInput.value.length;
+      const selectionEnd = siteEditNameInput.selectionEnd ?? siteEditNameInput.value.length;
+      const selectedLength = Math.max(0, selectionEnd - selectionStart);
+      const nextAllowedLength = maxLength - (siteEditNameInput.value.length - selectedLength);
+      if (nextAllowedLength <= 0) {
+        event.preventDefault();
+      }
+    });
 
     siteNameInput.addEventListener('input', () => {
       clearTransientError(siteFormError);
       clearSiteNameErrorState();
       updateSiteNameCounter();
+    });
+    siteEditNameInput?.addEventListener('input', () => {
+      clearTransientError(siteEditNameError);
+      clearSiteEditNameErrorState();
+      updateSiteEditNameCounter();
     });
 
     siteDialog.addEventListener('close', () => {
@@ -1916,6 +2013,12 @@ import { firebaseAuth } from './firebase-core.js';
       clearSiteNameErrorState();
       setSiteCreateLoadingState(false);
       updateSiteNameCounter();
+    });
+    siteEditNameDialog?.addEventListener('close', () => {
+      clearTransientError(siteEditNameError);
+      clearSiteEditNameErrorState();
+      setSiteEditNameLoadingState(false);
+      updateSiteEditNameCounter();
     });
 
     siteForm.addEventListener('submit', async (event) => {
@@ -1954,6 +2057,51 @@ import { firebaseAuth } from './firebase-core.js';
         console.error('Erreur lors de la création du site :', error);
         showSiteNameError("Impossible d'enregistrer le site. Vérifiez Firestore et réessayez.");
         setSiteCreateLoadingState(false);
+      }
+    });
+    siteEditNameForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (isSiteNameEditPending) {
+        return;
+      }
+      const siteId = siteActionState.activeSiteId;
+      const targetSite = getLatestSiteState(siteId);
+      if (!siteId || !targetSite) {
+        siteEditNameDialog?.close();
+        return;
+      }
+      const currentName = String(targetSite.nom || '').trim();
+      const nextName = String(siteEditNameInput?.value || '').trim();
+      if (!nextName) {
+        showSiteEditNameError('Veuillez entrer un nom de site.');
+        return;
+      }
+      if (nextName.length < 4) {
+        showSiteEditNameError('Le nom doit contenir au moins 4 caractères.');
+        return;
+      }
+      if (nextName.length > 25) {
+        showSiteEditNameError('Le nom doit contenir au maximum 25 caractères.');
+        return;
+      }
+      if (nextName === currentName) {
+        siteEditNameDialog?.close();
+        return;
+      }
+      try {
+        setSiteEditNameLoadingState(true);
+        const result = await StorageService.updateSiteName(siteId, nextName);
+        if (!result?.ok) {
+          showSiteEditNameError(result?.reason === 'duplicate_site' ? 'Ce nom de site existe déjà.' : 'Modification impossible.');
+          setSiteEditNameLoadingState(false);
+          return;
+        }
+        setSiteEditNameLoadingState(false);
+        siteEditNameDialog?.close();
+        UiService.showToast('Nom du site mis à jour.');
+      } catch (_error) {
+        showSiteEditNameError("Impossible d'enregistrer le nom du site.");
+        setSiteEditNameLoadingState(false);
       }
     });
 

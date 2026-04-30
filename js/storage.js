@@ -1021,6 +1021,42 @@ async function createSite(name) {
   return { ok: true, id: site.id };
 }
 
+async function updateSiteName(siteId, name) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+
+  const siteName = sanitizeText(name, true);
+  if (!siteName) {
+    return { ok: false, reason: 'invalid_name' };
+  }
+
+  const hasDuplicate = state.sites.some(
+    (site, index) => index !== siteIndex && sanitizeText(site.nom, true) === siteName,
+  );
+  if (hasDuplicate) {
+    return { ok: false, reason: 'duplicate_site' };
+  }
+
+  const timestamp = nowIso();
+  await setDoc(
+    doc(state.db, 'pages', 'page1', 'items', siteId),
+    { nom: siteName, dateModification: timestamp },
+    { merge: true },
+  );
+
+  state.sites[siteIndex] = {
+    ...state.sites[siteIndex],
+    nom: siteName,
+    dateModification: timestamp,
+  };
+  sortState();
+  persistOfflineState();
+  emitAll();
+  return { ok: true };
+}
+
 async function setSiteLock(siteId, lockPayload) {
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
@@ -1613,6 +1649,7 @@ window.StorageService = {
   getDetailRowsBySite,
   getAllDetails,
   createSite,
+  updateSiteName,
   setSiteLock,
   clearSiteLock,
   removeSite,

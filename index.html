@@ -107,6 +107,26 @@
         </form>
       </dialog>
 
+      <dialog id="siteEditNameDialog" class="modal-card">
+        <form class="modal-content modal-content--site-create" id="siteEditNameForm">
+          <div class="modal-header">
+            <h2>Modifier le nom du site</h2>
+          </div>
+          <label class="input-group input-group--site-create">
+            <span>Nom du site</span>
+            <input id="siteEditNameInput" name="siteEditName" type="text" maxlength="25" />
+            <div class="site-input-feedback-row">
+              <p id="siteEditNameError" class="form-error" aria-live="polite"></p>
+              <span id="siteEditNameCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+            </div>
+          </label>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
+            <button id="siteEditNameSubmitButton" type="submit" class="btn btn-success">Enregistrer</button>
+          </div>
+        </form>
+      </dialog>
+
       <dialog id="siteLockDialog" class="modal-card">
         <form class="modal-content" id="siteLockForm">
           <div class="modal-header">
