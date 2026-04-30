@@ -1309,6 +1309,23 @@ body[data-page="history"] .list-grid {
   transform: scale(0.95);
 }
 
+.fab-add {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  z-index: 1000;
+}
+
+.fab-label {
+  position: fixed;
+  right: 96px;
+  bottom: 34px;
+  z-index: 999;
+}
+
 .modal-card {
   width: min(92vw, 28rem);
   border: 0;
@@ -2551,12 +2568,6 @@ body[data-page="item-detail"].item-detail-modal-open {
 }
 
 body[data-page="item-detail"] .fab-add--item-detail {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
   border: 0;
   display: inline-flex;
   align-items: center;
@@ -2571,9 +2582,6 @@ body[data-page="item-detail"] .fab-add--item-detail {
 }
 
 body[data-page="item-detail"] .item-detail-fab-row {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -3954,9 +3962,6 @@ body[data-page="site-detail"] .outs-label {
 }
 
 body[data-page="site-detail"] .site-detail-fab-stack {
-  position: fixed;
-  right: 20px;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   display: inline-flex;
   align-items: center;
   z-index: 45;
@@ -3980,9 +3985,6 @@ body[data-page="site-detail"].app-content-pending .site-detail-fab-stack {
 }
 
 body[data-page="site-detail"] .site-detail-fab-row {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -4021,13 +4023,6 @@ body[data-page="item-detail"] .item-detail-fab-row .site-detail-fab-label {
 body[data-page="site-detail"] .fab-add,
 body[data-page="site-detail"] #openCreateItem,
 body[data-page="site-detail"] .fab-add--item-detail {
-  position: relative;
-  right: auto;
-  left: auto;
-  bottom: auto;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
