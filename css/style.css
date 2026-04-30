@@ -2345,7 +2345,10 @@ body[data-page="item-detail"] .title-block .section-title,
 .page3 .page3-sub-info {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  width: 95%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .page3 .article-count,
