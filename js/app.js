@@ -958,6 +958,8 @@ import { firebaseAuth } from './firebase-core.js';
     let siteNameErrorClearTimer = null;
     let siteNameEditErrorClearTimer = null;
     let isSiteNameEditPending = false;
+    let siteNameAvailabilityDebounceTimer = null;
+    let isSiteCreateInputValid = false;
     const siteLockFieldStateTimers = new WeakMap();
     let isSiteUnlockPending = false;
     let isSiteLockManageUpdatePending = false;
@@ -968,7 +970,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (!siteCreateSubmitButton) {
         return;
       }
-      siteCreateSubmitButton.disabled = isSiteCreationPending;
+      siteCreateSubmitButton.disabled = isSiteCreationPending || !isSiteCreateInputValid;
       siteCreateSubmitButton.classList.toggle('is-loading', isSiteCreationPending);
       siteCreateSubmitButton.setAttribute('aria-busy', String(isSiteCreationPending));
     }
@@ -1089,6 +1091,63 @@ import { firebaseAuth } from './firebase-core.js';
       siteNameErrorClearTimer = window.setTimeout(() => {
         clearSiteNameErrorState();
       }, durationMs);
+    }
+
+    function setSiteCreateSubmitEnabled(isEnabled) {
+      if (!siteCreateSubmitButton) {
+        return;
+      }
+      isSiteCreateInputValid = Boolean(isEnabled);
+      siteCreateSubmitButton.disabled = isSiteCreationPending || !isSiteCreateInputValid;
+    }
+
+    function clearSiteNameAvailabilityMessage() {
+      clearTransientError(siteFormError);
+      siteFormError.style.color = '';
+      clearSiteNameErrorState();
+    }
+
+    function showSiteNameAvailabilityError(message) {
+      clearSiteNameErrorState();
+      siteNameInput.classList.add('is-error');
+      siteFormError.textContent = message;
+      siteFormError.style.color = '';
+    }
+
+    function showSiteNameAvailabilitySuccess(message) {
+      clearSiteNameErrorState();
+      siteFormError.textContent = message;
+      siteFormError.style.color = 'var(--success)';
+    }
+
+    function isSiteNameAlreadyUsed(normalizedName) {
+      return currentSites.some((site) => String(site?.name || site?.nom || '').trim().toLowerCase() === normalizedName);
+    }
+
+    function validateSiteNameDuringInput() {
+      const value = siteNameInput.value.trim();
+      const normalizedValue = value.toLowerCase();
+
+      if (!value) {
+        clearSiteNameAvailabilityMessage();
+        setSiteCreateSubmitEnabled(false);
+        return;
+      }
+
+      if (value.length < 4) {
+        showSiteNameAvailabilityError('Le nom doit contenir au moins 4 caractères.');
+        setSiteCreateSubmitEnabled(false);
+        return;
+      }
+
+      if (isSiteNameAlreadyUsed(normalizedValue)) {
+        showSiteNameAvailabilityError('Ce nom de site existe déjà.');
+        setSiteCreateSubmitEnabled(false);
+        return;
+      }
+
+      showSiteNameAvailabilitySuccess('Ce nom de site est disponible.');
+      setSiteCreateSubmitEnabled(Boolean(currentPermissions.canCreate) && !isSiteCreationPending);
     }
 
     function clearSiteEditNameErrorState() {
@@ -1962,6 +2021,8 @@ import { firebaseAuth } from './firebase-core.js';
       clearTransientError(siteFormError);
       clearSiteNameErrorState();
       setSiteCreateLoadingState(false);
+      clearSiteNameAvailabilityMessage();
+      setSiteCreateSubmitEnabled(false);
       updateSiteNameCounter();
       siteDialog.showModal();
       siteNameInput.focus();
@@ -1998,9 +2059,13 @@ import { firebaseAuth } from './firebase-core.js';
     });
 
     siteNameInput.addEventListener('input', () => {
-      clearTransientError(siteFormError);
-      clearSiteNameErrorState();
       updateSiteNameCounter();
+      if (siteNameAvailabilityDebounceTimer) {
+        window.clearTimeout(siteNameAvailabilityDebounceTimer);
+      }
+      siteNameAvailabilityDebounceTimer = window.setTimeout(() => {
+        validateSiteNameDuringInput();
+      }, 200);
     });
     siteEditNameInput?.addEventListener('input', () => {
       clearTransientError(siteEditNameError);
@@ -2009,8 +2074,12 @@ import { firebaseAuth } from './firebase-core.js';
     });
 
     siteDialog.addEventListener('close', () => {
-      clearTransientError(siteFormError);
-      clearSiteNameErrorState();
+      if (siteNameAvailabilityDebounceTimer) {
+        window.clearTimeout(siteNameAvailabilityDebounceTimer);
+        siteNameAvailabilityDebounceTimer = null;
+      }
+      clearSiteNameAvailabilityMessage();
+      setSiteCreateSubmitEnabled(false);
       setSiteCreateLoadingState(false);
       updateSiteNameCounter();
     });
@@ -2029,6 +2098,16 @@ import { firebaseAuth } from './firebase-core.js';
       const name = siteNameInput.value.trim();
       if (!name) {
         showSiteNameError('Veuillez remplir ce champ');
+        return;
+      }
+
+      if (name.length < 4) {
+        showSiteNameError('Le nom doit contenir au moins 4 caractères.');
+        return;
+      }
+
+      if (isSiteNameAlreadyUsed(name.toLowerCase())) {
+        showSiteNameError('Ce nom de site existe déjà.');
         return;
       }
 
