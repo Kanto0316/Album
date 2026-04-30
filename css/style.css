@@ -4996,3 +4996,36 @@ body[data-page="site-detail"] .page2-header-subtitle .outs-label {
   color: rgba(255, 255, 255, 0.85);
   font-weight: 500;
 }
+
+
+/* Page 2 FAB alignment fix */
+.page2 .fab-add,
+.page2 .floating-add-btn,
+.page2 #addOutBtn,
+.page2 #openCreateItem {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  z-index: 1000;
+}
+
+.page2 .fab-label,
+.page2 .floating-label,
+.page2 .site-detail-fab-label {
+  position: fixed;
+  right: 96px;
+  bottom: 34px;
+  z-index: 999;
+}
+
+.page2 .site-detail-fab-row .fab-add,
+.page2 .site-detail-fab-row .fab-add--item-detail,
+.page2 .site-detail-fab-row #openCreateItem,
+.page2 .site-detail-fab-row .fab-label,
+.page2 .site-detail-fab-row .site-detail-fab-label {
+  margin-bottom: 0;
+  transform: none;
+}
