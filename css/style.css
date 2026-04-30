@@ -3956,12 +3956,10 @@ body[data-page="site-detail"] .outs-label {
 body[data-page="site-detail"] .site-detail-fab-stack {
   position: fixed;
   right: 20px;
-  bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 14px;
-  z-index: 40;
+  align-items: center;
+  z-index: 45;
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
@@ -3982,9 +3980,13 @@ body[data-page="site-detail"].app-content-pending .site-detail-fab-stack {
 }
 
 body[data-page="site-detail"] .site-detail-fab-row {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  z-index: 45;
 }
 
 body[data-page="site-detail"] .site-detail-fab-label {
@@ -4008,19 +4010,15 @@ body[data-page="site-detail"] .site-detail-fab-label--create {
   color: var(--detail-primary);
 }
 
-body[data-page="site-detail"] .site-detail-fab-label--export {
-  color: #18a85f;
-}
-
-body[data-page="site-detail"] .fab--export,
 body[data-page="site-detail"] .fab-add,
-body[data-page="site-detail"] #openCreateItem {
+body[data-page="site-detail"] #openCreateItem,
+body[data-page="site-detail"] .fab-add--item-detail {
   position: relative;
   right: auto;
   left: auto;
   bottom: auto;
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -4029,28 +4027,6 @@ body[data-page="site-detail"] #openCreateItem {
   box-shadow: 0 10px 22px var(--detail-primary-shadow);
   z-index: 1;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-body[data-page="site-detail"] .fab--export {
-  background: #18a85f;
-  color: #fff;
-  padding: 0;
-}
-
-body[data-page="site-detail"] .fab--export__icon {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-body[data-page="site-detail"] .fab--export:hover {
-  background: #159451;
-  box-shadow: 0 12px 24px rgba(8, 112, 62, 0.24);
-}
-
-body[data-page="site-detail"] .fab--export:active {
-  transform: scale(0.95);
 }
 
 body[data-page="site-detail"] .fab-add,
@@ -4067,8 +4043,7 @@ body[data-page="site-detail"] #openCreateItem:hover {
 
 body[data-page="site-detail"] .fab-add:focus-visible,
 body[data-page="site-detail"] #openCreateItem:focus-visible,
-body[data-page="site-detail"] .filter-chip:focus-visible,
-body[data-page="site-detail"] .fab--export:focus-visible {
+body[data-page="site-detail"] .filter-chip:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--detail-primary-focus);
 }
@@ -4931,6 +4906,29 @@ body[data-page="site-detail"] .page2-header .app-header__side {
   width: 56px;
   justify-content: center;
 }
+body[data-page="site-detail"] .btn-export-header {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+body[data-page="site-detail"] .btn-export-header img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+body[data-page="site-detail"] .btn-export-header:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--detail-primary-focus);
+}
+
 
 body[data-page="site-detail"] .page2-header-center {
   min-width: 0;
