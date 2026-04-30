@@ -2409,6 +2409,8 @@ import { firebaseAuth } from './firebase-core.js';
     const siteExportCancelButton = requireElement('siteExportCancelButton');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
+    const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
+    const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
@@ -2596,6 +2598,10 @@ import { firebaseAuth } from './firebase-core.js';
           <div class="bottom-sheet__handle" aria-hidden="true"></div>
           <p class="item-action-sheet__title" id="itemActionSheetTitle">Actions</p>
           <div class="item-action-sheet__content">
+            <button type="button" class="item-action-sheet__row" id="itemActionEditNameButton">
+              <img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <span>Modifier le nom</span>
+            </button>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="itemActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
@@ -2721,8 +2727,9 @@ import { firebaseAuth } from './firebase-core.js';
       const overlay = ensureItemActionBottomSheet();
       const sheet = overlay.querySelector('#itemActionSheet');
       const title = overlay.querySelector('#itemActionSheetTitle');
+      const editNameButton = overlay.querySelector('#itemActionEditNameButton');
       const deleteButton = overlay.querySelector('#itemActionDeleteButton');
-      if (!sheet || !title || !deleteButton) {
+      if (!sheet || !title || !editNameButton || !deleteButton) {
         return;
       }
 
@@ -2785,6 +2792,21 @@ import { firebaseAuth } from './firebase-core.js';
         });
 
       itemActionState.closeSheet = closeSheet;
+      editNameButton.onclick = async () => {
+        await closeSheet();
+        const targetItem = currentItems.find((item) => item.id === itemId);
+        if (!targetItem) {
+          return;
+        }
+        itemForm.reset();
+        clearItemFormError();
+        clearItemNumberErrorState();
+        itemCreateSubmitButton.disabled = false;
+        itemCreateSubmitButton.classList.remove('is-loading');
+        setItemDialogMode(ITEM_DIALOG_MODE_EDIT, targetItem);
+        itemDialog.showModal();
+        itemNumberInput.focus();
+      };
       deleteButton.onclick = async () => {
         deleteButton.disabled = true;
         try {
@@ -2919,6 +2941,10 @@ import { firebaseAuth } from './firebase-core.js';
     let itemNumberErrorClearTimer = null;
     let itemStoreOtherHideTimer = null;
     const itemStoreOtherTransitionDurationMs = 200;
+    const ITEM_DIALOG_MODE_CREATE = 'create';
+    const ITEM_DIALOG_MODE_EDIT = 'edit';
+    let itemDialogMode = ITEM_DIALOG_MODE_CREATE;
+    let editingItemId = null;
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -3059,12 +3085,44 @@ import { firebaseAuth } from './firebase-core.js';
       }, durationMs);
     }
 
+    function setItemDialogMode(mode, targetItem = null) {
+      itemDialogMode = mode === ITEM_DIALOG_MODE_EDIT ? ITEM_DIALOG_MODE_EDIT : ITEM_DIALOG_MODE_CREATE;
+      editingItemId = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? targetItem?.id || null : null;
+      if (itemDialogTitle) {
+        itemDialogTitle.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Modifier le nom OUT' : 'Nouveau numéro OUT';
+      }
+      if (itemNumberLabel) {
+        itemNumberLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT' : 'Numéro OUT';
+      }
+      const defaultLabel = itemCreateSubmitButton?.querySelector('.btn-label-default');
+      const loadingLabel = itemCreateSubmitButton?.querySelector('.btn-label-loading');
+      if (defaultLabel) {
+        defaultLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Enregistrer' : 'Créer';
+      }
+      if (loadingLabel) {
+        loadingLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Enregistrement...' : 'Création...';
+      }
+      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
+        itemNumberInput.removeAttribute('inputmode');
+        itemNumberInput.removeAttribute('pattern');
+        itemNumberInput.placeholder = 'Exemple : OUT-26050200';
+        itemNumberInput.value = String(targetItem?.numero || '').trim();
+      } else {
+        itemNumberInput.setAttribute('inputmode', 'numeric');
+        itemNumberInput.setAttribute('pattern', '[0-9]*');
+        itemNumberInput.placeholder = 'Exemple : 26050200';
+      }
+      itemStoreSelect?.closest('.input-group')?.toggleAttribute('hidden', itemDialogMode === ITEM_DIALOG_MODE_EDIT);
+      updateItemNumberCounter();
+    }
+
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
     });
 
     openCreateItem?.addEventListener('click', () => {
+      setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
       itemForm.reset();
       clearItemFormError();
       clearItemNumberErrorState();
@@ -3118,9 +3176,11 @@ import { firebaseAuth } from './firebase-core.js';
     });
 
     itemNumberInput.addEventListener('input', () => {
-      const normalizedValue = normalizeItemNumberInput(itemNumberInput.value);
-      if (itemNumberInput.value !== normalizedValue) {
-        itemNumberInput.value = normalizedValue;
+      if (itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
+        const normalizedValue = normalizeItemNumberInput(itemNumberInput.value);
+        if (itemNumberInput.value !== normalizedValue) {
+          itemNumberInput.value = normalizedValue;
+        }
       }
       clearItemFormError();
       clearItemNumberErrorState();
@@ -3135,6 +3195,8 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.disabled = false;
       updateItemNumberCounter();
       updateItemStoreOtherVisibility({ immediate: true });
+      setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
+      editingItemId = null;
     });
 
     if (openExportItems) {
@@ -3253,17 +3315,28 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
       const value = itemNumberInput.value.trim();
-      if (!value) {
-        showItemFormError('Veuillez remplir ce champ');
-        return;
-      }
-      if (!/^\d+$/.test(value)) {
-        showItemFormError('Veuillez saisir des chiffres uniquement.');
-        return;
-      }
-      if (value.length < 4) {
-        showItemFormError('Veuillez saisir au moins 4 chiffres.');
-        return;
+      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
+        if (!value) {
+          showItemFormError('Veuillez entrer un nom OUT.');
+          return;
+        }
+        if (value.length < 4) {
+          showItemFormError('Le nom doit contenir au moins 4 caractères.');
+          return;
+        }
+      } else {
+        if (!value) {
+          showItemFormError('Veuillez remplir ce champ');
+          return;
+        }
+        if (!/^\d+$/.test(value)) {
+          showItemFormError('Veuillez saisir des chiffres uniquement.');
+          return;
+        }
+        if (value.length < 4) {
+          showItemFormError('Veuillez saisir au moins 4 chiffres.');
+          return;
+        }
       }
       if (!permissions.canCreate) {
         showItemFormError('Action non autorisée.');
@@ -3272,20 +3345,28 @@ import { firebaseAuth } from './firebase-core.js';
       itemCreateSubmitButton.disabled = true;
       itemCreateSubmitButton.classList.add('is-loading');
       try {
-        const result = await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
+        const result = itemDialogMode === ITEM_DIALOG_MODE_EDIT
+          ? await StorageService.updateItemName(siteId, editingItemId, value)
+          : await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
         if (!result?.ok) {
           showItemFormError(
             result?.reason === 'duplicate_out'
               ? 'Ce N° OUT existe déjà pour ce site.'
-              : 'Veuillez saisir au moins 4 chiffres.',
+              : itemDialogMode === ITEM_DIALOG_MODE_EDIT
+                ? 'Modification impossible.'
+                : 'Veuillez saisir au moins 4 chiffres.',
           );
+          return;
+        }
+        if (itemDialogMode === ITEM_DIALOG_MODE_EDIT && result?.unchanged) {
+          itemDialog.close();
           return;
         }
         clearItemFormError();
         itemCreateSubmitButton.classList.remove('is-loading');
         itemCreateSubmitButton.disabled = false;
         itemDialog.close();
-        UiService.showToast('N° OUT ajouté .');
+        UiService.showToast(itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT mis à jour.' : 'N° OUT ajouté .');
       } finally {
         if (itemDialog.open) {
           itemCreateSubmitButton.classList.remove('is-loading');

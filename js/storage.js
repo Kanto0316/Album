@@ -1198,6 +1198,61 @@ async function createItem(siteId, numberValue, options = {}) {
   return { ok: true, id: item.id };
 }
 
+async function updateItemName(siteId, itemId, nextValue) {
+  const items = state.itemsBySite.get(siteId) || [];
+  const itemIndex = items.findIndex((item) => item.id === itemId);
+  if (itemIndex === -1) {
+    return { ok: false, reason: 'item_not_found' };
+  }
+
+  const rawValue = sanitizeText(nextValue, true);
+  if (!rawValue) {
+    return { ok: false, reason: 'invalid_out' };
+  }
+
+  let normalizedNumero = rawValue;
+  if (!/^out-/i.test(normalizedNumero)) {
+    const cleanDigits = sanitizeDigits(normalizedNumero.replace(/^OUT-/i, ''));
+    if (cleanDigits.length < 4) {
+      return { ok: false, reason: 'invalid_out' };
+    }
+    normalizedNumero = `OUT-${cleanDigits}`;
+  }
+
+  if (normalizedNumero.length < 4) {
+    return { ok: false, reason: 'invalid_out' };
+  }
+
+  const currentNumero = sanitizeText(items[itemIndex]?.numero, true);
+  if (sanitizeText(normalizedNumero, true) === currentNumero) {
+    return { ok: true, unchanged: true };
+  }
+
+  const hasDuplicate = items.some(
+    (item, index) => index !== itemIndex && sanitizeText(item.numero, true) === sanitizeText(normalizedNumero, true),
+  );
+  if (hasDuplicate) {
+    return { ok: false, reason: 'duplicate_out' };
+  }
+
+  const timestamp = nowIso();
+  await setDoc(
+    doc(state.db, 'pages', 'page2', 'items', itemId),
+    { numero: normalizedNumero, dateModification: timestamp },
+    { merge: true },
+  );
+
+  items[itemIndex] = {
+    ...items[itemIndex],
+    numero: normalizedNumero,
+    dateModification: timestamp,
+  };
+  sortState();
+  persistOfflineState();
+  emitAll();
+  return { ok: true };
+}
+
 async function removeItem(siteId, itemId) {
   const items = state.itemsBySite.get(siteId) || [];
   const itemIndex = items.findIndex((item) => item.id === itemId);
@@ -1655,6 +1710,7 @@ window.StorageService = {
   removeSite,
   restoreSite,
   createItem,
+  updateItemName,
   removeItem,
   restoreItem,
   createDetail,
