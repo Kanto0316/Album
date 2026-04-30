@@ -1096,7 +1096,7 @@ import { firebaseAuth } from './firebase-core.js';
         window.clearTimeout(siteNameEditErrorClearTimer);
         siteNameEditErrorClearTimer = null;
       }
-      siteEditNameInput?.classList.remove('is-error', 'is-shaking');
+      siteEditNameInput?.classList.remove('input-error', 'is-error', 'is-shaking');
     }
 
     function showSiteEditNameError(message, durationMs = 2300) {
@@ -1104,7 +1104,7 @@ import { firebaseAuth } from './firebase-core.js';
       showTransientError(siteEditNameError, message);
       siteEditNameInput?.classList.remove('is-shaking');
       void siteEditNameInput?.offsetWidth;
-      siteEditNameInput?.classList.add('is-error', 'is-shaking');
+      siteEditNameInput?.classList.add('input-error', 'is-error', 'is-shaking');
       siteNameEditErrorClearTimer = window.setTimeout(() => {
         clearSiteEditNameErrorState();
       }, durationMs);
