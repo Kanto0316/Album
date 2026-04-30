@@ -2367,8 +2367,9 @@ body[data-page="item-detail"] .title-block .section-title,
 
 .page3 .count-label,
 .page3 .page3-count-label {
-  font-size: 13px;
-  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
 }
 
 .page3 .store-info,
@@ -2391,7 +2392,7 @@ body[data-page="item-detail"] .title-block .section-title,
 
 body[data-page="item-detail"] .detail-store-label,
 .page3 .page3-info-label {
-  font-size: 16px;
+  font-size: 14px;
   color: #6b7280;
   font-weight: 500;
 }
