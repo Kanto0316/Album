@@ -5032,3 +5032,29 @@ body[data-page="site-detail"] .page2-header-subtitle .outs-label {
   margin-bottom: 0 !important;
   transform: none !important;
 }
+
+/* Page 2 export button premium style */
+.page2 .export-btn,
+.page2 .btn-export,
+.page2 #exportBtn,
+.page2 #siteExportSubmitButton {
+  background: #ffffff !important;
+  border: 1.5px solid #22c55e !important;
+  color: #22c55e !important;
+  border-radius: 999px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.page2 .export-btn:active,
+.page2 .btn-export:active,
+.page2 #exportBtn:active,
+.page2 #siteExportSubmitButton:active {
+  transform: scale(0.97) !important;
+  background: #f0fdf4 !important;
+}
