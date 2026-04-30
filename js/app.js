@@ -908,6 +908,7 @@ import { firebaseAuth } from './firebase-core.js';
     const siteEditNameSubmitButton = requireElement('siteEditNameSubmitButton');
     const homeMenuButton = requireElement('homeMenuButton');
     const homeMenuPanel = requireElement('homeMenuPanel');
+    const homeMenuOverlay = requireElement('homeMenuOverlay');
     const importDataButton = requireElement('importDataButton');
     const exportDataButton = requireElement('exportDataButton');
     const manageUsersButton = requireElement('manageUsersButton');
@@ -1346,7 +1347,10 @@ import { firebaseAuth } from './firebase-core.js';
       if (!homeMenuPanel) {
         return;
       }
-      homeMenuPanel.hidden = true;
+      if (homeMenuOverlay) {
+        homeMenuOverlay.hidden = true;
+        homeMenuOverlay.classList.remove('is-open');
+      }
       homeMenuPanel.classList.remove('is-open', 'is-closing');
     }
 
@@ -1359,7 +1363,7 @@ import { firebaseAuth } from './firebase-core.js';
         homeMenuCloseTimer = null;
       }
       homeMenuButton.setAttribute('aria-expanded', 'false');
-      if (homeMenuPanel.hidden || homeMenuPanel.classList.contains('is-closing')) {
+      if (!homeMenuOverlay || homeMenuOverlay.hidden || homeMenuPanel.classList.contains('is-closing')) {
         finalizeHomeMenuClose();
         return;
       }
@@ -1388,14 +1392,18 @@ import { firebaseAuth } from './firebase-core.js';
         window.clearTimeout(homeMenuCloseTimer);
         homeMenuCloseTimer = null;
       }
-      homeMenuPanel.hidden = false;
+      if (!homeMenuOverlay) {
+        return;
+      }
+      homeMenuOverlay.hidden = false;
       homeMenuPanel.classList.remove('is-closing');
       window.requestAnimationFrame(() => {
-        if (homeMenuPanel.hidden) {
+        if (homeMenuOverlay.hidden) {
           return;
         }
         homeMenuPanel.classList.add('is-open');
       });
+      homeMenuOverlay.classList.add('is-open');
       homeMenuButton.setAttribute('aria-expanded', 'true');
     }
 
@@ -1935,9 +1943,9 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
-    if (homeMenuButton && homeMenuPanel) {
+    if (homeMenuButton && homeMenuPanel && homeMenuOverlay) {
       homeMenuButton.addEventListener('click', () => {
-        if (homeMenuPanel.hidden) {
+        if (homeMenuOverlay.hidden) {
           openHomeMenu();
           return;
         }
@@ -1945,10 +1953,20 @@ import { firebaseAuth } from './firebase-core.js';
       });
 
       document.addEventListener('click', (event) => {
-        if (!event.target.closest('.header-menu')) {
+        const clickedInsideHeaderTrigger = event.target.closest('.header-menu');
+        const clickedInsideDrawer = event.target.closest('#homeMenuPanel');
+        if (!clickedInsideHeaderTrigger && !clickedInsideDrawer) {
           closeHomeMenu();
         }
       });
+
+      if (homeMenuOverlay) {
+        homeMenuOverlay.addEventListener('click', (event) => {
+          if (event.target === homeMenuOverlay) {
+            closeHomeMenu();
+          }
+        });
+      }
     }
 
     if (exportDataButton) {
