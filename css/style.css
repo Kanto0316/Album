@@ -913,7 +913,7 @@ body[data-page="home"] .avatar-button,
 body[data-page="home"] .header-login-button,
 body[data-page="home"] .header-menu {
   position: relative;
-  z-index: 1;
+  z-index: 1000;
 }
 
 body[data-page="home"] .avatar-button,
@@ -2552,10 +2552,10 @@ body[data-page="item-detail"].item-detail-modal-open {
 
 body[data-page="item-detail"] .fab-add--item-detail {
   position: fixed;
-  right: 20px;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  width: 58px;
-  height: 58px;
+  right: 24px;
+  bottom: 24px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: 0;
   display: inline-flex;
@@ -2572,12 +2572,12 @@ body[data-page="item-detail"] .fab-add--item-detail {
 
 body[data-page="item-detail"] .item-detail-fab-row {
   position: fixed;
-  right: 20px;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  right: 24px;
+  bottom: 24px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  z-index: 45;
+  z-index: 1000;
 }
 
 body[data-page="item-detail"] .item-detail-fab-row .fab-add--item-detail {
@@ -3981,12 +3981,12 @@ body[data-page="site-detail"].app-content-pending .site-detail-fab-stack {
 
 body[data-page="site-detail"] .site-detail-fab-row {
   position: fixed;
-  right: 20px;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  right: 24px;
+  bottom: 24px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  z-index: 45;
+  z-index: 1000;
 }
 
 body[data-page="site-detail"] .site-detail-fab-label {
@@ -4010,6 +4010,14 @@ body[data-page="site-detail"] .site-detail-fab-label--create {
   color: var(--detail-primary);
 }
 
+body[data-page="site-detail"] .site-detail-fab-row .site-detail-fab-label,
+body[data-page="item-detail"] .item-detail-fab-row .site-detail-fab-label {
+  position: fixed;
+  right: 96px;
+  bottom: 34px;
+  z-index: 999;
+}
+
 body[data-page="site-detail"] .fab-add,
 body[data-page="site-detail"] #openCreateItem,
 body[data-page="site-detail"] .fab-add--item-detail {
@@ -4017,15 +4025,15 @@ body[data-page="site-detail"] .fab-add--item-detail {
   right: auto;
   left: auto;
   bottom: auto;
-  width: 58px;
-  height: 58px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 0;
   box-shadow: 0 10px 22px var(--detail-primary-shadow);
-  z-index: 1;
+  z-index: 1000;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
