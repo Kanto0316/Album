@@ -2975,7 +2975,8 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function normalizeItemNumberInput(rawValue) {
-      const digitsOnly = String(rawValue || '').replace(/\D/g, '');
+      const normalizedRawValue = String(rawValue || '').trim().replace(/^out-/i, '');
+      const digitsOnly = normalizedRawValue.replace(/\D/g, '');
       const maxLength = getItemNumberMaxLength();
       if (!maxLength) {
         return digitsOnly;
@@ -3104,10 +3105,10 @@ import { firebaseAuth } from './firebase-core.js';
         loadingLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Enregistrement...' : 'Création...';
       }
       if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
-        itemNumberInput.removeAttribute('inputmode');
-        itemNumberInput.removeAttribute('pattern');
-        itemNumberInput.placeholder = 'Exemple : OUT-26050200';
-        itemNumberInput.value = String(targetItem?.numero || '').trim();
+        itemNumberInput.setAttribute('inputmode', 'numeric');
+        itemNumberInput.setAttribute('pattern', '[0-9]*');
+        itemNumberInput.placeholder = 'Exemple : 26050200';
+        itemNumberInput.value = normalizeItemNumberInput(targetItem?.numero || '');
       } else {
         itemNumberInput.setAttribute('inputmode', 'numeric');
         itemNumberInput.setAttribute('pattern', '[0-9]*');
@@ -3177,11 +3178,9 @@ import { firebaseAuth } from './firebase-core.js';
     });
 
     itemNumberInput.addEventListener('input', () => {
-      if (itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
-        const normalizedValue = normalizeItemNumberInput(itemNumberInput.value);
-        if (itemNumberInput.value !== normalizedValue) {
-          itemNumberInput.value = normalizedValue;
-        }
+      const normalizedValue = normalizeItemNumberInput(itemNumberInput.value);
+      if (itemNumberInput.value !== normalizedValue) {
+        itemNumberInput.value = normalizedValue;
       }
       clearItemFormError();
       clearItemNumberErrorState();
@@ -3315,7 +3314,9 @@ import { firebaseAuth } from './firebase-core.js';
       if (itemCreateSubmitButton.disabled) {
         return;
       }
-      const value = itemNumberInput.value.trim();
+      const value = normalizeItemNumberInput(itemNumberInput.value.trim());
+      itemNumberInput.value = value;
+      const maxLength = getItemNumberMaxLength();
       if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
         if (!value) {
           showItemFormError('Veuillez entrer un nom OUT.');
@@ -3323,6 +3324,10 @@ import { firebaseAuth } from './firebase-core.js';
         }
         if (value.length < 4) {
           showItemFormError('Le nom doit contenir au moins 4 caractères.');
+          return;
+        }
+        if (maxLength && value.length > maxLength) {
+          showItemFormError(`Le nom OUT ne peut pas dépasser ${maxLength} caractères.`);
           return;
         }
       } else {
