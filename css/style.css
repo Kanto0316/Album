@@ -5003,22 +5003,28 @@ body[data-page="site-detail"] .page2-header-subtitle .outs-label {
 .page2 .floating-add-btn,
 .page2 #addOutBtn,
 .page2 #openCreateItem {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  z-index: 1000;
+  position: fixed !important;
+  right: 24px !important;
+  bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  top: auto !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  margin-bottom: 0 !important;
+  transform: none !important;
+  z-index: 1000 !important;
 }
 
 .page2 .fab-label,
 .page2 .floating-label,
 .page2 .site-detail-fab-label {
-  position: fixed;
-  right: 96px;
-  bottom: 34px;
-  z-index: 999;
+  position: fixed !important;
+  right: 96px !important;
+  bottom: calc(34px + env(safe-area-inset-bottom)) !important;
+  top: auto !important;
+  margin-bottom: 0 !important;
+  transform: none !important;
+  z-index: 999 !important;
 }
 
 .page2 .site-detail-fab-row .fab-add,
@@ -5026,6 +5032,6 @@ body[data-page="site-detail"] .page2-header-subtitle .outs-label {
 .page2 .site-detail-fab-row #openCreateItem,
 .page2 .site-detail-fab-row .fab-label,
 .page2 .site-detail-fab-row .site-detail-fab-label {
-  margin-bottom: 0;
-  transform: none;
+  margin-bottom: 0 !important;
+  transform: none !important;
 }
