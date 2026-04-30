@@ -3088,6 +3088,7 @@ import { firebaseAuth } from './firebase-core.js';
     function setItemDialogMode(mode, targetItem = null) {
       itemDialogMode = mode === ITEM_DIALOG_MODE_EDIT ? ITEM_DIALOG_MODE_EDIT : ITEM_DIALOG_MODE_CREATE;
       editingItemId = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? targetItem?.id || null : null;
+      itemDialog.classList.toggle('edit-out-modal', itemDialogMode === ITEM_DIALOG_MODE_EDIT);
       if (itemDialogTitle) {
         itemDialogTitle.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Modifier le nom OUT' : 'Nouveau numéro OUT';
       }

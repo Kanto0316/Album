@@ -3588,6 +3588,10 @@ body[data-page="site-detail"] #itemDialog .modal-actions--item-create {
   margin-top: 0.62rem;
 }
 
+body[data-page="site-detail"] #itemDialog.edit-out-modal .magasin-group {
+  display: none !important;
+}
+
 body[data-page="site-detail"] #itemDialog #itemCreateSubmitButton.is-loading {
   gap: 0.45rem;
 }
