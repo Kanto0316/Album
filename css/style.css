@@ -3663,6 +3663,15 @@ body[data-page="home"] #siteEditNameDialog #siteEditNameCounter.is-limit {
   opacity: 1;
 }
 
+body[data-page="home"] #siteEditNameDialog #siteEditNameInput.input-error,
+body[data-page="home"] #siteEditNameDialog #siteEditNameInput.input-error:focus {
+  border: 2px solid #ef4444 !important;
+}
+
+body[data-page="home"] #siteEditNameDialog #siteEditNameInput.is-shaking {
+  animation: site-name-input-shake 300ms ease-in-out 1;
+}
+
 body[data-page="home"] #siteDialog #siteNameInput {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
