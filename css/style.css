@@ -5017,14 +5017,11 @@ body[data-page="site-detail"] .page2-header-subtitle .outs-label {
 
 .page2 .fab-label,
 .page2 .floating-label,
-.page2 .site-detail-fab-label {
-  position: fixed !important;
-  right: 96px !important;
-  bottom: calc(60px + env(safe-area-inset-bottom)) !important;
-  top: auto !important;
-  margin-bottom: 0 !important;
-  transform: none !important;
-  z-index: 999 !important;
+.page2 .site-detail-fab-label,
+.page3 .fab-label,
+.page3 .floating-label,
+.page3 .site-detail-fab-label {
+  display: none !important;
 }
 
 .page2 .site-detail-fab-row .fab-add,
