@@ -2589,10 +2589,15 @@ body[data-page="item-detail"] .item-detail-fab-row {
 }
 
 body[data-page="item-detail"] .item-detail-fab-row .fab-add--item-detail {
-  position: relative;
-  right: auto;
-  left: auto;
-  bottom: auto;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  z-index: 1000;
+  box-shadow: 0 10px 22px var(--detail-primary-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 body[data-page="item-detail"] .site-detail-fab-label {
@@ -4018,6 +4023,20 @@ body[data-page="item-detail"] .item-detail-fab-row .site-detail-fab-label {
   right: 96px;
   bottom: 34px;
   z-index: 999;
+}
+
+body[data-page="site-detail"] .site-detail-fab-row .fab-add,
+body[data-page="site-detail"] .site-detail-fab-row .fab-add--item-detail,
+body[data-page="item-detail"] .item-detail-fab-row .fab-add--item-detail {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  z-index: 1000;
+  box-shadow: 0 10px 22px var(--detail-primary-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 body[data-page="site-detail"] .fab-add,
