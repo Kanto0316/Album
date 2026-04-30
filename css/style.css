@@ -5180,21 +5180,3 @@ body[data-page="home"] .header-menu__panel.is-closing {
   transform: translateX(-102%);
 }
 
-/* Page 1: burger button alignment (scoped to home only) */
-.page1 .header-menu-btn {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
-  transform: translateY(0px);
-}
-
-.page1 .header-menu-btn img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-  display: block;
-}
