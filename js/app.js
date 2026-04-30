@@ -1693,6 +1693,10 @@ import { firebaseAuth } from './firebase-core.js';
         const siteIsLocked = isSiteLocked(latestSite);
         const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !siteIsLocked;
         lockToggleLabel.textContent = siteIsLocked ? 'Déverrouiller' : 'Verrouiller';
+        const canEditSiteName = !siteIsLocked;
+        editNameButton.hidden = !canEditSiteName;
+        editNameButton.style.display = canEditSiteName ? 'inline-flex' : 'none';
+        editNameButton.disabled = !canEditSiteName;
         deleteButton.hidden = !canDeleteSite;
         deleteButton.style.display = canDeleteSite ? 'inline-flex' : 'none';
         deleteButton.disabled = !canDeleteSite;
@@ -1761,8 +1765,13 @@ import { firebaseAuth } from './firebase-core.js';
         openSiteLockActionDialog(siteId);
       };
       editNameButton.onclick = async () => {
-        await closeSheet();
         const targetSite = getLatestSiteState(siteId);
+        if (isSiteLocked(targetSite)) {
+          UiService.showToast('Impossible de modifier le nom tant que le site est verrouillé.');
+          refreshSiteActionSheetContent();
+          return;
+        }
+        await closeSheet();
         if (!targetSite || !siteEditNameDialog || !siteEditNameInput) {
           return;
         }
@@ -2147,6 +2156,11 @@ import { firebaseAuth } from './firebase-core.js';
       const targetSite = getLatestSiteState(siteId);
       if (!siteId || !targetSite) {
         siteEditNameDialog?.close();
+        return;
+      }
+      if (isSiteLocked(targetSite)) {
+        siteEditNameDialog?.close();
+        UiService.showToast('Impossible de modifier le nom tant que le site est verrouillé.');
         return;
       }
       const currentName = String(targetSite.nom || '').trim();
