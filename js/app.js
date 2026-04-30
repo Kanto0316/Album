@@ -2801,6 +2801,7 @@ import { firebaseAuth } from './firebase-core.js';
         itemForm.reset();
         clearItemFormError();
         clearItemNumberErrorState();
+        hasBlockingItemNumberError = false;
         itemCreateSubmitButton.disabled = false;
         itemCreateSubmitButton.classList.remove('is-loading');
         setItemDialogMode(ITEM_DIALOG_MODE_EDIT, targetItem);
@@ -2939,6 +2940,8 @@ import { firebaseAuth } from './firebase-core.js';
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
     let itemFormErrorTimeoutId = null;
     let itemNumberErrorClearTimer = null;
+    let itemAvailabilityDebounceTimer = null;
+    let hasBlockingItemNumberError = false;
     let itemStoreOtherHideTimer = null;
     const itemStoreOtherTransitionDurationMs = 200;
     const ITEM_DIALOG_MODE_CREATE = 'create';
@@ -3059,6 +3062,7 @@ import { firebaseAuth } from './firebase-core.js';
         itemFormErrorTimeoutId = null;
       }
       itemFormError.textContent = '';
+      itemFormError.style.color = '';
     }
 
     function clearItemNumberErrorState() {
@@ -3071,12 +3075,8 @@ import { firebaseAuth } from './firebase-core.js';
 
     function showItemFormError(message, durationMs = 2300) {
       clearItemNumberErrorState();
-      clearItemFormError();
-      itemFormError.textContent = message;
-      itemFormErrorTimeoutId = window.setTimeout(() => {
-        itemFormError.textContent = '';
-        itemFormErrorTimeoutId = null;
-      }, 2000);
+      hasBlockingItemNumberError = true;
+      setItemFormMessage(message, { autoClearMs: 2000 });
       itemNumberInput.classList.remove('is-shaking');
       // Force un reflow pour rejouer l'animation à chaque nouvelle erreur.
       void itemNumberInput.offsetWidth;
@@ -3084,6 +3084,64 @@ import { firebaseAuth } from './firebase-core.js';
       itemNumberErrorClearTimer = window.setTimeout(() => {
         clearItemNumberErrorState();
       }, durationMs);
+    }
+
+    function setItemFormMessage(message, options = {}) {
+      const { isSuccess = false, autoClearMs = null } = options;
+      clearItemFormError();
+      itemFormError.textContent = message;
+      itemFormError.style.color = isSuccess ? 'var(--success)' : 'var(--danger)';
+      if (autoClearMs && autoClearMs > 0) {
+        itemFormErrorTimeoutId = window.setTimeout(() => {
+          itemFormError.textContent = '';
+          itemFormError.style.color = '';
+          itemFormErrorTimeoutId = null;
+        }, autoClearMs);
+      }
+    }
+
+    function setItemCreateButtonState() {
+      const value = normalizeItemNumberInput(itemNumberInput.value.trim());
+      const isValidLength = value.length >= 4;
+      const hasStoreValue = itemDialogMode === ITEM_DIALOG_MODE_EDIT || Boolean(resolveItemStoreValue() !== 'None');
+      itemCreateSubmitButton.disabled = hasBlockingItemNumberError || !isValidLength || !hasStoreValue;
+    }
+
+    function validateItemNumberAvailability() {
+      const normalizedValue = normalizeItemNumberInput(itemNumberInput.value.trim());
+      itemNumberInput.value = normalizedValue;
+
+      if (!normalizedValue) {
+        hasBlockingItemNumberError = false;
+        clearItemNumberErrorState();
+        clearItemFormError();
+        setItemCreateButtonState();
+        return;
+      }
+
+      if (normalizedValue.length < 4) {
+        hasBlockingItemNumberError = true;
+        clearItemNumberErrorState();
+        setItemFormMessage('Le numéro OUT doit contenir au moins 4 caractères.');
+        setItemCreateButtonState();
+        return;
+      }
+
+      const fullOutName = `OUT-${normalizedValue}`;
+      const exists = currentItems.some((item) => String(item?.numero || '').toUpperCase() === fullOutName.toUpperCase());
+
+      if (exists) {
+        hasBlockingItemNumberError = true;
+        itemNumberInput.classList.add('is-error');
+        itemNumberInput.classList.remove('is-shaking');
+        setItemFormMessage('Ce numéro OUT existe déjà.');
+      } else {
+        hasBlockingItemNumberError = false;
+        clearItemNumberErrorState();
+        setItemFormMessage('Ce numéro OUT est disponible.', { isSuccess: true });
+      }
+
+      setItemCreateButtonState();
     }
 
     function setItemDialogMode(mode, targetItem = null) {
@@ -3128,6 +3186,11 @@ import { firebaseAuth } from './firebase-core.js';
       itemForm.reset();
       clearItemFormError();
       clearItemNumberErrorState();
+      hasBlockingItemNumberError = false;
+      if (itemAvailabilityDebounceTimer) {
+        window.clearTimeout(itemAvailabilityDebounceTimer);
+        itemAvailabilityDebounceTimer = null;
+      }
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
@@ -3138,6 +3201,11 @@ import { firebaseAuth } from './firebase-core.js';
 
     itemStoreSelect?.addEventListener('change', () => {
       updateItemStoreOtherVisibility();
+      setItemCreateButtonState();
+    });
+
+    itemStoreOtherInput?.addEventListener('input', () => {
+      setItemCreateButtonState();
     });
 
     itemNumberInput.addEventListener('beforeinput', (event) => {
@@ -3182,15 +3250,24 @@ import { firebaseAuth } from './firebase-core.js';
       if (itemNumberInput.value !== normalizedValue) {
         itemNumberInput.value = normalizedValue;
       }
-      clearItemFormError();
-      clearItemNumberErrorState();
       updateItemNumberCounter();
+      if (itemAvailabilityDebounceTimer) {
+        window.clearTimeout(itemAvailabilityDebounceTimer);
+      }
+      itemAvailabilityDebounceTimer = window.setTimeout(() => {
+        validateItemNumberAvailability();
+      }, 200);
     });
     updateItemNumberCounter();
 
     itemDialog.addEventListener('close', () => {
       clearItemFormError();
       clearItemNumberErrorState();
+      hasBlockingItemNumberError = false;
+      if (itemAvailabilityDebounceTimer) {
+        window.clearTimeout(itemAvailabilityDebounceTimer);
+        itemAvailabilityDebounceTimer = null;
+      }
       itemCreateSubmitButton.classList.remove('is-loading');
       itemCreateSubmitButton.disabled = false;
       updateItemNumberCounter();
@@ -3344,6 +3421,15 @@ import { firebaseAuth } from './firebase-core.js';
           return;
         }
       }
+      if (itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
+        const fullOutName = `OUT-${value}`;
+        const exists = currentItems.some((item) => String(item?.numero || '').toUpperCase() === fullOutName.toUpperCase());
+        if (exists) {
+          showItemFormError('Ce numéro OUT existe déjà.');
+          itemCreateSubmitButton.disabled = true;
+          return;
+        }
+      }
       if (!permissions.canCreate) {
         showItemFormError('Action non autorisée.');
         return;
@@ -3395,6 +3481,9 @@ import { firebaseAuth } from './firebase-core.js';
       (items) => {
         currentItems = items;
         renderItems();
+        if (itemDialog.open && itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
+          validateItemNumberAvailability();
+        }
       },
       () => {
         UiService.showToast('Synchronisation  indisponible.');
