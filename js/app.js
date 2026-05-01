@@ -1340,8 +1340,9 @@ import { firebaseAuth } from './firebase-core.js';
       return `Exporter.${datePart}.su`;
     }
 
-    const HOME_MENU_TRANSITION_MS = 300;
+    const HOME_MENU_ANIMATION_LOCK_MS = 320;
     let homeMenuCloseTimer = null;
+    let sidebarAnimating = false;
     const homeMenuStateKey = '__homeMenuOpen__';
     const homeMenuCloseButton = requireElement('homeMenuCloseButton');
 
@@ -1360,19 +1361,21 @@ import { firebaseAuth } from './firebase-core.js';
       }
       homeMenuPanel.hidden = true;
       homeMenuPanel.classList.remove('is-open', 'is-closing');
+      sidebarAnimating = false;
     }
 
     function closeSidebar() {
-      if (!homeMenuPanel || !homeMenuButton) {
+      if (!homeMenuPanel || !homeMenuButton || sidebarAnimating) {
         return;
-      }
-      if (homeMenuCloseTimer) {
-        window.clearTimeout(homeMenuCloseTimer);
-        homeMenuCloseTimer = null;
       }
       if (!homeMenuOverlay || homeMenuOverlay.hidden || homeMenuPanel.classList.contains('is-closing')) {
         finalizeHomeMenuClose();
         return;
+      }
+      sidebarAnimating = true;
+      if (homeMenuCloseTimer) {
+        window.clearTimeout(homeMenuCloseTimer);
+        homeMenuCloseTimer = null;
       }
 
       homeMenuPanel.classList.remove('is-open');
@@ -1388,14 +1391,14 @@ import { firebaseAuth } from './firebase-core.js';
         homeMenuPanel.removeEventListener('transitionend', onTransitionEnd);
         finalizeHomeMenuClose();
         homeMenuCloseTimer = null;
-      }, HOME_MENU_TRANSITION_MS + 50);
+      }, HOME_MENU_ANIMATION_LOCK_MS);
     }
 
     function openSidebar() {
-      if (!homeMenuPanel || !homeMenuButton) {
+      if (!homeMenuPanel || !homeMenuButton || sidebarAnimating) {
         return;
       }
-      if (!homeMenuOverlay?.hidden) {
+      if (!homeMenuOverlay?.hidden || homeMenuPanel.classList.contains('is-open')) {
         return;
       }
       if (homeMenuCloseTimer) {
@@ -1405,6 +1408,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (!homeMenuOverlay) {
         return;
       }
+      sidebarAnimating = true;
       homeMenuOverlay.hidden = false;
       homeMenuPanel.hidden = false;
       document.body.classList.add('sidebar-open');
@@ -1420,15 +1424,11 @@ import { firebaseAuth } from './firebase-core.js';
       if (!window.history.state?.[homeMenuStateKey]) {
         window.history.pushState({ ...(window.history.state || {}), [homeMenuStateKey]: true }, '');
       }
+      window.setTimeout(() => {
+        sidebarAnimating = false;
+      }, HOME_MENU_ANIMATION_LOCK_MS);
     }
 
-    function toggleSidebar() {
-      if (homeMenuOverlay?.hidden) {
-        openSidebar();
-        return;
-      }
-      closeSidebar();
-    }
 
     function downloadSuFile(fileName, content) {
       const blob = new Blob([content], { type: 'application/octet-stream' });
@@ -1967,23 +1967,18 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     if (homeMenuButton && homeMenuPanel && homeMenuOverlay) {
-      homeMenuButton.addEventListener('click', openSidebar);
-
-      document.addEventListener('click', (event) => {
-        const clickedInsideHeaderTrigger = event.target.closest('.header-menu');
-        const clickedInsideDrawer = event.target.closest('#homeMenuPanel');
-        if (!clickedInsideHeaderTrigger && !clickedInsideDrawer) {
-          closeSidebar();
-        }
+      homeMenuButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openSidebar();
       });
 
-      if (homeMenuOverlay) {
-        homeMenuOverlay.addEventListener('click', (event) => {
-          if (event.target === homeMenuOverlay) {
-            closeSidebar();
-          }
-        });
-      }
+
+      homeMenuPanel.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+
+      homeMenuOverlay.addEventListener('click', closeSidebar);
 
       homeMenuCloseButton?.addEventListener('click', closeSidebar);
       window.addEventListener('popstate', () => {
