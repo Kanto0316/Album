@@ -1987,7 +1987,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function openHistory() {
-      UiService.navigate('historiques.html');
+      window.location.href = 'historiques.html';
     }
 
     function openImportModal() {
@@ -1995,7 +1995,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function openUserManagement() {
-      UiService.navigate('users.html');
+      window.location.href = 'users.html';
     }
 
     let sidebarActionRunning = false;
