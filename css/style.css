@@ -5118,6 +5118,29 @@ body[data-page="home"] .app-header__side--right {
   gap: 0.45rem;
 }
 
+body[data-page="home"] .header-menu {
+  margin-left: 0;
+  align-self: auto;
+}
+
+body[data-page="home"] #homeMenuButton {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.2s ease;
+  margin: 0;
+  position: static;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  align-self: auto;
+}
+
 .avatar-button--with-arrow {
   position: relative;
   padding-right: 0.78rem;
@@ -5179,4 +5202,3 @@ body[data-page="home"] .header-menu__panel.is-closing {
   opacity: 1;
   transform: translateX(-102%);
 }
-
