@@ -913,6 +913,8 @@ import { firebaseAuth } from './firebase-core.js';
     const exportDataButton = requireElement('exportDataButton');
     const manageUsersButton = requireElement('manageUsersButton');
     const historyButton = requireElement('historyButton');
+    const usersSidebarBtn = homeMenuPanel?.querySelector('#manageUsersButton') || null;
+    const historySidebarBtn = homeMenuPanel?.querySelector('#historyButton') || null;
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
     const siteLockPasswordInput = requireElement('siteLockPasswordInput');
@@ -2030,29 +2032,24 @@ import { firebaseAuth } from './firebase-core.js';
         runSidebarAction(openImportModal);
       });
     }
-    if (manageUsersButton) {
-      manageUsersButton.addEventListener('click', (event) => {
+    if (usersSidebarBtn) {
+      usersSidebarBtn.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-
-        closeSidebar();
-        window.setTimeout(() => {
-          openUserManagement();
-        }, 180);
+        window.location.assign('users.html');
       });
     }
 
-    if (historyButton) {
-      historyButton.addEventListener('click', (event) => {
+    if (historySidebarBtn) {
+      historySidebarBtn.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-
-        closeSidebar();
-        window.setTimeout(() => {
-          openHistory();
-        }, 180);
+        window.location.assign('historiques.html');
       });
     }
+
+    console.log('historySidebarBtn', historySidebarBtn);
+    console.log('usersSidebarBtn', usersSidebarBtn);
 
     const openCreateSite = requireElement('openCreateSite');
 
