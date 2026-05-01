@@ -3265,10 +3265,10 @@ body[data-page="home"] .app-header--home > h1 {
 .sheet-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  border-radius: 50%;
   display: block;
+  background-color: white;
 }
 
 .avatar-initials {
