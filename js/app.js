@@ -1998,30 +1998,53 @@ import { firebaseAuth } from './firebase-core.js';
       UiService.navigate('users.html');
     }
 
+    let sidebarActionRunning = false;
+    function runSidebarAction(action) {
+      if (sidebarActionRunning) {
+        return;
+      }
+
+      sidebarActionRunning = true;
+      closeSidebar();
+
+      window.setTimeout(() => {
+        action();
+        sidebarActionRunning = false;
+      }, 200);
+    }
+
     if (exportDataButton) {
-      exportDataButton.addEventListener('click', () => {
-        closeSidebar();
-        exportAllData();
+      exportDataButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        runSidebarAction(exportAllData);
       });
     }
 
     if (importDataButton) {
-      importDataButton.addEventListener('click', () => {
-        closeSidebar();
-        openImportModal();
+      importDataButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        runSidebarAction(openImportModal);
       });
     }
     if (manageUsersButton) {
-      manageUsersButton.addEventListener('click', () => {
-        closeSidebar();
-        openUserManagement();
+      manageUsersButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        runSidebarAction(openUserManagement);
       });
     }
 
     if (historyButton) {
-      historyButton.addEventListener('click', () => {
-        closeSidebar();
-        openHistory();
+      historyButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        runSidebarAction(openHistory);
       });
     }
 
