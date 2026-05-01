@@ -5269,5 +5269,11 @@ body.sidebar-open {
 }
 
 .sidebar-item:first-child {
-  background: #f0f7ff;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+.sidebar-item.active {
+  background: #eef5fb;
 }
