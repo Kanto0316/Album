@@ -1473,8 +1473,6 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function openImportFilePicker() {
-      closeSidebar();
-
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = '.su,.json,application/json';
@@ -1988,6 +1986,18 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
+    function openHistory() {
+      UiService.navigate('historiques.html');
+    }
+
+    function openImportModal() {
+      openImportFilePicker();
+    }
+
+    function openUserManagement() {
+      UiService.navigate('users.html');
+    }
+
     if (exportDataButton) {
       exportDataButton.addEventListener('click', () => {
         closeSidebar();
@@ -1998,20 +2008,20 @@ import { firebaseAuth } from './firebase-core.js';
     if (importDataButton) {
       importDataButton.addEventListener('click', () => {
         closeSidebar();
-        openImportFilePicker();
+        openImportModal();
       });
     }
     if (manageUsersButton) {
       manageUsersButton.addEventListener('click', () => {
         closeSidebar();
-        UiService.navigate('users.html');
+        openUserManagement();
       });
     }
 
     if (historyButton) {
       historyButton.addEventListener('click', () => {
         closeSidebar();
-        UiService.navigate('historiques.html');
+        openHistory();
       });
     }
 
