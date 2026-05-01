@@ -37,8 +37,13 @@
         </div>
       </header>
 
-      <div id="homeMenuOverlay" class="home-menu-overlay" hidden>
-        <aside id="homeMenuPanel" class="header-menu__panel header-menu__drawer" role="menu" aria-label="Menu principal">
+      <div id="homeMenuOverlay" class="home-menu-overlay sidebar-overlay" hidden></div>
+      <aside id="homeMenuPanel" class="header-menu__panel header-menu__drawer app-sidebar" role="menu" aria-label="Menu principal" hidden>
+        <div class="sidebar-header">
+          <h3>Menu</h3>
+          <button id="homeMenuCloseButton" class="sidebar-close" type="button" aria-label="Fermer le menu">×</button>
+        </div>
+        <div class="sidebar-actions">
           <button id="historyButton" class="header-menu__option" type="button" role="menuitem">
             Historiques
           </button>
@@ -51,8 +56,8 @@
           <button id="manageUsersButton" class="header-menu__option" type="button" role="menuitem" hidden>
             Gestion des utilisateurs
           </button>
-        </aside>
-      </div>
+        </div>
+      </aside>
 
 
       <main class="page-content">
