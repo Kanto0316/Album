@@ -1340,8 +1340,10 @@ import { firebaseAuth } from './firebase-core.js';
       return `Exporter.${datePart}.su`;
     }
 
-    const HOME_MENU_TRANSITION_MS = 220;
+    const HOME_MENU_TRANSITION_MS = 300;
     let homeMenuCloseTimer = null;
+    const homeMenuStateKey = '__homeMenuOpen__';
+    const homeMenuCloseButton = requireElement('homeMenuCloseButton');
 
     function finalizeHomeMenuClose() {
       if (!homeMenuPanel) {
@@ -1351,10 +1353,16 @@ import { firebaseAuth } from './firebase-core.js';
         homeMenuOverlay.hidden = true;
         homeMenuOverlay.classList.remove('is-open');
       }
+      document.body.classList.remove('sidebar-open');
+      homeMenuButton?.setAttribute('aria-expanded', 'false');
+      if (window.history.state?.[homeMenuStateKey]) {
+        window.history.back();
+      }
+      homeMenuPanel.hidden = true;
       homeMenuPanel.classList.remove('is-open', 'is-closing');
     }
 
-    function closeHomeMenu() {
+    function closeSidebar() {
       if (!homeMenuPanel || !homeMenuButton) {
         return;
       }
@@ -1362,7 +1370,6 @@ import { firebaseAuth } from './firebase-core.js';
         window.clearTimeout(homeMenuCloseTimer);
         homeMenuCloseTimer = null;
       }
-      homeMenuButton.setAttribute('aria-expanded', 'false');
       if (!homeMenuOverlay || homeMenuOverlay.hidden || homeMenuPanel.classList.contains('is-closing')) {
         finalizeHomeMenuClose();
         return;
@@ -1384,8 +1391,11 @@ import { firebaseAuth } from './firebase-core.js';
       }, HOME_MENU_TRANSITION_MS + 50);
     }
 
-    function openHomeMenu() {
+    function openSidebar() {
       if (!homeMenuPanel || !homeMenuButton) {
+        return;
+      }
+      if (!homeMenuOverlay?.hidden) {
         return;
       }
       if (homeMenuCloseTimer) {
@@ -1396,6 +1406,8 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
       homeMenuOverlay.hidden = false;
+      homeMenuPanel.hidden = false;
+      document.body.classList.add('sidebar-open');
       homeMenuPanel.classList.remove('is-closing');
       window.requestAnimationFrame(() => {
         if (homeMenuOverlay.hidden) {
@@ -1405,6 +1417,17 @@ import { firebaseAuth } from './firebase-core.js';
       });
       homeMenuOverlay.classList.add('is-open');
       homeMenuButton.setAttribute('aria-expanded', 'true');
+      if (!window.history.state?.[homeMenuStateKey]) {
+        window.history.pushState({ ...(window.history.state || {}), [homeMenuStateKey]: true }, '');
+      }
+    }
+
+    function toggleSidebar() {
+      if (homeMenuOverlay?.hidden) {
+        openSidebar();
+        return;
+      }
+      closeSidebar();
     }
 
     function downloadSuFile(fileName, content) {
@@ -1450,7 +1473,7 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     function openImportFilePicker() {
-      closeHomeMenu();
+      closeSidebar();
 
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
@@ -1944,54 +1967,55 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     if (homeMenuButton && homeMenuPanel && homeMenuOverlay) {
-      homeMenuButton.addEventListener('click', () => {
-        if (homeMenuOverlay.hidden) {
-          openHomeMenu();
-          return;
-        }
-        closeHomeMenu();
-      });
+      homeMenuButton.addEventListener('click', openSidebar);
 
       document.addEventListener('click', (event) => {
         const clickedInsideHeaderTrigger = event.target.closest('.header-menu');
         const clickedInsideDrawer = event.target.closest('#homeMenuPanel');
         if (!clickedInsideHeaderTrigger && !clickedInsideDrawer) {
-          closeHomeMenu();
+          closeSidebar();
         }
       });
 
       if (homeMenuOverlay) {
         homeMenuOverlay.addEventListener('click', (event) => {
           if (event.target === homeMenuOverlay) {
-            closeHomeMenu();
+            closeSidebar();
           }
         });
       }
+
+      homeMenuCloseButton?.addEventListener('click', closeSidebar);
+      window.addEventListener('popstate', () => {
+        if (!homeMenuOverlay?.hidden) {
+          closeSidebar();
+        }
+      });
     }
 
     if (exportDataButton) {
       exportDataButton.addEventListener('click', () => {
-        closeHomeMenu();
+        closeSidebar();
         exportAllData();
       });
     }
 
     if (importDataButton) {
       importDataButton.addEventListener('click', () => {
-        closeHomeMenu();
+        closeSidebar();
         openImportFilePicker();
       });
     }
     if (manageUsersButton) {
       manageUsersButton.addEventListener('click', () => {
-        closeHomeMenu();
+        closeSidebar();
         UiService.navigate('users.html');
       });
     }
 
     if (historyButton) {
       historyButton.addEventListener('click', () => {
-        closeHomeMenu();
+        closeSidebar();
         UiService.navigate('historiques.html');
       });
     }
@@ -2025,7 +2049,7 @@ import { firebaseAuth } from './firebase-core.js';
         manageUsersButton.hidden = !currentPermissions.canManageUsers;
       }
 
-      closeHomeMenu();
+      closeSidebar();
       renderSites();
     }
 
