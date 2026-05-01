@@ -915,6 +915,7 @@ import { firebaseAuth } from './firebase-core.js';
     const historyButton = requireElement('historyButton');
     const usersSidebarBtn = homeMenuPanel?.querySelector('#manageUsersButton') || null;
     const historySidebarBtn = homeMenuPanel?.querySelector('#historyButton') || null;
+    const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
     const siteLockPasswordInput = requireElement('siteLockPasswordInput');
@@ -1988,6 +1989,30 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
+    function setActiveSidebarItem(targetItem) {
+      sidebarItems.forEach((item) => item.classList.remove('active'));
+      if (targetItem) {
+        targetItem.classList.add('active');
+      }
+    }
+
+    if (sidebarItems.length) {
+      const currentPage = window.location.pathname;
+      let activeItemFromPage = null;
+
+      sidebarItems.forEach((item) => {
+        const link = String(item.getAttribute('data-link') || '').trim();
+        if (link && currentPage.includes(link)) {
+          activeItemFromPage = item;
+        }
+        item.addEventListener('click', () => {
+          setActiveSidebarItem(item);
+        });
+      });
+
+      setActiveSidebarItem(activeItemFromPage);
+    }
+
     function openHistory() {
       window.location.href = 'historiques.html';
     }
@@ -2047,9 +2072,6 @@ import { firebaseAuth } from './firebase-core.js';
         window.location.assign('historiques.html');
       });
     }
-
-    console.log('historySidebarBtn', historySidebarBtn);
-    console.log('usersSidebarBtn', usersSidebarBtn);
 
     const openCreateSite = requireElement('openCreateSite');
 
