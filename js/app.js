@@ -2035,7 +2035,10 @@ import { firebaseAuth } from './firebase-core.js';
         event.preventDefault();
         event.stopPropagation();
 
-        runSidebarAction(openUserManagement);
+        closeSidebar();
+        window.setTimeout(() => {
+          openUserManagement();
+        }, 180);
       });
     }
 
@@ -2044,7 +2047,10 @@ import { firebaseAuth } from './firebase-core.js';
         event.preventDefault();
         event.stopPropagation();
 
-        runSidebarAction(openHistory);
+        closeSidebar();
+        window.setTimeout(() => {
+          openHistory();
+        }, 180);
       });
     }
 
