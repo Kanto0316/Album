@@ -4628,11 +4628,6 @@ body[data-page="home"] .site-count-pill {
   font-weight: 700;
 }
 
-body[data-page="home"] .fab {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  box-shadow: 0 18px 28px rgba(39, 141, 218, 0.35);
-}
-
 body[data-page="site-detail"] .app-header--detail {
   --detail-side-size: clamp(2.5rem, 7.8vw, 2.75rem);
   min-height: var(--header-height);
@@ -5282,5 +5277,4 @@ body {
 .main-content {
   flex: 1;
 }
-
 
