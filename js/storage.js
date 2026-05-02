@@ -27,6 +27,7 @@ const state = {
   sites: [],
   itemsBySite: new Map(),
   detailsByItem: new Map(),
+  purchasesBySite: new Map(),
   listeners: {
     sites: new Set(),
     itemCounts: new Set(),
@@ -34,6 +35,7 @@ const state = {
     detailCountsBySite: new Map(),
     detailDesignationsBySite: new Map(),
     detailRowsBySite: new Map(),
+    purchasesBySite: new Map(),
     detailsByPair: new Map(),
   },
 };
@@ -676,7 +678,15 @@ function applySnapshot(snapshot) {
   state.sites = Array.isArray(snapshot.page1) ? clone(snapshot.page1) : [];
 
   state.itemsBySite = new Map();
+  state.purchasesBySite = new Map();
   (Array.isArray(snapshot.page2) ? snapshot.page2 : []).forEach((item) => {
+    if (String(item.type || '') === 'material_purchase') {
+      const pSiteId = String(item.siteId || '');
+      if (!pSiteId) { return; }
+      if (!state.purchasesBySite.has(pSiteId)) { state.purchasesBySite.set(pSiteId, []); }
+      state.purchasesBySite.get(pSiteId).push(item);
+      return;
+    }
     const siteId = String(item.siteId || '');
     if (!siteId) {
       return;
@@ -745,6 +755,8 @@ function emitForSite(siteId) {
     }
   });
   (state.listeners.detailRowsBySite.get(siteId) || new Set()).forEach((listener) => listener(clone(rowsByItem)));
+  const purchases = clone(state.purchasesBySite.get(siteId) || []);
+  (state.listeners.purchasesBySite.get(siteId) || new Set()).forEach((listener) => listener(purchases));
 }
 
 function emitAll() {
@@ -1689,6 +1701,36 @@ async function importData(payload) {
   return true;
 }
 
+
+function subscribeMaterialPurchases(siteId, onChange, onError) {
+  try {
+    const unsubscribe = subscribeFactory(state.listeners.purchasesBySite, siteId, onChange);
+    onChange(clone(state.purchasesBySite.get(siteId) || []));
+    return unsubscribe;
+  } catch (error) {
+    if (typeof onError === 'function') { onError(error); }
+    return () => {};
+  }
+}
+
+async function createMaterialPurchase(payload) {
+  const siteId = sanitizeText(payload?.siteId || '', false);
+  if (!siteId) return { ok: false, reason: 'site_not_found' };
+  const magasin = sanitizeText(payload?.magasin || '', true);
+  const designation = sanitizeText(payload?.designation || '', true);
+  const quantite = Number(payload?.quantite || 0);
+  if (!magasin || !designation || !(quantite > 0)) return { ok: false, reason: 'invalid_payload' };
+  const timestamp = nowIso();
+  const creatorName = await resolveCurrentUserName();
+  const docPayload = { type: 'material_purchase', ref: sanitizeText(payload?.ref || uid(), true), siteId, siteName: sanitizeText(payload?.siteName || '', true), magasin, designation, quantite, createdAt: timestamp, createdByName: creatorName, createdByEmail: resolveCurrentUserEmail(), dateModification: timestamp };
+  const created = await addDoc(makePageItemsCollection('page2'), docPayload);
+  const next = { id: created.id, ...docPayload };
+  if (!state.purchasesBySite.has(siteId)) state.purchasesBySite.set(siteId, []);
+  state.purchasesBySite.get(siteId).unshift(next);
+  persistOfflineState(); emitAll();
+  return { ok: true, id: next.id };
+}
+
 window.StorageService = {
   init,
   getSites,
@@ -1701,6 +1743,7 @@ window.StorageService = {
   subscribeDetailCounts,
   subscribeDetailDesignations,
   subscribeDetailRows,
+  subscribeMaterialPurchases,
   getDetailRowsBySite,
   getAllDetails,
   createSite,
@@ -1716,6 +1759,7 @@ window.StorageService = {
   createDetail,
   updateDetail,
   removeDetail,
+  createMaterialPurchase,
   exportData,
   importData,
   ensureCurrentUser,

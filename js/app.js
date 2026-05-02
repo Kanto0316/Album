@@ -2610,6 +2610,7 @@ import { firebaseAuth } from './firebase-core.js';
     );
 
     loadUserNames();
+    setSiteTab('outs');
   }
 
   function initSiteDetailPage(permissions) {
@@ -2643,11 +2644,23 @@ import { firebaseAuth } from './firebase-core.js';
     const siteExportCancelButton = requireElement('siteExportCancelButton');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
+    const purchaseDialog = requireElement('purchaseDialog');
+    const purchaseForm = requireElement('purchaseForm');
+    const purchaseStoreInput = requireElement('purchaseStoreInput');
+    const purchaseDesignationInput = requireElement('purchaseDesignationInput');
+    const purchaseQtyInput = requireElement('purchaseQtyInput');
+    const purchaseFormError = requireElement('purchaseFormError');
+    const purchaseSubmitButton = requireElement('purchaseSubmitButton');
+    const purchaseInfoCard = requireElement('purchaseInfoCard');
+    const purchaseTabButton = document.getElementById('purchaseTabButton');
+    const outsFilterGroup = requireElement('outsFilterGroup');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
+    let currentPurchases = [];
+    let activeTab = 'outs';
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
@@ -3097,6 +3110,49 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
+
+    function genMaterialRef() {
+      const d = new Date();
+      const part = `${d.getFullYear().toString().slice(-2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+      return `MAT-${part}${Math.floor(Math.random() * 9000 + 1000)}`;
+    }
+
+    function setSiteTab(nextTab) {
+      const isAdmin = Boolean(permissions?.isAdmin);
+      activeTab = isAdmin && nextTab === 'purchase' ? 'purchase' : 'outs';
+      const isPurchase = activeTab === 'purchase';
+      purchaseInfoCard.hidden = !isPurchase;
+      outsFilterGroup.hidden = isPurchase;
+      filterChipButtons.forEach((btn)=>btn.closest('button')?.toggleAttribute?.('hidden', isPurchase));
+      const createItemLabel = document.querySelector('body[data-page="site-detail"] .site-detail-fab-label--create');
+      if (createItemLabel) createItemLabel.textContent = isPurchase ? 'Ajouter matériel' : 'Créer un OUT';
+      if (purchaseTabButton) {
+        purchaseTabButton.setAttribute('aria-selected', String(isPurchase));
+        purchaseTabButton.classList.toggle('is-active', isPurchase);
+      }
+      const outsTab = document.querySelector('[data-site-tab="outs"]');
+      outsTab?.setAttribute('aria-selected', String(!isPurchase));
+      outsTab?.classList.toggle('is-active', !isPurchase);
+      itemCount.innerHTML = isPurchase
+        ? `<span class="outs-number">${currentPurchases.length}</span><span class="outs-label">Achat matériel</span>`
+        : itemCount.innerHTML;
+      if (isPurchase) {
+        renderPurchases();
+      } else {
+        renderItems();
+      }
+    }
+
+    function renderPurchases() {
+      itemCount.innerHTML = `<span class="outs-number">${currentPurchases.length}</span><span class="outs-label">Achat matériel</span>`;
+      if (!currentPurchases.length) {
+        UiService.renderEmptyState(itemList, 'Aucun achat matériel
+Ajoutez un nouveau matériel en appuyant sur +.');
+        return;
+      }
+      itemList.innerHTML = currentPurchases.map((p)=>`<article class="list-card"><div class="list-card__title-row"><h3 class="list-card__title">${escapeHtml(p.ref || '')}</h3></div><p>${escapeHtml(p.designation||'')}</p><p>${escapeHtml(p.magasin||'')}</p><p>Qté : ${escapeHtml(String(p.quantite||''))}</p><p>Créé le ${formatDateLabel(p.createdAt)}</p><p>${escapeHtml(p.createdByName||'Utilisateur')}</p></article>`).join('');
+    }
+
     function renderItems() {
       const query = itemSearchInput.value.trim().toUpperCase();
       const filteredItems = currentItems.filter((item) => {
@@ -3114,7 +3170,9 @@ import { firebaseAuth } from './firebase-core.js';
         return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
       });
 
-      itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
+      if (activeTab === 'outs') {
+        itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
+      }
 
       if (!filteredItems.length) {
         UiService.renderEmptyState(
@@ -3417,6 +3475,7 @@ import { firebaseAuth } from './firebase-core.js';
     });
 
     openCreateItem?.addEventListener('click', () => {
+      if (activeTab === 'purchase') { purchaseForm.reset(); purchaseFormError.textContent=''; purchaseDialog.showModal(); purchaseStoreInput.focus(); return; }
       setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
       itemForm.reset();
       clearItemFormError();
@@ -3584,6 +3643,10 @@ import { firebaseAuth } from './firebase-core.js';
       siteDetailScrollContainer?.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
     }
 
+    document.querySelector('[data-site-tab="outs"]')?.addEventListener('click', ()=>setSiteTab('outs'));
+    purchaseTabButton?.addEventListener('click', ()=>setSiteTab('purchase'));
+    purchaseTabButton.hidden = !permissions.isAdmin;
+
     itemSearchInput.addEventListener('input', () => {
       window.localStorage.setItem(searchStorageKey, itemSearchInput.value);
       renderItems();
@@ -3702,6 +3765,21 @@ import { firebaseAuth } from './firebase-core.js';
       }
     });
 
+    purchaseForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const magasin = String(purchaseStoreInput.value || '').trim();
+      const designation = String(purchaseDesignationInput.value || '').trim();
+      const quantite = Number(purchaseQtyInput.value || 0);
+      if (!magasin || !designation || !(quantite > 0)) { purchaseFormError.textContent = 'Veuillez remplir ce champ'; return; }
+      purchaseSubmitButton.disabled = true;
+      const result = await StorageService.createMaterialPurchase({ siteId, siteName: currentSite?.nom || '', magasin, designation, quantite, ref: genMaterialRef() });
+      purchaseSubmitButton.disabled = false;
+      if (!result?.ok) { purchaseFormError.textContent = 'Enregistrement impossible.'; return; }
+      purchaseDialog.close();
+    });
+
+    StorageService.subscribeMaterialPurchases(siteId, (rows)=>{ currentPurchases = rows; if (activeTab === 'purchase') renderPurchases(); });
+
     StorageService.subscribeSites((sites) => {
       currentSite = sites.find((site) => site.id === siteId) || currentSite;
       if (!currentSite) {
@@ -3752,6 +3830,7 @@ import { firebaseAuth } from './firebase-core.js';
     );
 
     loadUserNames();
+    setSiteTab('outs');
   }
 
   function initItemDetailPage(permissions) {
@@ -4832,6 +4911,21 @@ import { firebaseAuth } from './firebase-core.js';
     detailSkeletonTimerId = window.setTimeout(() => {
       showDetailTableSkeleton();
     }, 120);
+
+    purchaseForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const magasin = String(purchaseStoreInput.value || '').trim();
+      const designation = String(purchaseDesignationInput.value || '').trim();
+      const quantite = Number(purchaseQtyInput.value || 0);
+      if (!magasin || !designation || !(quantite > 0)) { purchaseFormError.textContent = 'Veuillez remplir ce champ'; return; }
+      purchaseSubmitButton.disabled = true;
+      const result = await StorageService.createMaterialPurchase({ siteId, siteName: currentSite?.nom || '', magasin, designation, quantite, ref: genMaterialRef() });
+      purchaseSubmitButton.disabled = false;
+      if (!result?.ok) { purchaseFormError.textContent = 'Enregistrement impossible.'; return; }
+      purchaseDialog.close();
+    });
+
+    StorageService.subscribeMaterialPurchases(siteId, (rows)=>{ currentPurchases = rows; if (activeTab === 'purchase') renderPurchases(); });
 
     StorageService.subscribeSites((sites) => {
       currentSite = sites.find((site) => site.id === siteId) || currentSite;
