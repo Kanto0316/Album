@@ -2315,6 +2315,31 @@ body[data-page="item-detail"] .search-input__icon {
 
 body[data-page="item-detail"] #detailSearchInput {
   padding-left: 2.9rem;
+  padding-right: 52px;
+}
+
+body[data-page="item-detail"] .clear-search-btn {
+  display: none;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: #eef5fb;
+  color: #6b7280;
+  font-size: 20px;
+  font-weight: 600;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+body[data-page="item-detail"] .clear-search-btn:active {
+  transform: translateY(-50%) scale(0.94);
+  background: #e0eefc;
 }
 
 body[data-page="item-detail"] .app-header--detail {

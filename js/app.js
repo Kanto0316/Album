@@ -3781,6 +3781,7 @@ import { firebaseAuth } from './firebase-core.js';
     const detailStore = requireElement('detailStore');
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
+    const clearSearchBtn = document.querySelector('#clearSearchBtn');
     const exportButton = requireElement('exportDetailsButton');
     const detailExportDialog = requireElement('detailExportDialog');
     const detailExportForm = requireElement('detailExportForm');
@@ -4734,6 +4735,22 @@ import { firebaseAuth } from './firebase-core.js';
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', renderTable);
+      const toggleClearButton = () => {
+        if (!detailSearchInput || !clearSearchBtn) {
+          return;
+        }
+        clearSearchBtn.style.display = detailSearchInput.value.trim() ? 'flex' : 'none';
+      };
+      detailSearchInput.addEventListener('input', toggleClearButton);
+      clearSearchBtn?.addEventListener('click', () => {
+        if (!detailSearchInput) {
+          return;
+        }
+        detailSearchInput.value = '';
+        toggleClearButton();
+        detailSearchInput.focus();
+      });
+      toggleClearButton();
     }
 
     if (exportButton) {
