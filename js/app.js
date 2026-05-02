@@ -909,12 +909,11 @@ import { firebaseAuth } from './firebase-core.js';
     const homeMenuButton = requireElement('homeMenuButton');
     const homeMenuPanel = requireElement('homeMenuPanel');
     const homeMenuOverlay = requireElement('homeMenuOverlay');
-    const importDataButton = requireElement('importDataButton');
-    const exportDataButton = requireElement('exportDataButton');
-    const manageUsersButton = requireElement('manageUsersButton');
-    const historyButton = requireElement('historyButton');
-    const usersSidebarBtn = homeMenuPanel?.querySelector('#manageUsersButton') || null;
-    const historySidebarBtn = homeMenuPanel?.querySelector('#historyButton') || null;
+    const importDataButton = requireElement('sidebarImportBtn');
+    const exportDataButton = requireElement('sidebarExportBtn');
+    const manageUsersButton = requireElement('sidebarUsersBtn');
+    const usersSidebarBtn = homeMenuPanel?.querySelector('#sidebarUsersBtn') || null;
+    const historySidebarBtn = homeMenuPanel?.querySelector('#sidebarHistoryBtn') || null;
     const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
@@ -1401,6 +1400,7 @@ import { firebaseAuth } from './firebase-core.js';
       if (!homeMenuPanel || !homeMenuButton || sidebarAnimating) {
         return;
       }
+      updateSidebarPermissions();
       if (!homeMenuOverlay?.hidden || homeMenuPanel.classList.contains('is-open')) {
         return;
       }
@@ -2083,25 +2083,60 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
+    function getCurrentUserRole() {
+      if (currentPermissions?.isAdmin) {
+        return 'admin';
+      }
+      if (currentPermissions?.isStandard) {
+        return 'standard';
+      }
+      return 'limite';
+    }
+
+    function setSidebarItemVisible(selector, visible) {
+      const el = document.querySelector(selector);
+      if (!el) {
+        return;
+      }
+      el.hidden = !visible;
+      el.style.display = visible ? 'flex' : 'none';
+    }
+
     function updateSidebarPermissions() {
-      const isAdmin = Boolean(currentPermissions?.isAdmin);
-      const isStandard = Boolean(currentPermissions?.isStandard);
-      const isLimited = !isAdmin && !isStandard;
+      const user = firebaseAuth.currentUser;
+      const role = getCurrentUserRole();
+      const isConnected = Boolean(user);
+      const normalizedRole = String(role || '').toLowerCase();
+      const isAdmin = normalizedRole === 'admin';
+      const isStandard = normalizedRole === 'standard';
+      const isLimited = normalizedRole === 'limité' || normalizedRole === 'limite' || normalizedRole === 'limited';
 
-      const hideImportExport = !isAuthenticated || isLimited;
-      const hideUsers = !isAuthenticated || !isAdmin;
+      setSidebarItemVisible('#sidebarHistoryBtn', true);
 
-      if (importDataButton) {
-        importDataButton.hidden = hideImportExport;
+      if (!isConnected || isLimited) {
+        setSidebarItemVisible('#sidebarImportBtn', false);
+        setSidebarItemVisible('#sidebarExportBtn', false);
+        setSidebarItemVisible('#sidebarUsersBtn', false);
+        return;
       }
 
-      if (exportDataButton) {
-        exportDataButton.hidden = hideImportExport;
+      if (isStandard) {
+        setSidebarItemVisible('#sidebarImportBtn', true);
+        setSidebarItemVisible('#sidebarExportBtn', true);
+        setSidebarItemVisible('#sidebarUsersBtn', false);
+        return;
       }
 
-      if (manageUsersButton) {
-        manageUsersButton.hidden = hideUsers;
+      if (isAdmin) {
+        setSidebarItemVisible('#sidebarImportBtn', true);
+        setSidebarItemVisible('#sidebarExportBtn', true);
+        setSidebarItemVisible('#sidebarUsersBtn', true);
+        return;
       }
+
+      setSidebarItemVisible('#sidebarImportBtn', false);
+      setSidebarItemVisible('#sidebarExportBtn', false);
+      setSidebarItemVisible('#sidebarUsersBtn', false);
     }
 
     function mettreAJourPermissionsUI(nextPermissions) {
