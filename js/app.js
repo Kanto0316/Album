@@ -4748,8 +4748,10 @@ import { firebaseAuth } from './firebase-core.js';
         }
         detailSearchInput.value = '';
         toggleClearButton();
+        renderTable();
         detailSearchInput.focus();
       });
+      detailSearchInput.value = '';
       toggleClearButton();
     }
 
