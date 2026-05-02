@@ -2614,6 +2614,15 @@ import { firebaseAuth } from './firebase-core.js';
   }
 
   function initSiteDetailPage(permissions) {
+    const isPage2 =
+      document.body.classList.contains('page2') ||
+      window.location.pathname.includes('page2.html') ||
+      document.body.dataset.page === 'site-detail';
+
+    if (!isPage2) {
+      return;
+    }
+
     initAuthRequiredNoticeCard();
 
     const params = UiService.getQueryParams();
@@ -3643,8 +3652,14 @@ Ajoutez un nouveau matériel en appuyant sur +.');
       siteDetailScrollContainer?.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
     }
 
-    document.querySelector('[data-site-tab="outs"]')?.addEventListener('click', ()=>setSiteTab('outs'));
-    purchaseTabButton?.addEventListener('click', ()=>setSiteTab('purchase'));
+    const outsTabButton = document.querySelector('[data-site-tab="outs"]');
+    if (!outsTabButton || !purchaseTabButton || !purchaseInfoCard || !outsFilterGroup) {
+      console.warn('Tabs Page 2 non trouvés : init ignorée.');
+      return;
+    }
+
+    outsTabButton.addEventListener('click', ()=>setSiteTab('outs'));
+    purchaseTabButton.addEventListener('click', ()=>setSiteTab('purchase'));
     purchaseTabButton.hidden = !permissions.isAdmin;
 
     itemSearchInput.addEventListener('input', () => {
@@ -5259,7 +5274,16 @@ Ajoutez un nouveau matériel en appuyant sur +.');
   }
 
 
-  bootstrap().finally(() => {
+  try {
+    bootstrap().catch((error) => {
+      console.error('Erreur init app :', error);
+    }).finally(() => {
+      UiService.markAppReady();
+      document.body.classList.remove('loading', 'is-loading');
+    });
+  } catch (error) {
+    console.error('Erreur init app :', error);
     UiService.markAppReady();
-  });
+    document.body.classList.remove('loading', 'is-loading');
+  }
 })();
