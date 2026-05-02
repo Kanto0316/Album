@@ -2083,6 +2083,27 @@ import { firebaseAuth } from './firebase-core.js';
       });
     }
 
+    function updateSidebarPermissions() {
+      const isAdmin = Boolean(currentPermissions?.isAdmin);
+      const isStandard = Boolean(currentPermissions?.isStandard);
+      const isLimited = !isAdmin && !isStandard;
+
+      const hideImportExport = !isAuthenticated || isLimited;
+      const hideUsers = !isAuthenticated || !isAdmin;
+
+      if (importDataButton) {
+        importDataButton.hidden = hideImportExport;
+      }
+
+      if (exportDataButton) {
+        exportDataButton.hidden = hideImportExport;
+      }
+
+      if (manageUsersButton) {
+        manageUsersButton.hidden = hideUsers;
+      }
+    }
+
     function mettreAJourPermissionsUI(nextPermissions) {
       currentPermissions = { ...currentPermissions, ...(nextPermissions || {}) };
 
@@ -2090,17 +2111,7 @@ import { firebaseAuth } from './firebase-core.js';
         openCreateSite.hidden = !isAuthenticated;
       }
 
-      if (importDataButton) {
-        importDataButton.hidden = !currentPermissions.canImportExport;
-      }
-
-      if (exportDataButton) {
-        exportDataButton.hidden = !currentPermissions.canImportExport;
-      }
-
-      if (manageUsersButton) {
-        manageUsersButton.hidden = !currentPermissions.canManageUsers;
-      }
+      updateSidebarPermissions();
 
       closeSidebar();
       renderSites();
