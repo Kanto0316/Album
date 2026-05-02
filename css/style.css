@@ -5282,33 +5282,3 @@ body {
 .hidden {
   display: none !important;
 }
-
-.page2-tabs {
-  display: flex;
-  gap: 10px;
-  padding: 0 24px;
-  margin: 16px 0;
-}
-
-.page2-tab {
-  border: none;
-  border-radius: 999px;
-  padding: 10px 18px;
-  background: #ffffff;
-  color: #374151;
-  font-weight: 700;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-}
-
-.page2-tab.active {
-  background: #2f9be8;
-  color: #ffffff;
-}
-
-.page2-tab-section {
-  display: none;
-}
-
-.page2-tab-section.active {
-  display: block;
-}
