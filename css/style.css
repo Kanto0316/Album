@@ -5340,3 +5340,8 @@ body {
 .app-footer:hover {
   opacity: 1;
 }
+.page1 .app-footer {
+  margin-top: 60px;
+  margin-bottom: 90px;
+}
+
