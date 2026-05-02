@@ -1,8 +1,17 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
+console.log('Page actuelle :', location.pathname);
+window.addEventListener('error', (e) => {
+  console.error('Erreur JS détectée :', e.message, e.filename, e.lineno);
+});
+
 (function () {
   const { StorageService, UiService } = window;
+  const isPage1 = location.pathname.includes('index.html') || location.pathname === '/';
+  const isPage2 = location.pathname.includes('page2.html');
+  const isPage3 = location.pathname.includes('page3.html');
+  console.log('isPage1:', isPage1, 'isPage2:', isPage2, 'isPage3:', isPage3);
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -5273,17 +5282,29 @@ Ajoutez un nouveau matériel en appuyant sur +.');
     }
   }
 
-
-  try {
-    bootstrap().catch((error) => {
-      console.error('Erreur init app :', error);
-    }).finally(() => {
-      UiService.markAppReady();
-      document.body.classList.remove('loading', 'is-loading');
-    });
-  } catch (error) {
-    console.error('Erreur init app :', error);
+  function hideGlobalSkeleton() {
+    console.log('Skeleton supprimé');
+    document.querySelector('.skeleton-container')?.remove();
     UiService.markAppReady();
-    document.body.classList.remove('loading', 'is-loading');
   }
+
+  function safeInit() {
+    console.log('Init app start');
+    try {
+      bootstrap().catch((error) => {
+        console.error('Erreur init app :', error);
+      }).finally(() => {
+        console.log('Fin init → enlever skeleton');
+        hideGlobalSkeleton();
+        document.body.classList.remove('loading', 'is-loading');
+      });
+    } catch (error) {
+      console.error('Erreur INIT :', error);
+      console.log('Fin init → enlever skeleton');
+      hideGlobalSkeleton();
+      document.body.classList.remove('loading', 'is-loading');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', safeInit);
 })();
