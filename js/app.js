@@ -2643,6 +2643,10 @@ import { firebaseAuth } from './firebase-core.js';
     const siteExportCancelButton = requireElement('siteExportCancelButton');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
+    const achatMaterielTab = document.querySelector('#achatMaterielTab');
+    const outTab = document.querySelector('[data-tab="out"]');
+    const outSection = document.querySelector('#outSection');
+    const achatSection = document.querySelector('#achatSection');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
 
@@ -2666,6 +2670,66 @@ import { firebaseAuth } from './firebase-core.js';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
+
+    function getCurrentUserRoleForSiteDetail() {
+      if (permissions?.isAdmin) {
+        return 'admin';
+      }
+      if (permissions?.isStandard) {
+        return 'standard';
+      }
+      return 'limite';
+    }
+
+    function activateOutSection() {
+      document.querySelectorAll('.page2-tab').forEach((tab) => tab.classList.remove('active'));
+      document.querySelectorAll('.page2-tab-section').forEach((section) => section.classList.remove('active'));
+      outTab?.classList.add('active');
+      outSection?.classList.add('active');
+      achatSection?.classList.remove('active');
+    }
+
+    function updateAchatMaterielTabVisibility() {
+      const user = firebaseAuth.currentUser;
+      const role = getCurrentUserRoleForSiteDetail();
+      const normalizedRole = String(role || '').toLowerCase();
+      const isAdmin = !!user && normalizedRole === 'admin';
+
+      if (!isAdmin) {
+        achatMaterielTab?.classList.add('hidden');
+        activateOutSection();
+        return;
+      }
+
+      achatMaterielTab?.classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.page2-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        const role = getCurrentUserRoleForSiteDetail();
+        const normalizedRole = String(role || '').toLowerCase();
+        const isAdmin = !!firebaseAuth.currentUser && normalizedRole === 'admin';
+
+        if (tabName === 'achat' && !isAdmin) {
+          updateAchatMaterielTabVisibility();
+          return;
+        }
+
+        document.querySelectorAll('.page2-tab').forEach((button) => button.classList.remove('active'));
+        document.querySelectorAll('.page2-tab-section').forEach((section) => section.classList.remove('active'));
+        tab.classList.add('active');
+
+        if (tabName === 'out') {
+          outSection?.classList.add('active');
+        }
+        if (tabName === 'achat') {
+          achatSection?.classList.add('active');
+        }
+      });
+    });
+
+    updateAchatMaterielTabVisibility();
 
     async function loadUserNames() {
       try {
@@ -3411,8 +3475,10 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
+    updateAchatMaterielTabVisibility();
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
+      updateAchatMaterielTabVisibility();
     });
 
     openCreateItem?.addEventListener('click', () => {
