@@ -59,7 +59,36 @@
           </select>
         </section>
 
-        <section id="itemList" class="list-grid" aria-live="polite"></section>
+        <div class="page2-tabs" role="tablist" aria-label="Sections page 2">
+          <button class="page2-tab active" data-tab="out" type="button">OUT</button>
+          <button class="page2-tab admin-only hidden" data-tab="achat" id="achatMaterielTab" type="button">
+            Achat matériel
+          </button>
+        </div>
+
+        <section id="outSection" class="page2-tab-section active">
+          <section id="itemList" class="list-grid" aria-live="polite"></section>
+        </section>
+
+        <section id="achatSection" class="page2-tab-section">
+          <form id="achatMaterielForm" class="surface-card section">
+            <label class="input-group">
+              <span>Désignation</span>
+              <input id="achatDesignationInput" name="designation" type="text" placeholder=" " />
+            </label>
+            <label class="input-group magasin-group">
+              <span class="magasin-label">Magasin</span>
+              <input id="achatStoreInput" name="store" type="text" placeholder=" " />
+            </label>
+            <label class="input-group">
+              <span>Quantité</span>
+              <input id="achatQuantityInput" name="quantity" type="number" min="0" step="1" placeholder="0" />
+            </label>
+            <div class="modal-actions modal-actions--site-create">
+              <button type="submit" class="btn btn-success">Ajouter matériel</button>
+            </div>
+          </form>
+        </section>
       </main>
 
       <div class="site-detail-fab-stack" aria-hidden="false">
