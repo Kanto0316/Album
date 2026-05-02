@@ -162,6 +162,10 @@ body[data-page="history"] {
   background: linear-gradient(180deg, #d8ecff 0%, #eef6ff 45%, #f6f9ff 100%);
 }
 
+body.page1 {
+  padding-bottom: 140px; /* espace sécurisé pour le bouton + */
+}
+
 button,
 input,
 select,
