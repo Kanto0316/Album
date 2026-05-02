@@ -1294,10 +1294,10 @@ body[data-page="history"] .list-grid {
   height: 56px;
   border: 0;
   border-radius: 50%;
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
   font-size: 2rem;
-  box-shadow: 0 14px 28px rgba(17, 24, 39, 0.28);
+  box-shadow: 0 10px 22px rgba(39, 141, 218, 0.32);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
