@@ -4179,6 +4179,14 @@ body[data-page="home"] .search-panel .input-group {
   position: relative;
   gap: 0;
 }
+body[data-page="home"] .search-panel.search-panel--inline {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 
 body[data-page="home"] .search-input__icon-wrap {
   position: absolute;
