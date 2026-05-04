@@ -1,6 +1,7 @@
-(function () {
-  const { StorageService } = window;
+import { collectionGroup, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { firebaseDb } from './firebase-core.js';
 
+(function () {
   function requireElement(id) {
     return document.getElementById(id);
   }
@@ -14,82 +15,102 @@
       .replace(/'/g, '&#39;');
   }
 
-  function normalizeMaterials(details) {
-    const map = new Map();
-
-    details.forEach((item) => {
-      const code = String(item?.code || item?.ref || item?.reference || '').trim();
-      const designation = String(item?.designation || item?.['désignation'] || item?.name || '').trim();
-
-      if (code && !map.has(code)) {
-        map.set(code, {
-          code,
-          designation,
-        });
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) =>
-      String(a.designation).localeCompare(String(b.designation), 'fr', { sensitivity: 'base' }),
-    );
+  function normalizeMaterialRow(data) {
+    const code = String(data?.code || data?.ref || data?.reference || data?.Code || '').trim();
+    const designation = String(
+      data?.designation || data?.Designation || data?.désignation || data?.['Désignation'] || data?.name || '',
+    ).trim();
+    return { code, designation };
   }
 
-  function renderRows(rows) {
+  function renderMaterials(materials) {
     const tbody = requireElement('materialsTableBody');
     const emptyState = requireElement('materialsEmptyState');
     const table = requireElement('materialsDataTable');
     const countNumber = document.querySelector('#materialsCount .count-number');
 
     if (!tbody || !emptyState || !table || !countNumber) {
+      console.error('materialsTableBody introuvable');
       return;
     }
 
-    countNumber.textContent = String(rows.length);
+    countNumber.textContent = String(materials.length);
 
-    if (!rows.length) {
-      tbody.innerHTML = '';
-      table.hidden = true;
-      emptyState.hidden = false;
+    if (!materials.length) {
+      tbody.innerHTML = '<tr><td colspan="2">Aucun matériel disponible.</td></tr>';
+      table.hidden = false;
+      emptyState.hidden = true;
       return;
     }
 
     emptyState.hidden = true;
     table.hidden = false;
-    tbody.innerHTML = rows
+    tbody.innerHTML = materials
       .map(
-        (material) => `\n          <tr>\n            <td>${escapeHtml(material.code)}</td>\n            <td>${escapeHtml(material.designation)}</td>\n          </tr>\n        `,
+        (item) => `\n          <tr>\n            <td>${escapeHtml(item.code)}</td>\n            <td>${escapeHtml(item.designation || '-')}</td>\n          </tr>\n        `,
       )
       .join('');
+  }
+
+  async function loadAllMaterials() {
+    console.log('Chargement tous matériels...');
+    const snap = await getDocs(collectionGroup(firebaseDb, 'page3'));
+    console.log('Nombre documents articles :', snap.size);
+
+    const uniqueMaterials = new Map();
+    snap.forEach((docSnap) => {
+      const row = normalizeMaterialRow(docSnap.data());
+      if (!row.code) {
+        return;
+      }
+      if (!uniqueMaterials.has(row.code)) {
+        uniqueMaterials.set(row.code, row);
+      }
+    });
+
+    const materials = Array.from(uniqueMaterials.values()).sort((a, b) =>
+      String(a.designation).localeCompare(String(b.designation), 'fr', { sensitivity: 'base' }),
+    );
+
+    console.log('Matériels uniques :', materials.length);
+    return materials;
   }
 
   async function init() {
     const backButton = requireElement('materialsBackButton');
     const searchInput = requireElement('materialsSearchInput');
+    let allMaterials = [];
 
     backButton?.addEventListener('click', () => {
       window.location.assign('index.html');
     });
 
-    await StorageService.init();
-    const details = await StorageService.getAllDetails();
-    const materials = normalizeMaterials(details);
-
     const applySearch = () => {
       const query = String(searchInput?.value || '').trim().toLowerCase();
       if (!query) {
-        renderRows(materials);
+        renderMaterials(allMaterials);
         return;
       }
-      const filtered = materials.filter((material) => {
+      const filtered = allMaterials.filter((material) => {
         const code = String(material.code || '').toLowerCase();
         const designation = String(material.designation || '').toLowerCase();
         return code.includes(query) || designation.includes(query);
       });
-      renderRows(filtered);
+      renderMaterials(filtered);
     };
 
     searchInput?.addEventListener('input', applySearch);
-    renderRows(materials);
+
+    try {
+      allMaterials = await loadAllMaterials();
+      renderMaterials(allMaterials);
+    } catch (error) {
+      console.error('Erreur chargement matériels :', error);
+      renderMaterials([]);
+    } finally {
+      window.hideGlobalSkeleton?.();
+      document.body.classList.remove('loading');
+    }
   }
 
   init();
