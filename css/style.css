@@ -4163,6 +4163,7 @@ body[data-page="site-detail"] .list-card:active {
 .search-input:focus {
   outline: none;
   border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 body[data-page="home"] .search-panel {
@@ -4623,16 +4624,13 @@ body[data-page="home"] .saved-sites-label__icon {
   flex-shrink: 0;
 }
 
-body[data-page="home"] .site-count-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(22, 163, 74, 0.14);
+body[data-page="home"] .site-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+body[data-page="home"] .site-count {
   color: #166534;
-  font-size: 0.84rem;
   font-weight: 700;
 }
 
