@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Tous les matériels - Suivi Matériel</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+  <body data-page="all-materials" class="page3">
+    <div class="app-shell app-shell--wide">
+      <header class="app-header app-header--detail">
+        <div class="app-header__side app-header__side--left">
+          <button class="back-button" type="button" id="materialsBackButton" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+        </div>
+        <div class="app-header__center">
+          <div class="header-title header-title--stacked">
+            <h1>Tous les matériels</h1>
+          </div>
+        </div>
+        <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
+      </header>
+
+      <main class="page-content page-content--wide main-content">
+        <section class="surface-card table-card section">
+          <div class="section-heading section-heading--table">
+            <div class="header-top page3-summary-header">
+              <div class="title-block page3-title-block">
+                <h2 class="section-title">Tableau des matériels</h2>
+              </div>
+            </div>
+          </div>
+          <div class="page3-sub-info">
+            <div id="materialsCount" class="article-count page3-article-count">
+              <span class="count-number page3-count-number">0</span>
+              <span class="count-label page3-count-label">Matériels</span>
+            </div>
+          </div>
+          <div class="search-panel search-panel--inline">
+            <label class="input-group">
+              <span class="search-input__icon-wrap" aria-hidden="true">
+                <img src="Icon/Recherche.png" alt="" class="search-input__icon" />
+              </span>
+              <input id="materialsSearchInput" class="search-input" type="text" placeholder="Rechercher un matériel..." autocomplete="off" />
+            </label>
+          </div>
+          <div class="table-container table-container--card">
+            <div class="table-wrapper table-wrapper--shared">
+              <table class="data-table" id="materialsDataTable">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Désignation</th>
+                  </tr>
+                </thead>
+                <tbody id="materialsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <p id="materialsEmptyState" class="empty-state" hidden>Aucun matériel disponible.</p>
+        </section>
+      </main>
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/materiels.js"></script>
+  </body>
+</html>
