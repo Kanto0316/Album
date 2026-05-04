@@ -914,6 +914,7 @@ import { firebaseAuth } from './firebase-core.js';
     const manageUsersButton = requireElement('sidebarUsersBtn');
     const usersSidebarBtn = homeMenuPanel?.querySelector('#sidebarUsersBtn') || null;
     const historySidebarBtn = homeMenuPanel?.querySelector('#sidebarHistoryBtn') || null;
+    const allMaterialsSidebarBtn = homeMenuPanel?.querySelector('#sidebarAllMaterialsBtn') || null;
     const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
@@ -2120,6 +2121,15 @@ import { firebaseAuth } from './firebase-core.js';
         event.preventDefault();
         event.stopPropagation();
         window.location.assign('users.html');
+      });
+    }
+
+
+    if (allMaterialsSidebarBtn) {
+      allMaterialsSidebarBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.assign('materiels.html');
       });
     }
 
