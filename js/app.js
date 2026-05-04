@@ -1345,6 +1345,10 @@ import { firebaseAuth } from './firebase-core.js';
     const HOME_MENU_ANIMATION_LOCK_MS = 320;
     let homeMenuCloseTimer = null;
     let sidebarAnimating = false;
+    let touchStartX = 0;
+    let touchCurrentX = 0;
+    let isDraggingSidebar = false;
+    let sidebarWidth = 0;
     const homeMenuStateKey = '__homeMenuOpen__';
     const homeMenuCloseButton = requireElement('homeMenuCloseButton');
 
@@ -1363,6 +1367,12 @@ import { firebaseAuth } from './firebase-core.js';
       }
       homeMenuPanel.hidden = true;
       homeMenuPanel.classList.remove('is-open', 'is-closing');
+      homeMenuPanel.style.transform = '';
+      homeMenuPanel.style.transition = '';
+      if (homeMenuOverlay) {
+        homeMenuOverlay.style.opacity = '';
+      }
+      isDraggingSidebar = false;
       sidebarAnimating = false;
     }
 
@@ -1382,6 +1392,7 @@ import { firebaseAuth } from './firebase-core.js';
 
       homeMenuPanel.classList.remove('is-open');
       homeMenuPanel.classList.add('is-closing');
+      homeMenuPanel.style.transform = '';
       const onTransitionEnd = (event) => {
         if (event.target !== homeMenuPanel) {
           return;
@@ -1977,6 +1988,53 @@ import { firebaseAuth } from './firebase-core.js';
 
       homeMenuPanel.addEventListener('click', (event) => {
         event.stopPropagation();
+      });
+
+      homeMenuPanel.addEventListener('touchstart', (event) => {
+        if (!homeMenuPanel.classList.contains('is-open') || sidebarAnimating) {
+          return;
+        }
+        touchStartX = event.touches[0].clientX;
+        touchCurrentX = touchStartX;
+        sidebarWidth = homeMenuPanel.offsetWidth || 0;
+        isDraggingSidebar = true;
+        homeMenuPanel.style.transition = 'none';
+      }, { passive: true });
+
+      homeMenuPanel.addEventListener('touchmove', (event) => {
+        if (!isDraggingSidebar || !sidebarWidth) {
+          return;
+        }
+        touchCurrentX = event.touches[0].clientX;
+        const deltaX = touchCurrentX - touchStartX;
+        if (deltaX < 0) {
+          const translateX = Math.max(deltaX, -sidebarWidth);
+          homeMenuPanel.style.transform = `translateX(${translateX}px)`;
+          const progress = Math.min(Math.abs(deltaX) / sidebarWidth, 1);
+          homeMenuOverlay.style.opacity = String(1 - progress * 0.45);
+        }
+      }, { passive: true });
+
+      homeMenuPanel.addEventListener('touchend', () => {
+        if (!isDraggingSidebar) {
+          return;
+        }
+        isDraggingSidebar = false;
+        const deltaX = touchCurrentX - touchStartX;
+        homeMenuPanel.style.transition = '';
+        homeMenuOverlay.style.opacity = '';
+        if (Math.abs(deltaX) > sidebarWidth * 0.35 && deltaX < 0) {
+          closeSidebar();
+          return;
+        }
+        homeMenuPanel.style.transform = '';
+      });
+
+      homeMenuPanel.addEventListener('touchcancel', () => {
+        isDraggingSidebar = false;
+        homeMenuPanel.style.transition = '';
+        homeMenuPanel.style.transform = '';
+        homeMenuOverlay.style.opacity = '';
       });
 
       homeMenuOverlay.addEventListener('click', closeSidebar);
