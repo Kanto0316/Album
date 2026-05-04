@@ -5186,6 +5186,8 @@ body.sidebar-open {
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   border-radius: 0 26px 26px 0;
   padding: 20px 16px;
+  will-change: transform;
+  touch-action: pan-y;
 }
 
 .sidebar-header {
