@@ -577,7 +577,6 @@ import { firebaseDb } from './firebase-core.js';
       openMaterialCartModal();
     });
 
-    document.querySelector('#copyRequestBtn')?.addEventListener('click', copyMaterialRequest);
     document.querySelector('#downloadRequestPngBtn')?.addEventListener('click', downloadRequestAsPng);
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
