@@ -4,6 +4,7 @@ import { firebaseDb } from './firebase-core.js';
 (function () {
   const isMaterialsPage = location.pathname.includes('materiels.html');
   const CART_KEY = 'materialRequestCart';
+  const HINT_KEY = 'materialsHintSeen';
   let materialCart = [];
   let currentEditingQtyCode = null;
 
@@ -38,6 +39,31 @@ import { firebaseDb } from './firebase-core.js';
 
   function saveMaterialCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(materialCart));
+  }
+
+  function initMaterialsHint() {
+    const hint = document.querySelector('#materialsHint');
+    const closeBtn = document.querySelector('#closeMaterialsHint');
+
+    if (!hint) {
+      return;
+    }
+
+    const alreadySeen = localStorage.getItem(HINT_KEY) === 'true';
+
+    if (!alreadySeen) {
+      hint.classList.remove('hidden');
+    }
+
+    closeBtn?.addEventListener('click', () => {
+      localStorage.setItem(HINT_KEY, 'true');
+      hint.classList.add('hidden');
+    });
+  }
+
+  function markMaterialsHintSeen() {
+    localStorage.setItem(HINT_KEY, 'true');
+    document.querySelector('#materialsHint')?.classList.add('hidden');
   }
 
   function updateMaterialCartBadge() {
@@ -98,6 +124,7 @@ import { firebaseDb } from './firebase-core.js';
     saveMaterialCart();
     updateMaterialCartBadge();
     renderMaterialCart();
+    markMaterialsHintSeen();
     window.UiService?.showToast?.('Matériel ajouté au panier');
   }
 
@@ -400,6 +427,8 @@ import { firebaseDb } from './firebase-core.js';
     });
 
     toggleClearButton();
+
+    initMaterialsHint();
 
     loadMaterialCart();
     updateMaterialCartBadge();

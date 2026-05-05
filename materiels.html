@@ -146,6 +146,27 @@
         animation: site-lock-input-shake 300ms ease-in-out 1;
       }
 
+      .materials-page .materials-hint {
+        margin: 14px 0;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: #eef7ff;
+        color: #2563eb;
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .materials-page .materials-hint button {
+        border: none;
+        background: transparent;
+        font-size: 20px;
+        color: inherit;
+      }
+
     </style>
   </head>
   <body data-page="all-materials" class="page3 materials-page">
@@ -176,6 +197,10 @@
               <span class="count-number page3-count-number">0</span>
               <span class="count-label page3-count-label">Matériels</span>
             </div>
+          </div>
+          <div id="materialsHint" class="materials-hint hidden">
+            <span>👋 Astuce : appuyez sur un matériel pour l’ajouter à votre demande.</span>
+            <button id="closeMaterialsHint" type="button" aria-label="Fermer l’astuce">×</button>
           </div>
           <div class="search-panel search-panel--inline">
             <label class="input-group">
