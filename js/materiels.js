@@ -31,7 +31,11 @@ import { firebaseDb } from './firebase-core.js';
 
   function loadMaterialCart() {
     try {
-      materialCart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+      const savedCart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+      materialCart = savedCart.map((item) => ({
+        ...item,
+        unit: item.unit || getDefaultMaterialUnit(item.designation || ''),
+      }));
     } catch (_error) {
       materialCart = [];
     }
@@ -39,6 +43,22 @@ import { firebaseDb } from './firebase-core.js';
 
   function saveMaterialCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(materialCart));
+  }
+
+  function getDefaultMaterialUnit(designation = '') {
+    const text = designation.toLowerCase();
+
+    if (
+      text.includes('cable')
+      || text.includes('câble')
+      || text.includes('cuivre')
+      || text.includes('fil')
+      || text.includes('gaine')
+    ) {
+      return 'm';
+    }
+
+    return 'Pcs';
   }
 
   function initMaterialsHint() {
@@ -115,6 +135,7 @@ import { firebaseDb } from './firebase-core.js';
         code: material.code,
         designation: material.designation,
         qty: 1,
+        unit: getDefaultMaterialUnit(material.designation),
       });
     }
 
@@ -154,6 +175,18 @@ import { firebaseDb } from './firebase-core.js';
     renderMaterialCart();
   }
 
+  function updateMaterialUnit(code, newUnit) {
+    materialCart = materialCart.map((item) => {
+      if (item.code === code) {
+        return { ...item, unit: newUnit };
+      }
+      return item;
+    });
+
+    saveMaterialCart();
+    renderMaterialCart();
+  }
+
   function renderMaterialCart() {
     const list = document.querySelector('#materialCartList');
     if (!list) {
@@ -180,6 +213,10 @@ import { firebaseDb } from './firebase-core.js';
             <button class="btn btn-secondary qty-minus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Diminuer la quantité de ${escapeHtml(item.code)}">−</button>
             <button class="qty-value qty-edit-btn" data-code="${escapeHtml(item.code)}" type="button">${escapeHtml(item.qty || 1)}</button>
             <button class="btn btn-secondary qty-plus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Augmenter la quantité de ${escapeHtml(item.code)}">+</button>
+            <select class="unit-select" data-code="${escapeHtml(item.code)}">
+              <option value="Pcs" ${item.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
+              <option value="m" ${item.unit === 'm' ? 'selected' : ''}>m</option>
+            </select>
           </div>
         </div>
         <button class="remove-cart-item-btn" data-code="${escapeHtml(item.code)}" type="button" aria-label="Retirer ${escapeHtml(item.code)}">×</button>
@@ -206,6 +243,12 @@ import { firebaseDb } from './firebase-core.js';
         editQtyDirectly(btn.dataset.code || '');
       });
     });
+
+    list.querySelectorAll('.unit-select').forEach((select) => {
+      select.addEventListener('change', () => {
+        updateMaterialUnit(select.dataset.code || '', select.value);
+      });
+    });
   }
 
   function formatMaterialRequestText() {
@@ -214,15 +257,16 @@ import { firebaseDb } from './firebase-core.js';
     }
 
     let text = '📦 DEMANDE DE MATÉRIEL\n\n';
-    text += 'Code | Désignation | Qté\n';
+    text += 'Code | Désignation | Qté | Unité\n';
     text += '----------------------------------\n';
 
     materialCart.forEach((item) => {
       const code = item.code || '';
       const designation = item.designation || '';
       const qty = item.qty || 1;
+      const unit = item.unit || 'Pcs';
 
-      text += `${code} | ${designation} | ${qty}\n`;
+      text += `${code} | ${designation} | ${qty} | ${unit}\n`;
     });
 
     return text;
@@ -275,6 +319,7 @@ import { firebaseDb } from './firebase-core.js';
             <th style="text-align:left;padding:16px;border:1px solid #cbd5e1;">Code</th>
             <th style="text-align:left;padding:16px;border:1px solid #cbd5e1;">Désignation</th>
             <th style="text-align:center;padding:16px;border:1px solid #cbd5e1;">Qté</th>
+            <th style="text-align:center;padding:16px;border:1px solid #cbd5e1;">Unité</th>
           </tr>
         </thead>
         <tbody>
@@ -283,6 +328,7 @@ import { firebaseDb } from './firebase-core.js';
               <td style="padding:14px;border:1px solid #cbd5e1;">${item.code || '-'}</td>
               <td style="padding:14px;border:1px solid #cbd5e1;">${item.designation || '-'}</td>
               <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;">${item.qty || 1}</td>
+              <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;">${item.unit || 'Pcs'}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -405,6 +451,7 @@ import { firebaseDb } from './firebase-core.js';
         <td>${escapeHtml(item.code || '-')}</td>
         <td>${escapeHtml(item.designation || '-')}</td>
         <td>${escapeHtml(item.qty || 1)}</td>
+        <td>${escapeHtml(item.unit || 'Pcs')}</td>
       </tr>
     `)
       .join('');
