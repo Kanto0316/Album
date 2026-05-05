@@ -2319,7 +2319,12 @@ body[data-page="item-detail"] #detailSearchInput {
   padding-right: 52px;
 }
 
-body[data-page="item-detail"] .clear-search-btn {
+body[data-page="all-materials"] #materialsSearchInput {
+  padding-right: 52px;
+}
+
+body[data-page="item-detail"] .clear-search-btn,
+body[data-page="all-materials"] .clear-search-btn {
   display: none;
   position: absolute;
   right: 16px;
@@ -2338,7 +2343,8 @@ body[data-page="item-detail"] .clear-search-btn {
   padding: 0;
 }
 
-body[data-page="item-detail"] .clear-search-btn:active {
+body[data-page="item-detail"] .clear-search-btn:active,
+body[data-page="all-materials"] .clear-search-btn:active {
   transform: translateY(-50%) scale(0.94);
   background: #e0eefc;
 }
