@@ -1,7 +1,9 @@
-import { collectionGroup, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseDb } from './firebase-core.js';
 
 (function () {
+  const isMaterialsPage = location.pathname.includes('materiels.html');
+
   function requireElement(id) {
     return document.getElementById(id);
   }
@@ -24,38 +26,52 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function renderMaterials(materials) {
-    const tbody = requireElement('materialsTableBody');
+    const tbody = document.querySelector('#materialsTableBody');
+
+    if (!tbody) {
+      console.error('#materialsTableBody introuvable');
+      return;
+    }
+
+    const safeMaterials = Array.isArray(materials) ? materials : [];
+    const countNumber = document.querySelector('#materialsCount .count-number');
     const emptyState = requireElement('materialsEmptyState');
     const table = requireElement('materialsDataTable');
-    const countNumber = document.querySelector('#materialsCount .count-number');
 
-    if (!tbody || !emptyState || !table || !countNumber) {
-      console.error('materialsTableBody introuvable');
+    if (countNumber) {
+      countNumber.textContent = String(safeMaterials.length);
+    }
+
+    if (!safeMaterials.length) {
+      tbody.innerHTML = '\n      <tr>\n        <td colspan="2">Aucun matériel disponible.</td>\n      </tr>\n    ';
+      if (table) {
+        table.hidden = false;
+      }
+      if (emptyState) {
+        emptyState.hidden = true;
+      }
       return;
     }
 
-    countNumber.textContent = String(materials.length);
-
-    if (!materials.length) {
-      tbody.innerHTML = '<tr><td colspan="2">Aucun matériel disponible.</td></tr>';
-      table.hidden = false;
+    if (emptyState) {
       emptyState.hidden = true;
-      return;
+    }
+    if (table) {
+      table.hidden = false;
     }
 
-    emptyState.hidden = true;
-    table.hidden = false;
-    tbody.innerHTML = materials
-      .map(
-        (item) => `\n          <tr>\n            <td>${escapeHtml(item.code)}</td>\n            <td>${escapeHtml(item.designation || '-')}</td>\n          </tr>\n        `,
-      )
-      .join('');
+    tbody.innerHTML = safeMaterials.map((item) => `
+    <tr>
+      <td>${escapeHtml(item.code || '-')}</td>
+      <td>${escapeHtml(item.designation || '-')}</td>
+    </tr>
+  `).join('');
   }
 
   async function loadAllMaterials() {
     console.log('Chargement tous matériels...');
-    const snap = await getDocs(collectionGroup(firebaseDb, 'page3'));
-    console.log('Nombre documents articles :', snap.size);
+    const snap = await getDocs(collection(firebaseDb, 'pages', 'page3', 'items'));
+    console.log('Documents articles trouvés :', snap.size);
 
     const uniqueMaterials = new Map();
     snap.forEach((docSnap) => {
@@ -76,7 +92,9 @@ import { firebaseDb } from './firebase-core.js';
     return materials;
   }
 
-  async function init() {
+  async function initMaterialsPage() {
+    console.log('Init materiels.html');
+
     const backButton = requireElement('materialsBackButton');
     const searchInput = requireElement('materialsSearchInput');
     let allMaterials = [];
@@ -105,13 +123,18 @@ import { firebaseDb } from './firebase-core.js';
       allMaterials = await loadAllMaterials();
       renderMaterials(allMaterials);
     } catch (error) {
-      console.error('Erreur chargement matériels :', error);
+      console.error('Erreur chargement tous matériels :', error);
       renderMaterials([]);
     } finally {
-      window.hideGlobalSkeleton?.();
+      window.UiService?.markAppReady?.();
       document.body.classList.remove('loading');
+      document.querySelector('.global-skeleton')?.remove();
+      document.querySelector('.skeleton-container')?.remove();
+      document.querySelector('#skeleton')?.remove();
     }
   }
 
-  init();
+  if (isMaterialsPage) {
+    initMaterialsPage();
+  }
 })();
