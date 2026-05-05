@@ -141,8 +141,8 @@ import { firebaseDb } from './firebase-core.js';
     window.UiService?.showToast?.('Demande exportée');
   }
 
-  function openMaterialCartModal() {
-    const modal = requireElement('materialCartModal');
+  function openDialogById(id) {
+    const modal = requireElement(id);
     if (!modal || typeof modal.showModal !== 'function') {
       return;
     }
@@ -151,14 +151,61 @@ import { firebaseDb } from './firebase-core.js';
     }
   }
 
-  function closeMaterialCartModal() {
-    const modal = requireElement('materialCartModal');
+  function closeDialogById(id) {
+    const modal = requireElement(id);
     if (!modal || typeof modal.close !== 'function') {
       return;
     }
     if (modal.open) {
       modal.close();
     }
+  }
+
+  function openMaterialCartModal() {
+    openDialogById('materialCartModal');
+  }
+
+  function closeMaterialCartModal() {
+    closeDialogById('materialCartModal');
+  }
+
+  function openMaterialRequestPreviewModal() {
+    openDialogById('materialRequestPreviewModal');
+  }
+
+  function closeMaterialRequestPreviewModal() {
+    closeDialogById('materialRequestPreviewModal');
+  }
+
+
+  function renderMaterialRequestPreview() {
+    const tbody = requireElement('materialRequestPreviewBody');
+    const table = requireElement('materialRequestPreviewTable');
+    const emptyState = requireElement('materialRequestPreviewEmptyState');
+
+    if (!tbody || !table || !emptyState) {
+      return;
+    }
+
+    if (!materialCart.length) {
+      tbody.innerHTML = '';
+      table.hidden = true;
+      emptyState.hidden = false;
+      return;
+    }
+
+    tbody.innerHTML = materialCart
+      .map((item) => `
+      <tr>
+        <td>${escapeHtml(item.code || '-')}</td>
+        <td>${escapeHtml(item.designation || '-')}</td>
+        <td>${escapeHtml(item.quantity || 1)}</td>
+      </tr>
+    `)
+      .join('');
+
+    table.hidden = false;
+    emptyState.hidden = true;
   }
 
   function renderMaterials(materials) {
@@ -290,11 +337,30 @@ import { firebaseDb } from './firebase-core.js';
       }
     });
 
+    requireElement('materialRequestPreviewModal')?.addEventListener('click', (event) => {
+      const modal = event.currentTarget;
+      if (event.target === modal) {
+        closeMaterialRequestPreviewModal();
+      }
+    });
+
     requireElement('clearMaterialCartBtn')?.addEventListener('click', () => {
       materialCart = [];
       saveMaterialCart();
       updateMaterialCartBadge();
       renderMaterialCart();
+    });
+
+    requireElement('viewMaterialRequestBtn')?.addEventListener('click', () => {
+      closeMaterialCartModal();
+      renderMaterialRequestPreview();
+      openMaterialRequestPreviewModal();
+    });
+
+    requireElement('backToMaterialCartBtn')?.addEventListener('click', () => {
+      closeMaterialRequestPreviewModal();
+      renderMaterialCart();
+      openMaterialCartModal();
     });
 
     requireElement('exportMaterialRequestBtn')?.addEventListener('click', exportMaterialRequest);
