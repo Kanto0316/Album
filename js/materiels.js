@@ -3,6 +3,8 @@ import { firebaseDb } from './firebase-core.js';
 
 (function () {
   const isMaterialsPage = location.pathname.includes('materiels.html');
+  const CART_KEY = 'materialRequestCart';
+  let materialCart = [];
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -23,6 +25,140 @@ import { firebaseDb } from './firebase-core.js';
       data?.designation || data?.Designation || data?.désignation || data?.['Désignation'] || data?.name || '',
     ).trim();
     return { code, designation };
+  }
+
+  function loadMaterialCart() {
+    try {
+      materialCart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+    } catch (_error) {
+      materialCart = [];
+    }
+  }
+
+  function saveMaterialCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(materialCart));
+  }
+
+  function updateMaterialCartBadge() {
+    const badge = document.querySelector('#materialCartBadge');
+    const fab = document.querySelector('#materialCartFab');
+
+    if (!badge || !fab) {
+      return;
+    }
+
+    const count = materialCart.length;
+    badge.textContent = String(count);
+
+    if (count > 0) {
+      badge.classList.add('visible');
+      fab.classList.remove('hidden');
+      return;
+    }
+
+    badge.classList.remove('visible');
+    fab.classList.add('hidden');
+  }
+
+  function addMaterialToCart(material) {
+    const exists = materialCart.some((item) => item.code === material.code);
+
+    if (exists) {
+      window.UiService?.showToast?.('Matériel déjà dans le panier');
+      return;
+    }
+
+    materialCart.push({
+      code: material.code,
+      designation: material.designation,
+    });
+
+    updateMaterialCartBadge();
+    saveMaterialCart();
+    window.UiService?.showToast?.('Matériel ajouté au panier');
+  }
+
+  function removeMaterialFromCart(code) {
+    materialCart = materialCart.filter((item) => item.code !== code);
+    saveMaterialCart();
+    updateMaterialCartBadge();
+    renderMaterialCart();
+  }
+
+  function renderMaterialCart() {
+    const list = document.querySelector('#materialCartList');
+    if (!list) {
+      return;
+    }
+
+    if (!materialCart.length) {
+      list.innerHTML = '<p class="empty-state">Aucun matériel dans la demande.</p>';
+      return;
+    }
+
+    list.innerHTML = materialCart
+      .map((item) => `
+      <div class="material-cart-card">
+        <div>
+          <strong>${escapeHtml(item.code)}</strong>
+          <p>${escapeHtml(item.designation || '-')}</p>
+        </div>
+        <button class="remove-cart-item-btn" data-code="${escapeHtml(item.code)}" type="button" aria-label="Retirer ${escapeHtml(item.code)}">×</button>
+      </div>
+    `)
+      .join('');
+
+    list.querySelectorAll('.remove-cart-item-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        removeMaterialFromCart(btn.dataset.code || '');
+      });
+    });
+  }
+
+  function exportMaterialRequest() {
+    if (!materialCart.length) {
+      window.UiService?.showToast?.('Aucun matériel à exporter');
+      return;
+    }
+
+    const rows = [['Code', 'Désignation'], ...materialCart.map((item) => [item.code, item.designation || ''])];
+
+    const csv = rows
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], {
+      type: 'text/csv;charset=utf-8;',
+    });
+
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = `demande-materiel-${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    window.UiService?.showToast?.('Demande exportée');
+  }
+
+  function openMaterialCartModal() {
+    const modal = requireElement('materialCartModal');
+    if (!modal || typeof modal.showModal !== 'function') {
+      return;
+    }
+    if (!modal.open) {
+      modal.showModal();
+    }
+  }
+
+  function closeMaterialCartModal() {
+    const modal = requireElement('materialCartModal');
+    if (!modal || typeof modal.close !== 'function') {
+      return;
+    }
+    if (modal.open) {
+      modal.close();
+    }
   }
 
   function renderMaterials(materials) {
@@ -61,7 +197,7 @@ import { firebaseDb } from './firebase-core.js';
     }
 
     tbody.innerHTML = safeMaterials.map((item) => `
-    <tr>
+    <tr class="material-row" data-code="${escapeHtml(item.code || '')}" data-designation="${escapeHtml(item.designation || '')}">
       <td>${escapeHtml(item.code || '-')}</td>
       <td>${escapeHtml(item.designation || '-')}</td>
     </tr>
@@ -138,6 +274,43 @@ import { firebaseDb } from './firebase-core.js';
     });
 
     toggleClearButton();
+
+    loadMaterialCart();
+    updateMaterialCartBadge();
+
+    requireElement('materialCartFab')?.addEventListener('click', () => {
+      renderMaterialCart();
+      openMaterialCartModal();
+    });
+
+    requireElement('materialCartModal')?.addEventListener('click', (event) => {
+      const modal = event.currentTarget;
+      if (event.target === modal) {
+        closeMaterialCartModal();
+      }
+    });
+
+    requireElement('clearMaterialCartBtn')?.addEventListener('click', () => {
+      materialCart = [];
+      saveMaterialCart();
+      updateMaterialCartBadge();
+      renderMaterialCart();
+    });
+
+    requireElement('exportMaterialRequestBtn')?.addEventListener('click', exportMaterialRequest);
+
+    requireElement('materialsTableBody')?.addEventListener('click', (event) => {
+      const row = event.target.closest('tr.material-row');
+      if (!row) {
+        return;
+      }
+      const code = String(row.dataset.code || '').trim();
+      if (!code) {
+        return;
+      }
+      const designation = String(row.dataset.designation || '').trim();
+      addMaterialToCart({ code, designation });
+    });
 
     try {
       allMaterials = await loadAllMaterials();
