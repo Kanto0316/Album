@@ -47,7 +47,7 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const count = materialCart.length;
+    const count = materialCart.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
     badge.textContent = String(count);
 
     if (count > 0) {
@@ -61,25 +61,48 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function addMaterialToCart(material) {
-    const exists = materialCart.some((item) => item.code === material.code);
+    const existing = materialCart.find((item) => item.code === material.code);
 
-    if (exists) {
-      window.UiService?.showToast?.('Matériel déjà dans le panier');
-      return;
+    if (existing) {
+      existing.qty = (Number(existing.qty) || 1) + 1;
+    } else {
+      materialCart.push({
+        code: material.code,
+        designation: material.designation,
+        qty: 1,
+      });
     }
 
-    materialCart.push({
-      code: material.code,
-      designation: material.designation,
-    });
-
-    updateMaterialCartBadge();
     saveMaterialCart();
+    updateMaterialCartBadge();
+    renderMaterialCart();
     window.UiService?.showToast?.('Matériel ajouté au panier');
   }
 
   function removeMaterialFromCart(code) {
     materialCart = materialCart.filter((item) => item.code !== code);
+    saveMaterialCart();
+    updateMaterialCartBadge();
+    renderMaterialCart();
+  }
+
+  function increaseQty(code) {
+    const item = materialCart.find((cartItem) => cartItem.code === code);
+    if (!item) {
+      return;
+    }
+    item.qty = (Number(item.qty) || 1) + 1;
+    saveMaterialCart();
+    updateMaterialCartBadge();
+    renderMaterialCart();
+  }
+
+  function decreaseQty(code) {
+    const item = materialCart.find((cartItem) => cartItem.code === code);
+    if (!item) {
+      return;
+    }
+    item.qty = Math.max(1, (Number(item.qty) || 1) - 1);
     saveMaterialCart();
     updateMaterialCartBadge();
     renderMaterialCart();
@@ -99,9 +122,14 @@ import { firebaseDb } from './firebase-core.js';
     list.innerHTML = materialCart
       .map((item) => `
       <div class="material-cart-card">
-        <div>
+        <div class="material-cart-info">
           <strong>${escapeHtml(item.code)}</strong>
           <p>${escapeHtml(item.designation || '-')}</p>
+          <div class="qty-control">
+            <button class="btn btn-secondary qty-minus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Diminuer la quantité de ${escapeHtml(item.code)}">−</button>
+            <span class="qty-value">${escapeHtml(item.qty || 1)}</span>
+            <button class="btn btn-secondary qty-plus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Augmenter la quantité de ${escapeHtml(item.code)}">+</button>
+          </div>
         </div>
         <button class="remove-cart-item-btn" data-code="${escapeHtml(item.code)}" type="button" aria-label="Retirer ${escapeHtml(item.code)}">×</button>
       </div>
@@ -113,6 +141,14 @@ import { firebaseDb } from './firebase-core.js';
         removeMaterialFromCart(btn.dataset.code || '');
       });
     });
+
+    list.querySelectorAll('.qty-plus').forEach((btn) => {
+      btn.addEventListener('click', () => increaseQty(btn.dataset.code || ''));
+    });
+
+    list.querySelectorAll('.qty-minus').forEach((btn) => {
+      btn.addEventListener('click', () => decreaseQty(btn.dataset.code || ''));
+    });
   }
 
   function exportMaterialRequest() {
@@ -121,7 +157,10 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const rows = [['Code', 'Désignation'], ...materialCart.map((item) => [item.code, item.designation || ''])];
+    const rows = [
+      ['Code', 'Désignation', 'Quantité demandée'],
+      ...materialCart.map((item) => [item.code, item.designation || '', item.qty || 1]),
+    ];
 
     const csv = rows
       .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';'))
@@ -199,7 +238,7 @@ import { firebaseDb } from './firebase-core.js';
       <tr>
         <td>${escapeHtml(item.code || '-')}</td>
         <td>${escapeHtml(item.designation || '-')}</td>
-        <td>${escapeHtml(item.quantity || 1)}</td>
+        <td>${escapeHtml(item.qty || 1)}</td>
       </tr>
     `)
       .join('');
