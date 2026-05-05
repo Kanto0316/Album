@@ -252,6 +252,46 @@ import { firebaseDb } from './firebase-core.js';
     window.UiService?.showToast?.('Demande copiée ✔');
   }
 
+
+  async function downloadRequestAsPng() {
+    const area = document.querySelector('#requestCaptureArea');
+    const showToast = window.UiService?.showToast;
+
+    if (!area) {
+      showToast?.('Zone de demande introuvable');
+      return;
+    }
+
+    if (!materialCart || materialCart.length === 0) {
+      showToast?.('Aucune demande à télécharger');
+      return;
+    }
+
+    if (typeof window.html2canvas !== 'function') {
+      showToast?.('Export PNG indisponible');
+      return;
+    }
+
+    try {
+      const canvas = await window.html2canvas(area, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true
+      });
+
+      const date = new Date().toISOString().slice(0, 10);
+      const link = document.createElement('a');
+      link.download = `demande-materiel-${date}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      showToast?.('Image PNG téléchargée ✔');
+    } catch (error) {
+      console.error('Erreur export PNG :', error);
+      showToast?.('Erreur téléchargement PNG');
+    }
+  }
+
   function openDialogById(id) {
     const modal = requireElement(id);
     if (!modal || typeof modal.showModal !== 'function') {
@@ -496,6 +536,7 @@ import { firebaseDb } from './firebase-core.js';
     });
 
     document.querySelector('#copyRequestBtn')?.addEventListener('click', copyMaterialRequest);
+    document.querySelector('#downloadRequestPngBtn')?.addEventListener('click', downloadRequestAsPng);
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
       const error = requireElement('editQtyError');

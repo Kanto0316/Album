@@ -278,9 +278,11 @@
             <h2>Demande de matériel</h2>
           </div>
           <p class="table-rotate-hint">Tournez votre téléphone pour mieux voir le tableau.</p>
-          <div class="table-container table-container--card">
-            <div class="table-wrapper table-wrapper--shared">
-              <table class="data-table" id="materialRequestPreviewTable">
+          <div id="requestCaptureArea">
+            <h3>Demande de matériel</h3>
+            <div class="table-container table-container--card">
+              <div class="table-wrapper table-wrapper--shared">
+                <table class="data-table" id="materialRequestPreviewTable">
                 <thead>
                   <tr>
                     <th>Code</th>
@@ -288,15 +290,19 @@
                     <th>Quantité demandée</th>
                   </tr>
                 </thead>
-                <tbody id="materialRequestPreviewBody"></tbody>
-              </table>
+                  <tbody id="materialRequestPreviewBody"></tbody>
+                </table>
+              </div>
             </div>
+            <p id="materialRequestPreviewEmptyState" class="empty-state" hidden>Aucun matériel dans la demande.</p>
           </div>
-          <p id="materialRequestPreviewEmptyState" class="empty-state" hidden>Aucun matériel dans la demande.</p>
           <div class="modal-actions modal-actions__row modal-actions__row--pair">
             <button id="backToMaterialCartBtn" class="btn btn-secondary" type="button">Retour</button>
             <button id="copyRequestBtn" class="primary-btn" type="button">
               Copier
+            </button>
+            <button id="downloadRequestPngBtn" class="primary-btn" type="button">
+              Image PNG
             </button>
           </div>
         </div>
@@ -324,6 +330,7 @@
 
     <script type="module" src="js/storage.js"></script>
     <script src="js/ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script type="module" src="js/materiels.js"></script>
   </body>
 </html>
