@@ -6,8 +6,40 @@
     <title>Tous les matériels - Suivi Matériel</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      .materials-page .search-panel .input-group {
+        position: relative;
+      }
+
+      .materials-page .search-input__icon-wrap {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 24px !important;
+        height: 24px !important;
+        flex: 0 0 24px !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .materials-page .search-input__icon,
+      .materials-page .search-input__icon-wrap img,
+      .materials-page .search-panel img {
+        width: 24px !important;
+        height: 24px !important;
+        object-fit: contain !important;
+      }
+
+      .materials-page #materialsSearchInput {
+        padding-left: 3rem;
+      }
+    </style>
   </head>
-  <body data-page="all-materials" class="page3">
+  <body data-page="all-materials" class="page3 materials-page">
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
         <div class="app-header__side app-header__side--left">
