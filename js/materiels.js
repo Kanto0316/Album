@@ -5,6 +5,7 @@ import { firebaseDb } from './firebase-core.js';
   const isMaterialsPage = location.pathname.includes('materiels.html');
   const CART_KEY = 'materialRequestCart';
   let materialCart = [];
+  let currentEditingQtyCode = null;
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -66,24 +67,19 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const currentQty = Number(item.qty) || 1;
-    const value = window.prompt('Entrer la quantité demandée :', String(currentQty));
+    currentEditingQtyCode = code;
 
-    if (value === null) {
-      return;
+    const input = requireElement('editQtyInput');
+    const error = requireElement('editQtyError');
+    if (input) {
+      input.value = String(item.qty || 1);
+      input.classList.remove('is-error', 'is-shaking');
+    }
+    if (error) {
+      error.textContent = '';
     }
 
-    const qty = parseInt(value, 10);
-
-    if (!Number.isFinite(qty) || qty < 1) {
-      window.UiService?.showToast?.('Quantité invalide');
-      return;
-    }
-
-    item.qty = qty;
-    saveMaterialCart();
-    updateMaterialCartBadge();
-    renderMaterialCart();
+    openEditQtyModal();
   }
 
   function addMaterialToCart(material) {
@@ -246,6 +242,18 @@ import { firebaseDb } from './firebase-core.js';
 
   function closeMaterialRequestPreviewModal() {
     closeDialogById('materialRequestPreviewModal');
+  }
+
+  function openEditQtyModal() {
+    openDialogById('editQtyModal');
+    window.setTimeout(() => {
+      requireElement('editQtyInput')?.focus();
+    }, 150);
+  }
+
+  function closeEditQtyModal() {
+    closeDialogById('editQtyModal');
+    currentEditingQtyCode = null;
   }
 
 
@@ -435,6 +443,47 @@ import { firebaseDb } from './firebase-core.js';
     });
 
     requireElement('exportMaterialRequestBtn')?.addEventListener('click', exportMaterialRequest);
+    requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
+      const input = requireElement('editQtyInput');
+      const error = requireElement('editQtyError');
+      const qty = parseInt(input?.value ?? '', 10);
+
+      if (!Number.isFinite(qty) || qty < 1) {
+        if (error) {
+          error.textContent = 'Veuillez entrer une quantité valide.';
+        }
+        input?.classList.remove('is-shaking');
+        void input?.offsetWidth;
+        input?.classList.add('is-error', 'is-shaking');
+        return;
+      }
+
+      const item = materialCart.find((cartItem) => cartItem.code === currentEditingQtyCode);
+      if (!item) {
+        return;
+      }
+
+      item.qty = qty;
+      saveMaterialCart();
+      updateMaterialCartBadge();
+      renderMaterialCart();
+      closeEditQtyModal();
+    });
+    requireElement('cancelEditQtyBtn')?.addEventListener('click', closeEditQtyModal);
+    requireElement('editQtyInput')?.addEventListener('input', () => {
+      const input = requireElement('editQtyInput');
+      const error = requireElement('editQtyError');
+      input?.classList.remove('is-error', 'is-shaking');
+      if (error) {
+        error.textContent = '';
+      }
+    });
+    requireElement('editQtyModal')?.addEventListener('click', (event) => {
+      const modal = event.currentTarget;
+      if (event.target === modal) {
+        closeEditQtyModal();
+      }
+    });
 
     requireElement('materialsTableBody')?.addEventListener('click', (event) => {
       const row = event.target.closest('tr.material-row');

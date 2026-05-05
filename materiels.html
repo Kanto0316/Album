@@ -136,6 +136,16 @@
         cursor: pointer;
       }
 
+      .materials-page #editQtyInput.is-error,
+      .materials-page #editQtyInput.is-error:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+      }
+
+      .materials-page #editQtyInput.is-shaking {
+        animation: site-lock-input-shake 300ms ease-in-out 1;
+      }
+
     </style>
   </head>
   <body data-page="all-materials" class="page3 materials-page">
@@ -236,6 +246,23 @@
           <div class="modal-actions modal-actions__row modal-actions__row--pair">
             <button id="backToMaterialCartBtn" class="btn btn-secondary" type="button">Retour</button>
             <button id="exportMaterialRequestBtn" class="btn btn-primary" type="button">Exporter</button>
+          </div>
+        </div>
+      </dialog>
+
+      <dialog id="editQtyModal" class="modal-card">
+        <div class="modal-content modal-content--site-create">
+          <div class="modal-header">
+            <h2>Modifier la quantité</h2>
+          </div>
+          <label class="input-group input-group--site-create">
+            <span>Quantité demandée</span>
+            <input id="editQtyInput" type="number" min="1" inputmode="numeric" />
+          </label>
+          <p id="editQtyError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button id="cancelEditQtyBtn" class="btn btn-neutral" type="button">Annuler</button>
+            <button id="saveEditQtyBtn" class="btn btn-success" type="button">Enregistrer</button>
           </div>
         </div>
       </dialog>
