@@ -37,6 +37,77 @@
       .materials-page #materialsSearchInput {
         padding-left: 3rem;
       }
+
+      .materials-page #materialsTableBody tr {
+        cursor: pointer;
+      }
+
+      .materials-page #materialsTableBody tr:hover {
+        background: rgba(59, 130, 246, 0.08);
+      }
+
+      .materials-page .cart-fab {
+        left: 24px;
+        right: auto;
+      }
+
+      .materials-page .cart-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+      }
+
+      .materials-page .cart-badge.visible {
+        display: flex;
+      }
+
+      .materials-page .material-cart-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        margin: 0.75rem 0 1rem;
+        max-height: 45vh;
+        overflow: auto;
+      }
+
+      .materials-page .material-cart-card {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 14px;
+        padding: 0.65rem 0.75rem;
+        background: #f8fbff;
+      }
+
+      .materials-page .material-cart-card p {
+        margin: 0.2rem 0 0;
+        color: #64748b;
+      }
+
+      .materials-page .remove-cart-item-btn {
+        border: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+
     </style>
   </head>
   <body data-page="all-materials" class="page3 materials-page">
@@ -93,6 +164,25 @@
           <p id="materialsEmptyState" class="empty-state" hidden>Aucun matériel disponible.</p>
         </section>
       </main>
+
+      <button id="materialCartFab" class="fab fab-add cart-fab hidden" type="button" aria-label="Voir la demande matériel">
+        🛒
+        <span id="materialCartBadge" class="cart-badge">0</span>
+      </button>
+
+      <dialog id="materialCartModal" class="modal-card">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Demande de matériel</h2>
+          </div>
+          <div id="materialCartList" class="material-cart-list"></div>
+          <div class="modal-actions modal-actions__row modal-actions__row--pair">
+            <button id="clearMaterialCartBtn" class="btn btn-secondary" type="button">Vider</button>
+            <button id="exportMaterialRequestBtn" class="btn btn-primary" type="button">Exporter la demande</button>
+          </div>
+        </div>
+      </dialog>
+
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
