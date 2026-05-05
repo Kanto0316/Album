@@ -97,6 +97,7 @@ import { firebaseDb } from './firebase-core.js';
 
     const backButton = requireElement('materialsBackButton');
     const searchInput = requireElement('materialsSearchInput');
+    const clearSearchBtn = requireElement('materialsClearSearchBtn');
     let allMaterials = [];
 
     backButton?.addEventListener('click', () => {
@@ -118,6 +119,25 @@ import { firebaseDb } from './firebase-core.js';
     };
 
     searchInput?.addEventListener('input', applySearch);
+
+    const toggleClearButton = () => {
+      if (!searchInput || !clearSearchBtn) {
+        return;
+      }
+      clearSearchBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
+    };
+
+    searchInput?.addEventListener('input', toggleClearButton);
+    clearSearchBtn?.addEventListener('click', () => {
+      if (!searchInput) {
+        return;
+      }
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input'));
+      searchInput.focus();
+    });
+
+    toggleClearButton();
 
     try {
       allMaterials = await loadAllMaterials();
