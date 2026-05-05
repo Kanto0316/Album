@@ -208,33 +208,48 @@ import { firebaseDb } from './firebase-core.js';
     });
   }
 
-  function exportMaterialRequest() {
-    if (!materialCart.length) {
-      window.UiService?.showToast?.('Aucun matériel à exporter');
-      return;
+  function formatMaterialRequestText() {
+    if (!materialCart || materialCart.length === 0) {
+      return 'Aucune demande de matériel.';
     }
 
-    const rows = [
-      ['Code', 'Désignation', 'Quantité demandée'],
-      ...materialCart.map((item) => [item.code, item.designation || '', item.qty || 1]),
-    ];
+    let text = '📦 DEMANDE DE MATÉRIEL\n\n';
+    text += 'Code | Désignation | Qté\n';
+    text += '----------------------------------\n';
 
-    const csv = rows
-      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(';'))
-      .join('\n');
+    materialCart.forEach((item) => {
+      const code = item.code || '';
+      const designation = item.designation || '';
+      const qty = item.qty || 1;
 
-    const blob = new Blob(['\uFEFF' + csv], {
-      type: 'text/csv;charset=utf-8;',
+      text += `${code} | ${designation} | ${qty}\n`;
     });
 
-    const date = new Date().toISOString().slice(0, 10);
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = `demande-materiel-${date}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    window.UiService?.showToast?.('Demande exportée');
+    return text;
+  }
+
+  function copyMaterialRequest() {
+    const text = formatMaterialRequestText();
+    const showToast = window.UiService?.showToast;
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => showToast?.('Demande copiée ✔'))
+        .catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+
+    window.UiService?.showToast?.('Demande copiée ✔');
   }
 
   function openDialogById(id) {
@@ -480,7 +495,7 @@ import { firebaseDb } from './firebase-core.js';
       openMaterialCartModal();
     });
 
-    requireElement('exportMaterialRequestBtn')?.addEventListener('click', exportMaterialRequest);
+    document.querySelector('#copyRequestBtn')?.addEventListener('click', copyMaterialRequest);
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
       const error = requireElement('editQtyError');
