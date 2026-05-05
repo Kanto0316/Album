@@ -1334,6 +1334,23 @@ body[data-page="history"] .list-grid {
   background: transparent;
 }
 
+
+.modal-card--wide {
+  width: min(96vw, 52rem);
+}
+
+.table-rotate-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+  .table-rotate-hint {
+    display: none;
+  }
+}
+
 .modal-card::backdrop {
   background: rgba(15, 23, 42, 0.44);
 }
