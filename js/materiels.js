@@ -47,7 +47,7 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const count = materialCart.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+    const count = materialCart.length;
     badge.textContent = String(count);
 
     if (count > 0) {
@@ -58,6 +58,32 @@ import { firebaseDb } from './firebase-core.js';
 
     badge.classList.remove('visible');
     fab.classList.add('hidden');
+  }
+
+  function editQtyDirectly(code) {
+    const item = materialCart.find((cartItem) => cartItem.code === code);
+    if (!item) {
+      return;
+    }
+
+    const currentQty = Number(item.qty) || 1;
+    const value = window.prompt('Entrer la quantité demandée :', String(currentQty));
+
+    if (value === null) {
+      return;
+    }
+
+    const qty = parseInt(value, 10);
+
+    if (!Number.isFinite(qty) || qty < 1) {
+      window.UiService?.showToast?.('Quantité invalide');
+      return;
+    }
+
+    item.qty = qty;
+    saveMaterialCart();
+    updateMaterialCartBadge();
+    renderMaterialCart();
   }
 
   function addMaterialToCart(material) {
@@ -127,7 +153,7 @@ import { firebaseDb } from './firebase-core.js';
           <p>${escapeHtml(item.designation || '-')}</p>
           <div class="qty-control">
             <button class="btn btn-secondary qty-minus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Diminuer la quantité de ${escapeHtml(item.code)}">−</button>
-            <span class="qty-value">${escapeHtml(item.qty || 1)}</span>
+            <button class="qty-value qty-edit-btn" data-code="${escapeHtml(item.code)}" type="button">${escapeHtml(item.qty || 1)}</button>
             <button class="btn btn-secondary qty-plus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Augmenter la quantité de ${escapeHtml(item.code)}">+</button>
           </div>
         </div>
@@ -148,6 +174,12 @@ import { firebaseDb } from './firebase-core.js';
 
     list.querySelectorAll('.qty-minus').forEach((btn) => {
       btn.addEventListener('click', () => decreaseQty(btn.dataset.code || ''));
+    });
+
+    document.querySelectorAll('.qty-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        editQtyDirectly(btn.dataset.code || '');
+      });
     });
   }
 
