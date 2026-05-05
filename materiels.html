@@ -167,6 +167,31 @@
         color: inherit;
       }
 
+      .materials-page .empty-cart {
+        text-align: center;
+      }
+
+      .materials-page .empty-cart p {
+        margin: 0;
+      }
+
+      .materials-page .empty-cart-hint {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #6b7280;
+        text-align: center;
+      }
+
+      .materials-page #materialCartFab.bounce {
+        animation: material-cart-fab-bounce 300ms ease;
+      }
+
+      @keyframes material-cart-fab-bounce {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+        100% { transform: scale(1); }
+      }
+
     </style>
   </head>
   <body data-page="all-materials" class="page3 materials-page">
@@ -228,7 +253,7 @@
         </section>
       </main>
 
-      <button id="materialCartFab" class="fab fab-add cart-fab hidden" type="button" aria-label="Voir la demande matériel">
+      <button id="materialCartFab" class="fab fab-add cart-fab" type="button" aria-label="Voir la demande matériel">
         🛒
         <span id="materialCartBadge" class="cart-badge">0</span>
       </button>

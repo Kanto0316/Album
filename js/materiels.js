@@ -68,9 +68,8 @@ import { firebaseDb } from './firebase-core.js';
 
   function updateMaterialCartBadge() {
     const badge = document.querySelector('#materialCartBadge');
-    const fab = document.querySelector('#materialCartFab');
 
-    if (!badge || !fab) {
+    if (!badge) {
       return;
     }
 
@@ -79,12 +78,10 @@ import { firebaseDb } from './firebase-core.js';
 
     if (count > 0) {
       badge.classList.add('visible');
-      fab.classList.remove('hidden');
       return;
     }
 
     badge.classList.remove('visible');
-    fab.classList.add('hidden');
   }
 
   function editQtyDirectly(code) {
@@ -164,7 +161,12 @@ import { firebaseDb } from './firebase-core.js';
     }
 
     if (!materialCart.length) {
-      list.innerHTML = '<p class="empty-state">Aucun matériel dans la demande.</p>';
+      list.innerHTML = `
+        <div class="empty-cart">
+          <p>Aucun matériel dans la demande.</p>
+          <p class="empty-cart-hint">💡 Ajoutez des matériels depuis la liste pour créer une demande</p>
+        </div>
+      `;
       return;
     }
 
@@ -434,6 +436,13 @@ import { firebaseDb } from './firebase-core.js';
     updateMaterialCartBadge();
 
     requireElement('materialCartFab')?.addEventListener('click', () => {
+      const fab = requireElement('materialCartFab');
+      if (!materialCart.length && fab) {
+        fab.classList.add('bounce');
+        window.setTimeout(() => {
+          fab.classList.remove('bounce');
+        }, 300);
+      }
       renderMaterialCart();
       openMaterialCartModal();
     });
