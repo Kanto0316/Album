@@ -46,9 +46,11 @@
         background: rgba(59, 130, 246, 0.08);
       }
 
+      .materials-page #materialCartFab,
       .materials-page .cart-fab {
-        left: 24px;
-        right: auto;
+        right: 24px !important;
+        left: auto !important;
+        bottom: calc(112px + env(safe-area-inset-bottom)) !important;
       }
 
       .materials-page .cart-badge {
