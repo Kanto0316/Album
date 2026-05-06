@@ -588,7 +588,7 @@ import { firebaseDb } from './firebase-core.js';
     const viewRequestBtn = requireElement('viewMaterialRequestBtn') || requireElement('viewRequestBtn');
     viewRequestBtn?.addEventListener('click', () => {
       saveMaterialCart();
-      console.log('Panier avant navigation :', localStorage.getItem('materialRequestCart'));
+      console.log('PANIER AVANT NAVIGATION =', localStorage.getItem('materialRequestCart'));
       closeMaterialCartModal();
       window.location.href = 'demande-materiel.html';
     });
