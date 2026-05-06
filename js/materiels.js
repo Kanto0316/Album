@@ -141,12 +141,26 @@ import { firebaseDb } from './firebase-core.js';
     renderMaterialCart();
   }
 
+  function sanitizeQty(value) {
+    let qty = parseInt(value, 10);
+
+    if (!Number.isFinite(qty) || qty < 1) {
+      qty = 1;
+    }
+
+    if (qty > 9999) {
+      qty = 9999;
+    }
+
+    return qty;
+  }
+
   function increaseQty(code) {
     const item = materialCart.find((cartItem) => cartItem.code === code);
     if (!item) {
       return;
     }
-    item.qty = (Number(item.qty) || 1) + 1;
+    item.qty = sanitizeQty((Number(item.qty) || 1) + 1);
     saveMaterialCart();
     updateMaterialCartBadge();
     renderMaterialCart();
@@ -157,7 +171,7 @@ import { firebaseDb } from './firebase-core.js';
     if (!item) {
       return;
     }
-    item.qty = Math.max(1, (Number(item.qty) || 1) - 1);
+    item.qty = sanitizeQty((Number(item.qty) || 1) - 1);
     saveMaterialCart();
     updateMaterialCartBadge();
     renderMaterialCart();
@@ -169,13 +183,7 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const qty = parseInt(value, 10);
-
-    if (!Number.isFinite(qty) || qty < 1) {
-      item.qty = 1;
-    } else {
-      item.qty = qty;
-    }
+    item.qty = sanitizeQty(value);
 
     saveMaterialCart();
     updateMaterialCartBadge();
@@ -247,6 +255,8 @@ import { firebaseDb } from './firebase-core.js';
               data-code="${escapeHtml(item.code)}"
               type="number"
               min="1"
+              max="9999"
+              maxlength="4"
               inputmode="numeric"
               value="${escapeHtml(item.qty || 1)}"
             />
@@ -278,6 +288,12 @@ import { firebaseDb } from './firebase-core.js';
 
     list.querySelectorAll('.qty-input').forEach((input) => {
       input.addEventListener('input', () => {
+        input.value = input.value.replace(/\D/g, '');
+
+        if (input.value.length > 4) {
+          input.value = input.value.slice(0, 4);
+        }
+
         updateQtyFromInput(input.dataset.code || '', input.value);
       });
 
