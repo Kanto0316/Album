@@ -191,9 +191,9 @@ import { firebaseDb } from './firebase-core.js';
   function syncMaterialCartActionsState() {
     const isEmpty = materialCart.length === 0;
     const clearBtn = requireElement('clearMaterialCartBtn');
-    const viewBtn = requireElement('viewMaterialRequestBtn');
+    const pngBtn = requireElement('downloadRequestPngBtn');
 
-    [clearBtn, viewBtn].forEach((btn) => {
+    [clearBtn, pngBtn].forEach((btn) => {
       if (!btn) {
         return;
       }
@@ -585,12 +585,8 @@ import { firebaseDb } from './firebase-core.js';
       renderMaterialCart();
     });
 
-    const viewRequestBtn = requireElement('viewMaterialRequestBtn') || requireElement('viewRequestBtn');
-    viewRequestBtn?.addEventListener('click', () => {
-      saveMaterialCart();
-      console.log('Panier sauvegardé =', localStorage.getItem('materialRequestCart'));
-      closeMaterialCartModal();
-      window.location.href = './demande-materiel.html';
+    requireElement('downloadRequestPngBtn')?.addEventListener('click', () => {
+      downloadRequestAsPng();
     });
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
