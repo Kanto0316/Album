@@ -31,43 +31,35 @@
         <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
       </header>
 
-      <main class="page-content page-content--wide main-content">
-        <section class="surface-card table-card section">
-          <div class="section-heading section-heading--table">
-            <div class="header-top page3-summary-header">
-              <div class="title-block page3-title-block">
-                <h2 class="section-title">Tableau de la demande</h2>
-              </div>
-            </div>
-          </div>
-          <div class="page3-sub-info">
-            <div class="request-count article-count page3-article-count">
-              <span id="requestCount" class="count-number page3-count-number">0</span>
-              <span class="count-label page3-count-label">matériels</span>
-            </div>
+      <main id="demandeContent" class="page-content">
+        <section class="data-card">
+          <h2>Tableau de la demande</h2>
+
+          <div class="request-count">
+            <span id="requestCount">0</span> matériels
           </div>
 
-          <div id="requestEmptyState" class="empty-state hidden">Aucune demande de matériel.</div>
+          <div id="requestEmptyState" class="empty-state hidden">
+            Aucune demande de matériel.
+          </div>
 
-          <div id="requestTableWrap" class="table-wrap table-container table-container--card hidden">
-            <div class="table-wrapper table-wrapper--shared">
-              <table class="data-table" id="materialRequestTable">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Désignation</th>
-                    <th>Quantité demandée</th>
-                    <th>Unité</th>
-                  </tr>
-                </thead>
-                <tbody id="requestTableBody"></tbody>
-              </table>
-            </div>
+          <div id="requestTableWrap" class="table-wrap hidden">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Désignation</th>
+                  <th>Qté</th>
+                  <th>Unité</th>
+                </tr>
+              </thead>
+              <tbody id="requestTableBody"></tbody>
+            </table>
           </div>
 
           <div class="modal-actions">
-            <button id="clearRequestBtn" class="btn btn-secondary secondary-btn" type="button">Vider</button>
-            <button id="downloadRequestPngBtn" class="btn btn-primary primary-btn" type="button">Image PNG</button>
+            <button id="clearRequestBtn" class="secondary-btn" type="button">Vider</button>
+            <button id="downloadRequestPngBtn" class="primary-btn" type="button">Image PNG</button>
           </div>
         </section>
       </main>

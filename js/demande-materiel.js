@@ -1,123 +1,82 @@
-const CART_KEY = 'materialRequestCart';
-
+const CART_KEY = "materialRequestCart";
 let materialCart = [];
 
-console.log('demande-materiel.js chargé');
+console.log("✅ demande-materiel.js chargé");
 
-document.addEventListener('DOMContentLoaded', () => {
-  initPage();
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ DOM demande-materiel prêt");
+  initDemandePage();
 });
 
-function initPage() {
-  console.log('Init page demande');
-
-  loadCart();
-
-  renderPage();
-
-  hideSkeleton();
-
-  bindActions();
-}
-
-function loadCart() {
+function initDemandePage() {
   try {
     const raw = localStorage.getItem(CART_KEY);
+    console.log("RAW materialRequestCart =", raw);
 
-    console.log('RAW CART =', raw);
+    materialCart = JSON.parse(raw || "[]");
 
-    materialCart = JSON.parse(raw || '[]');
+    if (!Array.isArray(materialCart)) {
+      materialCart = [];
+    }
 
-    console.log('PANIER =', materialCart);
+    renderDemande();
   } catch (error) {
-    console.error('Erreur lecture panier :', error);
-
+    console.error("Erreur init demande :", error);
     materialCart = [];
+    renderDemande();
+  } finally {
+    forceShowPage();
   }
 }
 
-function renderPage() {
-  const tbody = document.querySelector('#requestTableBody');
-  const count = document.querySelector('#requestCount');
-  const empty = document.querySelector('#requestEmptyState');
-  const tableWrap = document.querySelector('#requestTableWrap');
-
-  console.log('tbody =', tbody);
+function renderDemande() {
+  const count = document.querySelector("#requestCount");
+  const empty = document.querySelector("#requestEmptyState");
+  const tableWrap = document.querySelector("#requestTableWrap");
+  const tbody = document.querySelector("#requestTableBody");
 
   if (!tbody) {
-    console.error('requestTableBody introuvable');
+    console.error("❌ #requestTableBody introuvable");
     return;
   }
 
-  if (count) {
-    count.textContent = String(materialCart.length);
-  }
+  if (count) count.textContent = materialCart.length;
 
   if (!materialCart.length) {
-    if (empty) {
-      empty.classList.remove('hidden');
-    }
-
-    if (tableWrap) {
-      tableWrap.classList.add('hidden');
-    }
-
-    tbody.innerHTML = '';
+    empty?.classList.remove("hidden");
+    tableWrap?.classList.add("hidden");
+    tbody.innerHTML = "";
     return;
   }
 
-  if (empty) {
-    empty.classList.add('hidden');
-  }
+  empty?.classList.add("hidden");
+  tableWrap?.classList.remove("hidden");
 
-  if (tableWrap) {
-    tableWrap.classList.remove('hidden');
-  }
-
-  tbody.innerHTML = materialCart
-    .map(
-      (item) => `
+  tbody.innerHTML = materialCart.map(item => `
     <tr>
-      <td>${item.code || '-'}</td>
-      <td>${item.designation || '-'}</td>
+      <td>${item.code || "-"}</td>
+      <td>${item.designation || "-"}</td>
       <td>${item.qty || 1}</td>
-      <td>${item.unit || 'Pcs'}</td>
+      <td>${item.unit || "Pcs"}</td>
     </tr>
-  `,
-    )
-    .join('');
+  `).join("");
 }
 
-function hideSkeleton() {
-  console.log('hideSkeleton');
+function forceShowPage() {
+  document.body.classList.remove("loading");
 
-  document.body.classList.remove('loading');
+  document.querySelectorAll(
+    ".skeleton, .skeleton-container, .global-skeleton, .page-skeleton, .shimmer"
+  ).forEach(el => el.remove());
 
-  document.querySelectorAll('.skeleton, .global-skeleton, .page-skeleton, .shimmer').forEach((el) => {
-    el.remove();
-  });
-
-  const content = document.querySelector('.page-content');
-
+  const content = document.querySelector("#demandeContent");
   if (content) {
-    content.classList.remove('hidden');
-  }
-}
-
-function bindActions() {
-  const backBtn = document.querySelector('#requestBackButton');
-  if (backBtn) {
-    backBtn.addEventListener('click', () => {
-      window.location.href = 'materiels.html';
-    });
+    content.hidden = false;
+    content.classList.remove("hidden");
+    content.style.display = "block";
+    content.style.opacity = "1";
+    content.style.visibility = "visible";
   }
 
-  const clearBtn = document.querySelector('#clearRequestBtn');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      materialCart = [];
-      localStorage.setItem(CART_KEY, JSON.stringify(materialCart));
-      renderPage();
-    });
-  }
+  console.log("✅ page demande affichée");
 }
