@@ -152,7 +152,7 @@ import { firebaseDb } from './firebase-core.js';
     updateMaterialCartBadge();
     renderMaterialCart();
     markMaterialsHintSeen();
-    window.UiService?.showToast?.('Matériel ajouté au panier');
+    window.UiService?.showToast?.(`${materialCart.length} matériel${materialCart.length > 1 ? 's' : ''} dans le panier`);
   }
 
   function removeMaterialFromCart(code) {
