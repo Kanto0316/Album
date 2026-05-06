@@ -1706,11 +1706,38 @@ body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-shakin
   color: var(--text);
 }
 
+#requestPngModal .modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
 #materialCartModal .modal-subtitle {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-muted);
+}
+
+#requestPngModal .modal-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Supprimer uniquement la petite flèche du datalist */
+input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Compatibilité supplémentaire */
+input[list]::-webkit-list-button {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 .modal-actions,
 .form-footer {
