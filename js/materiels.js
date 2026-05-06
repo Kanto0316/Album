@@ -5,6 +5,7 @@ import { firebaseDb } from './firebase-core.js';
   const isMaterialsPage = location.pathname.includes('materiels.html');
   const CART_KEY = 'materialRequestCart';
   const HINT_KEY = 'materialsHintSeen';
+  const MAX_CART_LINES = 20;
   let materialCart = [];
   let currentEditingQtyCode = null;
 
@@ -131,6 +132,14 @@ import { firebaseDb } from './firebase-core.js';
     if (existing) {
       existing.qty = (Number(existing.qty) || 1) + 1;
     } else {
+      if (materialCart.length >= MAX_CART_LINES) {
+        window.UiService?.showToast?.('Limite de 20 matériels atteinte.');
+        const cartFab = requireElement('materialCartFab');
+        cartFab?.classList.remove('bounce');
+        void cartFab?.offsetWidth;
+        cartFab?.classList.add('bounce');
+        return;
+      }
       materialCart.push({
         code: material.code,
         designation: material.designation,
