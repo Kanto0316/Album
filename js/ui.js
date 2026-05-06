@@ -13,9 +13,9 @@
   const INLINE_LOADER_ID = "pageInlineLoader";
   const CONTENT_LOADING_DELAY_MS = 120;
   let hideTimerId = null;
-  let toastClearTimerId = null;
+  let toastTimer = null;
   const toastQueue = [];
-  let activeToast = null;
+  let activeToastOptions = null;
   let hasWindowLoaded = document.readyState === "complete";
   let isAppReady = false;
   let inlineLoaderTimerId = null;
@@ -238,19 +238,19 @@
       window.clearTimeout(hideTimerId);
       hideTimerId = null;
     }
-    if (toastClearTimerId) {
-      window.clearTimeout(toastClearTimerId);
-      toastClearTimerId = null;
+    if (toastTimer) {
+      window.clearTimeout(toastTimer);
+      toastTimer = null;
     }
 
     toast.classList.remove(TOAST_VISIBLE_CLASS, TOAST_WITH_ACTION_CLASS);
     toast.removeAttribute("data-type");
-    toastClearTimerId = window.setTimeout(() => {
+    toastTimer = window.setTimeout(() => {
       if (!toast.classList.contains(TOAST_VISIBLE_CLASS)) {
         toast.textContent = "";
       }
-      activeToast = null;
-      toastClearTimerId = null;
+      activeToastOptions = null;
+      toastTimer = null;
       processToastQueue();
     }, TOAST_HIDE_ANIMATION_DURATION);
   }
@@ -266,11 +266,11 @@
   }
 
   function processToastQueue() {
-    if (activeToast || toastQueue.length === 0) {
+    if (activeToastOptions || toastQueue.length === 0) {
       return;
     }
-    activeToast = toastQueue.shift();
-    renderToast(activeToast);
+    activeToastOptions = toastQueue.shift();
+    renderToast(activeToastOptions);
   }
 
   function renderToast(options) {
@@ -322,6 +322,21 @@
 
   function showToast(messageOrOptions, maybeOptions = {}) {
     const options = normalizeToastOptions(messageOrOptions, maybeOptions);
+    if (toastTimer) {
+      window.clearTimeout(toastTimer);
+      toastTimer = null;
+    }
+    if (hideTimerId) {
+      window.clearTimeout(hideTimerId);
+      hideTimerId = null;
+    }
+
+    if (activeToastOptions) {
+      activeToastOptions = options;
+      renderToast(activeToastOptions);
+      return;
+    }
+
     toastQueue.push(options);
     processToastQueue();
   }
