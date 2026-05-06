@@ -147,12 +147,15 @@
       }
 
       .materials-page #editQtyInput.is-error,
-      .materials-page #editQtyInput.is-error:focus {
+      .materials-page #editQtyInput.is-error:focus,
+      .materials-page #requestPngFileNameInput.is-error,
+      .materials-page #requestPngFileNameInput.is-error:focus {
         border-color: #ef4444;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
       }
 
-      .materials-page #editQtyInput.is-shaking {
+      .materials-page #editQtyInput.is-shaking,
+      .materials-page #requestPngFileNameInput.is-shaking {
         animation: site-lock-input-shake 300ms ease-in-out 1;
       }
 
@@ -306,6 +309,25 @@
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="cancelEditQtyBtn" class="btn btn-neutral" type="button">Annuler</button>
             <button id="saveEditQtyBtn" class="btn btn-success" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </dialog>
+
+      <dialog id="requestPngModal" class="modal-card">
+        <div class="modal-content modal-content--site-create">
+          <div class="modal-header">
+            <h2>Exporter la demande</h2>
+            <p>Choisissez le nom du fichier PNG avant le téléchargement.</p>
+          </div>
+          <label class="input-group input-group--site-create">
+            <span>Nom du fichier</span>
+            <input id="requestPngFileNameInput" type="text" list="requestPngFileNameSuggestions" autocomplete="off" />
+          </label>
+          <datalist id="requestPngFileNameSuggestions"></datalist>
+          <p id="requestPngFileNameError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button id="cancelRequestPngBtn" class="btn btn-neutral" type="button">Annuler</button>
+            <button id="confirmRequestPngBtn" class="btn btn-success" type="button">Télécharger</button>
           </div>
         </div>
       </dialog>

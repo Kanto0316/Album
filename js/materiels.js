@@ -384,7 +384,61 @@ import { firebaseDb } from './firebase-core.js';
     return exportArea;
   }
 
-  async function downloadRequestAsPng() {
+  function slugifyFileName(rawName) {
+    return String(rawName || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function getDefaultRequestPngFileName() {
+    const date = new Date().toISOString().slice(0, 10);
+    return `demande-materiel-${date}`;
+  }
+
+  function resetRequestPngModalState() {
+    const input = requireElement('requestPngFileNameInput');
+    const error = requireElement('requestPngFileNameError');
+    input?.classList.remove('is-error', 'is-shaking');
+    if (error) {
+      error.textContent = '';
+    }
+  }
+
+  function openRequestPngModal() {
+    const input = requireElement('requestPngFileNameInput');
+    const suggestions = requireElement('requestPngFileNameSuggestions');
+    const defaultName = getDefaultRequestPngFileName();
+    const count = Math.max(materialCart.length, 1);
+
+    if (input) {
+      input.value = defaultName;
+    }
+    if (suggestions) {
+      suggestions.innerHTML = [
+        defaultName,
+        'demande-materiel',
+        'demande',
+        `demande-materiel-${count}materiels`
+      ].map((value) => `<option value="${escapeHtml(value)}"></option>`).join('');
+    }
+    resetRequestPngModalState();
+    openDialogById('requestPngModal');
+    window.setTimeout(() => {
+      input?.focus();
+      input?.select();
+    }, 150);
+  }
+
+  function closeRequestPngModal() {
+    closeDialogById('requestPngModal');
+    resetRequestPngModalState();
+  }
+
+  async function downloadRequestAsPng(fileName = '') {
     const showToast = window.UiService?.showToast;
 
     if (!materialCart || materialCart.length === 0) {
@@ -410,9 +464,9 @@ import { firebaseDb } from './firebase-core.js';
         windowHeight: exportArea.scrollHeight
       });
 
-      const date = new Date().toISOString().slice(0, 10);
+      const safeFileName = slugifyFileName(fileName) || getDefaultRequestPngFileName();
       const link = document.createElement('a');
-      link.download = `demande-materiel-${date}.png`;
+      link.download = `${safeFileName}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
 
@@ -612,8 +666,50 @@ import { firebaseDb } from './firebase-core.js';
       renderMaterialCart();
     });
 
-    requireElement('downloadRequestPngBtn')?.addEventListener('click', () => {
-      downloadRequestAsPng();
+    requireElement('downloadRequestPngBtn')?.addEventListener('click', openRequestPngModal);
+    requireElement('confirmRequestPngBtn')?.addEventListener('click', () => {
+      const input = requireElement('requestPngFileNameInput');
+      const error = requireElement('requestPngFileNameError');
+      const rawValue = String(input?.value || '');
+      const cleanedValue = slugifyFileName(rawValue);
+
+      if (!cleanedValue) {
+        if (error) {
+          error.textContent = 'Veuillez renseigner un nom de fichier.';
+        }
+        input?.classList.remove('is-shaking');
+        void input?.offsetWidth;
+        input?.classList.add('is-error', 'is-shaking');
+        return;
+      }
+
+      closeRequestPngModal();
+      downloadRequestAsPng(cleanedValue);
+    });
+    requireElement('cancelRequestPngBtn')?.addEventListener('click', closeRequestPngModal);
+    requireElement('requestPngFileNameInput')?.addEventListener('input', () => {
+      const input = requireElement('requestPngFileNameInput');
+      const error = requireElement('requestPngFileNameError');
+      input?.classList.remove('is-error', 'is-shaking');
+      if (error) {
+        error.textContent = '';
+      }
+    });
+    requireElement('requestPngFileNameInput')?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        requireElement('confirmRequestPngBtn')?.click();
+      }
+    });
+    requireElement('requestPngModal')?.addEventListener('click', (event) => {
+      const modal = event.currentTarget;
+      if (event.target === modal) {
+        closeRequestPngModal();
+      }
+    });
+    requireElement('requestPngModal')?.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeRequestPngModal();
     });
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
