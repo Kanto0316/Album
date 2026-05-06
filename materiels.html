@@ -123,20 +123,34 @@
       }
 
       .materials-page .qty-input {
-        width: 44px;
+        width: 52px;
         height: 36px;
         border: none;
         background: transparent;
         text-align: center;
         font-weight: 800;
-        font-size: inherit;
+        font-size: 18px;
+        color: #111827;
         outline: none;
+        box-shadow: none;
+        padding: 0;
       }
 
       .materials-page .qty-input:focus {
-        background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 0 0 2px rgba(47,155,232,0.18);
+        border: none;
+        outline: none;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      .materials-page .qty-input::-webkit-outer-spin-button,
+      .materials-page .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .materials-page .qty-input[type=number] {
+        -moz-appearance: textfield;
       }
 
       .materials-page .unit-select {
