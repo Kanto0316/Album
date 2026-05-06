@@ -588,9 +588,9 @@ import { firebaseDb } from './firebase-core.js';
     const viewRequestBtn = requireElement('viewMaterialRequestBtn') || requireElement('viewRequestBtn');
     viewRequestBtn?.addEventListener('click', () => {
       saveMaterialCart();
-      console.log('PANIER AVANT NAVIGATION =', localStorage.getItem('materialRequestCart'));
+      console.log('Panier sauvegardé =', localStorage.getItem('materialRequestCart'));
       closeMaterialCartModal();
-      window.location.href = 'demande-materiel.html';
+      window.location.href = './demande-materiel.html';
     });
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
