@@ -227,7 +227,23 @@
         100% { transform: scale(1); }
       }
 
-    </style>
+    
+      .materials-page #requestPngModal .site-input-feedback-row {
+        width: 100%;
+        margin-top: 0.24rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .materials-page #requestPngModal #exportTitleCounter {
+        width: auto;
+        text-align: right;
+        margin-top: 0;
+        flex-shrink: 0;
+      }
+</style>
   </head>
   <body data-page="all-materials" class="page3 materials-page">
     <div class="app-shell app-shell--wide">
@@ -316,10 +332,11 @@
           <label class="input-group input-group--site-create">
             <span>Titre de la demande</span>
             <input id="exportTitleInput" type="text" maxlength="25" placeholder="Ex : INTELCIA, TITAN I, HAG 36..." autocomplete="off" />
+            <div class="site-input-feedback-row">
+              <span aria-hidden="true"></span>
+              <span id="exportTitleCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+            </div>
           </label>
-          <div class="input-meta-row">
-            <span id="exportTitleCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
-          </div>
           <p id="exportTitleError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="cancelRequestPngBtn" class="btn btn-neutral" type="button">Annuler</button>
