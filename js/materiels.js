@@ -365,7 +365,7 @@ import { firebaseDb } from './firebase-core.js';
     window.UiService?.showToast?.('Demande copiée ✔');
   }
 
-  function buildRequestExportArea() {
+  function buildRequestExportArea(finalTitle) {
     const now = new Date();
     const dateText = now.toLocaleDateString("fr-FR");
     const timeText = now.toLocaleTimeString("fr-FR", {
@@ -386,9 +386,9 @@ import { firebaseDb } from './firebase-core.js';
     exportArea.style.color = '#111827';
 
     exportArea.innerHTML = `
-      <h2 style="margin:0 0 20px;font-size:28px;font-weight:800;">
-        Demande de matériel — ${dateText} ${timeText}
-      </h2>
+      <h1 style="margin:0 0 20px;font-size:28px;font-weight:800;">
+        ${escapeHtml(finalTitle)}
+      </h1>
       <table style="width:100%;border-collapse:collapse;font-size:20px;">
         <thead>
           <tr style="background:#eef5fb;">
@@ -417,28 +417,39 @@ import { firebaseDb } from './firebase-core.js';
     return exportArea;
   }
 
-  function slugifyFileName(rawName) {
-    return String(rawName || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[\\/:*?"<>|]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  }
-
   function getDefaultRequestPngFileName() {
     const date = new Date().toISOString().slice(0, 10);
     return `demande-materiel-${date}`;
   }
 
+  function updateExportTitleCounter() {
+    const input = requireElement('exportTitleInput');
+    const counter = requireElement('exportTitleCounter');
+    if (!input || !counter) {
+      return;
+    }
+    const maxLength = input.maxLength > 0 ? input.maxLength : 25;
+    if (input.value.length > maxLength) {
+      input.value = input.value.slice(0, maxLength);
+    }
+    const currentLength = input.value.length;
+    counter.textContent = `${currentLength} / ${maxLength}`;
+    counter.classList.remove('is-warning', 'is-limit');
+    if (currentLength >= maxLength) {
+      counter.classList.add('is-limit');
+    } else if (currentLength / maxLength >= 0.8) {
+      counter.classList.add('is-warning');
+    }
+  }
+
   function resetRequestPngModalState() {
-    const input = requireElement('requestPngFileNameInput');
-    const error = requireElement('requestPngFileNameError');
+    const input = requireElement('exportTitleInput');
+    const error = requireElement('exportTitleError');
     input?.classList.remove('is-error', 'is-shaking');
     if (error) {
       error.textContent = '';
     }
+    updateExportTitleCounter();
   }
 
   function openRequestPngModal() {
@@ -446,21 +457,9 @@ import { firebaseDb } from './firebase-core.js';
     requireElement('materialCartModal')?.classList.remove('active', 'open', 'show');
     requireElement('materialCartModal')?.classList.add('hidden');
 
-    const input = requireElement('requestPngFileNameInput');
-    const suggestions = requireElement('requestPngFileNameSuggestions');
-    const defaultName = getDefaultRequestPngFileName();
-    const count = Math.max(materialCart.length, 1);
-
+    const input = requireElement('exportTitleInput');
     if (input) {
-      input.value = defaultName;
-    }
-    if (suggestions) {
-      suggestions.innerHTML = [
-        defaultName,
-        'demande-materiel',
-        'demande',
-        `demande-materiel-${count}materiels`
-      ].map((value) => `<option value="${escapeHtml(value)}"></option>`).join('');
+      input.value = '';
     }
     resetRequestPngModalState();
     openDialogById('requestPngModal');
@@ -475,7 +474,7 @@ import { firebaseDb } from './firebase-core.js';
     resetRequestPngModalState();
   }
 
-  async function downloadRequestAsPng(fileName = '') {
+  async function downloadRequestAsPng(customTitle = '') {
     const showToast = window.UiService?.showToast;
 
     if (!materialCart || materialCart.length === 0) {
@@ -488,7 +487,15 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const exportArea = buildRequestExportArea();
+    const now = new Date();
+    const formattedDate = `${now.toLocaleDateString('fr-FR')} ${now.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })}`;
+    const finalTitle = customTitle
+      ? `Demande matériels - ${customTitle} - ${formattedDate}`
+      : `Demande matériels - ${formattedDate}`;
+    const exportArea = buildRequestExportArea(finalTitle);
 
     try {
       const canvas = await window.html2canvas(exportArea, {
@@ -501,7 +508,7 @@ import { firebaseDb } from './firebase-core.js';
         windowHeight: exportArea.scrollHeight
       });
 
-      const safeFileName = slugifyFileName(fileName) || getDefaultRequestPngFileName();
+      const safeFileName = getDefaultRequestPngFileName();
       const link = document.createElement('a');
       link.download = `${safeFileName}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -693,34 +700,26 @@ import { firebaseDb } from './firebase-core.js';
 
     requireElement('downloadRequestPngBtn')?.addEventListener('click', openRequestPngModal);
     requireElement('confirmRequestPngBtn')?.addEventListener('click', () => {
-      const input = requireElement('requestPngFileNameInput');
-      const error = requireElement('requestPngFileNameError');
-      const rawValue = String(input?.value || '');
-      const cleanedValue = slugifyFileName(rawValue);
-
-      if (!cleanedValue) {
-        if (error) {
-          error.textContent = 'Veuillez renseigner un nom de fichier.';
-        }
-        input?.classList.remove('is-shaking');
-        void input?.offsetWidth;
-        input?.classList.add('is-error', 'is-shaking');
-        return;
-      }
+      const input = requireElement('exportTitleInput');
+      const cleanedValue = String(input?.value || '').trim();
 
       closeRequestPngModal();
       downloadRequestAsPng(cleanedValue);
     });
     requireElement('cancelRequestPngBtn')?.addEventListener('click', closeRequestPngModal);
-    requireElement('requestPngFileNameInput')?.addEventListener('input', () => {
-      const input = requireElement('requestPngFileNameInput');
-      const error = requireElement('requestPngFileNameError');
+    requireElement('exportTitleInput')?.addEventListener('input', () => {
+      const input = requireElement('exportTitleInput');
+      const error = requireElement('exportTitleError');
+      if (input && input.maxLength > 0 && input.value.length > input.maxLength) {
+        input.value = input.value.slice(0, input.maxLength);
+      }
+      updateExportTitleCounter();
       input?.classList.remove('is-error', 'is-shaking');
       if (error) {
         error.textContent = '';
       }
     });
-    requireElement('requestPngFileNameInput')?.addEventListener('keydown', (event) => {
+    requireElement('exportTitleInput')?.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
         requireElement('confirmRequestPngBtn')?.click();

@@ -163,13 +163,13 @@
         font-size: 14px;
       }
 
-      .materials-page #requestPngFileNameInput.is-error,
-      .materials-page #requestPngFileNameInput.is-error:focus {
+      .materials-page #exportTitleInput.is-error,
+      .materials-page #exportTitleInput.is-error:focus {
         border-color: #ef4444;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
       }
 
-      .materials-page #requestPngFileNameInput.is-shaking {
+      .materials-page #exportTitleInput.is-shaking {
         animation: site-lock-input-shake 300ms ease-in-out 1;
       }
 
@@ -308,17 +308,19 @@
       </dialog>
 
       <dialog id="requestPngModal" class="modal-card">
-        <div class="modal-content modal-content--site-create">
+          <div class="modal-content modal-content--site-create">
           <div class="modal-header">
             <h3 class="modal-title">Exporter la demande</h3>
-            <p class="modal-subtitle">Choisissez le nom du fichier PNG avant le téléchargement.</p>
+            <p class="modal-subtitle">Personnalisez le titre affiché dans l’image PNG.</p>
           </div>
           <label class="input-group input-group--site-create">
-            <span>Nom du fichier</span>
-            <input id="requestPngFileNameInput" type="text" list="requestPngFileNameSuggestions" autocomplete="off" />
+            <span>Titre de la demande</span>
+            <input id="exportTitleInput" type="text" maxlength="25" placeholder="Ex : INTELCIA, TITAN I, HAG 36..." autocomplete="off" />
           </label>
-          <datalist id="requestPngFileNameSuggestions"></datalist>
-          <p id="requestPngFileNameError" class="form-error" aria-live="polite"></p>
+          <div class="input-meta-row">
+            <span id="exportTitleCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+          </div>
+          <p id="exportTitleError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="cancelRequestPngBtn" class="btn btn-neutral" type="button">Annuler</button>
             <button id="confirmRequestPngBtn" class="btn btn-success" type="button">Télécharger</button>
