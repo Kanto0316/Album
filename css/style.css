@@ -1684,6 +1684,27 @@ body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-shakin
   margin-bottom: 1rem;
 }
 
+
+#materialCartModal .modal-header {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+#materialCartModal .modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+#materialCartModal .modal-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
 .modal-actions,
 .form-footer {
   display: flex;
