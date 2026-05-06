@@ -216,6 +216,15 @@ import { firebaseDb } from './firebase-core.js';
     if (!list) {
       return;
     }
+    const countEl = document.querySelector('#cartSelectedCount');
+    const count = materialCart.length;
+
+    if (countEl) {
+      countEl.textContent =
+        count > 1
+          ? `${count} matériels sélectionnés`
+          : `${count} matériel sélectionné`;
+    }
 
     if (!materialCart.length) {
       list.innerHTML = `
