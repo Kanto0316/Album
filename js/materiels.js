@@ -1,4 +1,4 @@
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { collection, doc, getDocs, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -7,6 +7,7 @@ import { firebaseDb } from './firebase-core.js';
   const HINT_KEY = 'materialsHintSeen';
   const MAX_CART_LINES = 20;
   let materialCart = [];
+  let lastRequestMeta = null;
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -19,6 +20,57 @@ import { firebaseDb } from './firebase-core.js';
       .replace(/>/g, '&gt;')
       .replace(/\"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+
+
+  function formatRequestDateTime(date = new Date()) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear());
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} • ${hours}:${minutes}`;
+  }
+
+  function buildRequestMainTitle(requestTitle = '') {
+    const cleaned = String(requestTitle || '').trim();
+    return cleaned ? `Demande matériel — ${cleaned}` : 'Demande matériel';
+  }
+
+  async function createMaterialRequestRecord(requestTitle = '') {
+    const cleanedTitle = String(requestTitle || '').trim();
+    const counterRef = doc(firebaseDb, 'counters', 'materialRequestCounter');
+    const requestNumber = await runTransaction(firebaseDb, async (transaction) => {
+      const counterSnap = await transaction.get(counterRef);
+      const currentValue = Number(counterSnap.data()?.current) || 0;
+      const nextValue = currentValue + 1;
+      transaction.set(counterRef, { current: nextValue }, { merge: true });
+      return String(nextValue).padStart(3, '0');
+    });
+
+    const requestRef = doc(collection(firebaseDb, 'materialRequests'));
+    const items = materialCart.map((item) => ({
+      code: String(item.code || ''),
+      designation: String(item.designation || ''),
+      qty: sanitizeQty(item.qty),
+      unit: item.unit || 'Pcs',
+    }));
+
+    await runTransaction(firebaseDb, async (transaction) => {
+      transaction.set(requestRef, {
+        requestNumber,
+        requestTitle: cleanedTitle,
+        createdAt: serverTimestamp(),
+        items,
+      });
+    });
+
+    return {
+      requestNumber,
+      requestTitle: cleanedTitle,
+      createdAtLabel: formatRequestDateTime(new Date()),
+    };
   }
 
   function normalizeMaterialRow(data) {
@@ -320,12 +372,20 @@ import { firebaseDb } from './firebase-core.js';
     syncMaterialCartActionsState();
   }
 
-  function formatMaterialRequestText() {
+  function formatMaterialRequestText(requestMeta = null) {
     if (!materialCart || materialCart.length === 0) {
       return 'Aucune demande de matériel.';
     }
 
-    let text = '📦 DEMANDE DE MATÉRIEL\n\n';
+    const mainTitle = buildRequestMainTitle(requestMeta?.requestTitle);
+    const requestNumber = requestMeta?.requestNumber ? `N° ${requestMeta.requestNumber}` : '';
+    const createdAtLabel = requestMeta?.createdAtLabel || formatRequestDateTime(new Date());
+
+    let text = `📦 ${mainTitle}\n`;
+    if (requestNumber) {
+      text += `${requestNumber}\n`;
+    }
+    text += `${createdAtLabel}\n\n`;
     text += 'Code | Désignation | Qté | Unité\n';
     text += '----------------------------------\n';
 
@@ -342,7 +402,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function copyMaterialRequest() {
-    const text = formatMaterialRequestText();
+    const text = formatMaterialRequestText(lastRequestMeta);
     const showToast = window.UiService?.showToast;
 
     if (navigator.clipboard && window.isSecureContext) {
@@ -365,14 +425,7 @@ import { firebaseDb } from './firebase-core.js';
     window.UiService?.showToast?.('Demande copiée ✔');
   }
 
-  function buildRequestExportArea(finalTitle) {
-    const now = new Date();
-    const dateText = now.toLocaleDateString("fr-FR");
-    const timeText = now.toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-
+  function buildRequestExportArea(requestMeta) {
     const exportArea = document.createElement('div');
     exportArea.id = 'requestExportArea';
 
@@ -386,9 +439,11 @@ import { firebaseDb } from './firebase-core.js';
     exportArea.style.color = '#111827';
 
     exportArea.innerHTML = `
-      <h1 style="margin:0 0 20px;font-size:28px;font-weight:800;">
-        ${escapeHtml(finalTitle)}
+      <h1 style="margin:0;font-size:28px;font-weight:800;">
+        ${escapeHtml(buildRequestMainTitle(requestMeta?.requestTitle))}
       </h1>
+      <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#1e40af;">N° ${escapeHtml(requestMeta?.requestNumber || "---")}</p>
+      <p style="margin:8px 0 20px;font-size:18px;color:#334155;">${escapeHtml(requestMeta?.createdAtLabel || formatRequestDateTime(new Date()))}</p>
       <table style="width:100%;border-collapse:collapse;font-size:20px;">
         <thead>
           <tr style="background:#eef5fb;">
@@ -487,17 +542,12 @@ import { firebaseDb } from './firebase-core.js';
       return;
     }
 
-    const now = new Date();
-    const formattedDate = `${now.toLocaleDateString('fr-FR')} ${now.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })}`;
-    const finalTitle = customTitle
-      ? `Demande matériels - ${customTitle} - ${formattedDate}`
-      : `Demande matériels - ${formattedDate}`;
-    const exportArea = buildRequestExportArea(finalTitle);
+    let exportArea = null;
 
     try {
+      const requestMeta = await createMaterialRequestRecord(customTitle);
+      lastRequestMeta = requestMeta;
+      exportArea = buildRequestExportArea(requestMeta);
       const canvas = await window.html2canvas(exportArea, {
         backgroundColor: '#ffffff',
         scale: 2,
@@ -519,7 +569,7 @@ import { firebaseDb } from './firebase-core.js';
       console.error('Erreur export PNG :', error);
       showToast?.('Erreur téléchargement PNG');
     } finally {
-      exportArea.remove();
+      exportArea?.remove();
     }
   }
 
