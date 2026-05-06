@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Demande de matériel - Suivi Matériel</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .request-page .request-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .request-page .request-actions .btn {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body data-page="material-request" class="page3 materials-page request-page">
+    <div class="app-shell app-shell--wide">
+      <header class="app-header app-header--detail">
+        <div class="app-header__side app-header__side--left">
+          <button class="back-button" type="button" id="requestBackButton" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+        </div>
+        <div class="app-header__center">
+          <div class="header-title header-title--stacked">
+            <h1>Demande de matériel</h1>
+          </div>
+        </div>
+        <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
+      </header>
+
+      <main class="page-content page-content--wide main-content">
+        <section class="surface-card table-card section">
+          <div class="section-heading section-heading--table">
+            <div class="header-top page3-summary-header">
+              <div class="title-block page3-title-block">
+                <h2 class="section-title">Tableau de la demande</h2>
+              </div>
+            </div>
+          </div>
+          <div class="page3-sub-info">
+            <div id="requestCount" class="article-count page3-article-count">
+              <span class="count-number page3-count-number">0</span>
+              <span class="count-label page3-count-label">Matériels</span>
+            </div>
+          </div>
+
+          <div class="request-actions">
+            <button id="downloadRequestPngBtn" class="btn btn-primary" type="button">Image PNG</button>
+            <button id="clearMaterialRequestBtn" class="btn btn-secondary" type="button">Vider la demande</button>
+          </div>
+
+          <div class="table-container table-container--card">
+            <div class="table-wrapper table-wrapper--shared">
+              <table class="data-table" id="materialRequestTable">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Désignation</th>
+                    <th>Quantité demandée</th>
+                    <th>Unité</th>
+                  </tr>
+                </thead>
+                <tbody id="materialRequestBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <p id="materialRequestEmptyState" class="empty-state" hidden>Aucune demande de matériel.<br />Ajoutez des matériels depuis la page Tous les matériels.</p>
+        </section>
+      </main>
+
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+
+    <script src="js/ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script type="module" src="js/demande-materiel.js"></script>
+  </body>
+</html>
