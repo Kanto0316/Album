@@ -187,6 +187,21 @@ import { firebaseDb } from './firebase-core.js';
     renderMaterialCart();
   }
 
+
+  function syncMaterialCartActionsState() {
+    const isEmpty = materialCart.length === 0;
+    const clearBtn = requireElement('clearMaterialCartBtn');
+    const viewBtn = requireElement('viewMaterialRequestBtn');
+
+    [clearBtn, viewBtn].forEach((btn) => {
+      if (!btn) {
+        return;
+      }
+      btn.disabled = isEmpty;
+      btn.classList.toggle('is-disabled-soft', isEmpty);
+    });
+  }
+
   function renderMaterialCart() {
     const list = document.querySelector('#materialCartList');
     if (!list) {
@@ -200,6 +215,7 @@ import { firebaseDb } from './firebase-core.js';
           <p class="empty-cart-hint">💡 Ajoutez des matériels depuis la liste pour créer une demande</p>
         </div>
       `;
+      syncMaterialCartActionsState();
       return;
     }
 
@@ -249,6 +265,8 @@ import { firebaseDb } from './firebase-core.js';
         updateMaterialUnit(select.dataset.code || '', select.value);
       });
     });
+
+    syncMaterialCartActionsState();
   }
 
   function formatMaterialRequestText() {
@@ -578,6 +596,7 @@ import { firebaseDb } from './firebase-core.js';
 
     loadMaterialCart();
     updateMaterialCartBadge();
+    syncMaterialCartActionsState();
 
     requireElement('materialCartFab')?.addEventListener('click', () => {
       const fab = requireElement('materialCartFab');
