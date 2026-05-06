@@ -350,6 +350,7 @@ import { firebaseDb } from './firebase-core.js';
       <table style="width:100%;border-collapse:collapse;font-size:20px;">
         <thead>
           <tr style="background:#eef5fb;">
+            <th style="text-align:center;padding:16px;border:1px solid #cbd5e1;width:52px;">#</th>
             <th style="text-align:left;padding:16px;border:1px solid #cbd5e1;">Code</th>
             <th style="text-align:left;padding:16px;border:1px solid #cbd5e1;">Désignation</th>
             <th style="text-align:center;padding:16px;border:1px solid #cbd5e1;">Qté</th>
@@ -357,8 +358,9 @@ import { firebaseDb } from './firebase-core.js';
           </tr>
         </thead>
         <tbody>
-          ${materialCart.map((item) => `
+          ${materialCart.map((item, index) => `
             <tr>
+              <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;width:52px;">${index + 1}</td>
               <td style="padding:14px;border:1px solid #cbd5e1;">${item.code || '-'}</td>
               <td style="padding:14px;border:1px solid #cbd5e1;">${item.designation || '-'}</td>
               <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;">${item.qty || 1}</td>
