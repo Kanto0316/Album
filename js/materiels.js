@@ -585,7 +585,10 @@ import { firebaseDb } from './firebase-core.js';
       renderMaterialCart();
     });
 
-    requireElement('viewMaterialRequestBtn')?.addEventListener('click', () => {
+    const viewRequestBtn = requireElement('viewMaterialRequestBtn') || requireElement('viewRequestBtn');
+    viewRequestBtn?.addEventListener('click', () => {
+      saveMaterialCart();
+      console.log('Panier avant navigation :', localStorage.getItem('materialRequestCart'));
       closeMaterialCartModal();
       window.location.href = 'demande-materiel.html';
     });
