@@ -7,7 +7,6 @@ import { firebaseDb } from './firebase-core.js';
   const HINT_KEY = 'materialsHintSeen';
   const MAX_CART_LINES = 20;
   let materialCart = [];
-  let currentEditingQtyCode = null;
 
   function requireElement(id) {
     return document.getElementById(id);
@@ -105,26 +104,6 @@ import { firebaseDb } from './firebase-core.js';
     badge.classList.remove('visible');
   }
 
-  function editQtyDirectly(code) {
-    const item = materialCart.find((cartItem) => cartItem.code === code);
-    if (!item) {
-      return;
-    }
-
-    currentEditingQtyCode = code;
-
-    const input = requireElement('editQtyInput');
-    const error = requireElement('editQtyError');
-    if (input) {
-      input.value = String(item.qty || 1);
-      input.classList.remove('is-error', 'is-shaking');
-    }
-    if (error) {
-      error.textContent = '';
-    }
-
-    openEditQtyModal();
-  }
 
   function addMaterialToCart(material) {
     const existing = materialCart.find((item) => item.code === material.code);
@@ -182,6 +161,24 @@ import { firebaseDb } from './firebase-core.js';
     saveMaterialCart();
     updateMaterialCartBadge();
     renderMaterialCart();
+  }
+
+  function updateQtyFromInput(code, value) {
+    const item = materialCart.find((cartItem) => cartItem.code === code);
+    if (!item) {
+      return;
+    }
+
+    const qty = parseInt(value, 10);
+
+    if (!Number.isFinite(qty) || qty < 1) {
+      item.qty = 1;
+    } else {
+      item.qty = qty;
+    }
+
+    saveMaterialCart();
+    updateMaterialCartBadge();
   }
 
   function updateMaterialUnit(code, newUnit) {
@@ -245,7 +242,14 @@ import { firebaseDb } from './firebase-core.js';
           <p>${escapeHtml(item.designation || '-')}</p>
           <div class="qty-control">
             <button class="btn btn-secondary qty-minus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Diminuer la quantité de ${escapeHtml(item.code)}">−</button>
-            <button class="qty-value qty-edit-btn" data-code="${escapeHtml(item.code)}" type="button">${escapeHtml(item.qty || 1)}</button>
+            <input
+              class="qty-input"
+              data-code="${escapeHtml(item.code)}"
+              type="number"
+              min="1"
+              inputmode="numeric"
+              value="${escapeHtml(item.qty || 1)}"
+            />
             <button class="btn btn-secondary qty-plus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Augmenter la quantité de ${escapeHtml(item.code)}">+</button>
             <select class="unit-select" data-code="${escapeHtml(item.code)}">
               <option value="Pcs" ${item.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
@@ -272,11 +276,24 @@ import { firebaseDb } from './firebase-core.js';
       btn.addEventListener('click', () => decreaseQty(btn.dataset.code || ''));
     });
 
-    document.querySelectorAll('.qty-edit-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        editQtyDirectly(btn.dataset.code || '');
+    list.querySelectorAll('.qty-input').forEach((input) => {
+      input.addEventListener('input', () => {
+        updateQtyFromInput(input.dataset.code || '', input.value);
+      });
+
+      input.addEventListener('change', () => {
+        updateQtyFromInput(input.dataset.code || '', input.value);
+      });
+
+      input.addEventListener('blur', () => {
+        if (!input.value || Number(input.value) < 1) {
+          input.value = '1';
+        }
+
+        updateQtyFromInput(input.dataset.code || '', input.value);
       });
     });
+
 
     list.querySelectorAll('.unit-select').forEach((select) => {
       select.addEventListener('change', () => {
@@ -507,19 +524,6 @@ import { firebaseDb } from './firebase-core.js';
     closeDialogById('materialCartModal');
   }
 
-      function openEditQtyModal() {
-    openDialogById('editQtyModal');
-    window.setTimeout(() => {
-      requireElement('editQtyInput')?.focus();
-    }, 150);
-  }
-
-  function closeEditQtyModal() {
-    closeDialogById('editQtyModal');
-    currentEditingQtyCode = null;
-  }
-
-
     function renderMaterials(materials) {
     const tbody = document.querySelector('#materialsTableBody');
 
@@ -710,47 +714,6 @@ import { firebaseDb } from './firebase-core.js';
     requireElement('requestPngModal')?.addEventListener('cancel', (event) => {
       event.preventDefault();
       closeRequestPngModal();
-    });
-    requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
-      const input = requireElement('editQtyInput');
-      const error = requireElement('editQtyError');
-      const qty = parseInt(input?.value ?? '', 10);
-
-      if (!Number.isFinite(qty) || qty < 1) {
-        if (error) {
-          error.textContent = 'Veuillez entrer une quantité valide.';
-        }
-        input?.classList.remove('is-shaking');
-        void input?.offsetWidth;
-        input?.classList.add('is-error', 'is-shaking');
-        return;
-      }
-
-      const item = materialCart.find((cartItem) => cartItem.code === currentEditingQtyCode);
-      if (!item) {
-        return;
-      }
-
-      item.qty = qty;
-      saveMaterialCart();
-      updateMaterialCartBadge();
-      renderMaterialCart();
-      closeEditQtyModal();
-    });
-    requireElement('cancelEditQtyBtn')?.addEventListener('click', closeEditQtyModal);
-    requireElement('editQtyInput')?.addEventListener('input', () => {
-      const input = requireElement('editQtyInput');
-      const error = requireElement('editQtyError');
-      input?.classList.remove('is-error', 'is-shaking');
-      if (error) {
-        error.textContent = '';
-      }
-    });
-    requireElement('editQtyModal')?.addEventListener('click', (event) => {
-      const modal = event.currentTarget;
-      if (event.target === modal) {
-        closeEditQtyModal();
-      }
     });
 
     requireElement('materialsTableBody')?.addEventListener('click', (event) => {

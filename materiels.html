@@ -122,18 +122,21 @@
         padding: 0.2rem 0.45rem;
       }
 
-      .materials-page .qty-value {
-        min-width: 1.5rem;
+      .materials-page .qty-input {
+        width: 44px;
+        height: 36px;
+        border: none;
+        background: transparent;
         text-align: center;
-        font-weight: 700;
+        font-weight: 800;
+        font-size: inherit;
+        outline: none;
       }
 
-      .materials-page .qty-edit-btn {
-        border: 0;
-        background: transparent;
-        padding: 0;
-        line-height: 1.2;
-        cursor: pointer;
+      .materials-page .qty-input:focus {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 0 0 2px rgba(47,155,232,0.18);
       }
 
       .materials-page .unit-select {
@@ -146,15 +149,12 @@
         font-size: 14px;
       }
 
-      .materials-page #editQtyInput.is-error,
-      .materials-page #editQtyInput.is-error:focus,
       .materials-page #requestPngFileNameInput.is-error,
       .materials-page #requestPngFileNameInput.is-error:focus {
         border-color: #ef4444;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
       }
 
-      .materials-page #editQtyInput.is-shaking,
       .materials-page #requestPngFileNameInput.is-shaking {
         animation: site-lock-input-shake 300ms ease-in-out 1;
       }
@@ -289,26 +289,6 @@
           <div class="modal-actions modal-actions__row modal-actions__row--pair">
             <button id="clearMaterialCartBtn" class="btn btn-secondary" type="button">Vider</button>
             <button id="downloadRequestPngBtn" class="btn btn-primary" type="button">Exporter PNG</button>
-          </div>
-        </div>
-      </dialog>
-
-
-      
-
-      <dialog id="editQtyModal" class="modal-card">
-        <div class="modal-content modal-content--site-create">
-          <div class="modal-header">
-            <h2>Modifier la quantité</h2>
-          </div>
-          <label class="input-group input-group--site-create">
-            <span>Quantité demandée</span>
-            <input id="editQtyInput" type="number" min="1" inputmode="numeric" />
-          </label>
-          <p id="editQtyError" class="form-error" aria-live="polite"></p>
-          <div class="modal-actions modal-actions--split modal-actions--site-create">
-            <button id="cancelEditQtyBtn" class="btn btn-neutral" type="button">Annuler</button>
-            <button id="saveEditQtyBtn" class="btn btn-success" type="button">Enregistrer</button>
           </div>
         </div>
       </dialog>
