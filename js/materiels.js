@@ -442,6 +442,10 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function openRequestPngModal() {
+    closeMaterialCartModal?.();
+    requireElement('materialCartModal')?.classList.remove('active', 'open', 'show');
+    requireElement('materialCartModal')?.classList.add('hidden');
+
     const input = requireElement('requestPngFileNameInput');
     const suggestions = requireElement('requestPngFileNameSuggestions');
     const defaultName = getDefaultRequestPngFileName();
@@ -533,6 +537,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function openMaterialCartModal() {
+    requireElement('materialCartModal')?.classList.remove('hidden');
     openDialogById('materialCartModal');
   }
 
