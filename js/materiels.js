@@ -426,15 +426,7 @@ import { firebaseDb } from './firebase-core.js';
     closeDialogById('materialCartModal');
   }
 
-  function openMaterialRequestPreviewModal() {
-    openDialogById('materialRequestPreviewModal');
-  }
-
-  function closeMaterialRequestPreviewModal() {
-    closeDialogById('materialRequestPreviewModal');
-  }
-
-  function openEditQtyModal() {
+      function openEditQtyModal() {
     openDialogById('editQtyModal');
     window.setTimeout(() => {
       requireElement('editQtyInput')?.focus();
@@ -447,38 +439,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
 
-  function renderMaterialRequestPreview() {
-    const tbody = requireElement('materialRequestPreviewBody');
-    const table = requireElement('materialRequestPreviewTable');
-    const emptyState = requireElement('materialRequestPreviewEmptyState');
-
-    if (!tbody || !table || !emptyState) {
-      return;
-    }
-
-    if (!materialCart.length) {
-      tbody.innerHTML = '';
-      table.hidden = true;
-      emptyState.hidden = false;
-      return;
-    }
-
-    tbody.innerHTML = materialCart
-      .map((item) => `
-      <tr>
-        <td>${escapeHtml(item.code || '-')}</td>
-        <td>${escapeHtml(item.designation || '-')}</td>
-        <td>${escapeHtml(item.qty || 1)}</td>
-        <td>${escapeHtml(item.unit || 'Pcs')}</td>
-      </tr>
-    `)
-      .join('');
-
-    table.hidden = false;
-    emptyState.hidden = true;
-  }
-
-  function renderMaterials(materials) {
+    function renderMaterials(materials) {
     const tbody = document.querySelector('#materialsTableBody');
 
     if (!tbody) {
@@ -617,13 +578,6 @@ import { firebaseDb } from './firebase-core.js';
       }
     });
 
-    requireElement('materialRequestPreviewModal')?.addEventListener('click', (event) => {
-      const modal = event.currentTarget;
-      if (event.target === modal) {
-        closeMaterialRequestPreviewModal();
-      }
-    });
-
     requireElement('clearMaterialCartBtn')?.addEventListener('click', () => {
       materialCart = [];
       saveMaterialCart();
@@ -633,17 +587,8 @@ import { firebaseDb } from './firebase-core.js';
 
     requireElement('viewMaterialRequestBtn')?.addEventListener('click', () => {
       closeMaterialCartModal();
-      renderMaterialRequestPreview();
-      openMaterialRequestPreviewModal();
+      window.location.href = 'demande-materiel.html';
     });
-
-    requireElement('backToMaterialCartBtn')?.addEventListener('click', () => {
-      closeMaterialRequestPreviewModal();
-      renderMaterialCart();
-      openMaterialCartModal();
-    });
-
-    document.querySelector('#downloadRequestPngBtn')?.addEventListener('click', downloadRequestAsPng);
     requireElement('saveEditQtyBtn')?.addEventListener('click', () => {
       const input = requireElement('editQtyInput');
       const error = requireElement('editQtyError');
