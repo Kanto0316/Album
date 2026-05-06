@@ -324,6 +324,13 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function buildRequestExportArea() {
+    const now = new Date();
+    const dateText = now.toLocaleDateString("fr-FR");
+    const timeText = now.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
     const exportArea = document.createElement('div');
     exportArea.id = 'requestExportArea';
 
@@ -338,7 +345,7 @@ import { firebaseDb } from './firebase-core.js';
 
     exportArea.innerHTML = `
       <h2 style="margin:0 0 20px;font-size:28px;font-weight:800;">
-        Demande de matériel
+        Demande de matériel — ${dateText} ${timeText}
       </h2>
       <table style="width:100%;border-collapse:collapse;font-size:20px;">
         <thead>
