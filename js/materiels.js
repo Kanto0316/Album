@@ -627,9 +627,14 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function openManualMaterialModal() {
-    requireElement('manualMaterialError').textContent = '';
+    const errorEl = requireElement('manualMaterialError');
+    clearTimeout(errorEl?._hideTimer);
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.remove('visible');
+    }
     ['manualMaterialCodeInput', 'manualMaterialDesignationInput'].forEach((id) => {
-      requireElement(id)?.classList.remove('is-error', 'is-shaking');
+      requireElement(id)?.classList.remove('input-error', 'shake');
     });
     requireElement('manualMaterialCodeInput').value = '';
     requireElement('manualMaterialDesignationInput').value = '';
@@ -641,29 +646,35 @@ import { firebaseDb } from './firebase-core.js';
     closeDialogById('manualMaterialModal');
   }
 
+  function showTempFieldError(input, errorEl, message) {
+    if (!input || !errorEl) {
+      return;
+    }
+
+    input.classList.add('input-error');
+    input.classList.remove('shake');
+    void input.offsetWidth;
+    input.classList.add('shake');
+
+    errorEl.textContent = message;
+    errorEl.classList.add('visible');
+
+    clearTimeout(errorEl._hideTimer);
+    errorEl._hideTimer = window.setTimeout(() => {
+      errorEl.textContent = '';
+      errorEl.classList.remove('visible');
+      input.classList.remove('input-error');
+    }, 2500);
+  }
+
   function validateManualMaterialForm() {
     const designationInput = requireElement('manualMaterialDesignationInput');
     const errorEl = requireElement('manualMaterialError');
-    const clearError = (el) => el?.classList.remove('is-error', 'is-shaking');
-    [designationInput].forEach(clearError);
-    errorEl.textContent = '';
 
     const designation = String(designationInput?.value || '').trim();
-    let firstInvalid = null;
-    let errorMessage = '';
-
     if (!designation) {
-      firstInvalid = designationInput;
-      errorMessage = 'La désignation est obligatoire.';
-    }
-
-    if (firstInvalid) {
-      firstInvalid.classList.add('is-error');
-      firstInvalid.classList.remove('is-shaking');
-      void firstInvalid.offsetWidth;
-      firstInvalid.classList.add('is-shaking');
-      errorEl.textContent = errorMessage;
-      firstInvalid.focus();
+      showTempFieldError(designationInput, errorEl, 'La désignation est obligatoire.');
+      designationInput?.focus();
       return null;
     }
 
@@ -892,6 +903,16 @@ import { firebaseDb } from './firebase-core.js';
     requireElement('openManualMaterialBtn')?.addEventListener('click', openManualMaterialModal);
     requireElement('saveManualMaterialBtn')?.addEventListener('click', saveManualMaterial);
     requireElement('cancelManualMaterialBtn')?.addEventListener('click', closeManualMaterialModal);
+    requireElement('manualMaterialDesignationInput')?.addEventListener('input', () => {
+      const input = requireElement('manualMaterialDesignationInput');
+      const error = requireElement('manualMaterialError');
+      clearTimeout(error?._hideTimer);
+      input?.classList.remove('input-error', 'shake');
+      if (error) {
+        error.textContent = '';
+        error.classList.remove('visible');
+      }
+    });
     requireElement('manualMaterialModal')?.addEventListener('click', (event) => {
       if (event.target === event.currentTarget) {
         closeManualMaterialModal();
