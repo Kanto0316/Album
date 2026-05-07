@@ -8,6 +8,7 @@ import { firebaseDb } from './firebase-core.js';
   const MAX_CART_LINES = 20;
   let materialCart = [];
   let lastRequestMeta = null;
+  let isRequestPngDownloading = false;
 
   function getCartItemKey(item = {}) {
     return String(item.code || item.manualKey || '');
@@ -552,6 +553,32 @@ import { firebaseDb } from './firebase-core.js';
     resetRequestPngModalState();
   }
 
+  function setRequestPngLoadingState(isLoading) {
+    const confirmButton = requireElement('confirmRequestPngBtn');
+    if (!confirmButton) {
+      return;
+    }
+    confirmButton.disabled = Boolean(isLoading);
+    confirmButton.classList.toggle('is-disabled-soft', Boolean(isLoading));
+    confirmButton.textContent = isLoading ? 'Génération...' : 'Télécharger';
+  }
+
+  function setRequestPngPreviewImage(dataUrl) {
+    const image = requireElement('requestPngPreviewImage');
+    if (image) {
+      image.src = String(dataUrl || '');
+    }
+  }
+
+  function openRequestPngPreviewModal(dataUrl) {
+    setRequestPngPreviewImage(dataUrl);
+    openDialogById('requestPngPreviewModal');
+  }
+
+  function closeRequestPngPreviewModal() {
+    closeDialogById('requestPngPreviewModal');
+  }
+
   async function downloadRequestAsPng(customTitle = '') {
     const showToast = window.UiService?.showToast;
 
@@ -583,12 +610,13 @@ import { firebaseDb } from './firebase-core.js';
       });
 
       const safeFileName = getDefaultRequestPngFileName();
+      const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = `${safeFileName}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
 
-      showToast?.('Téléchargement en cours...');
+      openRequestPngPreviewModal(dataUrl);
     } catch (error) {
       console.error('Erreur export PNG :', error);
       showToast?.('Erreur téléchargement PNG');
@@ -863,13 +891,25 @@ import { firebaseDb } from './firebase-core.js';
     });
 
     requireElement('downloadRequestPngBtn')?.addEventListener('click', openRequestPngModal);
-    requireElement('confirmRequestPngBtn')?.addEventListener('click', () => {
+    requireElement('confirmRequestPngBtn')?.addEventListener('click', async () => {
+      if (isRequestPngDownloading) {
+        return;
+      }
+
       const input = requireElement('exportTitleInput');
       const cleanedValue = String(input?.value || '').trim();
 
+      isRequestPngDownloading = true;
+      setRequestPngLoadingState(true);
       saveLastRequestTitle();
       closeRequestPngModal();
-      downloadRequestAsPng(cleanedValue);
+
+      try {
+        await downloadRequestAsPng(cleanedValue);
+      } finally {
+        isRequestPngDownloading = false;
+        setRequestPngLoadingState(false);
+      }
     });
     requireElement('cancelRequestPngBtn')?.addEventListener('click', closeRequestPngModal);
     requireElement('exportTitleInput')?.addEventListener('input', () => {
@@ -899,6 +939,15 @@ import { firebaseDb } from './firebase-core.js';
     requireElement('requestPngModal')?.addEventListener('cancel', (event) => {
       event.preventDefault();
       closeRequestPngModal();
+    });
+    requireElement('requestPngPreviewOkBtn')?.addEventListener('click', closeRequestPngPreviewModal);
+    requireElement('requestPngPreviewModal')?.addEventListener('click', (event) => {
+      if (event.target === event.currentTarget) {
+        event.preventDefault();
+      }
+    });
+    requireElement('requestPngPreviewModal')?.addEventListener('cancel', (event) => {
+      event.preventDefault();
     });
     requireElement('openManualMaterialBtn')?.addEventListener('click', openManualMaterialModal);
     requireElement('saveManualMaterialBtn')?.addEventListener('click', saveManualMaterial);
