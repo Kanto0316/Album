@@ -588,7 +588,7 @@ import { firebaseDb } from './firebase-core.js';
       link.href = canvas.toDataURL('image/png');
       link.click();
 
-      showToast?.('Image PNG téléchargée ✔');
+      showToast?.('Téléchargement en cours...');
     } catch (error) {
       console.error('Erreur export PNG :', error);
       showToast?.('Erreur téléchargement PNG');
