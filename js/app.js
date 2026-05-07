@@ -2180,6 +2180,7 @@ import { firebaseAuth } from './firebase-core.js';
       const isLimited = normalizedRole === 'limité' || normalizedRole === 'limite' || normalizedRole === 'limited';
 
       setSidebarItemVisible('#sidebarHistoryBtn', true);
+      setSidebarItemVisible('#sidebarAllMaterialsBtn', isConnected);
 
       if (!isConnected || isLimited) {
         setSidebarItemVisible('#sidebarImportBtn', false);
