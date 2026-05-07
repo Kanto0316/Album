@@ -9,6 +9,10 @@ import { firebaseDb } from './firebase-core.js';
   let materialCart = [];
   let lastRequestMeta = null;
 
+  function getCartItemKey(item = {}) {
+    return String(item.code || item.manualKey || '');
+  }
+
   function requireElement(id) {
     return document.getElementById(id);
   }
@@ -86,6 +90,7 @@ import { firebaseDb } from './firebase-core.js';
       const savedCart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
       materialCart = savedCart.map((item) => ({
         ...item,
+        manualKey: item.manualKey || '',
         unit: item.unit || getDefaultMaterialUnit(item.designation || ''),
       }));
     } catch (_error) {
@@ -187,7 +192,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function removeMaterialFromCart(code) {
-    materialCart = materialCart.filter((item) => item.code !== code);
+    materialCart = materialCart.filter((item) => getCartItemKey(item) !== code);
     saveMaterialCart();
     updateMaterialCartBadge();
     renderMaterialCart();
@@ -208,7 +213,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function increaseQty(code) {
-    const item = materialCart.find((cartItem) => cartItem.code === code);
+    const item = materialCart.find((cartItem) => getCartItemKey(cartItem) === code);
     if (!item) {
       return;
     }
@@ -219,7 +224,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function decreaseQty(code) {
-    const item = materialCart.find((cartItem) => cartItem.code === code);
+    const item = materialCart.find((cartItem) => getCartItemKey(cartItem) === code);
     if (!item) {
       return;
     }
@@ -230,7 +235,7 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function updateQtyFromInput(code, value) {
-    const item = materialCart.find((cartItem) => cartItem.code === code);
+    const item = materialCart.find((cartItem) => getCartItemKey(cartItem) === code);
     if (!item) {
       return;
     }
@@ -243,7 +248,7 @@ import { firebaseDb } from './firebase-core.js';
 
   function updateMaterialUnit(code, newUnit) {
     materialCart = materialCart.map((item) => {
-      if (item.code === code) {
+      if (getCartItemKey(item) === code) {
         return { ...item, unit: newUnit };
       }
       return item;
@@ -301,10 +306,10 @@ import { firebaseDb } from './firebase-core.js';
           <strong>${escapeHtml(item.code)}</strong>
           <p>${escapeHtml(item.designation || '-')}</p>
           <div class="qty-control">
-            <button class="btn btn-secondary qty-minus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Diminuer la quantité de ${escapeHtml(item.code)}">−</button>
+            <button class="btn btn-secondary qty-minus" data-code="${escapeHtml(getCartItemKey(item))}" type="button" aria-label="Diminuer la quantité de ${escapeHtml(item.code)}">−</button>
             <input
               class="qty-input"
-              data-code="${escapeHtml(item.code)}"
+              data-code="${escapeHtml(getCartItemKey(item))}"
               type="number"
               min="1"
               max="9999"
@@ -312,14 +317,14 @@ import { firebaseDb } from './firebase-core.js';
               inputmode="numeric"
               value="${escapeHtml(item.qty || 1)}"
             />
-            <button class="btn btn-secondary qty-plus" data-code="${escapeHtml(item.code)}" type="button" aria-label="Augmenter la quantité de ${escapeHtml(item.code)}">+</button>
-            <select class="unit-select" data-code="${escapeHtml(item.code)}">
+            <button class="btn btn-secondary qty-plus" data-code="${escapeHtml(getCartItemKey(item))}" type="button" aria-label="Augmenter la quantité de ${escapeHtml(item.code)}">+</button>
+            <select class="unit-select" data-code="${escapeHtml(getCartItemKey(item))}">
               <option value="Pcs" ${item.unit === 'Pcs' ? 'selected' : ''}>Pcs</option>
               <option value="m" ${item.unit === 'm' ? 'selected' : ''}>m</option>
             </select>
           </div>
         </div>
-        <button class="remove-cart-item-btn" data-code="${escapeHtml(item.code)}" type="button" aria-label="Retirer ${escapeHtml(item.code)}">×</button>
+        <button class="remove-cart-item-btn" data-code="${escapeHtml(getCartItemKey(item))}" type="button" aria-label="Retirer ${escapeHtml(item.code)}">×</button>
       </div>
     `)
       .join('');
@@ -640,6 +645,96 @@ import { firebaseDb } from './firebase-core.js';
     closeDialogById('materialCartModal');
   }
 
+  function openManualMaterialModal() {
+    requireElement('manualMaterialError').textContent = '';
+    ['manualMaterialCodeInput', 'manualMaterialDesignationInput', 'manualMaterialQtyInput', 'manualMaterialUnitInput'].forEach((id) => {
+      requireElement(id)?.classList.remove('is-error', 'is-shaking');
+    });
+    requireElement('manualMaterialCodeInput').value = '';
+    requireElement('manualMaterialDesignationInput').value = '';
+    requireElement('manualMaterialQtyInput').value = '1';
+    requireElement('manualMaterialUnitInput').value = 'Pcs';
+    openDialogById('manualMaterialModal');
+    window.setTimeout(() => requireElement('manualMaterialDesignationInput')?.focus(), 100);
+  }
+
+  function closeManualMaterialModal() {
+    closeDialogById('manualMaterialModal');
+  }
+
+  function validateManualMaterialForm() {
+    const designationInput = requireElement('manualMaterialDesignationInput');
+    const qtyInput = requireElement('manualMaterialQtyInput');
+    const unitInput = requireElement('manualMaterialUnitInput');
+    const errorEl = requireElement('manualMaterialError');
+    const clearError = (el) => el?.classList.remove('is-error', 'is-shaking');
+    [designationInput, qtyInput, unitInput].forEach(clearError);
+    errorEl.textContent = '';
+
+    const designation = String(designationInput?.value || '').trim();
+    const qty = parseInt(qtyInput?.value || '', 10);
+    const unit = String(unitInput?.value || '').trim();
+    let firstInvalid = null;
+    let errorMessage = '';
+
+    if (!designation) {
+      firstInvalid = designationInput;
+      errorMessage = 'La désignation est obligatoire.';
+    } else if (!Number.isInteger(qty) || qty < 1) {
+      firstInvalid = qtyInput;
+      errorMessage = 'La quantité doit être un nombre entier ≥ 1.';
+    } else if (!unit) {
+      firstInvalid = unitInput;
+      errorMessage = 'L’unité est obligatoire.';
+    }
+
+    if (firstInvalid) {
+      firstInvalid.classList.add('is-error');
+      firstInvalid.classList.remove('is-shaking');
+      void firstInvalid.offsetWidth;
+      firstInvalid.classList.add('is-shaking');
+      errorEl.textContent = errorMessage;
+      firstInvalid.focus();
+      return null;
+    }
+
+    return { designation, qty, unit };
+  }
+
+  function saveManualMaterial() {
+    const code = String(requireElement('manualMaterialCodeInput')?.value || '').trim();
+    const valid = validateManualMaterialForm();
+    if (!valid) {
+      return;
+    }
+    const { designation, qty, unit } = valid;
+    const manualItem = { code, designation, qty, unit, manual: true };
+    const existing = materialCart.find((item) => String(item.code || '').trim() === code && code);
+    if (existing) {
+      existing.qty = sanitizeQty((Number(existing.qty) || 0) + qty);
+      if (!String(existing.designation || '').trim()) {
+        existing.designation = designation;
+      }
+      if (!String(existing.unit || '').trim()) {
+        existing.unit = unit;
+      }
+    } else {
+      if (materialCart.length >= MAX_CART_LINES) {
+        window.UiService?.showToast?.('Limite de 20 matériels atteinte.');
+        return;
+      }
+      materialCart.push({
+        ...manualItem,
+        manualKey: code || `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      });
+    }
+
+    saveMaterialCart();
+    updateMaterialCartBadge();
+    renderMaterialCart();
+    closeManualMaterialModal();
+  }
+
     function renderMaterials(materials) {
     const tbody = document.querySelector('#materialsTableBody');
 
@@ -823,6 +918,18 @@ import { firebaseDb } from './firebase-core.js';
     requireElement('requestPngModal')?.addEventListener('cancel', (event) => {
       event.preventDefault();
       closeRequestPngModal();
+    });
+    requireElement('openManualMaterialBtn')?.addEventListener('click', openManualMaterialModal);
+    requireElement('saveManualMaterialBtn')?.addEventListener('click', saveManualMaterial);
+    requireElement('cancelManualMaterialBtn')?.addEventListener('click', closeManualMaterialModal);
+    requireElement('manualMaterialModal')?.addEventListener('click', (event) => {
+      if (event.target === event.currentTarget) {
+        closeManualMaterialModal();
+      }
+    });
+    requireElement('manualMaterialModal')?.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      closeManualMaterialModal();
     });
 
     requireElement('materialsTableBody')?.addEventListener('click', (event) => {
