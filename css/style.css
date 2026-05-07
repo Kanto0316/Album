@@ -2455,6 +2455,13 @@ body[data-page="item-detail"] .title-block .section-title,
   color: #1f2937;
 }
 
+
+.page3 .page3-title-block #openManualMaterialBtn {
+  display: block;
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
 .page3-sub-info {
   display: flex;
   justify-content: space-between;
@@ -2464,7 +2471,7 @@ body[data-page="item-detail"] .title-block .section-title,
 }
 
 .page3 .page3-sub-info {
-  margin-top: 10px;
+  margin-top: 0;
   padding-top: 10px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   width: 95%;
