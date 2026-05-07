@@ -1727,6 +1727,11 @@ body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-shakin
   color: var(--text-muted);
 }
 
+
+#requestPngPreviewModal .modal-header {
+  display: block;
+}
+
 /* Supprimer uniquement la petite flèche du datalist */
 input[list]::-webkit-calendar-picker-indicator {
   display: none !important;
