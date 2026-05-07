@@ -569,9 +569,29 @@ import { firebaseDb } from './firebase-core.js';
     if (!confirmButton) {
       return;
     }
-    confirmButton.disabled = Boolean(isLoading);
-    confirmButton.classList.toggle('is-disabled-soft', Boolean(isLoading));
-    confirmButton.textContent = isLoading ? 'Génération...' : 'Télécharger';
+
+    const isBusy = Boolean(isLoading);
+    const loader = confirmButton.querySelector('.btn-loader');
+    const text = confirmButton.querySelector('.btn-text');
+    const modalContent = document.querySelector('#requestPngModal .modal-content');
+
+    confirmButton.disabled = isBusy;
+    confirmButton.classList.toggle('is-disabled-soft', isBusy);
+    confirmButton.classList.toggle('loading', isBusy);
+
+    if (loader) {
+      loader.classList.toggle('hidden', !isBusy);
+    }
+
+    if (text) {
+      text.textContent = isBusy ? 'Génération...' : 'Télécharger';
+    } else {
+      confirmButton.textContent = isBusy ? 'Génération...' : 'Télécharger';
+    }
+
+    if (modalContent) {
+      modalContent.classList.toggle('is-exporting', isBusy);
+    }
   }
 
   
