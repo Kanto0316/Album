@@ -256,17 +256,25 @@
 
       .materials-page .request-png-preview-wrap {
         margin: 0.4rem 0 0.9rem;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 14px;
-        background: #f8fbff;
-        padding: 0.5rem;
+      }
+
+      .materials-page .preview-image-scroll {
+        max-height: 45vh;
+        overflow: auto;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        touch-action: pan-x pan-y pinch-zoom;
+      }
+
+      .materials-page .preview-image-scroll img {
+        width: 100%;
+        height: auto;
+        display: block;
+        transform-origin: center center;
       }
 
       .materials-page .request-png-preview-image {
-        display: block;
-        width: 100%;
-        max-height: 52vh;
-        object-fit: contain;
         border-radius: 10px;
       }
 </style>
@@ -378,11 +386,11 @@
       <dialog id="requestPngPreviewModal" class="modal-card">
         <div class="modal-content modal-content--site-create">
           <div class="modal-header">
-            <h3 class="modal-title">Image générée</h3>
+            <h2 class="modal-title">Image générée</h2>
             <p class="modal-subtitle">Votre demande a été téléchargée avec succès.</p>
           </div>
-          <div class="request-png-preview-wrap">
-            <img id="requestPngPreviewImage" class="request-png-preview-image" alt="Aperçu de l’image PNG générée" />
+          <div class="request-png-preview-wrap preview-image-scroll">
+            <img id="requestPngPreviewImage" class="request-png-preview-image" alt="Aperçu demande matériel" />
           </div>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="requestPngPreviewOkBtn" class="btn btn-success" type="button">OK</button>

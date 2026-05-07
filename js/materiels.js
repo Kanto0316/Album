@@ -574,6 +574,108 @@ import { firebaseDb } from './firebase-core.js';
     confirmButton.textContent = isLoading ? 'Génération...' : 'Télécharger';
   }
 
+  
+
+  const previewZoomState = {
+    scale: 1,
+    minScale: 1,
+    maxScale: 4,
+    translateX: 0,
+    translateY: 0,
+    activePointers: new Map(),
+    pinchDistance: 0,
+    pinchScaleStart: 1,
+    panStartX: 0,
+    panStartY: 0,
+    translateStartX: 0,
+    translateStartY: 0
+  };
+
+  function applyPreviewTransform() {
+    const image = requireElement('requestPngPreviewImage');
+    if (!image) return;
+    image.style.transform = `translate(${previewZoomState.translateX}px, ${previewZoomState.translateY}px) scale(${previewZoomState.scale})`;
+    image.style.cursor = previewZoomState.scale > 1 ? 'grab' : 'default';
+  }
+
+  function resetPreviewZoom() {
+    previewZoomState.scale = 1;
+    previewZoomState.translateX = 0;
+    previewZoomState.translateY = 0;
+    previewZoomState.activePointers.clear();
+    previewZoomState.pinchDistance = 0;
+    applyPreviewTransform();
+  }
+
+  function getPointerDistance(p1, p2) {
+    const dx = p1.x - p2.x;
+    const dy = p1.y - p2.y;
+    return Math.hypot(dx, dy);
+  }
+
+  function initPreviewZoomHandlers() {
+    const image = requireElement('requestPngPreviewImage');
+    if (!image || image.dataset.zoomBound === '1') return;
+
+    image.dataset.zoomBound = '1';
+    image.style.touchAction = 'none';
+
+    image.addEventListener('pointerdown', (event) => {
+      image.setPointerCapture?.(event.pointerId);
+      previewZoomState.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (previewZoomState.activePointers.size === 1 && previewZoomState.scale > 1) {
+        previewZoomState.panStartX = event.clientX;
+        previewZoomState.panStartY = event.clientY;
+        previewZoomState.translateStartX = previewZoomState.translateX;
+        previewZoomState.translateStartY = previewZoomState.translateY;
+      }
+
+      if (previewZoomState.activePointers.size === 2) {
+        const [p1, p2] = Array.from(previewZoomState.activePointers.values());
+        previewZoomState.pinchDistance = getPointerDistance(p1, p2);
+        previewZoomState.pinchScaleStart = previewZoomState.scale;
+      }
+    });
+
+    image.addEventListener('pointermove', (event) => {
+      if (!previewZoomState.activePointers.has(event.pointerId)) return;
+      previewZoomState.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (previewZoomState.activePointers.size === 2) {
+        const [p1, p2] = Array.from(previewZoomState.activePointers.values());
+        const distance = getPointerDistance(p1, p2);
+        if (previewZoomState.pinchDistance > 0) {
+          const nextScale = previewZoomState.pinchScaleStart * (distance / previewZoomState.pinchDistance);
+          previewZoomState.scale = Math.min(previewZoomState.maxScale, Math.max(previewZoomState.minScale, nextScale));
+          applyPreviewTransform();
+        }
+        event.preventDefault();
+        return;
+      }
+
+      if (previewZoomState.activePointers.size === 1 && previewZoomState.scale > 1) {
+        previewZoomState.translateX = previewZoomState.translateStartX + (event.clientX - previewZoomState.panStartX);
+        previewZoomState.translateY = previewZoomState.translateStartY + (event.clientY - previewZoomState.panStartY);
+        applyPreviewTransform();
+        event.preventDefault();
+      }
+    });
+
+    const clearPointer = (event) => {
+      previewZoomState.activePointers.delete(event.pointerId);
+      if (previewZoomState.activePointers.size < 2) previewZoomState.pinchDistance = 0;
+      if (previewZoomState.scale <= 1) {
+        previewZoomState.translateX = 0;
+        previewZoomState.translateY = 0;
+        applyPreviewTransform();
+      }
+    };
+
+    image.addEventListener('pointerup', clearPointer);
+    image.addEventListener('pointercancel', clearPointer);
+  }
+
   function setRequestPngPreviewImage(dataUrl) {
     const image = requireElement('requestPngPreviewImage');
     if (image) {
@@ -583,10 +685,13 @@ import { firebaseDb } from './firebase-core.js';
 
   function openRequestPngPreviewModal(dataUrl) {
     setRequestPngPreviewImage(dataUrl);
+    initPreviewZoomHandlers();
+    resetPreviewZoom();
     openDialogById('requestPngPreviewModal');
   }
 
   function closeRequestPngPreviewModal() {
+    resetPreviewZoom();
     closeDialogById('requestPngPreviewModal');
   }
 
