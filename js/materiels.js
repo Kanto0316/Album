@@ -425,6 +425,15 @@ import { firebaseDb } from './firebase-core.js';
     window.UiService?.showToast?.('Demande copiée ✔');
   }
 
+  function sanitizeText(text) {
+    if (!text) return '';
+
+    return String(text)
+      .normalize('NFC')
+      .replace(/�/g, 'É')
+      .trim();
+  }
+
   function buildRequestExportArea(requestMeta) {
     const exportArea = document.createElement('div');
     exportArea.id = 'requestExportArea';
@@ -435,15 +444,15 @@ import { firebaseDb } from './firebase-core.js';
     exportArea.style.width = '900px';
     exportArea.style.background = '#ffffff';
     exportArea.style.padding = '32px';
-    exportArea.style.fontFamily = 'Arial, sans-serif';
+    exportArea.style.fontFamily = "'Segoe UI', Roboto, Arial, sans-serif";
     exportArea.style.color = '#111827';
 
     exportArea.innerHTML = `
       <h1 style="margin:0;font-size:28px;font-weight:800;">
-        ${escapeHtml(buildRequestMainTitle(requestMeta?.requestTitle))}
+        ${escapeHtml(sanitizeText(buildRequestMainTitle(requestMeta?.requestTitle)))}
       </h1>
       <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#1e40af;">N° ${escapeHtml(requestMeta?.requestNumber || "---")}</p>
-      <p style="margin:8px 0 20px;font-size:18px;color:#334155;">${escapeHtml(requestMeta?.createdAtLabel || formatRequestDateTime(new Date()))}</p>
+      <p style="margin:8px 0 20px;font-size:18px;color:#334155;">${escapeHtml(sanitizeText(requestMeta?.createdAtLabel || formatRequestDateTime(new Date())))}</p>
       <table style="width:100%;border-collapse:collapse;font-size:20px;">
         <thead>
           <tr style="background:#eef5fb;">
@@ -458,10 +467,10 @@ import { firebaseDb } from './firebase-core.js';
           ${materialCart.map((item, index) => `
             <tr>
               <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;width:52px;">${index + 1}</td>
-              <td style="padding:14px;border:1px solid #cbd5e1;">${item.code || '-'}</td>
-              <td style="padding:14px;border:1px solid #cbd5e1;">${item.designation || '-'}</td>
+              <td style="padding:14px;border:1px solid #cbd5e1;">${escapeHtml(sanitizeText(item.code) || '-')}</td>
+              <td style="padding:14px;border:1px solid #cbd5e1;">${escapeHtml(sanitizeText(item.designation) || '-')}</td>
               <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;">${item.qty || 1}</td>
-              <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;">${item.unit || 'Pcs'}</td>
+              <td style="padding:14px;border:1px solid #cbd5e1;text-align:center;">${escapeHtml(sanitizeText(item.unit) || 'Pcs')}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -552,6 +561,7 @@ import { firebaseDb } from './firebase-core.js';
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
+        logging: false,
         width: exportArea.scrollWidth,
         height: exportArea.scrollHeight,
         windowWidth: exportArea.scrollWidth,
