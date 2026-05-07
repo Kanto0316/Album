@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { addDoc, collection, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -44,16 +44,6 @@ import { firebaseDb } from './firebase-core.js';
 
   async function createMaterialRequestRecord(requestTitle = '') {
     const cleanedTitle = String(requestTitle || '').trim();
-    const counterRef = doc(firebaseDb, 'counters', 'materialRequestCounter');
-    const requestNumber = await runTransaction(firebaseDb, async (transaction) => {
-      const counterSnap = await transaction.get(counterRef);
-      const currentValue = Number(counterSnap.data()?.current) || 0;
-      const nextValue = currentValue + 1;
-      transaction.set(counterRef, { current: nextValue }, { merge: true });
-      return String(nextValue).padStart(3, '0');
-    });
-
-    const requestRef = doc(collection(firebaseDb, 'materialRequests'));
     const items = materialCart.map((item) => ({
       code: String(item.code || ''),
       designation: String(item.designation || ''),
@@ -61,17 +51,13 @@ import { firebaseDb } from './firebase-core.js';
       unit: item.unit || 'Pcs',
     }));
 
-    await runTransaction(firebaseDb, async (transaction) => {
-      transaction.set(requestRef, {
-        requestNumber,
-        requestTitle: cleanedTitle,
-        createdAt: serverTimestamp(),
-        items,
-      });
+    await addDoc(collection(firebaseDb, 'materialRequests'), {
+      requestTitle: cleanedTitle,
+      createdAt: serverTimestamp(),
+      items,
     });
 
     return {
-      requestNumber,
       requestTitle: cleanedTitle,
       createdAtLabel: formatRequestDateTime(new Date()),
     };
@@ -383,13 +369,9 @@ import { firebaseDb } from './firebase-core.js';
     }
 
     const mainTitle = buildRequestMainTitle(requestMeta?.requestTitle);
-    const requestNumber = requestMeta?.requestNumber ? `N° ${requestMeta.requestNumber}` : '';
     const createdAtLabel = requestMeta?.createdAtLabel || formatRequestDateTime(new Date());
 
     let text = `📦 ${mainTitle}\n`;
-    if (requestNumber) {
-      text += `${requestNumber}\n`;
-    }
     text += `${createdAtLabel}\n\n`;
     text += 'Code | Désignation | Qté | Unité\n';
     text += '----------------------------------\n';
@@ -456,8 +438,7 @@ import { firebaseDb } from './firebase-core.js';
       <h1 style="margin:0;font-size:28px;font-weight:800;">
         ${escapeHtml(sanitizeText(buildRequestMainTitle(requestMeta?.requestTitle)))}
       </h1>
-      <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#1e40af;">N° ${escapeHtml(requestMeta?.requestNumber || "---")}</p>
-      <p style="margin:8px 0 20px;font-size:18px;color:#334155;">${escapeHtml(sanitizeText(requestMeta?.createdAtLabel || formatRequestDateTime(new Date())))}</p>
+      <p style="margin:6px 0 20px;font-size:18px;color:#334155;">${escapeHtml(sanitizeText(requestMeta?.createdAtLabel || formatRequestDateTime(new Date())))}</p>
       <table style="width:100%;border-collapse:collapse;font-size:20px;">
         <thead>
           <tr style="background:#eef5fb;">
