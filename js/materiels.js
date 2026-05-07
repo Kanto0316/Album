@@ -647,13 +647,11 @@ import { firebaseDb } from './firebase-core.js';
 
   function openManualMaterialModal() {
     requireElement('manualMaterialError').textContent = '';
-    ['manualMaterialCodeInput', 'manualMaterialDesignationInput', 'manualMaterialQtyInput', 'manualMaterialUnitInput'].forEach((id) => {
+    ['manualMaterialCodeInput', 'manualMaterialDesignationInput'].forEach((id) => {
       requireElement(id)?.classList.remove('is-error', 'is-shaking');
     });
     requireElement('manualMaterialCodeInput').value = '';
     requireElement('manualMaterialDesignationInput').value = '';
-    requireElement('manualMaterialQtyInput').value = '1';
-    requireElement('manualMaterialUnitInput').value = 'Pcs';
     openDialogById('manualMaterialModal');
     window.setTimeout(() => requireElement('manualMaterialDesignationInput')?.focus(), 100);
   }
@@ -664,28 +662,18 @@ import { firebaseDb } from './firebase-core.js';
 
   function validateManualMaterialForm() {
     const designationInput = requireElement('manualMaterialDesignationInput');
-    const qtyInput = requireElement('manualMaterialQtyInput');
-    const unitInput = requireElement('manualMaterialUnitInput');
     const errorEl = requireElement('manualMaterialError');
     const clearError = (el) => el?.classList.remove('is-error', 'is-shaking');
-    [designationInput, qtyInput, unitInput].forEach(clearError);
+    [designationInput].forEach(clearError);
     errorEl.textContent = '';
 
     const designation = String(designationInput?.value || '').trim();
-    const qty = parseInt(qtyInput?.value || '', 10);
-    const unit = String(unitInput?.value || '').trim();
     let firstInvalid = null;
     let errorMessage = '';
 
     if (!designation) {
       firstInvalid = designationInput;
       errorMessage = 'La désignation est obligatoire.';
-    } else if (!Number.isInteger(qty) || qty < 1) {
-      firstInvalid = qtyInput;
-      errorMessage = 'La quantité doit être un nombre entier ≥ 1.';
-    } else if (!unit) {
-      firstInvalid = unitInput;
-      errorMessage = 'L’unité est obligatoire.';
     }
 
     if (firstInvalid) {
@@ -698,7 +686,7 @@ import { firebaseDb } from './firebase-core.js';
       return null;
     }
 
-    return { designation, qty, unit };
+    return { designation, qty: 1, unit: 'Pcs' };
   }
 
   function saveManualMaterial() {
@@ -733,6 +721,7 @@ import { firebaseDb } from './firebase-core.js';
     updateMaterialCartBadge();
     renderMaterialCart();
     closeManualMaterialModal();
+    openMaterialCartModal();
   }
 
     function renderMaterials(materials) {
