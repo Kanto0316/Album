@@ -245,18 +245,12 @@
       }
 
       .materials-page #manualMaterialDesignationInput.is-error,
-      .materials-page #manualMaterialQtyInput.is-error,
-      .materials-page #manualMaterialUnitInput.is-error,
-      .materials-page #manualMaterialDesignationInput.is-error:focus,
-      .materials-page #manualMaterialQtyInput.is-error:focus,
-      .materials-page #manualMaterialUnitInput.is-error:focus {
+      .materials-page #manualMaterialDesignationInput.is-error:focus {
         border-color: #ef4444;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
       }
 
-      .materials-page #manualMaterialDesignationInput.is-shaking,
-      .materials-page #manualMaterialQtyInput.is-shaking,
-      .materials-page #manualMaterialUnitInput.is-shaking {
+      .materials-page #manualMaterialDesignationInput.is-shaking {
         animation: site-lock-input-shake 300ms ease-in-out 1;
       }
 </style>
@@ -376,17 +370,6 @@
           <label class="input-group input-group--site-create">
             <span>Désignation</span>
             <input id="manualMaterialDesignationInput" type="text" placeholder="Désignation" autocomplete="off" />
-          </label>
-          <label class="input-group input-group--site-create">
-            <span>Quantité demandée</span>
-            <input id="manualMaterialQtyInput" type="number" min="1" step="1" inputmode="numeric" placeholder="1" />
-          </label>
-          <label class="input-group input-group--site-create">
-            <span>Unité</span>
-            <select id="manualMaterialUnitInput">
-              <option value="Pcs">Pcs</option>
-              <option value="m">m</option>
-            </select>
           </label>
           <p id="manualMaterialError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
