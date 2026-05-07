@@ -277,6 +277,45 @@
       .materials-page .request-png-preview-image {
         border-radius: 10px;
       }
+
+
+      .materials-page #confirmRequestPngBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .materials-page #confirmRequestPngBtn .btn-loader {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,0.35);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: request-png-spin 0.8s linear infinite;
+        display: inline-block;
+        margin-right: 10px;
+        flex-shrink: 0;
+      }
+
+      .materials-page #confirmRequestPngBtn .btn-loader.hidden {
+        display: none;
+      }
+
+      .materials-page #confirmRequestPngBtn.loading,
+      .materials-page #confirmRequestPngBtn.loading:active {
+        opacity: 0.75;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .materials-page #requestPngModal .modal-content.is-exporting {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      @keyframes request-png-spin {
+        to { transform: rotate(360deg); }
+      }
 </style>
   </head>
   <body data-page="all-materials" class="page3 materials-page">
@@ -375,7 +414,10 @@
           <p id="exportTitleError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="cancelRequestPngBtn" class="btn btn-neutral" type="button">Annuler</button>
-            <button id="confirmRequestPngBtn" class="btn btn-success" type="button">Télécharger</button>
+            <button id="confirmRequestPngBtn" class="btn btn-success" type="button">
+              <span class="btn-loader hidden" aria-hidden="true"></span>
+              <span class="btn-text">Télécharger</span>
+            </button>
           </div>
         </div>
       </dialog>
