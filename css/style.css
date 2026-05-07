@@ -2460,6 +2460,10 @@ body[data-page="item-detail"] .title-block .section-title,
   display: block;
   margin-top: 16px;
   margin-bottom: 20px;
+  padding: 0.72rem 1.05rem;
+  font-weight: 600;
+  min-width: 205px;
+  width: fit-content;
 }
 
 .page3-sub-info {
