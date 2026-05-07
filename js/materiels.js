@@ -506,6 +506,36 @@ import { firebaseDb } from './firebase-core.js';
     }
   }
 
+
+  const LAST_TITLE_KEY = 'lastMaterialRequestTitle';
+
+  function preloadLastRequestTitle() {
+    const input = requireElement('exportTitleInput');
+
+    if (!input) return;
+
+    const savedTitle = localStorage.getItem(LAST_TITLE_KEY);
+
+    if (savedTitle) {
+      input.value = savedTitle;
+
+      // garder le compteur existant synchronisé
+      input.dispatchEvent(new Event('input'));
+    }
+  }
+
+  function saveLastRequestTitle() {
+    const input = requireElement('exportTitleInput');
+
+    if (!input) return;
+
+    const value = input.value.trim();
+
+    if (value) {
+      localStorage.setItem(LAST_TITLE_KEY, value);
+    }
+  }
+
   function resetRequestPngModalState() {
     const input = requireElement('exportTitleInput');
     const error = requireElement('exportTitleError');
@@ -522,10 +552,8 @@ import { firebaseDb } from './firebase-core.js';
     requireElement('materialCartModal')?.classList.add('hidden');
 
     const input = requireElement('exportTitleInput');
-    if (input) {
-      input.value = '';
-    }
     resetRequestPngModalState();
+    preloadLastRequestTitle();
     openDialogById('requestPngModal');
     window.setTimeout(() => {
       input?.focus();
@@ -763,6 +791,7 @@ import { firebaseDb } from './firebase-core.js';
       const input = requireElement('exportTitleInput');
       const cleanedValue = String(input?.value || '').trim();
 
+      saveLastRequestTitle();
       closeRequestPngModal();
       downloadRequestAsPng(cleanedValue);
     });
