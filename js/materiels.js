@@ -468,9 +468,20 @@ import { firebaseDb } from './firebase-core.js';
     return exportArea;
   }
 
+  function formatFileNameDatePart(value) {
+    return String(value).padStart(2, '0');
+  }
+
   function getDefaultRequestPngFileName() {
-    const date = new Date().toISOString().slice(0, 10);
-    return `demande-materiel-${date}`;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = formatFileNameDatePart(now.getMonth() + 1);
+    const day = formatFileNameDatePart(now.getDate());
+    const hours = formatFileNameDatePart(now.getHours());
+    const minutes = formatFileNameDatePart(now.getMinutes());
+    const seconds = formatFileNameDatePart(now.getSeconds());
+
+    return `demande-materiel-${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
   }
 
   function updateExportTitleCounter() {
