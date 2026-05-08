@@ -3271,6 +3271,13 @@ import { firebaseAuth } from './firebase-core.js';
       'body[data-page="site-detail"] .site-detail-fab-label--create',
     );
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
+    const siteTabs = document.getElementById('siteTabs');
+    const siteTabButtons = Array.from(document.querySelectorAll('.site-tab'));
+    const outsTabContent = document.getElementById('outsTabContent');
+    const purchasesTabContent = document.getElementById('purchasesTabContent');
+    const purchasesTabButton = document.querySelector('[data-tab="purchases"]');
+    let isAdminTabAllowed = Boolean(permissions?.isAdmin);
+    let activeSiteTab = 'outs';
     let itemFormErrorTimeoutId = null;
     let itemNumberErrorClearTimer = null;
     let itemAvailabilityDebounceTimer = null;
@@ -3304,6 +3311,44 @@ import { firebaseAuth } from './firebase-core.js';
         createButtonRow.hidden = !isAuthenticated;
         createButtonRow.style.display = isAuthenticated ? '' : 'none';
       }
+    }
+
+    function updateTabsByRole() {
+      isAdminTabAllowed = Boolean(permissions?.isAdmin);
+      if (purchasesTabButton) {
+        purchasesTabButton.classList.toggle('hidden', !isAdminTabAllowed);
+      }
+      if (!isAdminTabAllowed && activeSiteTab === 'purchases') {
+        setActiveSiteTab('outs');
+      }
+    }
+
+    function updateFabByActiveTab(tabName) {
+      const shouldShowFab = tabName === 'outs';
+      if (openCreateItem) {
+        openCreateItem.classList.toggle('hidden', !shouldShowFab);
+      }
+      if (createItemLabel) {
+        createItemLabel.classList.toggle('hidden', !shouldShowFab);
+      }
+      const createButtonRow = openCreateItem?.closest('[data-fab-row="create"]');
+      if (createButtonRow) {
+        createButtonRow.classList.toggle('hidden', !shouldShowFab);
+      }
+      if (siteDetailFabStack) {
+        siteDetailFabStack.classList.toggle('hidden', !shouldShowFab);
+      }
+    }
+
+    function setActiveSiteTab(tabName) {
+      const safeTabName = tabName === 'purchases' && isAdminTabAllowed ? 'purchases' : 'outs';
+      activeSiteTab = safeTabName;
+      siteTabButtons.forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.tab === safeTabName);
+      });
+      outsTabContent?.classList.toggle('hidden', safeTabName !== 'outs');
+      purchasesTabContent?.classList.toggle('hidden', safeTabName !== 'purchases');
+      updateFabByActiveTab(safeTabName);
     }
 
     function getItemNumberMaxLength() {
@@ -3510,8 +3555,23 @@ import { firebaseAuth } from './firebase-core.js';
     }
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
+    updateTabsByRole();
+    setActiveSiteTab('outs');
+    siteTabs?.addEventListener('click', (event) => {
+      const tab = event.target.closest('.site-tab');
+      if (!tab) {
+        return;
+      }
+      const targetTab = tab.dataset.tab;
+      if (targetTab === 'purchases' && !isAdminTabAllowed) {
+        setActiveSiteTab('outs');
+        return;
+      }
+      setActiveSiteTab(targetTab);
+    });
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
+      updateTabsByRole();
     });
 
     openCreateItem?.addEventListener('click', () => {

@@ -24,7 +24,18 @@
       </header>
 
       <main class="page-content main-content">
-        <section class="search-panel search-panel--site surface-card section">
+        <div class="site-tabs" id="siteTabs">
+          <button class="site-tab active" data-tab="outs" type="button">
+            OUT
+          </button>
+
+          <button class="site-tab admin-only hidden" data-tab="purchases" type="button">
+            Achat matériel
+          </button>
+        </div>
+
+        <section id="outsTabContent" class="tab-content active">
+          <section class="search-panel search-panel--site surface-card section">
           <label class="input-group">
             <span class="sr-only">Rechercher (OUT ou article)</span>
             <span class="site-search-icon-wrap" aria-hidden="true"><img src="Icon/Recherche.png" alt="" class="site-search-icon" /></span>
@@ -57,9 +68,16 @@
             <option value="yesterday">Hier</option>
             <option value="lastMonth">Plus Ancien</option>
           </select>
+          </section>
+
+          <section id="itemList" class="list-grid" aria-live="polite"></section>
         </section>
 
-        <section id="itemList" class="list-grid" aria-live="polite"></section>
+        <section id="purchasesTabContent" class="tab-content hidden">
+          <div class="empty-state">
+            Achat matériel bientôt disponible.
+          </div>
+        </section>
       </main>
 
       <div class="site-detail-fab-stack" aria-hidden="false">
