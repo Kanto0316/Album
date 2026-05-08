@@ -3856,36 +3856,37 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
 body[data-page="site-detail"] .site-tabs {
   display: flex;
   width: 100%;
-  padding: 6px;
+  gap: 8px;
+  padding: 8px;
   background: #eef3f8;
-  border-radius: 999px;
+  border-radius: 24px;
   box-sizing: border-box;
-  gap: 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 body[data-page="site-detail"] .site-tab {
   flex: 1;
   height: 52px;
-  border: none;
+  border: none !important;
+  outline: none;
   background: transparent;
-  border-radius: 999px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   line-height: 1;
-  color: #5f6b7a;
+  color: #5f667a;
   padding: 0;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 body[data-page="site-detail"] .bottom-tabs {
   position: fixed;
-  left: clamp(0.75rem, 2.4vw, 1.25rem);
-  right: clamp(0.75rem, 2.4vw, 1.25rem);
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 999;
+  left: 16px;
+  right: 16px;
+  bottom: calc(4px + env(safe-area-inset-bottom));
+  z-index: 1000;
 }
 
 
@@ -3905,6 +3906,11 @@ body.page2 #createOutFab {
 body[data-page="site-detail"] .site-tab.active {
   background: #2f95e9;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(47, 149, 233, 0.25);
+}
+
+body[data-page="site-detail"] .site-tab:not(.active) {
+  background: transparent;
 }
 
 body[data-page="site-detail"] .site-tab.hidden,
