@@ -3853,26 +3853,20 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
   gap: 0.45rem;
 }
 
-body[data-page="site-detail"] .tabs-wrapper {
-  width: 100%;
-  padding: 0 24px;
-  box-sizing: border-box;
-}
-
 body[data-page="site-detail"] .site-tabs {
   display: flex;
   width: 100%;
-  margin: 10px 0 12px;
-  padding: 4px;
+  padding: 6px;
   background: #eef3f8;
   border-radius: 999px;
   box-sizing: border-box;
   gap: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
 body[data-page="site-detail"] .site-tab {
   flex: 1;
-  min-height: 42px;
+  height: 52px;
   border: none;
   background: transparent;
   border-radius: 999px;
@@ -3884,6 +3878,14 @@ body[data-page="site-detail"] .site-tab {
   color: #5f6b7a;
   padding: 0;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+body[data-page="site-detail"] .bottom-tabs {
+  position: fixed;
+  left: clamp(0.75rem, 2.4vw, 1.25rem);
+  right: clamp(0.75rem, 2.4vw, 1.25rem);
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 999;
 }
 
 body[data-page="site-detail"] .site-tab.active {
@@ -5444,4 +5446,3 @@ body {
 .hidden {
   display: none !important;
 }
-

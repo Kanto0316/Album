@@ -24,18 +24,6 @@
       </header>
 
       <main class="page-content main-content">
-          <div class="tabs-wrapper">
-            <div class="site-tabs" id="siteTabs">
-              <button class="site-tab active" data-tab="outs" type="button">
-                OUT
-              </button>
-
-              <button class="site-tab admin-only hidden" data-tab="purchases" type="button">
-                Achat matériel
-              </button>
-            </div>
-          </div>
-
           <section class="search-panel search-panel--site surface-card section">
           <label class="input-group">
             <span class="sr-only">Rechercher (OUT ou article)</span>
@@ -81,6 +69,18 @@
           </div>
         </section>
       </main>
+
+      <div class="bottom-tabs" aria-label="Navigation des onglets">
+        <div class="site-tabs bottom-tabs-inner" id="siteTabs">
+          <button class="site-tab bottom-tab active" data-tab="outs" type="button">
+            OUT
+          </button>
+
+          <button class="site-tab bottom-tab admin-only hidden" data-tab="purchases" type="button">
+            Achat matériel
+          </button>
+        </div>
+      </div>
 
       <div class="site-detail-fab-stack" aria-hidden="false">
         <div class="site-detail-fab-row" data-fab-row="create">
