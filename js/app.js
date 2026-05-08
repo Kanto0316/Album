@@ -137,7 +137,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     if (!dateValue) {
       return '--';
     }
-    const parsedDate = new Date(dateValue);
+    let normalizedDateValue = dateValue;
+    if (typeof dateValue?.toDate === 'function') {
+      normalizedDateValue = dateValue.toDate();
+    } else if (dateValue instanceof Date) {
+      normalizedDateValue = dateValue;
+    } else if (typeof dateValue?.seconds === 'number') {
+      normalizedDateValue = new Date(dateValue.seconds * 1000);
+    }
+    const parsedDate = new Date(normalizedDateValue);
     if (Number.isNaN(parsedDate.getTime())) {
       return '--';
     }
