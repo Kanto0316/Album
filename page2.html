@@ -24,19 +24,19 @@
       </header>
 
       <main class="page-content main-content">
-        <div class="tabs-wrapper">
-          <div class="site-tabs" id="siteTabs">
-            <button class="site-tab active" data-tab="outs" type="button">
-              OUT
-            </button>
+        <div class="outs-top-section">
+          <div class="tabs-wrapper">
+            <div class="site-tabs" id="siteTabs">
+              <button class="site-tab active" data-tab="outs" type="button">
+                OUT
+              </button>
 
-            <button class="site-tab admin-only hidden" data-tab="purchases" type="button">
-              Achat matériel
-            </button>
+              <button class="site-tab admin-only hidden" data-tab="purchases" type="button">
+                Achat matériel
+              </button>
+            </div>
           </div>
-        </div>
 
-        <section id="outsTabContent" class="tab-content active">
           <section class="search-panel search-panel--site surface-card section">
           <label class="input-group">
             <span class="sr-only">Rechercher (OUT ou article)</span>
@@ -71,7 +71,9 @@
             <option value="lastMonth">Plus Ancien</option>
           </select>
           </section>
+        </div>
 
+        <section id="outsTabContent" class="tab-content active">
           <section id="itemList" class="list-grid" aria-live="polite"></section>
         </section>
 

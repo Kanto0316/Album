@@ -5530,3 +5530,32 @@ body {
   line-height: 1 !important;
   transform: none !important;
 }
+
+body[data-page="site-detail"] .outs-top-section {
+  margin: 18px 16px 22px;
+  padding: 18px 14px 16px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(140, 170, 210, 0.16);
+  border-radius: 30px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+body[data-page="site-detail"] .outs-top-section .tabs-wrapper {
+  padding: 0 !important;
+}
+
+body[data-page="site-detail"] .outs-top-section .site-tabs {
+  margin: 0 0 14px !important;
+}
+
+body[data-page="site-detail"] .outs-top-section .search-panel--site {
+  margin: 0;
+  width: 100%;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+}
