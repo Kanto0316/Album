@@ -3856,8 +3856,8 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
 body[data-page="site-detail"] .site-tabs {
   display: flex;
   align-items: center;
-  width: 100%;
-  margin: 0 0 18px;
+  width: calc(100% - 48px);
+  margin: 16px 24px 22px;
   padding: 6px;
   border: none;
   border-radius: 999px;
@@ -3868,24 +3868,37 @@ body[data-page="site-detail"] .site-tabs {
 
 body[data-page="site-detail"] .site-tab {
   flex: 1;
-  height: 52px;
+  height: 48px;
   border: none;
+  outline: none;
   background: transparent;
-  color: #5f6b7a;
   border-radius: 999px;
-  font-size: 17px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 16px;
   font-weight: 700;
-  transition: background-color 0.25s ease, color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  line-height: 1;
+  color: #5f6b7a;
+
+  padding: 0;
+  margin: 0;
+
+  transform: none;
+  box-shadow: none;
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
 body[data-page="site-detail"] .site-tab:active {
-  transform: scale(0.985);
+  transform: scale(0.98);
 }
 
 body[data-page="site-detail"] .site-tab.active {
   background: #2f95e9;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(47, 149, 233, 0.22);
+  box-shadow: 0 6px 14px rgba(47, 149, 233, 0.18);
 }
 
 body[data-page="site-detail"] .site-tab.hidden,
