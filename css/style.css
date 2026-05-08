@@ -3888,6 +3888,20 @@ body[data-page="site-detail"] .bottom-tabs {
   z-index: 999;
 }
 
+
+
+.page2 .fab,
+.page2 #createOutFab,
+body.page2 .fab,
+body.page2 #createOutFab {
+  bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  z-index: 1001 !important;
+}
+
+.bottom-tabs {
+  z-index: 1000 !important;
+}
+
 body[data-page="site-detail"] .site-tab.active {
   background: #2f95e9;
   color: #fff;
