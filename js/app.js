@@ -1,5 +1,6 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { firebaseAuth } from './firebase-core.js';
+import { addDoc, collection, getDocs, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -2773,27 +2774,6 @@ import { firebaseAuth } from './firebase-core.js';
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
-    function getPurchaseStorageKey() {
-      if (siteId) {
-        return `purchases_${siteId}`;
-      }
-      const fallbackSiteName = String(currentSite?.nom || '').trim();
-      return `purchases_${fallbackSiteName || 'site'}`;
-    }
-
-    function loadPurchases() {
-      try {
-        const parsed = JSON.parse(window.localStorage.getItem(getPurchaseStorageKey()) || '[]');
-        currentPurchases = Array.isArray(parsed) ? parsed : [];
-      } catch (_error) {
-        currentPurchases = [];
-      }
-    }
-
-    function savePurchases() {
-      window.localStorage.setItem(getPurchaseStorageKey(), JSON.stringify(currentPurchases));
-    }
-
     function resetPurchaseForm() {
       purchaseForm?.reset();
       if (purchaseUnit) {
@@ -2817,7 +2797,7 @@ import { firebaseAuth } from './firebase-core.js';
       purchaseDesignation?.focus();
     }
 
-    function savePurchase() {
+    async function savePurchase() {
       const designation = String(purchaseDesignation?.value || '').trim();
       const qty = Number(purchaseQty?.value);
       const unit = String(purchaseUnit?.value || '').trim();
@@ -2839,18 +2819,27 @@ import { firebaseAuth } from './firebase-core.js';
         || firebaseAuth.currentUser?.email
         || '',
       ).trim();
-      const purchase = {
-        id: `purchase-${Date.now()}`,
-        designation,
-        qty,
-        unit,
-        createdAt: Date.now(),
-        createdBy: currentUserName || 'Utilisateur',
-      };
-      currentPurchases.unshift(purchase);
-      savePurchases();
-      purchaseModal?.close();
-      renderPurchases();
+      const currentUserEmail = String(firebaseAuth.currentUser?.email || '').trim();
+      try {
+        await addDoc(
+          collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
+          {
+            designation,
+            qty,
+            unit,
+            createdAt: serverTimestamp(),
+            createdBy: currentUserName || 'Utilisateur',
+            createdByEmail: currentUserEmail || '',
+            siteId,
+            siteName: currentSite?.nom || '',
+          },
+        );
+        purchaseModal?.close();
+        resetPurchaseForm();
+        await loadPurchasesForCurrentSite();
+      } catch (_error) {
+        showPurchaseFieldError(purchaseDesignation, 'Erreur lors de l’enregistrement de l’achat');
+      }
     }
 
 
@@ -3363,6 +3352,8 @@ import { firebaseAuth } from './firebase-core.js';
     const outsTabContent = document.getElementById('outsTabContent');
     const purchasesTabContent = document.getElementById('purchasesTabContent');
     const purchasesTabButton = document.querySelector('[data-tab="purchases"]');
+    const purchasesList = document.getElementById('purchasesList');
+    const purchasesEmptyState = document.getElementById('purchasesEmptyState');
     let isAdminTabAllowed = Boolean(permissions?.isAdmin);
     let activeSiteTab = 'outs';
     const PURCHASE_SEARCH_PLACEHOLDER = 'Rechercher un achat matériel';
@@ -3431,12 +3422,19 @@ import { firebaseAuth } from './firebase-core.js';
 
       itemCount.innerHTML = `<span class="outs-number">${purchases.length}</span><span class="outs-label">${purchases.length > 1 ? 'Achats' : 'Achat'}</span>`;
 
-      if (!purchases.length) {
-        UiService.renderEmptyState(itemList, 'Aucun achat matériel disponible.');
+      if (!purchasesList) {
+        console.error('#purchasesList introuvable');
         return;
       }
 
-      itemList.innerHTML = purchases.map((purchase) => `
+      if (!purchases.length) {
+        purchasesList.innerHTML = '';
+        purchasesEmptyState?.classList.remove('hidden');
+        return;
+      }
+
+      purchasesEmptyState?.classList.add('hidden');
+      purchasesList.innerHTML = purchases.map((purchase) => `
         <article class="list-card purchase-card">
           <div class="list-card__button">
             <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
@@ -3448,6 +3446,28 @@ import { firebaseAuth } from './firebase-core.js';
           </div>
         </article>
       `).join('');
+    }
+
+    async function loadPurchasesForCurrentSite() {
+      currentPurchases = [];
+      if (!siteId) {
+        renderPurchases();
+        return;
+      }
+      try {
+        const purchasesQuery = query(
+          collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
+          orderBy('createdAt', 'desc'),
+        );
+        const snap = await getDocs(purchasesQuery);
+        currentPurchases = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      } catch (_error) {
+        currentPurchases = [];
+      }
+      renderPurchases();
     }
 
     function renderActiveTabContent() {
@@ -3700,14 +3720,17 @@ import { firebaseAuth } from './firebase-core.js';
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     updateTabsByRole();
-    loadPurchases();
+    loadPurchasesForCurrentSite();
     setActiveSiteTab('outs');
     siteTabButtons.forEach((tab) => {
-      tab.addEventListener('click', () => {
+      tab.addEventListener('click', async () => {
         const targetTab = tab.dataset.tab;
         if (targetTab === 'purchases' && !isAdminTabAllowed) {
           setActiveSiteTab('outs');
           return;
+        }
+        if (targetTab === 'purchases') {
+          await loadPurchasesForCurrentSite();
         }
         setActiveSiteTab(targetTab);
       });
@@ -3744,9 +3767,9 @@ import { firebaseAuth } from './firebase-core.js';
       purchaseModal?.close();
     });
 
-    purchaseForm?.addEventListener('submit', (event) => {
+    purchaseForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
-      savePurchase();
+      await savePurchase();
     });
 
     itemStoreSelect?.addEventListener('change', () => {
