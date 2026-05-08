@@ -3412,20 +3412,47 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function formatPurchaseDateLabel(purchase) {
-      return buildDateAndTimeLabel(purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
+      return buildDateAndTimeLabel(purchase?.createdAt);
     }
 
-    function renderPurchases() {
+    function getPurchasePeriodLabel(purchase) {
+      return resolveItemPeriodLabel({ dateCreation: purchase?.createdAt });
+    }
+
+    function renderPurchaseCard(purchase) {
+      return `
+        <article class="list-card purchase-card">
+          <div class="list-card__button">
+            <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
+            <div class="list-card__meta">
+              <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.createdBy || 'Utilisateur')}</span></span>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderPurchaseSection(title, items) {
+      return `
+        <div class="list-separator" role="separator" aria-label="${escapeHtml(title)}">
+          <span class="list-separator__label">${escapeHtml(title)}</span>
+        </div>
+        ${items.map(renderPurchaseCard).join('')}
+      `;
+    }
+
+    function renderGroupedPurchases() {
       const query = itemSearchInput.value.trim().toUpperCase();
       const purchases = currentPurchases.filter((purchase) => {
-        if (!itemMatchesDateFilter({ dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
+        if (!itemMatchesDateFilter({ dateCreation: purchase?.createdAt }, selectedDateFilter)) {
           return false;
         }
         if (!query) {
           return true;
         }
-        return [purchase?.designation, purchase?.store, purchase?.magasin]
-          .some((value) => String(value || '').toUpperCase().includes(query));
+        return String(purchase?.designation || '').toUpperCase().includes(query);
       });
 
       itemCount.innerHTML = `<span class="outs-number">${purchases.length}</span><span class="outs-label">${purchases.length > 1 ? 'Achats' : 'Achat'}</span>`;
@@ -3438,28 +3465,36 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!purchases.length) {
         purchasesList.innerHTML = '';
         purchasesEmptyState?.classList.remove('hidden');
+        purchasesEmptyState.textContent = 'Aucun achat matériel disponible.';
         return;
       }
 
       purchasesEmptyState?.classList.add('hidden');
-      purchasesList.innerHTML = purchases.map((purchase) => `
-        <article class="list-card purchase-card">
-          <div class="list-card__button">
-            <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
-            <div class="list-card__meta">
-              <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</span></span>
-              <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
-              <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.createdBy || 'Utilisateur')}</span></span>
-            </div>
-          </div>
-        </article>
-      `).join('');
+
+      const groups = {
+        "Aujourd'hui": [],
+        Hier: [],
+        'Plus ancien': [],
+      };
+
+      purchases.forEach((purchase) => {
+        const label = getPurchasePeriodLabel(purchase);
+        if (label && groups[label]) {
+          groups[label].push(purchase);
+        }
+      });
+
+      purchasesList.innerHTML = `
+        ${groups["Aujourd'hui"].length ? renderPurchaseSection("Aujourd'hui", groups["Aujourd'hui"]) : ''}
+        ${groups.Hier.length ? renderPurchaseSection('Hier', groups.Hier) : ''}
+        ${groups['Plus ancien'].length ? renderPurchaseSection('Plus ancien', groups['Plus ancien']) : ''}
+      `;
     }
 
     async function loadPurchasesForCurrentSite() {
       currentPurchases = [];
       if (!siteId) {
-        renderPurchases();
+        renderGroupedPurchases();
         return;
       }
       try {
@@ -3475,12 +3510,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       } catch (_error) {
         currentPurchases = [];
       }
-      renderPurchases();
+      renderGroupedPurchases();
     }
 
     function renderActiveTabContent() {
       if (activeSiteTab === 'purchases') {
-        renderPurchases();
+        renderGroupedPurchases();
         return;
       }
       renderItems();
