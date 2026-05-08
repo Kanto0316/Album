@@ -3277,6 +3277,8 @@ import { firebaseAuth } from './firebase-core.js';
     const purchasesTabButton = document.querySelector('[data-tab="purchases"]');
     let isAdminTabAllowed = Boolean(permissions?.isAdmin);
     let activeSiteTab = 'outs';
+    const PURCHASE_SEARCH_PLACEHOLDER = 'Rechercher un achat matériel';
+    const OUT_SEARCH_PLACEHOLDER = 'Rechercher (OUT ou article)';
     let itemFormErrorTimeoutId = null;
     let itemNumberErrorClearTimer = null;
     let itemAvailabilityDebounceTimer = null;
@@ -3322,20 +3324,81 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
+    function getCurrentPurchases() {
+      const source = window.materialPurchases || window.purchases || [];
+      return Array.isArray(source) ? source : [];
+    }
+
+    function formatPurchaseDateLabel(purchase) {
+      return buildDateAndTimeLabel(purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
+    }
+
+    function renderPurchases() {
+      const query = itemSearchInput.value.trim().toUpperCase();
+      const purchases = getCurrentPurchases().filter((purchase) => {
+        if (!itemMatchesDateFilter({ dateCreation: purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
+          return false;
+        }
+        if (!query) {
+          return true;
+        }
+        return [purchase?.designation, purchase?.store, purchase?.magasin]
+          .some((value) => String(value || '').toUpperCase().includes(query));
+      });
+
+      itemCount.innerHTML = `<span class="outs-number">${purchases.length}</span><span class="outs-label">${purchases.length > 1 ? 'Achats' : 'Achat'}</span>`;
+
+      if (!purchases.length) {
+        UiService.renderEmptyState(itemList, 'Aucun achat matériel disponible.');
+        return;
+      }
+
+      itemList.innerHTML = purchases.map((purchase) => `
+        <article class="list-card">
+          <div class="list-card__button">
+            <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
+            <div class="list-card__meta">
+              <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.quantity || purchase?.quantite || 0)} article(s)</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Site.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.store || purchase?.magasin || 'Magasin non défini')}</span></span>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function renderActiveTabContent() {
+      if (activeSiteTab === 'purchases') {
+        renderPurchases();
+        return;
+      }
+      renderItems();
+    }
+
+    function openCreatePurchaseModal() {
+      UiService.navigate(`materiels.html?siteId=${encodeURIComponent(siteId)}`);
+    }
+
     function updateFabByActiveTab(tabName) {
-      const shouldShowFab = tabName === 'outs';
       if (openCreateItem) {
-        openCreateItem.classList.toggle('hidden', !shouldShowFab);
+        openCreateItem.classList.remove('hidden');
+        openCreateItem.onclick = tabName === 'outs'
+          ? null
+          : () => {
+              openCreatePurchaseModal();
+            };
+        openCreateItem.setAttribute('aria-label', tabName === 'outs' ? 'Ajouter un numéro OUT' : 'Ajouter un achat matériel');
       }
       if (createItemLabel) {
-        createItemLabel.classList.toggle('hidden', !shouldShowFab);
+        createItemLabel.classList.remove('hidden');
+        createItemLabel.textContent = tabName === 'outs' ? 'Créer un OUT' : 'Ajouter un achat';
       }
       const createButtonRow = openCreateItem?.closest('[data-fab-row="create"]');
       if (createButtonRow) {
-        createButtonRow.classList.toggle('hidden', !shouldShowFab);
+        createButtonRow.classList.remove('hidden');
       }
       if (siteDetailFabStack) {
-        siteDetailFabStack.classList.toggle('hidden', !shouldShowFab);
+        siteDetailFabStack.classList.remove('hidden');
       }
     }
 
@@ -3347,7 +3410,10 @@ import { firebaseAuth } from './firebase-core.js';
       });
       outsTabContent?.classList.toggle('hidden', safeTabName !== 'outs');
       purchasesTabContent?.classList.toggle('hidden', safeTabName !== 'purchases');
+      itemSearchInput.placeholder = safeTabName === 'outs' ? OUT_SEARCH_PLACEHOLDER : PURCHASE_SEARCH_PLACEHOLDER;
+      itemSearchInput.value = '';
       updateFabByActiveTab(safeTabName);
+      renderActiveTabContent();
     }
 
     function getItemNumberMaxLength() {
@@ -3571,7 +3637,12 @@ import { firebaseAuth } from './firebase-core.js';
       updateTabsByRole();
     });
 
-    openCreateItem?.addEventListener('click', () => {
+    openCreateItem?.addEventListener('click', (event) => {
+      if (activeSiteTab === 'purchases') {
+        event.preventDefault();
+        openCreatePurchaseModal();
+        return;
+      }
       setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
       itemForm.reset();
       clearItemFormError();
@@ -3741,7 +3812,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     itemSearchInput.addEventListener('input', () => {
       window.localStorage.setItem(searchStorageKey, itemSearchInput.value);
-      renderItems();
+      renderActiveTabContent();
     });
 
     if (itemDateFilter) {
@@ -3765,14 +3836,14 @@ import { firebaseAuth } from './firebase-core.js';
           itemDateFilter.value = selectedDateFilter;
           window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
           updateFilterChipsState();
-          renderItems();
+          renderActiveTabContent();
         });
       });
       itemDateFilter.addEventListener('change', () => {
         selectedDateFilter = itemDateFilter.value || 'all';
         window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
         updateFilterChipsState();
-        renderItems();
+        renderActiveTabContent();
       });
     }
 
@@ -3870,7 +3941,7 @@ import { firebaseAuth } from './firebase-core.js';
       siteId,
       (items) => {
         currentItems = items;
-        renderItems();
+        renderActiveTabContent();
         if (itemDialog.open && itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
           validateItemNumberAvailability();
         }
@@ -3884,7 +3955,7 @@ import { firebaseAuth } from './firebase-core.js';
       siteId,
       (counts) => {
         detailCountsByItem = counts;
-        renderItems();
+        renderActiveTabContent();
       },
       () => {},
     );
@@ -3893,7 +3964,7 @@ import { firebaseAuth } from './firebase-core.js';
       siteId,
       (designationsByItem) => {
         detailDesignationsByItem = designationsByItem;
-        renderItems();
+        renderActiveTabContent();
       },
       () => {},
     );
