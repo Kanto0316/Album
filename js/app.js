@@ -3557,17 +3557,24 @@ import { firebaseAuth } from './firebase-core.js';
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     updateTabsByRole();
     setActiveSiteTab('outs');
-    siteTabs?.addEventListener('click', (event) => {
-      const tab = event.target.closest('.site-tab');
-      if (!tab) {
-        return;
-      }
-      const targetTab = tab.dataset.tab;
-      if (targetTab === 'purchases' && !isAdminTabAllowed) {
-        setActiveSiteTab('outs');
-        return;
-      }
-      setActiveSiteTab(targetTab);
+    document.querySelectorAll('.site-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+        if (targetTab === 'purchases' && !isAdminTabAllowed) {
+          setActiveSiteTab('outs');
+          return;
+        }
+
+        siteTabButtons.forEach((button) => {
+          button.classList.remove('active');
+        });
+
+        tab.classList.add('active');
+        activeSiteTab = targetTab === 'purchases' && isAdminTabAllowed ? 'purchases' : 'outs';
+        outsTabContent?.classList.toggle('hidden', activeSiteTab !== 'outs');
+        purchasesTabContent?.classList.toggle('hidden', activeSiteTab !== 'purchases');
+        updateFabByActiveTab(activeSiteTab);
+      });
     });
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
