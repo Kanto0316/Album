@@ -3271,8 +3271,7 @@ import { firebaseAuth } from './firebase-core.js';
       'body[data-page="site-detail"] .site-detail-fab-label--create',
     );
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
-    const siteTabs = document.getElementById('siteTabs');
-    const siteTabButtons = Array.from(document.querySelectorAll('.site-tab'));
+    const siteTabButtons = Array.from(document.querySelectorAll('.bottom-nav-item'));
     const outsTabContent = document.getElementById('outsTabContent');
     const purchasesTabContent = document.getElementById('purchasesTabContent');
     const purchasesTabButton = document.querySelector('[data-tab="purchases"]');
@@ -3557,23 +3556,14 @@ import { firebaseAuth } from './firebase-core.js';
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     updateTabsByRole();
     setActiveSiteTab('outs');
-    document.querySelectorAll('.site-tab').forEach((tab) => {
+    siteTabButtons.forEach((tab) => {
       tab.addEventListener('click', () => {
         const targetTab = tab.dataset.tab;
         if (targetTab === 'purchases' && !isAdminTabAllowed) {
           setActiveSiteTab('outs');
           return;
         }
-
-        siteTabButtons.forEach((button) => {
-          button.classList.remove('active');
-        });
-
-        tab.classList.add('active');
-        activeSiteTab = targetTab === 'purchases' && isAdminTabAllowed ? 'purchases' : 'outs';
-        outsTabContent?.classList.toggle('hidden', activeSiteTab !== 'outs');
-        purchasesTabContent?.classList.toggle('hidden', activeSiteTab !== 'purchases');
-        updateFabByActiveTab(activeSiteTab);
+        setActiveSiteTab(targetTab);
       });
     });
     onAuthStateChanged(firebaseAuth, (user) => {
