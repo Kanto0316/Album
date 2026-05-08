@@ -2739,6 +2739,13 @@ import { firebaseAuth } from './firebase-core.js';
     const siteExportFileNameError = requireElement('siteExportFileNameError');
     const siteExportSubmitButton = requireElement('siteExportSubmitButton');
     const siteExportCancelButton = requireElement('siteExportCancelButton');
+    const purchaseModal = requireElement('purchaseModal');
+    const purchaseForm = requireElement('purchaseForm');
+    const purchaseDesignation = requireElement('purchaseDesignation');
+    const purchaseQty = requireElement('purchaseQty');
+    const purchaseUnit = requireElement('purchaseUnit');
+    const purchaseFormError = requireElement('purchaseFormError');
+    const cancelPurchaseBtn = requireElement('cancelPurchaseBtn');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
@@ -2746,6 +2753,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
+    let currentPurchases = [];
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
@@ -2764,6 +2772,86 @@ import { firebaseAuth } from './firebase-core.js';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
+
+    function getPurchaseStorageKey() {
+      if (siteId) {
+        return `purchases_${siteId}`;
+      }
+      const fallbackSiteName = String(currentSite?.nom || '').trim();
+      return `purchases_${fallbackSiteName || 'site'}`;
+    }
+
+    function loadPurchases() {
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(getPurchaseStorageKey()) || '[]');
+        currentPurchases = Array.isArray(parsed) ? parsed : [];
+      } catch (_error) {
+        currentPurchases = [];
+      }
+    }
+
+    function savePurchases() {
+      window.localStorage.setItem(getPurchaseStorageKey(), JSON.stringify(currentPurchases));
+    }
+
+    function resetPurchaseForm() {
+      purchaseForm?.reset();
+      if (purchaseUnit) {
+        purchaseUnit.value = 'Pcs';
+      }
+      if (purchaseFormError) {
+        purchaseFormError.textContent = '';
+      }
+    }
+
+    function showPurchaseFieldError(field, message) {
+      if (purchaseFormError) {
+        purchaseFormError.textContent = message;
+      }
+      field?.focus();
+    }
+
+    function openCreatePurchaseModal() {
+      resetPurchaseForm();
+      purchaseModal?.showModal();
+      purchaseDesignation?.focus();
+    }
+
+    function savePurchase() {
+      const designation = String(purchaseDesignation?.value || '').trim();
+      const qty = Number(purchaseQty?.value);
+      const unit = String(purchaseUnit?.value || '').trim();
+      if (!designation) {
+        showPurchaseFieldError(purchaseDesignation, 'Désignation obligatoire');
+        return;
+      }
+      if (!qty || qty <= 0) {
+        showPurchaseFieldError(purchaseQty, 'Quantité invalide');
+        return;
+      }
+      if (!unit) {
+        showPurchaseFieldError(purchaseUnit, 'Unité obligatoire');
+        return;
+      }
+      const currentUserName = String(
+        permissions?.username
+        || firebaseAuth.currentUser?.displayName
+        || firebaseAuth.currentUser?.email
+        || '',
+      ).trim();
+      const purchase = {
+        id: `purchase-${Date.now()}`,
+        designation,
+        qty,
+        unit,
+        createdAt: Date.now(),
+        createdBy: currentUserName || 'Utilisateur',
+      };
+      currentPurchases.unshift(purchase);
+      savePurchases();
+      purchaseModal?.close();
+      renderPurchases();
+    }
 
 
     async function loadUserNames() {
@@ -3324,19 +3412,14 @@ import { firebaseAuth } from './firebase-core.js';
       }
     }
 
-    function getCurrentPurchases() {
-      const source = window.materialPurchases || window.purchases || [];
-      return Array.isArray(source) ? source : [];
-    }
-
     function formatPurchaseDateLabel(purchase) {
-      return buildDateAndTimeLabel(purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
+      return buildDateAndTimeLabel(purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
     }
 
     function renderPurchases() {
       const query = itemSearchInput.value.trim().toUpperCase();
-      const purchases = getCurrentPurchases().filter((purchase) => {
-        if (!itemMatchesDateFilter({ dateCreation: purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
+      const purchases = currentPurchases.filter((purchase) => {
+        if (!itemMatchesDateFilter({ dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
           return false;
         }
         if (!query) {
@@ -3354,13 +3437,13 @@ import { firebaseAuth } from './firebase-core.js';
       }
 
       itemList.innerHTML = purchases.map((purchase) => `
-        <article class="list-card">
+        <article class="list-card purchase-card">
           <div class="list-card__button">
             <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
             <div class="list-card__meta">
-              <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.quantity || purchase?.quantite || 0)} article(s)</span></span>
-              <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
-              <span class="list-card__meta-item"><img src="Icon/Site.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.store || purchase?.magasin || 'Magasin non défini')}</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
+              <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.createdBy || 'Utilisateur')}</span></span>
             </div>
           </div>
         </article>
@@ -3373,10 +3456,6 @@ import { firebaseAuth } from './firebase-core.js';
         return;
       }
       renderItems();
-    }
-
-    function openCreatePurchaseModal() {
-      UiService.navigate(`materiels.html?siteId=${encodeURIComponent(siteId)}`);
     }
 
     function updateFabByActiveTab(tabName) {
@@ -3621,6 +3700,7 @@ import { firebaseAuth } from './firebase-core.js';
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     updateTabsByRole();
+    loadPurchases();
     setActiveSiteTab('outs');
     siteTabButtons.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -3658,6 +3738,15 @@ import { firebaseAuth } from './firebase-core.js';
       updateItemStoreOtherVisibility({ immediate: true });
       itemDialog.showModal();
       itemNumberInput.focus();
+    });
+
+    cancelPurchaseBtn?.addEventListener('click', () => {
+      purchaseModal?.close();
+    });
+
+    purchaseForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      savePurchase();
     });
 
     itemStoreSelect?.addEventListener('change', () => {

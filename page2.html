@@ -159,6 +159,35 @@
         </form>
       </dialog>
 
+      <dialog id="purchaseModal" class="modal-card">
+        <form method="dialog" class="modal-content modal-content--site-create" id="purchaseForm">
+          <div class="modal-header">
+            <h2>Ajouter un achat matériel</h2>
+          </div>
+          <p class="modal-helper-text">Renseignez les informations de l’achat.</p>
+          <label class="input-group input-group--site-create">
+            <span>Désignation</span>
+            <input id="purchaseDesignation" type="text" placeholder="Ex : Câble cuivre" />
+          </label>
+          <label class="input-group input-group--site-create">
+            <span>Quantité</span>
+            <input id="purchaseQty" type="number" min="1" placeholder="Ex : 10" />
+          </label>
+          <label class="input-group input-group--site-create">
+            <span>Unité</span>
+            <select id="purchaseUnit">
+              <option value="Pcs">Pcs</option>
+              <option value="m">m</option>
+            </select>
+          </label>
+          <p id="purchaseFormError" class="form-error" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button id="cancelPurchaseBtn" class="btn btn-neutral" type="button">Annuler</button>
+            <button id="savePurchaseBtn" class="btn btn-success" type="submit">Enregistrer</button>
+          </div>
+        </form>
+      </dialog>
+
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
