@@ -3853,11 +3853,17 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
   gap: 0.45rem;
 }
 
+body[data-page="site-detail"] .tabs-wrapper {
+  width: 100%;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
 body[data-page="site-detail"] .site-tabs {
   display: flex;
   align-items: center;
-  width: calc(100% - 48px);
-  margin: 16px 24px 22px;
+  width: 100%;
+  margin: 16px 0 22px;
   padding: 6px;
   border: none;
   border-radius: 999px;
@@ -3892,7 +3898,7 @@ body[data-page="site-detail"] .site-tab {
 }
 
 body[data-page="site-detail"] .site-tab:active {
-  transform: scale(0.98);
+  transform: none;
 }
 
 body[data-page="site-detail"] .site-tab.active {
@@ -5455,10 +5461,19 @@ body {
   display: none !important;
 }
 
-.site-tabs {
-  width: calc(100% - 48px) !important;
+.tabs-wrapper {
+  width: 100% !important;
+  padding: 0 24px !important;
+  box-sizing: border-box !important;
   max-width: none !important;
-  margin: 16px 24px 22px !important;
+}
+
+.site-tabs {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+
+  margin: 16px 0 22px !important;
   padding: 6px !important;
 
   display: flex !important;
@@ -5475,12 +5490,13 @@ body {
 }
 
 .site-tab {
-  flex: 1 1 50% !important;
-  width: 50% !important;
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
   max-width: none !important;
+
   height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  border-radius: 999px !important;
 
   display: flex !important;
   align-items: center !important;
@@ -5489,29 +5505,15 @@ body {
   padding: 0 !important;
   margin: 0 !important;
   border: none !important;
-  outline: none !important;
-  border-radius: 999px !important;
-  background: transparent !important;
 
+  line-height: 1 !important;
   font-size: 16px !important;
   font-weight: 700 !important;
-  line-height: 1 !important;
-  text-align: center !important;
-  color: #5f6b7a !important;
-
-  position: relative !important;
-  transform: none !important;
-  box-shadow: none !important;
-  overflow: hidden !important;
-
-  transition: background .25s ease, color .25s ease, box-shadow .25s ease !important;
 }
 
 .site-tab.active {
   background: #2f95e9 !important;
-  color: #ffffff !important;
-  box-shadow: 0 6px 14px rgba(47,149,233,.18) !important;
-  transform: none !important;
+  color: #fff !important;
 }
 
 .site-tabs::before,
