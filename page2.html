@@ -169,22 +169,31 @@
           <label class="input-group input-group--site-create">
             <span>Désignation</span>
             <input id="purchaseDesignation" type="text" placeholder="Ex : Câble cuivre" />
+            <p id="purchaseDesignationError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
-          <label class="input-group input-group--site-create">
-            <span>Quantité</span>
-            <input id="purchaseQty" type="number" min="1" placeholder="Ex : 10" />
-          </label>
-          <label class="input-group input-group--site-create">
-            <span>Unité</span>
-            <select id="purchaseUnit">
-              <option value="Pcs">Pcs</option>
-              <option value="m">m</option>
-            </select>
-          </label>
+          <div class="form-row purchase-form-row">
+            <label class="input-group input-group--site-create quantity-group">
+              <span>Quantité</span>
+              <input id="purchaseQty" type="number" min="1" placeholder="Ex : 10" />
+              <p id="purchaseQtyError" class="form-error form-error--field" aria-live="polite"></p>
+            </label>
+            <label class="input-group input-group--site-create unit-group">
+              <span>Unité</span>
+              <select id="purchaseUnit">
+                <option value="Pcs">Pcs</option>
+                <option value="m">m</option>
+              </select>
+              <p id="purchaseUnitError" class="form-error form-error--field" aria-live="polite"></p>
+            </label>
+          </div>
           <p id="purchaseFormError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="cancelPurchaseBtn" class="btn btn-neutral" type="button">Annuler</button>
-            <button id="savePurchaseBtn" class="btn btn-success" type="submit">Enregistrer</button>
+            <button id="savePurchaseBtn" class="btn btn-success" type="submit">
+              <span class="btn-label-default">Enregistrer</span>
+              <span class="btn-loading-spinner" aria-hidden="true"></span>
+              <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
+            </button>
           </div>
         </form>
       </dialog>
