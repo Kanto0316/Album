@@ -3312,11 +3312,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       filteredItems.forEach((item) => {
         const currentLabel = resolveItemPeriodLabel(item);
         if (currentLabel && currentLabel !== previousLabel) {
-          htmlParts.push(`
-            <div class="list-separator" role="separator" aria-label="${escapeHtml(currentLabel)}">
-              <span class="list-separator__label">${escapeHtml(currentLabel)}</span>
-            </div>
-          `);
+          htmlParts.push(renderListSeparator(currentLabel));
         }
         previousLabel = currentLabel;
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
@@ -3415,6 +3411,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return buildDateAndTimeLabel(purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
     }
 
+    function renderListSeparator(title) {
+      return `
+        <div class="list-separator" role="separator" aria-label="${escapeHtml(title)}">
+          <span class="list-separator__label">${escapeHtml(title)}</span>
+        </div>
+      `;
+    }
+
     function renderPurchases() {
       const query = itemSearchInput.value.trim().toUpperCase();
       const purchases = currentPurchases.filter((purchase) => {
@@ -3442,18 +3446,30 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       purchasesEmptyState?.classList.add('hidden');
-      purchasesList.innerHTML = purchases.map((purchase) => `
-        <article class="list-card purchase-card">
-          <div class="list-card__button">
-            <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
-            <div class="list-card__meta">
-              <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</span></span>
-              <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
-              <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.createdBy || 'Utilisateur')}</span></span>
+      const htmlParts = [];
+      let previousLabel = null;
+      purchases.forEach((purchase) => {
+        const currentLabel = resolveItemPeriodLabel({
+          dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification,
+        });
+        if (currentLabel && currentLabel !== previousLabel) {
+          htmlParts.push(renderListSeparator(currentLabel));
+        }
+        previousLabel = currentLabel;
+        htmlParts.push(`
+          <article class="list-card purchase-card">
+            <div class="list-card__button">
+              <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
+              <div class="list-card__meta">
+                <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</span></span>
+                <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
+                <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.createdBy || 'Utilisateur')}</span></span>
+              </div>
             </div>
-          </div>
-        </article>
-      `).join('');
+          </article>
+        `);
+      });
+      purchasesList.innerHTML = htmlParts.join('');
     }
 
     async function loadPurchasesForCurrentSite() {
