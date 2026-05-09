@@ -3726,6 +3726,50 @@ body[data-page="site-detail"] #itemDialog .modal-actions--item-create {
   margin-top: 0.62rem;
 }
 
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.input-error,
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.input-error:focus,
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-error,
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-error:focus {
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.14);
+}
+
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-shaking,
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.shake {
+  animation: item-number-input-shake 300ms ease-in-out 1;
+}
+
+body[data-page="site-detail"] #saveEditPurchaseBtn {
+  position: relative;
+}
+
+body[data-page="site-detail"] #saveEditPurchaseBtn .btn-label-loading {
+  display: none;
+}
+
+body[data-page="site-detail"] #saveEditPurchaseBtn .btn-loading-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  display: none;
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
+body[data-page="site-detail"] #saveEditPurchaseBtn.is-loading .btn-label-default {
+  display: none;
+}
+
+body[data-page="site-detail"] #saveEditPurchaseBtn.is-loading .btn-loading-spinner,
+body[data-page="site-detail"] #saveEditPurchaseBtn.is-loading .btn-label-loading {
+  display: inline-flex;
+}
+
 body[data-page="site-detail"] #itemDialog.edit-out-modal .magasin-group {
   display: none !important;
 }

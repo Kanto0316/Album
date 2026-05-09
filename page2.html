@@ -198,13 +198,17 @@
             <span>Nom</span>
             <input id="editPurchaseNameInput" type="text" maxlength="25" placeholder="Nom achat matériel" />
             <div class="item-input-feedback-row">
-              <p id="editPurchaseFormError" class="form-error" aria-live="polite"></p>
+              <p id="editPurchaseFormError" class="form-error error-message" aria-live="polite"></p>
               <span id="editPurchaseNameCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
             </div>
           </label>
           <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
             <button type="button" class="btn btn-neutral" id="cancelEditPurchaseBtn">Annuler</button>
-            <button type="submit" class="btn btn-success" id="saveEditPurchaseBtn">Enregistrer</button>
+            <button type="submit" class="btn btn-success" id="saveEditPurchaseBtn">
+              <span class="btn-label-default">Enregistrer</span>
+              <span class="btn-loading-spinner" aria-hidden="true"></span>
+              <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
+            </button>
           </div>
         </form>
       </dialog>
