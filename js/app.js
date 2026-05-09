@@ -2764,6 +2764,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseUnit = requireElement('purchaseUnit');
     const purchaseFormError = requireElement('purchaseFormError');
     const cancelPurchaseBtn = requireElement('cancelPurchaseBtn');
+    const editPurchaseModal = document.getElementById('editPurchaseModal');
+    const editPurchaseForm = document.getElementById('editPurchaseForm');
+    const editPurchaseNameInput = document.getElementById('editPurchaseNameInput');
+    const editPurchaseNameCounter = document.getElementById('editPurchaseNameCounter');
+    const editPurchaseFormError = document.getElementById('editPurchaseFormError');
+    const cancelEditPurchaseBtn = document.getElementById('cancelEditPurchaseBtn');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
@@ -2812,6 +2818,34 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       resetPurchaseForm();
       purchaseModal?.showModal();
       purchaseDesignation?.focus();
+    }
+
+    function updateEditPurchaseCounter() {
+      if (!editPurchaseNameInput || !editPurchaseNameCounter) return;
+      editPurchaseNameCounter.textContent = `${editPurchaseNameInput.value.length} / 25`;
+    }
+
+    function showEditPurchaseFieldError(message) {
+      if (!editPurchaseFormError) return;
+      editPurchaseFormError.textContent = message;
+      editPurchaseFormError.style.color = 'var(--danger)';
+    }
+
+    function clearEditPurchaseFieldError() {
+      if (!editPurchaseFormError) return;
+      editPurchaseFormError.textContent = '';
+      editPurchaseFormError.style.color = '';
+    }
+
+    function openEditPurchaseModal(purchase) {
+      if (!purchase || !editPurchaseModal || !editPurchaseNameInput) return;
+      selectedPurchaseId = purchase.id;
+      selectedPurchaseData = purchase;
+      editPurchaseNameInput.value = String(purchase.designation || '');
+      clearEditPurchaseFieldError();
+      updateEditPurchaseCounter();
+      editPurchaseModal.showModal();
+      window.setTimeout(() => editPurchaseNameInput.focus(), 150);
     }
 
     async function savePurchase() {
@@ -3233,6 +3267,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           ? currentPurchases.find((item) => item.id === itemId)
           : currentItems.find((item) => item.id === itemId);
         if (!targetItem) {
+          return;
+        }
+        if (isPurchaseActions) {
+          openEditPurchaseModal(targetItem);
           return;
         }
         itemForm.reset();
@@ -3850,6 +3888,33 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     cancelPurchaseBtn?.addEventListener('click', () => {
       purchaseModal?.close();
+    });
+
+    editPurchaseNameInput?.addEventListener('input', () => {
+      clearEditPurchaseFieldError();
+      updateEditPurchaseCounter();
+    });
+
+    cancelEditPurchaseBtn?.addEventListener('click', () => {
+      editPurchaseModal?.close();
+    });
+
+    editPurchaseForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!selectedPurchaseId || !editPurchaseNameInput) return;
+      const newName = String(editPurchaseNameInput.value || '').trim();
+      if (!newName) {
+        showEditPurchaseFieldError('Nom obligatoire');
+        editPurchaseNameInput.focus();
+        return;
+      }
+      await updateDoc(
+        doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId),
+        { designation: newName },
+      );
+      editPurchaseModal?.close();
+      await loadPurchasesForCurrentSite();
+      setActiveSiteTab('purchases');
     });
 
     purchaseForm?.addEventListener('submit', async (event) => {
