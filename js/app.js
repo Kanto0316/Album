@@ -5173,13 +5173,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
               <td>
                 <div class="qte-sortie-field">
-                  <input class="cell-input cell-input--detail-fluid" data-col-fluid="qteSortie" data-min-ch="4" data-max-ch="13" data-field="qteSortie" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="13" value="${escapeHtml(detail.qteSortie)}" />
+                  <input class="cell-input cell-input--autosize cell-input--detail-fluid" data-col-fluid="qteSortie" data-min-ch="4" data-max-ch="120" data-field="qteSortie" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="120" value="${escapeHtml(detail.qteSortie)}" />
                   <span class="meta-value meta-value--inline">${escapeHtml(detail.unite)}</span>
                 </div>
               </td>
-              <td><input class="cell-input cell-input--detail-fluid" data-col-fluid="qtePosee" data-min-ch="4" data-max-ch="13" data-field="qtePosee" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="13" value="${escapeHtml(detail.qtePosee)}" /></td>
-              <td><input class="cell-input cell-input--detail-fluid" data-col-fluid="qteRetour" data-min-ch="4" data-max-ch="13" data-field="qteRetour" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="13" value="${escapeHtml(detail.qteRetour)}" /></td>
-              <td><input class="cell-input cell-input--detail-fluid${ecartClassName}" data-col-fluid="ecart" data-min-ch="4" data-max-ch="13" type="text" inputmode="numeric" pattern="[0-9-]*" maxlength="13" value="${escapeHtml(ecart)}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input cell-input--autosize cell-input--detail-fluid" data-col-fluid="qtePosee" data-min-ch="4" data-max-ch="120" data-field="qtePosee" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="120" value="${escapeHtml(detail.qtePosee)}" /></td>
+              <td><input class="cell-input cell-input--autosize cell-input--detail-fluid" data-col-fluid="qteRetour" data-min-ch="4" data-max-ch="120" data-field="qteRetour" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="120" value="${escapeHtml(detail.qteRetour)}" /></td>
+              <td><input class="cell-input cell-input--autosize cell-input--detail-fluid${ecartClassName}" data-col-fluid="ecart" data-min-ch="4" data-max-ch="120" type="text" inputmode="numeric" pattern="[0-9-]*" maxlength="120" value="${escapeHtml(ecart)}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--autosize cell-input--detail-fluid" data-col-fluid="observation" data-min-ch="8" data-max-ch="120" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
