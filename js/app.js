@@ -2763,7 +2763,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseQty = requireElement('purchaseQty');
     const purchaseUnit = requireElement('purchaseUnit');
     const purchaseFormError = requireElement('purchaseFormError');
+    const purchaseDesignationError = requireElement('purchaseDesignationError');
+    const purchaseQtyError = requireElement('purchaseQtyError');
+    const purchaseUnitError = requireElement('purchaseUnitError');
     const cancelPurchaseBtn = requireElement('cancelPurchaseBtn');
+    const savePurchaseBtn = requireElement('savePurchaseBtn');
     const editPurchaseModal = document.getElementById('editPurchaseModal');
     const editPurchaseForm = document.getElementById('editPurchaseForm');
     const editPurchaseNameInput = document.getElementById('editPurchaseNameInput');
@@ -2806,13 +2810,32 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (purchaseFormError) {
         purchaseFormError.textContent = '';
       }
+      clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
+      clearPurchaseFieldError(purchaseQty, purchaseQtyError);
+      clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
     }
 
-    function showPurchaseFieldError(field, message) {
-      if (purchaseFormError) {
-        purchaseFormError.textContent = message;
+    function showPurchaseFieldError(field, errorElement, message) {
+      if (errorElement) {
+        errorElement.textContent = message;
       }
+      field?.classList.remove('input-error', 'is-error', 'is-shaking', 'shake');
+      void field?.offsetWidth;
+      field?.classList.add('input-error', 'is-error', 'is-shaking', 'shake');
       field?.focus();
+    }
+
+    function clearPurchaseFieldError(field, errorElement) {
+      if (errorElement) {
+        errorElement.textContent = '';
+      }
+      field?.classList.remove('input-error', 'is-error', 'is-shaking', 'shake');
+    }
+
+    function setPurchaseSubmitLoadingState(isLoading) {
+      if (!savePurchaseBtn) return;
+      savePurchaseBtn.disabled = isLoading;
+      savePurchaseBtn.classList.toggle('is-loading', isLoading);
     }
 
     function openCreatePurchaseModal() {
@@ -2860,19 +2883,25 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     async function savePurchase() {
+      clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
+      clearPurchaseFieldError(purchaseQty, purchaseQtyError);
+      clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
+      if (purchaseFormError) {
+        purchaseFormError.textContent = '';
+      }
       const designation = String(purchaseDesignation?.value || '').trim();
       const qty = Number(purchaseQty?.value);
       const unit = String(purchaseUnit?.value || '').trim();
       if (!designation) {
-        showPurchaseFieldError(purchaseDesignation, 'Désignation obligatoire');
+        showPurchaseFieldError(purchaseDesignation, purchaseDesignationError, 'Désignation obligatoire');
         return;
       }
       if (!qty || qty <= 0) {
-        showPurchaseFieldError(purchaseQty, 'Quantité invalide');
+        showPurchaseFieldError(purchaseQty, purchaseQtyError, 'Quantité invalide');
         return;
       }
-      if (!unit) {
-        showPurchaseFieldError(purchaseUnit, 'Unité obligatoire');
+      if (!['Pcs', 'm'].includes(unit)) {
+        showPurchaseFieldError(purchaseUnit, purchaseUnitError, 'Unité invalide');
         return;
       }
       const currentUserName = String(
@@ -2882,6 +2911,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         || '',
       ).trim();
       const currentUserEmail = String(firebaseAuth.currentUser?.email || '').trim();
+      setPurchaseSubmitLoadingState(true);
       try {
         await addDoc(
           collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
@@ -2900,7 +2930,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         resetPurchaseForm();
         await loadPurchasesForCurrentSite();
       } catch (_error) {
-        showPurchaseFieldError(purchaseDesignation, 'Erreur lors de l’enregistrement de l’achat');
+        if (purchaseFormError) {
+          purchaseFormError.textContent = 'Erreur lors de l’enregistrement de l’achat';
+        }
+      } finally {
+        setPurchaseSubmitLoadingState(false);
       }
     }
 
@@ -3899,6 +3933,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     cancelPurchaseBtn?.addEventListener('click', () => {
       purchaseModal?.close();
+    });
+
+    purchaseDesignation?.addEventListener('input', () => {
+      if (String(purchaseDesignation.value || '').trim()) {
+        clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
+      }
+    });
+
+    purchaseQty?.addEventListener('input', () => {
+      const qty = Number(purchaseQty.value);
+      if (qty > 0) {
+        clearPurchaseFieldError(purchaseQty, purchaseQtyError);
+      }
+    });
+
+    purchaseUnit?.addEventListener('change', () => {
+      const unit = String(purchaseUnit.value || '').trim();
+      if (['Pcs', 'm'].includes(unit)) {
+        clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
+      }
     });
 
     editPurchaseNameInput?.addEventListener('input', () => {
