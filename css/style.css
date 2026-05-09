@@ -3133,8 +3133,7 @@ body[data-page="item-detail"] #designationInput.is-shaking {
 .cell-input--detail-fluid {
   width: auto;
   min-width: 4ch;
-  max-width: min(34ch, 42vw);
-  transition: width 180ms ease, min-width 180ms ease, max-width 180ms ease;
+  transition: width 180ms ease, min-width 180ms ease;
 }
 
 .cell-input--designation {
