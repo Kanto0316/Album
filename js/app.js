@@ -2750,7 +2750,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemNumberCounter = requireElement('itemNumberCounter');
     const itemFormError = requireElement('itemFormError');
     const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
-    const openExportItems = requireElement('openExportItems');
+    const openExportItems = requireElement('headerExportBtn');
     const siteExportDialog = requireElement('siteExportDialog');
     const siteExportForm = requireElement('siteExportForm');
     const siteExportFileNameInput = requireElement('siteExportFileNameInput');
@@ -3667,6 +3667,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     }
 
+
+    function updateHeaderExportButton(tabName) {
+      const exportBtn = document.querySelector('#headerExportBtn');
+      if (!exportBtn) {
+        return;
+      }
+      exportBtn.classList.toggle('hidden', tabName === 'purchases');
+    }
+
     function setActiveSiteTab(tabName) {
       const safeTabName = tabName === 'purchases' && isAdminTabAllowed ? 'purchases' : 'outs';
       activeSiteTab = safeTabName;
@@ -3678,6 +3687,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       itemSearchInput.placeholder = safeTabName === 'outs' ? OUT_SEARCH_PLACEHOLDER : PURCHASE_SEARCH_PLACEHOLDER;
       itemSearchInput.value = '';
       updateFabByActiveTab(safeTabName);
+      updateHeaderExportButton(safeTabName);
       renderActiveTabContent();
     }
 
