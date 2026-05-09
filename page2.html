@@ -166,15 +166,18 @@
             <h2>Ajouter un achat matériel</h2>
           </div>
           <p class="modal-helper-text">Renseignez les informations de l’achat.</p>
-          <label class="input-group input-group--site-create">
+          <label class="input-group input-group--site-create input-group--item-create">
             <span>Désignation</span>
-            <input id="purchaseDesignation" type="text" placeholder="Ex : Câble cuivre" />
-            <p id="purchaseDesignationError" class="form-error form-error--field" aria-live="polite"></p>
+            <input id="purchaseDesignation" type="text" maxlength="25" placeholder="Ex : Câble cuivre" />
+            <div class="item-input-feedback-row">
+              <p id="purchaseDesignationError" class="form-error form-error--field" aria-live="polite"></p>
+              <span id="purchaseDesignationCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+            </div>
           </label>
           <div class="form-row purchase-form-row">
             <label class="input-group input-group--site-create quantity-group">
               <span>Quantité</span>
-              <input id="purchaseQty" type="number" min="1" placeholder="Ex : 10" />
+              <input id="purchaseQty" type="number" min="1" max="9999" placeholder="Ex : 10" />
               <p id="purchaseQtyError" class="form-error form-error--field" aria-live="polite"></p>
             </label>
             <label class="input-group input-group--site-create unit-group">

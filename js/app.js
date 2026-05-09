@@ -2760,6 +2760,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseModal = requireElement('purchaseModal');
     const purchaseForm = requireElement('purchaseForm');
     const purchaseDesignation = requireElement('purchaseDesignation');
+    const purchaseDesignationCounter = requireElement('purchaseDesignationCounter');
     const purchaseQty = requireElement('purchaseQty');
     const purchaseUnit = requireElement('purchaseUnit');
     const purchaseFormError = requireElement('purchaseFormError');
@@ -2840,8 +2841,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function openCreatePurchaseModal() {
       resetPurchaseForm();
+      updatePurchaseDesignationCounter();
       purchaseModal?.showModal();
       purchaseDesignation?.focus();
+    }
+
+    function updatePurchaseDesignationCounter() {
+      if (!purchaseDesignation || !purchaseDesignationCounter) return;
+      if (purchaseDesignation.value.length > 25) {
+        purchaseDesignation.value = purchaseDesignation.value.slice(0, 25);
+      }
+      purchaseDesignationCounter.textContent = `${purchaseDesignation.value.length} / 25`;
     }
 
     function updateEditPurchaseCounter() {
@@ -3939,12 +3949,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     purchaseDesignation?.addEventListener('input', () => {
+      if (purchaseDesignation.value.length > 25) {
+        purchaseDesignation.value = purchaseDesignation.value.slice(0, 25);
+      }
+      updatePurchaseDesignationCounter();
       if (String(purchaseDesignation.value || '').trim()) {
         clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
       }
     });
 
     purchaseQty?.addEventListener('input', () => {
+      if (parseInt(purchaseQty.value, 10) > 9999) {
+        purchaseQty.value = 9999;
+      }
       const qty = Number(purchaseQty.value);
       if (qty > 0) {
         clearPurchaseFieldError(purchaseQty, purchaseQtyError);
@@ -3998,6 +4015,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       event.preventDefault();
       await savePurchase();
     });
+
+    updatePurchaseDesignationCounter();
 
     itemStoreSelect?.addEventListener('change', () => {
       updateItemStoreOtherVisibility();
