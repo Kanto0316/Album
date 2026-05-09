@@ -4923,6 +4923,44 @@ body[data-page="site-detail"] .list-card__meta-item span {
   line-height: 1.32;
 }
 
+body[data-page="site-detail"] .purchase-card__meta {
+  display: grid;
+  gap: 0.48rem;
+}
+
+body[data-page="site-detail"] .purchase-info-row {
+  display: grid;
+  grid-template-columns: minmax(7.9rem, auto) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.7rem;
+}
+
+body[data-page="site-detail"] .purchase-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  color: #4b5563;
+}
+
+body[data-page="site-detail"] .purchase-label .icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+body[data-page="site-detail"] .purchase-label span {
+  font-weight: 600;
+}
+
+body[data-page="site-detail"] .purchase-value {
+  min-width: 0;
+  color: #111827;
+  overflow-wrap: anywhere;
+  line-height: 1.32;
+}
+
 body[data-page="site-detail"] .list-separator {
   width: min(100%, var(--content-max-width));
   margin-inline: auto;

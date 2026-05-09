@@ -3469,10 +3469,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <article class="list-card purchase-card">
             <div class="list-card__button">
               <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
-              <div class="list-card__meta">
-                <span class="list-card__meta-item"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</span></span>
-                <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(formatPurchaseDateLabel(purchase))}</span></span>
-                <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(purchase?.createdBy || 'Utilisateur')}</span></span>
+              <div class="list-card__meta purchase-card__meta" role="list" aria-label="Informations achat matériel">
+                <div class="purchase-info-row" role="listitem">
+                  <div class="purchase-label"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>Quantité</span></div>
+                  <div class="purchase-value">${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</div>
+                </div>
+                <div class="purchase-info-row" role="listitem">
+                  <div class="purchase-label"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Date</span></div>
+                  <div class="purchase-value">${escapeHtml(formatPurchaseDateLabel(purchase))}</div>
+                </div>
+                <div class="purchase-info-row" role="listitem">
+                  <div class="purchase-label"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>Utilisateur</span></div>
+                  <div class="purchase-value">${escapeHtml(purchase?.createdBy || 'Utilisateur')}</div>
+                </div>
               </div>
             </div>
           </article>
