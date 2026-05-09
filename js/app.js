@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { addDoc, collection, getDocs, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -3076,7 +3076,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const title = overlay.querySelector('#itemDeleteConfirmTitle');
       const normalizedLabel = String(itemLabel || '').trim() || 'OUT inconnu';
       if (title) {
-        title.textContent = `Supprimer cet ${normalizedLabel} ?`;
+        title.textContent = activeSiteTab === 'purchases' ? `Supprimer ${normalizedLabel} ?` : `Supprimer cet ${normalizedLabel} ?`;
       }
       text.textContent = 'Confirmer si OUI .';
 
@@ -3150,6 +3150,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       closeActiveTransientLayer();
     });
 
+    let selectedPurchaseId = null;
+    let selectedPurchaseData = null;
+
     function openItemActionSheet(itemId) {
       const overlay = ensureItemActionBottomSheet();
       const sheet = overlay.querySelector('#itemActionSheet');
@@ -3160,13 +3163,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
 
-      const activeItem = currentItems.find((item) => item.id === itemId);
+      const isPurchaseActions = activeSiteTab === 'purchases';
+      const activeItem = isPurchaseActions
+        ? currentPurchases.find((item) => item.id === itemId)
+        : currentItems.find((item) => item.id === itemId);
       if (!activeItem) {
         return;
       }
 
       itemActionState.activeItemId = itemId;
-      title.textContent = String(activeItem.numero || '').trim() || 'Actions';
+      title.textContent = isPurchaseActions
+        ? (String(activeItem.designation || '').trim() || 'Achat matériel')
+        : (String(activeItem.numero || '').trim() || 'Actions');
       const closeTransitionDurationMs = 280;
 
       const clearCloseListeners = () => {
@@ -3221,7 +3229,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       itemActionState.closeSheet = closeSheet;
       editNameButton.onclick = async () => {
         await closeSheet();
-        const targetItem = currentItems.find((item) => item.id === itemId);
+        const targetItem = isPurchaseActions
+          ? currentPurchases.find((item) => item.id === itemId)
+          : currentItems.find((item) => item.id === itemId);
         if (!targetItem) {
           return;
         }
@@ -3231,7 +3241,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         hasBlockingItemNumberError = false;
         itemCreateSubmitButton.disabled = false;
         itemCreateSubmitButton.classList.remove('is-loading');
-        setItemDialogMode(ITEM_DIALOG_MODE_EDIT, targetItem);
+        setItemDialogMode(isPurchaseActions ? ITEM_DIALOG_MODE_EDIT_PURCHASE : ITEM_DIALOG_MODE_EDIT, targetItem);
         itemDialog.showModal();
         itemNumberInput.focus();
       };
@@ -3239,8 +3249,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         deleteButton.disabled = true;
         try {
           await closeSheet();
-          const shouldDelete = await askItemDeleteConfirmation(activeItem.numero || "cet élément");
+          selectedPurchaseId = isPurchaseActions ? itemId : null;
+          selectedPurchaseData = isPurchaseActions ? activeItem : null;
+          const shouldDelete = await askItemDeleteConfirmation(
+            isPurchaseActions ? (activeItem.designation || 'achat matériel') : (activeItem.numero || 'cet élément'),
+          );
           if (!shouldDelete) {
+            return;
+          }
+          if (isPurchaseActions) {
+            await deleteDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId));
+            await loadPurchasesForCurrentSite();
+            setActiveSiteTab('purchases');
             return;
           }
           const removedSnapshot = await StorageService.removeItem(siteId, itemId);
@@ -3379,6 +3399,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemStoreOtherTransitionDurationMs = 200;
     const ITEM_DIALOG_MODE_CREATE = 'create';
     const ITEM_DIALOG_MODE_EDIT = 'edit';
+    const ITEM_DIALOG_MODE_EDIT_PURCHASE = 'edit_purchase';
     let itemDialogMode = ITEM_DIALOG_MODE_CREATE;
     let editingItemId = null;
 
@@ -3467,6 +3488,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         previousLabel = currentLabel;
         htmlParts.push(`
           <article class="list-card purchase-card">
+            ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
             <div class="list-card__button">
               <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
               <div class="list-card__meta purchase-card__meta" role="list" aria-label="Informations achat matériel">
@@ -3488,6 +3510,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         `);
       });
       purchasesList.innerHTML = htmlParts.join('');
+      purchasesList.querySelectorAll('[data-purchase-menu]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          openItemActionSheet(button.dataset.purchaseMenu);
+        });
+      });
     }
 
     async function loadPurchasesForCurrentSite() {
@@ -3729,14 +3757,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function setItemDialogMode(mode, targetItem = null) {
-      itemDialogMode = mode === ITEM_DIALOG_MODE_EDIT ? ITEM_DIALOG_MODE_EDIT : ITEM_DIALOG_MODE_CREATE;
-      editingItemId = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? targetItem?.id || null : null;
+      itemDialogMode = [ITEM_DIALOG_MODE_EDIT, ITEM_DIALOG_MODE_EDIT_PURCHASE].includes(mode) ? mode : ITEM_DIALOG_MODE_CREATE;
+      editingItemId = itemDialogMode === ITEM_DIALOG_MODE_CREATE ? null : targetItem?.id || null;
       itemDialog.classList.toggle('edit-out-modal', itemDialogMode === ITEM_DIALOG_MODE_EDIT);
       if (itemDialogTitle) {
-        itemDialogTitle.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Modifier le nom OUT' : 'Nouveau numéro OUT';
+        itemDialogTitle.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT
+          ? 'Modifier le nom OUT'
+          : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
+            ? 'Modifier l’achat matériel'
+            : 'Nouveau numéro OUT';
       }
       if (itemNumberLabel) {
-        itemNumberLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT' : 'Numéro OUT';
+        itemNumberLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_CREATE ? 'Numéro OUT' : 'Nom';
       }
       const defaultLabel = itemCreateSubmitButton?.querySelector('.btn-label-default');
       const loadingLabel = itemCreateSubmitButton?.querySelector('.btn-label-loading');
@@ -3751,12 +3783,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         itemNumberInput.setAttribute('pattern', '[0-9]*');
         itemNumberInput.placeholder = 'Exemple : 26050200';
         itemNumberInput.value = normalizeItemNumberInput(targetItem?.numero || '');
+      } else if (itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE) {
+        itemNumberInput.setAttribute('inputmode', 'text');
+        itemNumberInput.removeAttribute('pattern');
+        itemNumberInput.placeholder = 'Nom achat matériel';
+        itemNumberInput.value = String(targetItem?.designation || '').trim();
       } else {
         itemNumberInput.setAttribute('inputmode', 'numeric');
         itemNumberInput.setAttribute('pattern', '[0-9]*');
         itemNumberInput.placeholder = 'Exemple : 26050200';
       }
-      itemStoreSelect?.closest('.input-group')?.toggleAttribute('hidden', itemDialogMode === ITEM_DIALOG_MODE_EDIT);
+      itemStoreSelect?.closest('.input-group')?.toggleAttribute('hidden', itemDialogMode !== ITEM_DIALOG_MODE_CREATE);
       updateItemNumberCounter();
     }
 
@@ -3824,6 +3861,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     itemNumberInput.addEventListener('beforeinput', (event) => {
+      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE) {
+        return;
+      }
       const maxLength = getItemNumberMaxLength();
       if (!maxLength || event.inputType.startsWith('delete')) {
         return;
@@ -3839,6 +3879,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     itemNumberInput.addEventListener('paste', (event) => {
+      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE) {
+        return;
+      }
       const clipboardText = event.clipboardData?.getData('text') ?? '';
       const sanitizedClipboardText = String(clipboardText).replace(/\D/g, '');
       if (!sanitizedClipboardText) {
@@ -3861,6 +3904,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     itemNumberInput.addEventListener('input', () => {
+      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE) {
+        updateItemNumberCounter();
+        return;
+      }
       const normalizedValue = normalizeItemNumberInput(itemNumberInput.value);
       if (itemNumberInput.value !== normalizedValue) {
         itemNumberInput.value = normalizedValue;
@@ -4006,10 +4053,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (itemCreateSubmitButton.disabled) {
         return;
       }
-      const value = normalizeItemNumberInput(itemNumberInput.value.trim());
+      const value = itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
+        ? String(itemNumberInput.value || '').trim()
+        : normalizeItemNumberInput(itemNumberInput.value.trim());
       itemNumberInput.value = value;
       const maxLength = getItemNumberMaxLength();
-      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
+      if (itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE) {
+        if (!value) {
+          showItemFormError('Veuillez entrer un nom d’achat matériel.');
+          return;
+        }
+      } else if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
         if (!value) {
           showItemFormError('Veuillez entrer un nom OUT.');
           return;
@@ -4054,7 +4108,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       try {
         const result = itemDialogMode === ITEM_DIALOG_MODE_EDIT
           ? await StorageService.updateItemName(siteId, editingItemId, value)
-          : await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
+          : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
+            ? (await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', editingItemId), { designation: value }), { ok: true })
+            : await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
         if (!result?.ok) {
           showItemFormError(
             result?.reason === 'duplicate_out'
@@ -4073,7 +4129,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         itemCreateSubmitButton.classList.remove('is-loading');
         itemCreateSubmitButton.disabled = false;
         itemDialog.close();
-        UiService.showToast(itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT mis à jour.' : 'N° OUT ajouté .');
+        if (itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE) {
+          await loadPurchasesForCurrentSite();
+          setActiveSiteTab('purchases');
+        }
+        UiService.showToast(itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT mis à jour.' : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE ? 'Achat matériel mis à jour.' : 'N° OUT ajouté .');
       } finally {
         if (itemDialog.open) {
           itemCreateSubmitButton.classList.remove('is-loading');
