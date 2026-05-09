@@ -189,6 +189,26 @@
         </form>
       </dialog>
 
+      <dialog id="editPurchaseModal" class="modal-card">
+        <form method="dialog" class="modal-content modal-content--site-create modal-content--item-create" id="editPurchaseForm">
+          <div class="modal-header">
+            <h2>Modifier l’achat matériel</h2>
+          </div>
+          <label class="input-group input-group--site-create input-group--item-create">
+            <span>Nom</span>
+            <input id="editPurchaseNameInput" type="text" maxlength="25" placeholder="Nom achat matériel" />
+            <div class="item-input-feedback-row">
+              <p id="editPurchaseFormError" class="form-error" aria-live="polite"></p>
+              <span id="editPurchaseNameCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+            </div>
+          </label>
+          <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
+            <button type="button" class="btn btn-neutral" id="cancelEditPurchaseBtn">Annuler</button>
+            <button type="submit" class="btn btn-success" id="saveEditPurchaseBtn">Enregistrer</button>
+          </div>
+        </form>
+      </dialog>
+
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
