@@ -5103,6 +5103,32 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    function applyDetailColumnAutoWidth(input) {
+      if (!input || !(input instanceof HTMLInputElement)) {
+        return;
+      }
+      if (!input.classList.contains('cell-input--detail-fluid')) {
+        return;
+      }
+      const content = String(input.value ?? input.placeholder ?? '').trim();
+      const minChars = Number(input.dataset.minCh || 4);
+      const maxChars = Number(input.dataset.maxCh || 28);
+      const nextChars = Math.min(Math.max(content.length + 1, minChars), maxChars);
+      input.style.width = `${nextChars}ch`;
+      input.dataset.length = String(content.length);
+    }
+
+    function bindDetailColumnAutoWidth(input) {
+      if (!input || input.dataset.autowidthBound === 'true') {
+        return;
+      }
+      input.dataset.autowidthBound = 'true';
+      const refresh = () => applyDetailColumnAutoWidth(input);
+      input.addEventListener('input', refresh);
+      input.addEventListener('change', refresh);
+      refresh();
+    }
+
     function renderTable() {
       if (!currentItem) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
@@ -5130,14 +5156,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
               <td>
                 <div class="qte-sortie-field">
-                  <input class="cell-input" data-field="qteSortie" type="number" min="0" step="1" value="${escapeHtml(detail.qteSortie)}" />
+                  <input class="cell-input cell-input--detail-fluid" data-min-ch="4" data-max-ch="10" data-field="qteSortie" type="number" min="0" step="1" value="${escapeHtml(detail.qteSortie)}" />
                   <span class="meta-value meta-value--inline">${escapeHtml(detail.unite)}</span>
                 </div>
               </td>
-              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
-              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
-              <td><input class="cell-input${ecartClassName}" type="number" value="${ecart}" readonly aria-label="Ecart" /></td>
-              <td><input class="cell-input cell-input--autosize" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
+              <td><input class="cell-input cell-input--detail-fluid" data-min-ch="4" data-max-ch="10" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
+              <td><input class="cell-input cell-input--detail-fluid" data-min-ch="4" data-max-ch="10" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input cell-input--detail-fluid${ecartClassName}" data-min-ch="4" data-max-ch="10" type="number" value="${ecart}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input cell-input--autosize cell-input--detail-fluid" data-min-ch="8" data-max-ch="34" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td>
@@ -5151,6 +5177,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         )
         .join('');
       animateNextTableRender = false;
+
+      detailTableBody.querySelectorAll('.cell-input--detail-fluid').forEach((field) => {
+        bindDetailColumnAutoWidth(field);
+      });
 
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
         if (!canEditDetails) {
