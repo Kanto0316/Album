@@ -167,7 +167,7 @@
           </div>
           <p class="modal-helper-text">Renseignez les informations de l’achat.</p>
           <label class="input-group input-group--site-create input-group--item-create">
-            <span>Désignation</span>
+            <span>Désignation <span class="required-star" aria-hidden="true">*</span></span>
             <input id="purchaseDesignation" type="text" maxlength="25" placeholder="Ex : Câble cuivre" />
             <div class="item-input-feedback-row">
               <p id="purchaseDesignationError" class="form-error form-error--field" aria-live="polite"></p>
@@ -176,7 +176,7 @@
           </label>
           <div class="form-row purchase-form-row">
             <label class="input-group input-group--site-create quantity-group">
-              <span>Quantité</span>
+              <span>Quantité <span class="required-star" aria-hidden="true">*</span></span>
               <input id="purchaseQty" type="number" min="1" max="9999" placeholder="Ex : 10" />
               <p id="purchaseQtyError" class="form-error form-error--field" aria-live="polite"></p>
             </label>
