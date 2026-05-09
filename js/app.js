@@ -2770,6 +2770,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const editPurchaseNameCounter = document.getElementById('editPurchaseNameCounter');
     const editPurchaseFormError = document.getElementById('editPurchaseFormError');
     const cancelEditPurchaseBtn = document.getElementById('cancelEditPurchaseBtn');
+    const saveEditPurchaseBtn = document.getElementById('saveEditPurchaseBtn');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
@@ -2829,12 +2830,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!editPurchaseFormError) return;
       editPurchaseFormError.textContent = message;
       editPurchaseFormError.style.color = 'var(--danger)';
+      editPurchaseNameInput?.classList.remove('is-shaking');
+      void editPurchaseNameInput?.offsetWidth;
+      editPurchaseNameInput?.classList.add('input-error', 'is-error', 'is-shaking', 'shake');
     }
 
     function clearEditPurchaseFieldError() {
       if (!editPurchaseFormError) return;
       editPurchaseFormError.textContent = '';
       editPurchaseFormError.style.color = '';
+      editPurchaseNameInput?.classList.remove('input-error', 'is-error', 'is-shaking', 'shake');
+    }
+
+    function setEditPurchaseSubmitLoadingState(isLoading) {
+      if (!saveEditPurchaseBtn) return;
+      saveEditPurchaseBtn.disabled = isLoading;
+      saveEditPurchaseBtn.classList.toggle('is-loading', isLoading);
     }
 
     function openEditPurchaseModal(purchase) {
@@ -3908,13 +3919,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         editPurchaseNameInput.focus();
         return;
       }
-      await updateDoc(
-        doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId),
-        { designation: newName },
-      );
-      editPurchaseModal?.close();
-      await loadPurchasesForCurrentSite();
-      setActiveSiteTab('purchases');
+      clearEditPurchaseFieldError();
+      setEditPurchaseSubmitLoadingState(true);
+      try {
+        await updateDoc(
+          doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId),
+          { designation: newName },
+        );
+        editPurchaseModal?.close();
+        await loadPurchasesForCurrentSite();
+        setActiveSiteTab('purchases');
+      } finally {
+        setEditPurchaseSubmitLoadingState(false);
+      }
     });
 
     purchaseForm?.addEventListener('submit', async (event) => {
