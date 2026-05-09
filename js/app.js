@@ -3772,11 +3772,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       const defaultLabel = itemCreateSubmitButton?.querySelector('.btn-label-default');
       const loadingLabel = itemCreateSubmitButton?.querySelector('.btn-label-loading');
+      const isEditMode = itemDialogMode === ITEM_DIALOG_MODE_EDIT || itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE;
       if (defaultLabel) {
-        defaultLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Enregistrer' : 'Créer';
+        defaultLabel.textContent = isEditMode ? 'Enregistrer' : 'Créer';
       }
       if (loadingLabel) {
-        loadingLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Enregistrement...' : 'Création...';
+        loadingLabel.textContent = isEditMode ? 'Enregistrement...' : 'Création...';
       }
       if (itemDialogMode === ITEM_DIALOG_MODE_EDIT) {
         itemNumberInput.setAttribute('inputmode', 'numeric');
