@@ -3794,7 +3794,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         itemNumberInput.setAttribute('pattern', '[0-9]*');
         itemNumberInput.placeholder = 'Exemple : 26050200';
       }
-      itemStoreSelect?.closest('.input-group')?.toggleAttribute('hidden', itemDialogMode !== ITEM_DIALOG_MODE_CREATE);
+      const isCreateMode = itemDialogMode === ITEM_DIALOG_MODE_CREATE;
+      itemStoreSelect?.closest('.input-group')?.toggleAttribute('hidden', !isCreateMode);
+      if (!isCreateMode) {
+        hideItemStoreOtherField({ immediate: true });
+      }
+      itemStoreOtherGroup?.toggleAttribute('hidden', !isCreateMode);
       updateItemNumberCounter();
     }
 
