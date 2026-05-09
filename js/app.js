@@ -2846,6 +2846,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function updateEditPurchaseCounter() {
       if (!editPurchaseNameInput || !editPurchaseNameCounter) return;
+      if (editPurchaseNameInput.value.length > 25) {
+        editPurchaseNameInput.value = editPurchaseNameInput.value.slice(0, 25);
+      }
       editPurchaseNameCounter.textContent = `${editPurchaseNameInput.value.length} / 25`;
     }
 
@@ -3957,6 +3960,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     editPurchaseNameInput?.addEventListener('input', () => {
       clearEditPurchaseFieldError();
+      if (editPurchaseNameInput.value.length > 25) {
+        editPurchaseNameInput.value = editPurchaseNameInput.value.slice(0, 25);
+      }
       updateEditPurchaseCounter();
     });
 
