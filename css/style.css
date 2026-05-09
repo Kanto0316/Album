@@ -3693,6 +3693,7 @@ body[data-page="site-detail"] #itemDialog #itemNumberInput.is-shaking {
 }
 
 body[data-page="site-detail"] #itemDialog .input-group--item-create .input-char-counter,
+body[data-page="site-detail"] #purchaseModal .input-group--item-create .input-char-counter,
 body[data-page="site-detail"] #editPurchaseModal .input-group--item-create .input-char-counter {
   width: auto;
   text-align: right;
@@ -3705,6 +3706,7 @@ body[data-page="site-detail"] #editPurchaseModal .input-group--item-create .inpu
 }
 
 body[data-page="site-detail"] #itemDialog .item-input-feedback-row,
+body[data-page="site-detail"] #purchaseModal .item-input-feedback-row,
 body[data-page="site-detail"] #editPurchaseModal .item-input-feedback-row {
   width: 100%;
   margin-top: 0.24rem;
@@ -3715,6 +3717,7 @@ body[data-page="site-detail"] #editPurchaseModal .item-input-feedback-row {
 }
 
 body[data-page="site-detail"] #itemDialog #itemFormError,
+body[data-page="site-detail"] #purchaseModal #purchaseDesignationError,
 body[data-page="site-detail"] #editPurchaseModal #editPurchaseFormError {
   width: auto;
   margin-top: 0;
