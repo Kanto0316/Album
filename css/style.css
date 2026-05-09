@@ -3806,6 +3806,14 @@ body[data-page="site-detail"] #itemDialog .required-star {
   vertical-align: baseline;
 }
 
+body[data-page="home"] #siteDialog .required-star {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.9em;
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+
 
 body[data-page="site-detail"] #purchaseModal #purchaseDesignation,
 body[data-page="site-detail"] #purchaseModal #purchaseQty,
