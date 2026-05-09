@@ -3798,6 +3798,15 @@ body[data-page="site-detail"] #purchaseModal .required-star {
   vertical-align: baseline;
 }
 
+body[data-page="site-detail"] #itemDialog .required-star {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.9em;
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+
+
 body[data-page="site-detail"] #purchaseModal #purchaseDesignation,
 body[data-page="site-detail"] #purchaseModal #purchaseQty,
 body[data-page="site-detail"] #purchaseModal #purchaseUnit {
