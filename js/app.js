@@ -3685,7 +3685,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       outsTabContent?.classList.toggle('hidden', safeTabName !== 'outs');
       purchasesTabContent?.classList.toggle('hidden', safeTabName !== 'purchases');
       itemSearchInput.placeholder = safeTabName === 'outs' ? OUT_SEARCH_PLACEHOLDER : PURCHASE_SEARCH_PLACEHOLDER;
-      itemSearchInput.value = '';
+      itemSearchInput.value = safeTabName === 'outs'
+        ? (window.localStorage.getItem(searchStorageKey) || '')
+        : '';
       updateFabByActiveTab(safeTabName);
       updateHeaderExportButton(safeTabName);
       renderActiveTabContent();
@@ -4189,7 +4191,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     itemSearchInput.addEventListener('input', () => {
-      window.localStorage.setItem(searchStorageKey, itemSearchInput.value);
+      if (activeSiteTab === 'outs') {
+        const searchValue = itemSearchInput.value;
+        if (searchValue) {
+          window.localStorage.setItem(searchStorageKey, searchValue);
+        } else {
+          window.localStorage.removeItem(searchStorageKey);
+        }
+      }
       renderActiveTabContent();
     });
 
