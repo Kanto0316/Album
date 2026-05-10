@@ -5218,18 +5218,27 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       measurer.className = 'cell-input-measurer';
       document.body.appendChild(measurer);
 
-      columns.forEach((inputs) => {
-        let maxWidth = 0;
+      const minWidthByColumn = {
+        qteSortie: 48,
+        qtePosee: 48,
+        qteRetour: 48,
+        ecart: 48,
+        observation: 100,
+      };
+
+      columns.forEach((inputs, key) => {
+        let maxWidth = minWidthByColumn[key] || 48;
 
         inputs.forEach((input) => {
           const computed = window.getComputedStyle(input);
           measurer.style.font = computed.font;
-          measurer.textContent = String(input.value ?? '').trim() || '0';
+          measurer.style.letterSpacing = computed.letterSpacing;
+          measurer.textContent = String(input.value ?? '');
           const contentWidth = Math.ceil(measurer.getBoundingClientRect().width);
           const horizontalPadding = parseFloat(computed.paddingLeft) + parseFloat(computed.paddingRight);
           const horizontalBorder = parseFloat(computed.borderLeftWidth) + parseFloat(computed.borderRightWidth);
-          const minWidth = parseFloat(computed.minWidth) || 0;
-          const width = Math.max(minWidth, contentWidth + horizontalPadding + horizontalBorder + 8);
+          const minWidth = Math.max(parseFloat(computed.minWidth) || 0, minWidthByColumn[key] || 48);
+          const width = Math.max(minWidth, contentWidth + horizontalPadding + horizontalBorder + 10);
           maxWidth = Math.max(maxWidth, width);
         });
 
