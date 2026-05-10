@@ -3133,11 +3133,16 @@ body[data-page="item-detail"] #designationInput.is-shaking {
 
 .cell-input--compact-dynamic {
   width: auto;
-  min-width: 3.5rem;
+  min-width: 48px;
   max-width: none;
+  padding: 0.7rem 0.75rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: clip;
+}
+
+.cell-input--compact-dynamic[data-col-key="observation"] {
+  min-width: 100px;
 }
 
 .cell-input-measurer {
