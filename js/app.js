@@ -5223,7 +5223,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         qtePosee: 48,
         qteRetour: 48,
         ecart: 48,
-        observation: 100,
+        observation: 48,
       };
 
       columns.forEach((inputs, key) => {
