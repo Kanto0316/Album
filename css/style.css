@@ -3136,6 +3136,14 @@ body[data-page="item-detail"] #designationInput.is-shaking {
   transition: width 180ms ease, min-width 180ms ease;
 }
 
+.cell-input--detail-fluid[data-col-fluid="qteSortie"],
+.cell-input--detail-fluid[data-col-fluid="qtePosee"],
+.cell-input--detail-fluid[data-col-fluid="qteRetour"],
+.cell-input--detail-fluid[data-col-fluid="ecart"] {
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .cell-input--designation {
   min-width: 20ch;
 }

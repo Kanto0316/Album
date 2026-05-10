@@ -5120,7 +5120,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         '[data-col-fluid="qtePosee"]',
         '[data-col-fluid="qteRetour"]',
         '[data-col-fluid="ecart"]',
-        '[data-col-fluid="observation"]',
       ];
       columnSelectors.forEach((selector) => {
         const inputs = Array.from(scope.querySelectorAll(selector)).filter((item) => item instanceof HTMLInputElement);
