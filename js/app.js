@@ -5130,14 +5130,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
               <td>
                 <div class="qte-sortie-field">
-                  <input class="cell-input" data-field="qteSortie" type="number" min="0" step="1" value="${escapeHtml(detail.qteSortie)}" />
+                  <input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" />
                   <span class="meta-value meta-value--inline">${escapeHtml(detail.unite)}</span>
                 </div>
               </td>
-              <td><input class="cell-input" data-field="qtePosee" type="number" min="0" step="1" value="${detail.qtePosee}" /></td>
-              <td><input class="cell-input" data-field="qteRetour" type="number" min="0" step="1" value="${detail.qteRetour}" /></td>
-              <td><input class="cell-input${ecartClassName}" type="number" value="${ecart}" readonly aria-label="Ecart" /></td>
-              <td><input class="cell-input cell-input--autosize" data-field="observation" type="text" value="${escapeHtml(detail.observation)}" size="${Math.max(String(detail.observation || '').length + 1, 14)}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td>
@@ -5177,7 +5177,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
             [fieldName]: nextValue,
           });
+          applyCompactColumnWidths();
         });
+
+        if (field.classList.contains('cell-input--compact-dynamic')) {
+          field.addEventListener('input', () => {
+            if (field.value.length > 120) {
+              field.value = field.value.slice(0, 120);
+            }
+            applyCompactColumnWidths();
+          });
+        }
       });
 
       detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
@@ -5185,6 +5195,50 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           await askDetailDeleteConfirmation(button.dataset.detailDelete);
         });
       });
+
+      applyCompactColumnWidths();
+    }
+
+    function applyCompactColumnWidths() {
+      const autoFields = detailTableBody.querySelectorAll('.cell-input--compact-dynamic[data-col-key]');
+      if (!autoFields.length) {
+        return;
+      }
+
+      const columns = new Map();
+      autoFields.forEach((input) => {
+        const key = input.dataset.colKey;
+        if (!columns.has(key)) {
+          columns.set(key, []);
+        }
+        columns.get(key).push(input);
+      });
+
+      const measurer = document.createElement('span');
+      measurer.className = 'cell-input-measurer';
+      document.body.appendChild(measurer);
+
+      columns.forEach((inputs) => {
+        let maxWidth = 0;
+
+        inputs.forEach((input) => {
+          const computed = window.getComputedStyle(input);
+          measurer.style.font = computed.font;
+          measurer.textContent = String(input.value ?? '').trim() || '0';
+          const contentWidth = Math.ceil(measurer.getBoundingClientRect().width);
+          const horizontalPadding = parseFloat(computed.paddingLeft) + parseFloat(computed.paddingRight);
+          const horizontalBorder = parseFloat(computed.borderLeftWidth) + parseFloat(computed.borderRightWidth);
+          const minWidth = parseFloat(computed.minWidth) || 0;
+          const width = Math.max(minWidth, contentWidth + horizontalPadding + horizontalBorder + 8);
+          maxWidth = Math.max(maxWidth, width);
+        });
+
+        inputs.forEach((input) => {
+          input.style.width = `${Math.ceil(maxWidth)}px`;
+        });
+      });
+
+      measurer.remove();
     }
 
     detailForm.addEventListener('submit', async (event) => {
