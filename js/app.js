@@ -2797,9 +2797,43 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
+    const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
+    let hasPendingOutScrollRestore = true;
+
+    function persistOutPageScrollPosition() {
+      if (activeSiteTab !== 'outs') {
+        return;
+      }
+      try {
+        window.localStorage.setItem(outPageScrollStorageKey, String(Math.max(0, Math.round(window.scrollY || 0))));
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
+    function restoreOutPageScrollPosition() {
+      if (!hasPendingOutScrollRestore || activeSiteTab !== 'outs') {
+        return;
+      }
+      hasPendingOutScrollRestore = false;
+      let savedScrollY = 0;
+      try {
+        savedScrollY = Number.parseInt(window.localStorage.getItem(outPageScrollStorageKey) || '0', 10);
+      } catch (_error) {
+        savedScrollY = 0;
+      }
+      if (!Number.isFinite(savedScrollY) || savedScrollY <= 0) {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          window.scrollTo(0, savedScrollY);
+        }, 40);
+      });
+    }
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
 
@@ -3470,6 +3504,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           openItemActionSheet(button.dataset.itemMenu);
         });
       });
+
+      restoreOutPageScrollPosition();
     }
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
@@ -4177,6 +4213,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       };
 
       const handleSiteDetailScroll = () => {
+        persistOutPageScrollPosition();
         setFabStackScrollingState(true);
         if (siteDetailScrollTimerId) {
           window.clearTimeout(siteDetailScrollTimerId);
