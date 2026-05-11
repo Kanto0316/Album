@@ -3136,7 +3136,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       } catch (_error) {
         userNamesById = {};
       }
-      renderItems();
+      renderItems(options);
     }
 
     function formatSiteExportUnit(unit) {
@@ -3582,7 +3582,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
-    function renderItems() {
+    function renderItems(options = {}) {
+      const shouldFlashSearchMatches = Boolean(options?.flashSearchMatches);
       const query = itemSearchInput.value.trim().toUpperCase();
       const filteredItems = currentItems.filter((item) => {
         if (!itemMatchesDateFilter(item, selectedDateFilter)) {
@@ -3620,7 +3621,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
         htmlParts.push(`
-            <article class="list-card">
+            <article class="list-card" data-search-match="true">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
@@ -3634,6 +3635,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           `);
       });
       itemList.innerHTML = htmlParts.join('');
+
+      if (query && shouldFlashSearchMatches) {
+        const matchedCards = itemList.querySelectorAll('[data-search-match="true"]');
+        matchedCards.forEach((card) => {
+          card.classList.remove('list-card--search-flash');
+          void card.offsetWidth;
+          card.classList.add('list-card--search-flash');
+          window.setTimeout(() => {
+            card.classList.remove('list-card--search-flash');
+          }, 1800);
+        });
+      }
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
         button.addEventListener('click', () => {
@@ -3838,7 +3851,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       renderPurchases();
     }
 
-    function renderActiveTabContent() {
+    function renderActiveTabContent(options = {}) {
       if (activeSiteTab === 'purchases') {
         renderPurchases();
         return;
@@ -4460,7 +4473,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     itemSearchInput.addEventListener('input', () => {
-      if (activeSiteTab === 'outs') {
+      const isOutSearchInput = activeSiteTab === 'outs';
+      if (isOutSearchInput) {
         const searchValue = itemSearchInput.value;
         if (searchValue) {
           window.localStorage.setItem(searchStorageKey, searchValue);
@@ -4468,7 +4482,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           window.localStorage.removeItem(searchStorageKey);
         }
       }
-      renderActiveTabContent();
+      renderActiveTabContent({
+        flashSearchMatches: isOutSearchInput,
+      });
     });
 
     if (itemDateFilter) {
