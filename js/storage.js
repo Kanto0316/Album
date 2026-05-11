@@ -1388,6 +1388,7 @@ async function createDetail(siteId, itemId, payload) {
     qteHorsBtrs: '',
     qteRetour: 0,
     qtePosee: 0,
+    qteRebus: 0,
     observation: '',
     ownerId: state.userId,
     createdBy: state.userId,
@@ -1442,6 +1443,10 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   if ('qtePosee' in changes) {
     nextValues.qtePosee = sanitizeNumber(changes.qtePosee);
     syncedChanges.qtePosee = nextValues.qtePosee;
+  }
+  if ('qteRebus' in changes) {
+    nextValues.qteRebus = sanitizeNumber(changes.qteRebus);
+    syncedChanges.qteRebus = nextValues.qteRebus;
   }
   if ('observation' in changes) {
     nextValues.observation = sanitizeText(changes.observation, false);
@@ -1602,6 +1607,7 @@ function normalizeImportPayload(payload) {
           qteHorsBtrs: '',
           qteRetour: sanitizeNumber(detail.qteRetour),
           qtePosee: sanitizeNumber(detail.qtePosee),
+          qteRebus: sanitizeNumber(detail.qteRebus),
           observation: sanitizeText(detail.observation, false),
           ownerId: state.userId,
           createdBy: state.userId,
