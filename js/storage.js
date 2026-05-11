@@ -587,6 +587,14 @@ function sanitizeNumber(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
+function sanitizeReturnDate(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : '';
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -1387,6 +1395,7 @@ async function createDetail(siteId, itemId, payload) {
     unite: sanitizeText(payload.unite || 'm', false) || 'm',
     qteHorsBtrs: '',
     qteRetour: 0,
+    dateRetour: '',
     qtePosee: 0,
     qteRebus: 0,
     observation: '',
@@ -1451,6 +1460,10 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   if ('observation' in changes) {
     nextValues.observation = sanitizeText(changes.observation, false);
     syncedChanges.observation = nextValues.observation;
+  }
+  if ('dateRetour' in changes) {
+    nextValues.dateRetour = sanitizeReturnDate(changes.dateRetour);
+    syncedChanges.dateRetour = nextValues.dateRetour;
   }
   nextValues.dateModification = nowIso();
   syncedChanges.dateModification = nextValues.dateModification;
@@ -1606,6 +1619,7 @@ function normalizeImportPayload(payload) {
           unite: sanitizeText(detail.unite || 'm', false) || 'm',
           qteHorsBtrs: '',
           qteRetour: sanitizeNumber(detail.qteRetour),
+          dateRetour: sanitizeReturnDate(detail.dateRetour),
           qtePosee: sanitizeNumber(detail.qtePosee),
           qteRebus: sanitizeNumber(detail.qteRebus),
           observation: sanitizeText(detail.observation, false),
