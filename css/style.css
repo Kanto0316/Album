@@ -4202,6 +4202,12 @@ body[data-page="site-detail"] .list-card.list-card--search-flash {
   background-color: #eef6ff;
 }
 
+body[data-page="site-detail"] .list-card.list-card--search-unread {
+  background-color: #ffffff;
+  border-color: #c6d8f4;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
 body[data-page="site-detail"] .list-card::before {
   content: "";
   position: absolute;
