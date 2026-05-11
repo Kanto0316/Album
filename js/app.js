@@ -2913,8 +2913,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return {
         cloudName,
         uploadPreset,
-        uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        folder: String(cloudinaryConfig.folder || '').trim(),
+        uploadUrl: 'https://api.cloudinary.com/v1_1/dskw13nem/image/upload',
       };
     }
 
@@ -2922,22 +2921,50 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!file) {
         return '';
       }
-      const { uploadPreset, uploadUrl, folder } = getCloudinaryUploadConfig();
+      const { uploadPreset, uploadUrl } = getCloudinaryUploadConfig();
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
-      if (folder) {
-        formData.append('folder', folder);
+      let response;
+      let responsePayload = null;
+      try {
+        response = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData,
+        });
+        try {
+          responsePayload = await response.clone().json();
+        } catch (_parseError) {
+          responsePayload = await response.text();
+        }
+      } catch (error) {
+        console.log('[Cloudinary upload] échec', {
+          status: null,
+          errorMessage: error?.message || String(error),
+          cloudinaryResponse: null,
+        });
+        throw error;
       }
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-      });
       if (!response.ok) {
-        throw new Error('cloudinary_upload_failed');
+        const uploadError = new Error('cloudinary_upload_failed');
+        console.log('[Cloudinary upload] échec', {
+          status: response.status,
+          errorMessage: uploadError.message,
+          cloudinaryResponse: responsePayload,
+        });
+        throw uploadError;
       }
-      const payload = await response.json();
-      return String(payload?.secure_url || '').trim();
+      const secureUrl = String(responsePayload?.secure_url || '').trim();
+      if (!secureUrl) {
+        const uploadError = new Error('cloudinary_secure_url_missing');
+        console.log('[Cloudinary upload] échec', {
+          status: response.status,
+          errorMessage: uploadError.message,
+          cloudinaryResponse: responsePayload,
+        });
+        throw uploadError;
+      }
+      return secureUrl;
     }
 
     function showPurchaseFieldError(field, errorElement, message) {
