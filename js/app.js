@@ -3621,7 +3621,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
         htmlParts.push(`
-            <article class="list-card" data-search-match="true">
+            <article class="list-card${query && !viewedOutSearchResultIds.has(String(item.id)) ? " list-card--search-unread" : ""}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
@@ -3650,6 +3650,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
         button.addEventListener('click', () => {
+          if (query) {
+            viewedOutSearchResultIds.add(String(button.dataset.itemOpen || ''));
+            const card = button.closest('.list-card');
+            card?.classList.remove('list-card--search-unread');
+          }
           UiService.navigate(`page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}`);
         });
       });
@@ -3691,6 +3696,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const ITEM_DIALOG_MODE_EDIT_PURCHASE = 'edit_purchase';
     let itemDialogMode = ITEM_DIALOG_MODE_CREATE;
     let editingItemId = null;
+    let activeOutSearchQuery = (itemSearchInput.value || "").trim().toUpperCase();
+    let viewedOutSearchResultIds = new Set();
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -3903,6 +3910,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       itemSearchInput.value = safeTabName === 'outs'
         ? (window.localStorage.getItem(searchStorageKey) || '')
         : '';
+      if (safeTabName === 'outs') {
+        const normalizedQuery = (itemSearchInput.value || '').trim().toUpperCase();
+        if (normalizedQuery !== activeOutSearchQuery) {
+          activeOutSearchQuery = normalizedQuery;
+          viewedOutSearchResultIds = new Set();
+        }
+      }
       updateFabByActiveTab(safeTabName);
       updateHeaderExportButton(safeTabName);
       renderActiveTabContent();
@@ -4480,6 +4494,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           window.localStorage.setItem(searchStorageKey, searchValue);
         } else {
           window.localStorage.removeItem(searchStorageKey);
+        }
+        const normalizedQuery = (searchValue || '').trim().toUpperCase();
+        if (normalizedQuery !== activeOutSearchQuery) {
+          activeOutSearchQuery = normalizedQuery;
+          viewedOutSearchResultIds = new Set();
         }
       }
       renderActiveTabContent({
