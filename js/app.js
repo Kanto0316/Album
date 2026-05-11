@@ -3701,6 +3701,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const htmlParts = [];
       let previousLabel = null;
       purchases.forEach((purchase) => {
+        const purchaseStore = String(purchase?.store || purchase?.magasin || '').trim();
         const currentLabel = resolveItemPeriodLabel({
           dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification,
         });
@@ -3718,6 +3719,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   <div class="purchase-label"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>Quantité</span></div>
                   <div class="purchase-value">${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</div>
                 </div>
+                ${purchaseStore ? `
+                <div class="purchase-info-row" role="listitem">
+                  <div class="purchase-label"><span aria-hidden="true" class="icon">🏪</span><span>Magasin</span></div>
+                  <div class="purchase-value">${escapeHtml(purchaseStore)}</div>
+                </div>
+                ` : ''}
                 <div class="purchase-info-row" role="listitem">
                   <div class="purchase-label"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Date</span></div>
                   <div class="purchase-value">${escapeHtml(formatPurchaseDateLabel(purchase))}</div>
