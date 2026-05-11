@@ -500,22 +500,32 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     UiService.showToast(`${title} lancé.`);
   }
 
+  function formatExcelCellValue(value) {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return '-';
+    }
+    return value;
+  }
+
   function buildDetailExcelContent(title, details) {
     const rows = details
       .map(
         (detail) => `
             <tr>
-              <td>${escapeHtml(detail.champ)}</td>
-              <td>${escapeHtml(detail.code)}</td>
-              <td>${escapeHtml(detail.designation)}</td>
-              <td>${escapeHtml(detail.qteSortie)}</td>
-              <td>${escapeHtml(detail.unite)}</td>
-              <td>${escapeHtml(detail.qtePosee)}</td>
-              <td>${escapeHtml(detail.qteRebus)}</td>
-              <td>${escapeHtml(detail.qteRetour)}</td>
-              <td>${escapeHtml(formatReturnDate(detail.dateRetour))}</td>
-              <td>${escapeHtml(computeEcart(detail))}</td>
-              <td>${escapeHtml(detail.observation)}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.champ))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.code))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.designation))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.qteSortie))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.unite))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.qtePosee))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.qteRebus))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.qteRetour))}</td>
+              <td>${escapeHtml(formatExcelCellValue(formatReturnDate(detail.dateRetour)))}</td>
+              <td>${escapeHtml(formatExcelCellValue(computeEcart(detail)))}</td>
+              <td>${escapeHtml(formatExcelCellValue(detail.observation))}</td>
             </tr>
           `,
       )
@@ -559,17 +569,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       .map(
         (row) => `
           <tr>
-            <td>${escapeHtml(row.out)}</td>
-            <td>${escapeHtml(row.code)}</td>
-            <td>${escapeHtml(row.designation)}</td>
-            <td>${escapeHtml(row.qteSortie)}</td>
-            <td>${escapeHtml(row.unite)}</td>
-            <td>${escapeHtml(row.qtePosee)}</td>
-            <td>${escapeHtml(row.qteRebus)}</td>
-            <td>${escapeHtml(row.qteRetour)}</td>
-            <td>${escapeHtml(formatReturnDate(row.dateRetour))}</td>
-            <td>${escapeHtml(computeEcart(row))}</td>
-            <td>${escapeHtml(row.observation)}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.out))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.code))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.designation))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.qteSortie))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.unite))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.qtePosee))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.qteRebus))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.qteRetour))}</td>
+            <td>${escapeHtml(formatExcelCellValue(formatReturnDate(row.dateRetour)))}</td>
+            <td>${escapeHtml(formatExcelCellValue(computeEcart(row)))}</td>
+            <td>${escapeHtml(formatExcelCellValue(row.observation))}</td>
           </tr>
         `,
       )
