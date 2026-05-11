@@ -225,6 +225,32 @@
         </form>
       </dialog>
 
+
+
+      <dialog id="editOutNameModal" class="modal-card">
+        <form method="dialog" class="modal-content modal-content--site-create modal-content--item-create" id="editOutNameForm">
+          <div class="modal-header">
+            <h2>Modifier le nom OUT</h2>
+          </div>
+          <label class="input-group input-group--site-create input-group--item-create">
+            <span>Nom</span>
+            <input id="editOutNameInput" type="text" maxlength="25" placeholder="Nom OUT" inputmode="numeric" pattern="[0-9]*" />
+            <div class="item-input-feedback-row">
+              <p id="editOutNameFormError" class="form-error error-message" aria-live="polite"></p>
+              <span id="editOutNameCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+            </div>
+          </label>
+          <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
+            <button type="button" class="btn btn-neutral" id="cancelEditOutNameBtn">Annuler</button>
+            <button type="submit" class="btn btn-success" id="saveEditOutNameBtn">
+              <span class="btn-label-default">Enregistrer</span>
+              <span class="btn-loading-spinner" aria-hidden="true"></span>
+              <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
+            </button>
+          </div>
+        </form>
+      </dialog>
+
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
