@@ -3353,6 +3353,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         });
 
       itemActionState.closeSheet = closeSheet;
+      const openOutEditModal = (targetItem) => {
+        itemForm.reset();
+        clearItemFormError();
+        clearItemNumberErrorState();
+        hasBlockingItemNumberError = false;
+        itemCreateSubmitButton.disabled = false;
+        itemCreateSubmitButton.classList.remove('is-loading');
+        setItemDialogMode(ITEM_DIALOG_MODE_EDIT, targetItem);
+        itemDialog.showModal();
+        itemNumberInput.focus();
+      };
       editNameButton.onclick = async () => {
         await closeSheet();
         const targetItem = isPurchaseActions
@@ -3365,15 +3376,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           openEditPurchaseModal(targetItem);
           return;
         }
-        itemForm.reset();
-        clearItemFormError();
-        clearItemNumberErrorState();
-        hasBlockingItemNumberError = false;
-        itemCreateSubmitButton.disabled = false;
-        itemCreateSubmitButton.classList.remove('is-loading');
-        setItemDialogMode(isPurchaseActions ? ITEM_DIALOG_MODE_EDIT_PURCHASE : ITEM_DIALOG_MODE_EDIT, targetItem);
-        itemDialog.showModal();
-        itemNumberInput.focus();
+
+        // Sécurise l'ordre de transition: fermeture complète du bottom-sheet avant ouverture du modal.
+        document.body.classList.remove('sidebar-open');
+        overlay.classList.remove('is-open');
+        overlay.hidden = true;
+        window.setTimeout(() => {
+          openOutEditModal(targetItem);
+        }, 30);
       };
       deleteButton.onclick = async () => {
         deleteButton.disabled = true;
