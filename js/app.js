@@ -239,12 +239,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const qteSortie = Number(detail?.qteSortie) || 0;
     const qtePosee = Number(detail?.qtePosee) || 0;
     const qteRetour = Number(detail?.qteRetour) || 0;
+    const qteRebus = Number(detail?.qteRebus) || 0;
 
-    if (qtePosee === 0 && qteRetour === 0) {
+    if (qtePosee === 0 && qteRetour === 0 && qteRebus === 0) {
       return '';
     }
 
-    return qteSortie - (qtePosee + qteRetour);
+    return qteSortie - (qtePosee + qteRetour + qteRebus);
   }
 
   function setupZoomableDetailTable() {
@@ -498,6 +499,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td>${escapeHtml(detail.qteSortie)}</td>
               <td>${escapeHtml(detail.unite)}</td>
               <td>${escapeHtml(detail.qtePosee)}</td>
+              <td>${escapeHtml(detail.qteRebus)}</td>
               <td>${escapeHtml(detail.qteRetour)}</td>
               <td>${escapeHtml(computeEcart(detail))}</td>
               <td>${escapeHtml(detail.observation)}</td>
@@ -526,6 +528,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Qté Sortie</th>
           <th>Unité</th>
           <th>Qté posée</th>
+          <th>Qté Rebus</th>
           <th>Qté Retour</th>
           <th>Ecart</th>
           <th>Observation</th>
@@ -548,6 +551,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <td>${escapeHtml(row.qteSortie)}</td>
             <td>${escapeHtml(row.unite)}</td>
             <td>${escapeHtml(row.qtePosee)}</td>
+            <td>${escapeHtml(row.qteRebus)}</td>
             <td>${escapeHtml(row.qteRetour)}</td>
             <td>${escapeHtml(computeEcart(row))}</td>
             <td>${escapeHtml(row.observation)}</td>
@@ -576,6 +580,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Qté Sortie</th>
           <th>Unité</th>
           <th>Qté posée</th>
+          <th>Qté Rebus</th>
           <th>Qté Retour</th>
           <th>Ecart</th>
           <th>Remarque</th>
@@ -3067,6 +3072,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           qteSortie: detail.qteSortie,
           unite: formatSiteExportUnit(detail.unite),
           qtePosee: detail.qtePosee,
+          qteRebus: detail.qteRebus,
           qteRetour: detail.qteRetour,
           observation: detail.observation,
         })),
@@ -5262,7 +5268,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       updateCount(filteredDetails.length, currentDetails.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="11"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="12"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -5284,6 +5290,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                 </div>
               </td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
@@ -5370,6 +5377,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const minWidthByColumn = {
         qteSortie: 48,
         qtePosee: 48,
+        qteRebus: 0,
         qteRetour: 48,
         ecart: 48,
         observation: 48,
