@@ -2904,15 +2904,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function getCloudinaryUploadConfig() {
-      const cloudinaryConfig = window.APP_CONFIG?.cloudinary || window.CLOUDINARY_CONFIG || {};
-      const cloudName = 'dskw13nem';
-      const uploadPreset = String(cloudinaryConfig.uploadPreset || cloudinaryConfig.upload_preset || '').trim();
-      if (!uploadPreset) {
-        throw new Error('cloudinary_config_missing');
-      }
       return {
-        cloudName,
-        uploadPreset,
+        uploadPreset: 'Suivi_matériel',
         uploadUrl: 'https://api.cloudinary.com/v1_1/dskw13nem/image/upload',
       };
     }
@@ -2925,46 +2918,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
-      let response;
-      let responsePayload = null;
-      try {
-        response = await fetch(uploadUrl, {
-          method: 'POST',
-          body: formData,
-        });
-        try {
-          responsePayload = await response.clone().json();
-        } catch (_parseError) {
-          responsePayload = await response.text();
-        }
-      } catch (error) {
-        console.log('[Cloudinary upload] échec', {
-          status: null,
-          errorMessage: error?.message || String(error),
-          cloudinaryResponse: null,
-        });
-        throw error;
-      }
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
       if (!response.ok) {
-        const uploadError = new Error('cloudinary_upload_failed');
-        console.log('[Cloudinary upload] échec', {
-          status: response.status,
-          errorMessage: uploadError.message,
-          cloudinaryResponse: responsePayload,
-        });
-        throw uploadError;
+        console.error('Erreur Cloudinary :', data);
+        throw new Error(data.error?.message || 'Upload Cloudinary échoué');
       }
-      const secureUrl = String(responsePayload?.secure_url || '').trim();
-      if (!secureUrl) {
-        const uploadError = new Error('cloudinary_secure_url_missing');
-        console.log('[Cloudinary upload] échec', {
-          status: response.status,
-          errorMessage: uploadError.message,
-          cloudinaryResponse: responsePayload,
-        });
-        throw uploadError;
+
+      const imageUrl = String(data?.secure_url || '').trim();
+      if (!imageUrl) {
+        console.error('Erreur Cloudinary :', data);
+        throw new Error('Upload Cloudinary échoué');
       }
-      return secureUrl;
+
+      return imageUrl;
     }
 
     function showPurchaseFieldError(field, errorElement, message) {
@@ -3119,21 +3092,24 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       setPurchaseSubmitLoadingState(true);
       try {
         const imageUrl = selectedPurchasePhotoFile ? await uploadPurchaseImageToCloudinary(selectedPurchasePhotoFile) : '';
+        const purchasePayload = {
+          designation,
+          qty,
+          unit,
+          store,
+          magasin: store,
+          createdAt: serverTimestamp(),
+          createdBy: currentUserName || 'Utilisateur',
+          createdByEmail: currentUserEmail || '',
+          siteId,
+          siteName: currentSite?.nom || '',
+        };
+        if (imageUrl) {
+          purchasePayload.imageUrl = imageUrl;
+        }
         await addDoc(
           collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
-          {
-            designation,
-            qty,
-            unit,
-            store,
-            magasin: store,
-            imageUrl,
-            createdAt: serverTimestamp(),
-            createdBy: currentUserName || 'Utilisateur',
-            createdByEmail: currentUserEmail || '',
-            siteId,
-            siteName: currentSite?.nom || '',
-          },
+          purchasePayload,
         );
         purchaseModal?.close();
         resetPurchaseForm();
