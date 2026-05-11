@@ -3718,7 +3718,8 @@ body[data-page="site-detail"] #itemDialog #itemNumberInput.is-shaking {
 
 body[data-page="site-detail"] #itemDialog .input-group--item-create .input-char-counter,
 body[data-page="site-detail"] #purchaseModal .input-group--item-create .input-char-counter,
-body[data-page="site-detail"] #editPurchaseModal .input-group--item-create .input-char-counter {
+body[data-page="site-detail"] #editPurchaseModal .input-group--item-create .input-char-counter,
+body[data-page="site-detail"] #editOutNameModal .input-group--item-create .input-char-counter {
   width: auto;
   text-align: right;
   margin-top: 0;
@@ -3731,7 +3732,8 @@ body[data-page="site-detail"] #editPurchaseModal .input-group--item-create .inpu
 
 body[data-page="site-detail"] #itemDialog .item-input-feedback-row,
 body[data-page="site-detail"] #purchaseModal .item-input-feedback-row,
-body[data-page="site-detail"] #editPurchaseModal .item-input-feedback-row {
+body[data-page="site-detail"] #editPurchaseModal .item-input-feedback-row,
+body[data-page="site-detail"] #editOutNameModal .item-input-feedback-row {
   width: 100%;
   margin-top: 0.24rem;
   display: flex;
@@ -3742,7 +3744,8 @@ body[data-page="site-detail"] #editPurchaseModal .item-input-feedback-row {
 
 body[data-page="site-detail"] #itemDialog #itemFormError,
 body[data-page="site-detail"] #purchaseModal #purchaseDesignationError,
-body[data-page="site-detail"] #editPurchaseModal #editPurchaseFormError {
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseFormError,
+body[data-page="site-detail"] #editOutNameModal #editOutNameFormError {
   width: auto;
   margin-top: 0;
   text-align: left;
@@ -3756,20 +3759,27 @@ body[data-page="site-detail"] #itemDialog .modal-actions--item-create {
   margin-top: 0.62rem;
 }
 
-body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput {
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.input-error,
 body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.input-error:focus,
 body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-error,
-body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-error:focus {
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-error:focus,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput.input-error,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput.input-error:focus,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput.is-error,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput.is-error:focus {
   border-color: #e53935;
   box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.14);
 }
 
 body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.is-shaking,
-body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.shake {
+body[data-page="site-detail"] #editPurchaseModal #editPurchaseNameInput.shake,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput.is-shaking,
+body[data-page="site-detail"] #editOutNameModal #editOutNameInput.shake {
   animation: item-number-input-shake 300ms ease-in-out 1;
 }
 
@@ -3797,6 +3807,34 @@ body[data-page="site-detail"] #saveEditPurchaseBtn.is-loading .btn-label-default
 
 body[data-page="site-detail"] #saveEditPurchaseBtn.is-loading .btn-loading-spinner,
 body[data-page="site-detail"] #saveEditPurchaseBtn.is-loading .btn-label-loading {
+  display: inline-flex;
+}
+
+
+body[data-page="site-detail"] #saveEditOutNameBtn {
+  position: relative;
+}
+
+body[data-page="site-detail"] #saveEditOutNameBtn .btn-label-loading {
+  display: none;
+}
+
+body[data-page="site-detail"] #saveEditOutNameBtn .btn-loading-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  display: none;
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
+body[data-page="site-detail"] #saveEditOutNameBtn.is-loading .btn-label-default {
+  display: none;
+}
+
+body[data-page="site-detail"] #saveEditOutNameBtn.is-loading .btn-loading-spinner,
+body[data-page="site-detail"] #saveEditOutNameBtn.is-loading .btn-label-loading {
   display: inline-flex;
 }
 
