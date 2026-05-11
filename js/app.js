@@ -248,6 +248,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return qteSortie - (qtePosee + qteRetour + qteRebus);
   }
 
+  function formatReturnDate(dateValue) {
+    const normalized = String(dateValue || '').trim();
+    if (!normalized) {
+      return '';
+    }
+    const [year, month, day] = normalized.split('-');
+    if (!year || !month || !day) {
+      return '';
+    }
+    return `${day}/${month}/${year}`;
+  }
+
   function setupZoomableDetailTable() {
     const tableContainer = requireElement('detailTableContainer');
     const tableWrapper = requireElement('detailTableWrapper');
@@ -501,6 +513,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td>${escapeHtml(detail.qtePosee)}</td>
               <td>${escapeHtml(detail.qteRebus)}</td>
               <td>${escapeHtml(detail.qteRetour)}</td>
+              <td>${escapeHtml(formatReturnDate(detail.dateRetour))}</td>
               <td>${escapeHtml(computeEcart(detail))}</td>
               <td>${escapeHtml(detail.observation)}</td>
             </tr>
@@ -530,6 +543,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Qté posée</th>
           <th>Qté Rebus</th>
           <th>Qté Retour</th>
+          <th>Date de retour</th>
           <th>Ecart</th>
           <th>Observation</th>
         </tr>
@@ -553,6 +567,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <td>${escapeHtml(row.qtePosee)}</td>
             <td>${escapeHtml(row.qteRebus)}</td>
             <td>${escapeHtml(row.qteRetour)}</td>
+            <td>${escapeHtml(formatReturnDate(row.dateRetour))}</td>
             <td>${escapeHtml(computeEcart(row))}</td>
             <td>${escapeHtml(row.observation)}</td>
           </tr>
@@ -582,6 +597,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Qté posée</th>
           <th>Qté Rebus</th>
           <th>Qté Retour</th>
+          <th>Date de retour</th>
           <th>Ecart</th>
           <th>Remarque</th>
         </tr>
@@ -3074,6 +3090,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           qtePosee: detail.qtePosee,
           qteRebus: detail.qteRebus,
           qteRetour: detail.qteRetour,
+          dateRetour: detail.dateRetour || '',
           observation: detail.observation,
         })),
       );
@@ -5268,7 +5285,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       updateCount(filteredDetails.length, currentDetails.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="12"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="13"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -5292,6 +5309,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
@@ -5379,6 +5397,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         qtePosee: 48,
         qteRebus: 0,
         qteRetour: 48,
+        dateRetour: 140,
         ecart: 48,
         observation: 48,
       };
