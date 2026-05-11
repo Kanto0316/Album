@@ -192,6 +192,13 @@
             <span>Magasin</span>
             <input id="purchaseStore" type="text" placeholder="Ex : Titan I" />
           </label>
+          <label class="input-group input-group--site-create">
+            <span>Photo</span>
+            <input id="purchasePhotoInput" type="file" accept="image/*" />
+          </label>
+          <div id="purchasePhotoPreviewWrap" class="purchase-photo-preview hidden" aria-live="polite">
+            <img id="purchasePhotoPreview" alt="Aperçu de la photo sélectionnée" />
+          </div>
           <p id="purchaseFormError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button id="cancelPurchaseBtn" class="btn btn-neutral" type="button">Annuler</button>
