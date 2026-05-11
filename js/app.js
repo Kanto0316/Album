@@ -2776,6 +2776,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const editPurchaseFormError = document.getElementById('editPurchaseFormError');
     const cancelEditPurchaseBtn = document.getElementById('cancelEditPurchaseBtn');
     const saveEditPurchaseBtn = document.getElementById('saveEditPurchaseBtn');
+    const editOutNameModal = document.getElementById('editOutNameModal');
+    const editOutNameForm = document.getElementById('editOutNameForm');
+    const editOutNameInput = document.getElementById('editOutNameInput');
+    const editOutNameCounter = document.getElementById('editOutNameCounter');
+    const editOutNameFormError = document.getElementById('editOutNameFormError');
+    const cancelEditOutNameBtn = document.getElementById('cancelEditOutNameBtn');
+    const saveEditOutNameBtn = document.getElementById('saveEditOutNameBtn');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
@@ -2916,6 +2923,46 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!saveEditPurchaseBtn) return;
       saveEditPurchaseBtn.disabled = isLoading;
       saveEditPurchaseBtn.classList.toggle('is-loading', isLoading);
+    }
+
+    function updateEditOutNameCounter() {
+      if (!editOutNameInput || !editOutNameCounter) return;
+      if (editOutNameInput.value.length > 25) {
+        editOutNameInput.value = editOutNameInput.value.slice(0, 25);
+      }
+      editOutNameCounter.textContent = `${editOutNameInput.value.length} / 25`;
+    }
+
+    function showEditOutNameFieldError(message) {
+      if (!editOutNameFormError) return;
+      editOutNameFormError.textContent = message;
+      editOutNameFormError.style.color = 'var(--danger)';
+      editOutNameInput?.classList.remove('is-shaking');
+      void editOutNameInput?.offsetWidth;
+      editOutNameInput?.classList.add('input-error', 'is-error', 'is-shaking', 'shake');
+    }
+
+    function clearEditOutNameFieldError() {
+      if (!editOutNameFormError) return;
+      editOutNameFormError.textContent = '';
+      editOutNameFormError.style.color = '';
+      editOutNameInput?.classList.remove('input-error', 'is-error', 'is-shaking', 'shake');
+    }
+
+    function setEditOutNameSubmitLoadingState(isLoading) {
+      if (!saveEditOutNameBtn) return;
+      saveEditOutNameBtn.disabled = isLoading;
+      saveEditOutNameBtn.classList.toggle('is-loading', isLoading);
+    }
+
+    function openEditOutNameModal(item) {
+      if (!item || !editOutNameModal || !editOutNameInput) return;
+      selectedOutItemId = item.id;
+      editOutNameInput.value = normalizeItemNumberInput(item.numero || '');
+      clearEditOutNameFieldError();
+      updateEditOutNameCounter();
+      editOutNameModal.showModal();
+      window.setTimeout(() => editOutNameInput.focus(), 150);
     }
 
     function openEditPurchaseModal(purchase) {
@@ -3278,6 +3325,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     let selectedPurchaseId = null;
     let selectedPurchaseData = null;
+    let selectedOutItemId = null;
 
     function openItemActionSheet(itemId) {
       const overlay = ensureItemActionBottomSheet();
@@ -3354,15 +3402,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       itemActionState.closeSheet = closeSheet;
       const openOutEditModal = (targetItem) => {
-        itemForm.reset();
-        clearItemFormError();
-        clearItemNumberErrorState();
-        hasBlockingItemNumberError = false;
-        itemCreateSubmitButton.disabled = false;
-        itemCreateSubmitButton.classList.remove('is-loading');
-        setItemDialogMode(ITEM_DIALOG_MODE_EDIT, targetItem);
-        itemDialog.showModal();
-        itemNumberInput.focus();
+        openEditOutNameModal(targetItem);
       };
       editNameButton.onclick = async () => {
         await closeSheet();
@@ -4066,6 +4106,52 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         setActiveSiteTab('purchases');
       } finally {
         setEditPurchaseSubmitLoadingState(false);
+      }
+    });
+
+    editOutNameInput?.addEventListener('input', () => {
+      clearEditOutNameFieldError();
+      if (editOutNameInput.value.length > 25) {
+        editOutNameInput.value = editOutNameInput.value.slice(0, 25);
+      }
+      const normalized = normalizeItemNumberInput(editOutNameInput.value);
+      if (editOutNameInput.value !== normalized) {
+        editOutNameInput.value = normalized;
+      }
+      updateEditOutNameCounter();
+    });
+
+    cancelEditOutNameBtn?.addEventListener('click', () => {
+      editOutNameModal?.close();
+    });
+
+    editOutNameForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!selectedOutItemId || !editOutNameInput) return;
+      const newName = normalizeItemNumberInput(editOutNameInput.value || '');
+      editOutNameInput.value = newName;
+      if (!newName) {
+        showEditOutNameFieldError('Nom obligatoire');
+        editOutNameInput.focus();
+        return;
+      }
+      if (newName.length < 4) {
+        showEditOutNameFieldError('Le nom doit contenir au moins 4 caractères.');
+        editOutNameInput.focus();
+        return;
+      }
+      clearEditOutNameFieldError();
+      setEditOutNameSubmitLoadingState(true);
+      try {
+        const result = await StorageService.updateItemName(siteId, selectedOutItemId, newName);
+        if (!result?.ok) {
+          showEditOutNameFieldError(result?.reason === 'duplicate_out' ? 'Ce N° OUT existe déjà pour ce site.' : 'Modification impossible.');
+          return;
+        }
+        editOutNameModal?.close();
+        UiService.showToast('Nom OUT mis à jour.');
+      } finally {
+        setEditOutNameSubmitLoadingState(false);
       }
     });
 
