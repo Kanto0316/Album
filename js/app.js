@@ -2794,6 +2794,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseDesignationCounter = requireElement('purchaseDesignationCounter');
     const purchaseQty = requireElement('purchaseQty');
     const purchaseUnit = requireElement('purchaseUnit');
+    const purchaseStore = requireElement('purchaseStore');
     const purchaseFormError = requireElement('purchaseFormError');
     const purchaseDesignationError = requireElement('purchaseDesignationError');
     const purchaseQtyError = requireElement('purchaseQtyError');
@@ -3017,6 +3018,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const designation = String(purchaseDesignation?.value || '').trim();
       const qty = Number(purchaseQty?.value);
       const unit = String(purchaseUnit?.value || '').trim();
+      const store = String(purchaseStore?.value || '').trim();
       if (!designation) {
         showPurchaseFieldError(purchaseDesignation, purchaseDesignationError, 'Désignation obligatoire');
         return;
@@ -3044,6 +3046,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             designation,
             qty,
             unit,
+            store,
+            magasin: store,
             createdAt: serverTimestamp(),
             createdBy: currentUserName || 'Utilisateur',
             createdByEmail: currentUserEmail || '',
