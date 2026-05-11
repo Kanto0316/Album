@@ -2795,6 +2795,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseQty = requireElement('purchaseQty');
     const purchaseUnit = requireElement('purchaseUnit');
     const purchaseStore = requireElement('purchaseStore');
+    const purchasePhotoInput = requireElement('purchasePhotoInput');
+    const purchasePhotoPreviewWrap = requireElement('purchasePhotoPreviewWrap');
+    const purchasePhotoPreview = requireElement('purchasePhotoPreview');
     const purchaseFormError = requireElement('purchaseFormError');
     const purchaseDesignationError = requireElement('purchaseDesignationError');
     const purchaseQtyError = requireElement('purchaseQtyError');
@@ -2841,6 +2844,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     let hasPendingOutScrollRestore = true;
+    let selectedPurchasePhotoFile = null;
+    let selectedPurchasePhotoPreviewUrl = '';
 
     function persistOutPageScrollPosition() {
       if (activeSiteTab !== 'outs') {
@@ -2887,6 +2892,47 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
       clearPurchaseFieldError(purchaseQty, purchaseQtyError);
       clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
+      selectedPurchasePhotoFile = null;
+      if (selectedPurchasePhotoPreviewUrl) {
+        URL.revokeObjectURL(selectedPurchasePhotoPreviewUrl);
+        selectedPurchasePhotoPreviewUrl = '';
+      }
+      if (purchasePhotoPreview) {
+        purchasePhotoPreview.src = '';
+      }
+      purchasePhotoPreviewWrap?.classList.add('hidden');
+    }
+
+    function getCloudinaryUploadConfig() {
+      const cloudinaryConfig = window.APP_CONFIG?.cloudinary || window.CLOUDINARY_CONFIG || {};
+      const cloudName = String(cloudinaryConfig.cloudName || '').trim();
+      const uploadPreset = String(cloudinaryConfig.uploadPreset || '').trim();
+      if (!cloudName || !uploadPreset) {
+        throw new Error('cloudinary_config_missing');
+      }
+      return { cloudName, uploadPreset, folder: String(cloudinaryConfig.folder || '').trim() };
+    }
+
+    async function uploadPurchaseImageToCloudinary(file) {
+      if (!file) {
+        return '';
+      }
+      const { cloudName, uploadPreset, folder } = getCloudinaryUploadConfig();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      if (folder) {
+        formData.append('folder', folder);
+      }
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('cloudinary_upload_failed');
+      }
+      const payload = await response.json();
+      return String(payload?.secure_url || '').trim();
     }
 
     function showPurchaseFieldError(field, errorElement, message) {
@@ -3040,6 +3086,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const currentUserEmail = String(firebaseAuth.currentUser?.email || '').trim();
       setPurchaseSubmitLoadingState(true);
       try {
+        const imageUrl = selectedPurchasePhotoFile ? await uploadPurchaseImageToCloudinary(selectedPurchasePhotoFile) : '';
         await addDoc(
           collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
           {
@@ -3048,6 +3095,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             unit,
             store,
             magasin: store,
+            imageUrl,
             createdAt: serverTimestamp(),
             createdBy: currentUserName || 'Utilisateur',
             createdByEmail: currentUserEmail || '',
@@ -3717,25 +3765,34 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <article class="list-card purchase-card">
             ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
             <div class="list-card__button">
-              <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
-              <div class="list-card__meta purchase-card__meta" role="list" aria-label="Informations achat matériel">
-                <div class="purchase-info-row" role="listitem">
-                  <div class="purchase-label"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>Quantité</span></div>
-                  <div class="purchase-value">${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</div>
+              <div class="purchase-card__content">
+                <div class="purchase-card__media" aria-hidden="true">
+                  ${String(purchase?.imageUrl || '').trim()
+                    ? `<img src="${escapeHtml(purchase.imageUrl)}" alt="Photo achat matériel" />`
+                    : '🖼️'}
                 </div>
-                ${purchaseStore ? `
-                <div class="purchase-info-row" role="listitem">
-                  <div class="purchase-label"><span aria-hidden="true" class="icon">🏪</span><span>Magasin</span></div>
-                  <div class="purchase-value">${escapeHtml(purchaseStore)}</div>
-                </div>
-                ` : ''}
-                <div class="purchase-info-row" role="listitem">
-                  <div class="purchase-label"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Date</span></div>
-                  <div class="purchase-value">${escapeHtml(formatPurchaseDateLabel(purchase))}</div>
-                </div>
-                <div class="purchase-info-row" role="listitem">
-                  <div class="purchase-label"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>Utilisateur</span></div>
-                  <div class="purchase-value">${escapeHtml(purchase?.createdBy || 'Utilisateur')}</div>
+                <div>
+                  <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
+                  <div class="list-card__meta purchase-card__meta" role="list" aria-label="Informations achat matériel">
+                    <div class="purchase-info-row" role="listitem">
+                      <div class="purchase-label"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>Quantité</span></div>
+                      <div class="purchase-value">${Number(purchase?.qty || 0)} ${escapeHtml(purchase?.unit || 'Pcs')}</div>
+                    </div>
+                    ${purchaseStore ? `
+                    <div class="purchase-info-row" role="listitem">
+                      <div class="purchase-label"><span aria-hidden="true" class="icon">🏪</span><span>Magasin</span></div>
+                      <div class="purchase-value">${escapeHtml(purchaseStore)}</div>
+                    </div>
+                    ` : ''}
+                    <div class="purchase-info-row" role="listitem">
+                      <div class="purchase-label"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Date</span></div>
+                      <div class="purchase-value">${escapeHtml(formatPurchaseDateLabel(purchase))}</div>
+                    </div>
+                    <div class="purchase-info-row" role="listitem">
+                      <div class="purchase-label"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>Utilisateur</span></div>
+                      <div class="purchase-value">${escapeHtml(purchase?.createdBy || 'Utilisateur')}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4122,6 +4179,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (['Pcs', 'm'].includes(unit)) {
         clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
       }
+    });
+    purchasePhotoInput?.addEventListener('change', () => {
+      const file = purchasePhotoInput.files?.[0] || null;
+      selectedPurchasePhotoFile = file;
+      if (selectedPurchasePhotoPreviewUrl) {
+        URL.revokeObjectURL(selectedPurchasePhotoPreviewUrl);
+        selectedPurchasePhotoPreviewUrl = '';
+      }
+      if (!file) {
+        purchasePhotoPreviewWrap?.classList.add('hidden');
+        if (purchasePhotoPreview) {
+          purchasePhotoPreview.src = '';
+        }
+        return;
+      }
+      selectedPurchasePhotoPreviewUrl = URL.createObjectURL(file);
+      if (purchasePhotoPreview) {
+        purchasePhotoPreview.src = selectedPurchasePhotoPreviewUrl;
+      }
+      purchasePhotoPreviewWrap?.classList.remove('hidden');
     });
 
     editPurchaseNameInput?.addEventListener('input', () => {
