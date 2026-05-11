@@ -3564,6 +3564,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     );
     const siteDetailFabStack = document.querySelector('body[data-page="site-detail"] .site-detail-fab-stack');
     const siteTabButtons = Array.from(document.querySelectorAll('.bottom-nav-item'));
+    const bottomNavigation = document.querySelector('.bottom-navigation');
     const outsTabContent = document.getElementById('outsTabContent');
     const purchasesTabContent = document.getElementById('purchasesTabContent');
     const purchasesTabButton = document.querySelector('[data-tab="purchases"]');
@@ -3611,6 +3612,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function updateTabsByRole() {
       isAdminTabAllowed = Boolean(permissions?.isAdmin);
+      siteTabButtons.forEach((tabButton) => {
+        tabButton.classList.toggle('hidden', !isAdminTabAllowed);
+      });
+      if (bottomNavigation) {
+        bottomNavigation.classList.toggle('hidden', !isAdminTabAllowed);
+      }
       if (purchasesTabButton) {
         purchasesTabButton.classList.toggle('hidden', !isAdminTabAllowed);
       }
