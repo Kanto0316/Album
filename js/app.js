@@ -5513,7 +5513,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
               <td>
                 <div class="detail-status-field detail-status-field--${normalizeDetailStatut(detail.statut) === 'K.O' ? 'ko' : 'ok'}">
-                  <span class="detail-status-dot" aria-hidden="true"></span>
                   <select class="cell-input cell-input--compact-dynamic detail-status-select" data-col-key="statut" data-field="statut" aria-label="Statut">
                     <option value="OK" ${normalizeDetailStatut(detail.statut) === 'OK' ? 'selected' : ''}>OK</option>
                     <option value="K.O" ${normalizeDetailStatut(detail.statut) === 'K.O' ? 'selected' : ''}>K.O</option>

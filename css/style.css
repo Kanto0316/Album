@@ -3148,23 +3148,20 @@ body[data-page="item-detail"] #designationInput.is-shaking {
 body[data-page="item-detail"] .detail-status-field {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  --detail-status-color: #16a34a;
 }
 
-body[data-page="item-detail"] .detail-status-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: #16a34a;
-  display: inline-block;
-}
-
-body[data-page="item-detail"] .detail-status-field--ko .detail-status-dot {
-  background: #dc2626;
+body[data-page="item-detail"] .detail-status-field--ko {
+  --detail-status-color: #dc2626;
 }
 
 body[data-page="item-detail"] .detail-status-select {
   min-width: 76px;
+  padding-left: 1.45rem;
+  background-image: radial-gradient(circle at center, var(--detail-status-color) 0 60%, transparent 61%);
+  background-repeat: no-repeat;
+  background-size: 0.55rem 0.55rem;
+  background-position: 0.65rem 50%;
 }
 
 .cell-input-measurer {
