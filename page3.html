@@ -74,6 +74,7 @@
                   <th>Date de retour</th>
                   <th>Ecart</th>
                   <th>Remarque</th>
+                  <th>Statut</th>
                   <th>Date de création</th>
                   <th>Date de modification</th>
                   <th>Action</th>
@@ -130,6 +131,13 @@
                   </select>
                 </label>
               </div>
+              <label class="input-group detail-form-field">
+                <span>Statut</span>
+                <select id="statutInput" name="statut">
+                  <option value="OK" selected>OK</option>
+                  <option value="K.O">K.O</option>
+                </select>
+              </label>
               <div class="form-footer">
                 <p id="detailFormError" class="form-error" aria-live="polite"></p>
                 <div class="detail-form-actions">
