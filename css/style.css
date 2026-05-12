@@ -3173,6 +3173,13 @@ body[data-page="item-detail"] .detail-status-select {
   background-position: 0.65rem 50%;
 }
 
+body[data-page="item-detail"] .cell-input.cell-input--soft-disabled,
+body[data-page="item-detail"] .cell-textarea.cell-input--soft-disabled {
+  opacity: 0.72;
+  background: #f5f7fa;
+  cursor: not-allowed;
+}
+
 .cell-input-measurer {
   position: absolute;
   visibility: hidden;

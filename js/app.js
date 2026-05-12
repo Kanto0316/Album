@@ -5474,6 +5474,23 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    function setRowKoInteractionState(row, isKoStatus) {
+      if (!row) {
+        return;
+      }
+
+      const editableFields = row.querySelectorAll('[data-field]');
+      editableFields.forEach((field) => {
+        const fieldName = field.dataset.field;
+        const shouldDisable = !canEditDetails || (isKoStatus && fieldName !== 'statut');
+        field.disabled = shouldDisable;
+        field.readOnly = shouldDisable && field.tagName === 'INPUT';
+        field.tabIndex = shouldDisable ? -1 : 0;
+        field.classList.toggle('cell-input--soft-disabled', shouldDisable);
+        field.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+      });
+    }
+
     function renderTable() {
       if (!currentItem) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
@@ -5538,20 +5555,24 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         .join('');
       animateNextTableRender = false;
 
-      detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
-        if (!canEditDetails) {
-          field.disabled = true;
-        }
-        if (!canEditDetails) {
-          return;
-        }
+      detailTableBody.querySelectorAll('tr[data-detail-id]').forEach((row) => {
+        const statusSelect = row.querySelector('[data-field="statut"]');
+        const isKoStatus = normalizeDetailStatut(statusSelect?.value) === 'K.O';
+        setRowKoInteractionState(row, isKoStatus);
+      });
 
+      detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
         field.addEventListener('change', async (event) => {
           const row = event.target.closest('tr');
           const fieldName = event.target.dataset.field;
           const currentDetail = currentDetails.find((detail) => detail.id === row.dataset.detailId);
 
           if (!currentDetail) {
+            return;
+          }
+
+          const isKoRow = normalizeDetailStatut(currentDetail.statut) === 'K.O';
+          if (fieldName !== 'statut' && isKoRow) {
             return;
           }
 
@@ -5572,6 +5593,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             }
             if (row) {
               row.classList.toggle('detail-row--ko', nextValue === 'K.O');
+              setRowKoInteractionState(row, nextValue === 'K.O');
             }
           }
           applyCompactColumnWidths();
@@ -5579,6 +5601,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
         if (field.classList.contains('cell-input--compact-dynamic')) {
           field.addEventListener('input', () => {
+            if (field.disabled) {
+              return;
+            }
             if (field.value.length > 120) {
               field.value = field.value.slice(0, 120);
             }
