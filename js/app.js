@@ -3621,7 +3621,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
         htmlParts.push(`
-            <article class="list-card${query && isOutSearchReadModeActive && !viewedOutSearchResultIds.has(String(item.id)) ? " list-card--search-unread" : ""}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
+            <article class="list-card${query && !readSearchResults.has(String(item.id)) ? " list-card--search-unread" : ""}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
@@ -3650,8 +3650,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
         button.addEventListener('click', () => {
-          if (query && isOutSearchReadModeActive) {
-            viewedOutSearchResultIds.add(String(button.dataset.itemOpen || ''));
+          if (query) {
+            readSearchResults.add(String(button.dataset.itemOpen || ''));
             const card = button.closest('.list-card');
             card?.classList.remove('list-card--search-unread');
           }
@@ -3698,23 +3698,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let itemDialogMode = ITEM_DIALOG_MODE_CREATE;
     let editingItemId = null;
     let activeOutSearchQuery = (itemSearchInput.value || "").trim().toUpperCase();
-    let isOutSearchReadModeActive = Boolean(activeOutSearchQuery);
-    let viewedOutSearchResultIds = new Set();
-
-    function resetSeenOutResults() {
-      viewedOutSearchResultIds = new Set();
-    }
-
-    function setOutSearchReadMode(isActive) {
-      isOutSearchReadModeActive = Boolean(isActive);
-      if (!isOutSearchReadModeActive) {
-        resetSeenOutResults();
-      }
-    }
-
-    if (isOutSearchReadModeActive) {
-      resetSeenOutResults();
-    }
+    const readSearchResults = new Set();
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -3948,7 +3932,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (safeTabName === 'outs') {
         const normalizedQuery = (itemSearchInput.value || '').trim().toUpperCase();
         activeOutSearchQuery = normalizedQuery;
-        setOutSearchReadMode(Boolean(normalizedQuery));
+        if (!normalizedQuery) {
+          readSearchResults.clear();
+        }
       }
       saveActiveSiteTab(safeTabName);
       if (safeTabName === 'outs') {
@@ -4518,14 +4504,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           window.localStorage.removeItem(searchStorageKey);
         }
         const normalizedQuery = (searchValue || '').trim().toUpperCase();
-        const hadActiveSearch = Boolean(activeOutSearchQuery);
         activeOutSearchQuery = normalizedQuery;
-        const hasActiveSearch = Boolean(normalizedQuery);
-        if (!hadActiveSearch && hasActiveSearch) {
-          setOutSearchReadMode(true);
-          resetSeenOutResults();
-        } else if (!hasActiveSearch) {
-          setOutSearchReadMode(false);
+        if (!normalizedQuery) {
+          readSearchResults.clear();
         }
       }
       renderActiveTabContent({
