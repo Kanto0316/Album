@@ -4195,7 +4195,7 @@ body[data-page="site-detail"] .list-card {
   border-radius: 18px;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.45s ease;
+  transition: all 0.25s ease;
 }
 
 body[data-page="site-detail"] .list-card.list-card--search-flash {
@@ -4203,9 +4203,20 @@ body[data-page="site-detail"] .list-card.list-card--search-flash {
 }
 
 body[data-page="site-detail"] .list-card.list-card--search-unread {
-  background-color: #ffffff;
-  border-color: #c6d8f4;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  background: #f8fbff;
+  border-color: rgba(52, 152, 219, 0.18);
+}
+
+body[data-page="site-detail"] .list-card.list-card--search-unread::after {
+  content: "";
+  position: absolute;
+  top: 11px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(52, 152, 219, 0.9);
+  box-shadow: 0 0 0 2px rgba(248, 251, 255, 0.95);
 }
 
 body[data-page="site-detail"] .list-card::before {
