@@ -3145,6 +3145,28 @@ body[data-page="item-detail"] #designationInput.is-shaking {
   min-width: 100px;
 }
 
+body[data-page="item-detail"] .detail-status-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+body[data-page="item-detail"] .detail-status-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #16a34a;
+  display: inline-block;
+}
+
+body[data-page="item-detail"] .detail-status-field--ko .detail-status-dot {
+  background: #dc2626;
+}
+
+body[data-page="item-detail"] .detail-status-select {
+  min-width: 76px;
+}
+
 .cell-input-measurer {
   position: absolute;
   visibility: hidden;

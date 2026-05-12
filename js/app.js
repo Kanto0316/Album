@@ -260,6 +260,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return `${day}/${month}/${year}`;
   }
 
+  function normalizeDetailStatut(value) {
+    return String(value || '').trim().toUpperCase() === 'K.O' ? 'K.O' : 'OK';
+  }
+
   function setupZoomableDetailTable() {
     const tableContainer = requireElement('detailTableContainer');
     const tableWrapper = requireElement('detailTableWrapper');
@@ -526,6 +530,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td>${escapeHtml(formatExcelCellValue(formatReturnDate(detail.dateRetour)))}</td>
               <td>${escapeHtml(formatExcelCellValue(computeEcart(detail)))}</td>
               <td>${escapeHtml(formatExcelCellValue(detail.observation))}</td>
+              <td>${escapeHtml(formatExcelCellValue(normalizeDetailStatut(detail.statut)))}</td>
             </tr>
           `,
       )
@@ -556,6 +561,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Date de retour</th>
           <th>Ecart</th>
           <th>Observation</th>
+          <th>Statut</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -580,6 +586,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <td>${escapeHtml(formatExcelCellValue(formatReturnDate(row.dateRetour)))}</td>
             <td>${escapeHtml(formatExcelCellValue(computeEcart(row)))}</td>
             <td>${escapeHtml(formatExcelCellValue(row.observation))}</td>
+            <td>${escapeHtml(formatExcelCellValue(normalizeDetailStatut(row.statut)))}</td>
           </tr>
         `,
       )
@@ -610,6 +617,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Date de retour</th>
           <th>Ecart</th>
           <th>Remarque</th>
+          <th>Statut</th>
         </tr>
       </thead>
       <tbody>${bodyRows}</tbody>
@@ -3163,6 +3171,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           qteRetour: detail.qteRetour,
           dateRetour: detail.dateRetour || '',
           observation: detail.observation,
+          statut: normalizeDetailStatut(detail.statut),
         })),
       );
     }
@@ -4818,6 +4827,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       detailForm.reset();
       requireElement('uniteInput').value = 'm';
+      requireElement('statutInput').value = 'OK';
       setDetailFormSavingState(false);
       clearDetailFormError();
       clearDetailRequiredFieldErrors();
@@ -5474,7 +5484,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       updateCount(filteredDetails.length, currentDetails.length);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="13"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="14"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -5501,6 +5511,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
+              <td>
+                <div class="detail-status-field detail-status-field--${normalizeDetailStatut(detail.statut) === 'K.O' ? 'ko' : 'ok'}">
+                  <span class="detail-status-dot" aria-hidden="true"></span>
+                  <select class="cell-input cell-input--compact-dynamic detail-status-select" data-col-key="statut" data-field="statut" aria-label="Statut">
+                    <option value="OK" ${normalizeDetailStatut(detail.statut) === 'OK' ? 'selected' : ''}>OK</option>
+                    <option value="K.O" ${normalizeDetailStatut(detail.statut) === 'K.O' ? 'selected' : ''}>K.O</option>
+                  </select>
+                </div>
+              </td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
               <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
               <td>
@@ -5532,7 +5551,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
 
-          const nextValue = event.target.value;
+          const nextValue = fieldName === 'statut' ? normalizeDetailStatut(event.target.value) : event.target.value;
           if (String(currentDetail[fieldName] ?? '') === String(nextValue ?? '')) {
             return;
           }
@@ -5540,6 +5559,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
             [fieldName]: nextValue,
           });
+          if (fieldName === 'statut') {
+            const statusField = event.target.closest('.detail-status-field');
+            if (statusField) {
+              statusField.classList.toggle('detail-status-field--ok', nextValue === 'OK');
+              statusField.classList.toggle('detail-status-field--ko', nextValue === 'K.O');
+            }
+          }
           applyCompactColumnWidths();
         });
 
@@ -5589,6 +5615,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         dateRetour: 140,
         ecart: 48,
         observation: 48,
+        statut: 84,
       };
 
       columns.forEach((inputs, key) => {
@@ -5642,6 +5669,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           designation: designationInput.value,
           qteSortie: requireElement('qteSortieInput').value,
           unite: requireElement('uniteInput').value,
+          statut: requireElement('statutInput')?.value || 'OK',
         });
         if (!result?.ok) {
           showDetailFormError(
@@ -5653,6 +5681,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
         detailForm.reset();
         requireElement('uniteInput').value = 'm';
+        requireElement('statutInput').value = 'OK';
         updateDetailInputCounters();
         hideCodeSuggestions();
         clearDetailFormError();

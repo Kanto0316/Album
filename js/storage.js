@@ -595,6 +595,10 @@ function sanitizeReturnDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : '';
 }
 
+function sanitizeDetailStatut(value) {
+  return String(value || '').trim().toUpperCase() === 'K.O' ? 'K.O' : 'OK';
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -1399,6 +1403,7 @@ async function createDetail(siteId, itemId, payload) {
     qtePosee: 0,
     qteRebus: 0,
     observation: '',
+    statut: sanitizeDetailStatut(payload.statut),
     ownerId: state.userId,
     createdBy: state.userId,
     dateCreation: timestamp,
@@ -1464,6 +1469,10 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   if ('dateRetour' in changes) {
     nextValues.dateRetour = sanitizeReturnDate(changes.dateRetour);
     syncedChanges.dateRetour = nextValues.dateRetour;
+  }
+  if ('statut' in changes) {
+    nextValues.statut = sanitizeDetailStatut(changes.statut);
+    syncedChanges.statut = nextValues.statut;
   }
   nextValues.dateModification = nowIso();
   syncedChanges.dateModification = nextValues.dateModification;
@@ -1623,6 +1632,7 @@ function normalizeImportPayload(payload) {
           qtePosee: sanitizeNumber(detail.qtePosee),
           qteRebus: sanitizeNumber(detail.qteRebus),
           observation: sanitizeText(detail.observation, false),
+          statut: sanitizeDetailStatut(detail.statut),
           ownerId: state.userId,
           createdBy: state.userId,
           dateCreation: detail.dateCreation || nowIso(),
