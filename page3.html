@@ -42,7 +42,7 @@
 
             <div id="detailStore" class="store-info magasin-block page3-info-row">Magasin : Non défini</div>
           </div>
-          <div class="search-panel search-panel--inline">
+          <div class="search-panel search-panel--inline page3-search-filter-bar">
             <label class="input-group">
               <span class="search-input__icon-wrap" aria-hidden="true">
                 <img src="Icon/Recherche.png" alt="" class="search-input__icon" />
@@ -50,6 +50,18 @@
               <input id="detailSearchInput" class="search-input" type="text" placeholder="Entrer votre recherche..." autocomplete="off" />
               <button id="clearSearchBtn" class="clear-search-btn" type="button" aria-label="Effacer la recherche">×</button>
             </label>
+            <div class="page3-filter-menu-wrap">
+              <button type="button" id="detailFilterButton" class="page3-filter-button" aria-label="Filtrer le tableau" aria-haspopup="true" aria-expanded="false" aria-controls="detailFilterMenu">
+                <img src="Icon/filtre.png" alt="" aria-hidden="true" class="page3-filter-button__icon" />
+              </button>
+              <div id="detailFilterMenu" class="page3-filter-menu" role="menu" hidden>
+                <button type="button" class="page3-filter-option is-active" data-detail-filter="all" role="menuitemradio" aria-checked="true">Tous</button>
+                <button type="button" class="page3-filter-option" data-detail-filter="todo" role="menuitemradio" aria-checked="false">À faire</button>
+                <button type="button" class="page3-filter-option" data-detail-filter="fix" role="menuitemradio" aria-checked="false">À corriger</button>
+                <button type="button" class="page3-filter-option" data-detail-filter="done" role="menuitemradio" aria-checked="false">Effectué</button>
+                <button type="button" class="page3-filter-option" data-detail-filter="ko" role="menuitemradio" aria-checked="false">K.O</button>
+              </div>
+            </div>
           </div>
           <section class="auth-required-card auth-required-card--embedded section" data-auth-required-card hidden>
             <span class="auth-required-card__icon" aria-hidden="true">i</span>

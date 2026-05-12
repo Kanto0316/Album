@@ -4770,6 +4770,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
     const clearSearchBtn = document.querySelector('#clearSearchBtn');
+    const detailFilterButton = document.querySelector('#detailFilterButton');
+    const detailFilterMenu = document.querySelector('#detailFilterMenu');
+    const detailFilterOptions = Array.from(document.querySelectorAll('[data-detail-filter]'));
     const exportButton = requireElement('exportDetailsButton');
     const detailExportDialog = requireElement('detailExportDialog');
     const detailExportForm = requireElement('detailExportForm');
@@ -4804,6 +4807,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let designationInputErrorTimeoutId = null;
     let codeInputErrorStateTimeoutId = null;
     let designationInputErrorStateTimeoutId = null;
+    let activeDetailFilter = 'all';
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -5275,10 +5279,70 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function getFilteredDetails(details) {
       const query = getSearchQuery();
-      if (!query) {
-        return details;
+      return details.filter((detail) => {
+        const designationMatch = !query || String(detail.designation || '').toLowerCase().includes(query);
+        if (!designationMatch) {
+          return false;
+        }
+
+        const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
+        if (activeDetailFilter === 'ko') {
+          return isKoStatus;
+        }
+        if (isKoStatus) {
+          return activeDetailFilter === 'all';
+        }
+
+        const ecart = computeEcart(detail);
+        const qtePosee = Number(detail?.qtePosee) || 0;
+        const qteRetour = Number(detail?.qteRetour) || 0;
+        const qteRebus = Number(detail?.qteRebus) || 0;
+        const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+        const isDone = qtePosee > 0 && ecart === 0;
+        const isAttention = hasActivity && ecart !== 0;
+
+        if (activeDetailFilter === 'done') {
+          return isDone;
+        }
+        if (activeDetailFilter === 'fix') {
+          return isAttention;
+        }
+        if (activeDetailFilter === 'todo') {
+          return !isDone && !isAttention;
+        }
+        return true;
+      });
+    }
+
+    function syncDetailFilterUi() {
+      detailFilterButton?.classList.toggle('is-filtered', activeDetailFilter !== 'all');
+      detailFilterOptions.forEach((option) => {
+        const isActive = option.dataset.detailFilter === activeDetailFilter;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      });
+    }
+
+    function setDetailFilter(filterKey) {
+      activeDetailFilter = filterKey;
+      syncDetailFilterUi();
+      renderTable();
+    }
+
+    function closeDetailFilterMenu() {
+      if (!detailFilterMenu || !detailFilterButton) {
+        return;
       }
-      return details.filter((detail) => String(detail.designation || '').toLowerCase().includes(query));
+      detailFilterMenu.hidden = true;
+      detailFilterButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function openDetailFilterMenu() {
+      if (!detailFilterMenu || !detailFilterButton) {
+        return;
+      }
+      detailFilterMenu.hidden = false;
+      detailFilterButton.setAttribute('aria-expanded', 'true');
     }
 
     function updateCount(filteredCount, totalCount) {
@@ -5908,6 +5972,36 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
       detailSearchInput.value = '';
       toggleClearButton();
+    }
+
+    if (detailFilterButton && detailFilterMenu && detailFilterOptions.length) {
+      syncDetailFilterUi();
+      detailFilterButton.addEventListener('click', () => {
+        if (detailFilterMenu.hidden) {
+          openDetailFilterMenu();
+          return;
+        }
+        closeDetailFilterMenu();
+      });
+
+      detailFilterOptions.forEach((option) => {
+        option.addEventListener('click', () => {
+          setDetailFilter(option.dataset.detailFilter || 'all');
+          closeDetailFilterMenu();
+        });
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!detailFilterMenu.hidden && !event.target.closest('.page3-filter-menu-wrap')) {
+          closeDetailFilterMenu();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !detailFilterMenu.hidden) {
+          closeDetailFilterMenu();
+        }
+      });
     }
 
     if (exportButton) {
