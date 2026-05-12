@@ -550,7 +550,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     <table>
       <thead>
         <tr>
-          <th>Champ</th>
+          <th>#</th>
           <th>Code</th>
           <th>Désignation</th>
           <th>Qté Sortie</th>
@@ -560,7 +560,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <th>Qté Retour</th>
           <th>Date de retour</th>
           <th>Ecart</th>
-          <th>Observation</th>
+          <th>Remarque</th>
           <th>Statut</th>
         </tr>
       </thead>
