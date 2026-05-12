@@ -2839,6 +2839,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
+    const searchReadIdsStorageKey = 'page2_search_read_ids';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
@@ -3652,6 +3653,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         button.addEventListener('click', () => {
           if (query) {
             readSearchResults.add(String(button.dataset.itemOpen || ''));
+            persistSearchReadIdsToStorage(readSearchResults);
             const card = button.closest('.list-card');
             card?.classList.remove('list-card--search-unread');
           }
@@ -3698,7 +3700,36 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let itemDialogMode = ITEM_DIALOG_MODE_CREATE;
     let editingItemId = null;
     let activeOutSearchQuery = (itemSearchInput.value || "").trim().toUpperCase();
-    const readSearchResults = new Set();
+    function readSearchReadIdsFromStorage() {
+      try {
+        const rawValue = window.localStorage.getItem(searchReadIdsStorageKey);
+        const parsed = JSON.parse(rawValue || '[]');
+        if (!Array.isArray(parsed)) {
+          return new Set();
+        }
+        return new Set(parsed.map((value) => String(value || '')).filter(Boolean));
+      } catch (_error) {
+        return new Set();
+      }
+    }
+
+    function persistSearchReadIdsToStorage(readIdsSet) {
+      try {
+        window.localStorage.setItem(searchReadIdsStorageKey, JSON.stringify(Array.from(readIdsSet)));
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
+    function clearSearchReadIdsStorage() {
+      try {
+        window.localStorage.removeItem(searchReadIdsStorageKey);
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
+    const readSearchResults = readSearchReadIdsFromStorage();
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -3934,6 +3965,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         activeOutSearchQuery = normalizedQuery;
         if (!normalizedQuery) {
           readSearchResults.clear();
+          clearSearchReadIdsStorage();
+        } else {
+          readSearchResults.clear();
+          readSearchReadIdsFromStorage().forEach((id) => readSearchResults.add(id));
         }
       }
       saveActiveSiteTab(safeTabName);
@@ -4504,9 +4539,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           window.localStorage.removeItem(searchStorageKey);
         }
         const normalizedQuery = (searchValue || '').trim().toUpperCase();
+        const hasQueryChanged = normalizedQuery !== activeOutSearchQuery;
         activeOutSearchQuery = normalizedQuery;
         if (!normalizedQuery) {
           readSearchResults.clear();
+          clearSearchReadIdsStorage();
+        } else if (hasQueryChanged) {
+          readSearchResults.clear();
+          clearSearchReadIdsStorage();
         }
       }
       renderActiveTabContent({
