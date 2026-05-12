@@ -5327,7 +5327,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       detailFilterOptions.forEach((option) => {
         const filterKey = option.dataset.detailFilter || 'all';
         const count = details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, filterKey)).length;
-        option.innerHTML = `<span class="page3-filter-option__count">${count}</span><span class="page3-filter-option__label">${option.dataset.filterLabel || option.textContent.trim()}</span>`;
+        const label = option.dataset.filterLabel || option.textContent.trim();
+        option.textContent = `${label} (${count})`;
       });
     }
 
