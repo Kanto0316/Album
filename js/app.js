@@ -4773,6 +4773,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const detailFilterButton = document.querySelector('#detailFilterButton');
     const detailFilterMenu = document.querySelector('#detailFilterMenu');
     const detailFilterOptions = Array.from(document.querySelectorAll('[data-detail-filter]'));
+    detailFilterOptions.forEach((option) => {
+      option.dataset.filterLabel = option.textContent.trim();
+    });
     const exportButton = requireElement('exportDetailsButton');
     const detailExportDialog = requireElement('detailExportDialog');
     const detailExportForm = requireElement('detailExportForm');
@@ -5277,40 +5280,54 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return detailSearchInput ? detailSearchInput.value.trim().toLowerCase() : '';
     }
 
+    function matchesSearchQuery(detail, query) {
+      return !query || String(detail.designation || '').toLowerCase().includes(query);
+    }
+
+    function matchesDetailFilter(detail, filterKey) {
+      const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
+      if (filterKey === 'ko') {
+        return isKoStatus;
+      }
+      if (isKoStatus) {
+        return filterKey === 'all';
+      }
+
+      const ecart = computeEcart(detail);
+      const qtePosee = Number(detail?.qtePosee) || 0;
+      const qteRetour = Number(detail?.qteRetour) || 0;
+      const qteRebus = Number(detail?.qteRebus) || 0;
+      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+      const isDone = qtePosee > 0 && ecart === 0;
+      const isAttention = hasActivity && ecart !== 0;
+
+      if (filterKey === 'done') {
+        return isDone;
+      }
+      if (filterKey === 'fix') {
+        return isAttention;
+      }
+      if (filterKey === 'todo') {
+        return !isDone && !isAttention;
+      }
+      return true;
+    }
+
     function getFilteredDetails(details) {
       const query = getSearchQuery();
-      return details.filter((detail) => {
-        const designationMatch = !query || String(detail.designation || '').toLowerCase().includes(query);
-        if (!designationMatch) {
-          return false;
-        }
+      return details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, activeDetailFilter));
+    }
 
-        const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
-        if (activeDetailFilter === 'ko') {
-          return isKoStatus;
-        }
-        if (isKoStatus) {
-          return activeDetailFilter === 'all';
-        }
+    function updateDetailFilterCounters(details) {
+      if (!detailFilterOptions.length) {
+        return;
+      }
 
-        const ecart = computeEcart(detail);
-        const qtePosee = Number(detail?.qtePosee) || 0;
-        const qteRetour = Number(detail?.qteRetour) || 0;
-        const qteRebus = Number(detail?.qteRebus) || 0;
-        const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
-        const isDone = qtePosee > 0 && ecart === 0;
-        const isAttention = hasActivity && ecart !== 0;
-
-        if (activeDetailFilter === 'done') {
-          return isDone;
-        }
-        if (activeDetailFilter === 'fix') {
-          return isAttention;
-        }
-        if (activeDetailFilter === 'todo') {
-          return !isDone && !isAttention;
-        }
-        return true;
+      const query = getSearchQuery();
+      detailFilterOptions.forEach((option) => {
+        const filterKey = option.dataset.detailFilter || 'all';
+        const count = details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, filterKey)).length;
+        option.innerHTML = `<span class="page3-filter-option__count">${count}</span><span class="page3-filter-option__label">${option.dataset.filterLabel || option.textContent.trim()}</span>`;
       });
     }
 
@@ -5579,6 +5596,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       const filteredDetails = getFilteredDetails(currentDetails);
       updateCount(filteredDetails.length, currentDetails.length);
+      updateDetailFilterCounters(currentDetails);
 
       if (!filteredDetails.length) {
         detailTableBody.innerHTML = `<tr><td colspan="14"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
