@@ -4203,8 +4203,10 @@ body[data-page="site-detail"] .list-card.list-card--search-flash {
 }
 
 body[data-page="site-detail"] .list-card.list-card--search-unread {
-  background: #f8fbff;
-  border-color: rgba(52, 152, 219, 0.18);
+  background: #edf6ff;
+  border: 1px solid rgba(52, 152, 219, 0.22);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.08);
+  transition: all 0.25s ease;
 }
 
 body[data-page="site-detail"] .list-card.list-card--search-unread::after {
