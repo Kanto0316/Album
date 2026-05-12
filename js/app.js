@@ -5491,6 +5491,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    function applyDetailRowSemanticState(row) {
+      if (!row) {
+        return;
+      }
+
+      const isKoStatus = normalizeDetailStatut(row.querySelector('[data-field="statut"]')?.value) === 'K.O';
+      const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
+      const ecart = Number(row.querySelector('[data-col-key="ecart"]')?.value ?? 0);
+
+      row.classList.toggle('detail-row--done', !isKoStatus && qtePosee > 0 && ecart === 0);
+      row.classList.toggle('detail-row--attention', !isKoStatus && qtePosee === 0 && ecart !== 0);
+    }
+
     function renderTable() {
       if (!currentItem) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
@@ -5559,6 +5572,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const statusSelect = row.querySelector('[data-field="statut"]');
         const isKoStatus = normalizeDetailStatut(statusSelect?.value) === 'K.O';
         setRowKoInteractionState(row, isKoStatus);
+        applyDetailRowSemanticState(row);
       });
 
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
@@ -5594,7 +5608,20 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             if (row) {
               row.classList.toggle('detail-row--ko', nextValue === 'K.O');
               setRowKoInteractionState(row, nextValue === 'K.O');
+              applyDetailRowSemanticState(row);
             }
+          }
+          if (fieldName === 'qtePosee' || fieldName === 'qteSortie' || fieldName === 'qteRebus' || fieldName === 'qteRetour') {
+            const ecartField = row.querySelector('[data-col-key="ecart"]');
+            if (ecartField) {
+              const nextEcart = computeEcart({
+                ...currentDetail,
+                [fieldName]: nextValue,
+              });
+              ecartField.value = Number.isFinite(nextEcart) ? String(nextEcart) : '0';
+              ecartField.classList.toggle('cell-input--ecart-alert', typeof nextEcart === 'number' && nextEcart !== 0);
+            }
+            applyDetailRowSemanticState(row);
           }
           applyCompactColumnWidths();
         });
@@ -5606,6 +5633,24 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             }
             if (field.value.length > 120) {
               field.value = field.value.slice(0, 120);
+            }
+            if (field.dataset.field === 'qtePosee' || field.dataset.field === 'qteSortie' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour' || field.dataset.field === 'statut') {
+              const row = field.closest('tr');
+              if (row) {
+                if (field.dataset.field !== 'statut') {
+                  const qteSortie = Number(row.querySelector('[data-field="qteSortie"]')?.value ?? 0);
+                  const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
+                  const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
+                  const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
+                  const ecart = qteSortie - qtePosee - qteRebus - qteRetour;
+                  const ecartField = row.querySelector('[data-col-key="ecart"]');
+                  if (ecartField) {
+                    ecartField.value = String(ecart);
+                    ecartField.classList.toggle('cell-input--ecart-alert', ecart !== 0);
+                  }
+                }
+                applyDetailRowSemanticState(row);
+              }
             }
             applyCompactColumnWidths();
           });
