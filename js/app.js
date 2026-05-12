@@ -5498,10 +5498,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       const isKoStatus = normalizeDetailStatut(row.querySelector('[data-field="statut"]')?.value) === 'K.O';
       const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
+      const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
+      const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
       const ecart = Number(row.querySelector('[data-col-key="ecart"]')?.value ?? 0);
+      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
 
       row.classList.toggle('detail-row--done', !isKoStatus && qtePosee > 0 && ecart === 0);
-      row.classList.toggle('detail-row--attention', !isKoStatus && qtePosee === 0 && ecart !== 0);
+      row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && ecart !== 0);
     }
 
     function renderTable() {
