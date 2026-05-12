@@ -3685,6 +3685,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let activeSiteTab = 'outs';
     const PURCHASE_SEARCH_PLACEHOLDER = 'Rechercher un achat matériel';
     const OUT_SEARCH_PLACEHOLDER = 'Rechercher (OUT ou article)';
+    const activeTabStorageKey = `siteDetailActiveTab:${siteId || 'default'}`;
     let itemFormErrorTimeoutId = null;
     let itemNumberErrorClearTimer = null;
     let itemAvailabilityDebounceTimer = null;
@@ -3751,6 +3752,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       `;
     }
 
+    function getSavedActiveSiteTab() {
+      try {
+        return window.localStorage.getItem(activeTabStorageKey);
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function saveActiveSiteTab(tabName) {
+      try {
+        window.localStorage.setItem(activeTabStorageKey, tabName);
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
     function renderPurchases() {
       const query = itemSearchInput.value.trim().toUpperCase();
       const purchases = currentPurchases.filter((purchase) => {
@@ -3764,7 +3781,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           .some((value) => String(value || '').toUpperCase().includes(query));
       });
 
-      itemCount.innerHTML = `<span class="outs-number">${purchases.length}</span><span class="outs-label">${purchases.length > 1 ? 'Achats' : 'Achat'}</span>`;
+      if (activeSiteTab === 'purchases') {
+        itemCount.innerHTML = `<span class="outs-number">${purchases.length}</span><span class="outs-label">${purchases.length > 1 ? 'Achats' : 'Achat'}</span>`;
+      }
 
       if (!purchasesList) {
         console.error('#purchasesList introuvable');
@@ -3916,6 +3935,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           activeOutSearchQuery = normalizedQuery;
           viewedOutSearchResultIds = new Set();
         }
+      }
+      saveActiveSiteTab(safeTabName);
+      if (safeTabName === 'outs') {
+        itemCount.innerHTML = `<span class="outs-number">0</span><span class="outs-label">OUTS</span>`;
+      } else {
+        itemCount.innerHTML = `<span class="outs-number">0</span><span class="outs-label">Achat</span>`;
       }
       updateFabByActiveTab(safeTabName);
       updateHeaderExportButton(safeTabName);
@@ -4142,8 +4167,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     updateTabsByRole();
+    const savedActiveTab = getSavedActiveSiteTab();
+    setActiveSiteTab(savedActiveTab === 'purchases' ? 'purchases' : 'outs');
     loadPurchasesForCurrentSite();
-    setActiveSiteTab('outs');
     siteTabButtons.forEach((tab) => {
       tab.addEventListener('click', async () => {
         const targetTab = tab.dataset.tab;
