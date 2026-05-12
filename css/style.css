@@ -2621,6 +2621,15 @@ body[data-page="item-detail"] .data-table tbody tr:nth-child(even) {
   background: #f7faff;
 }
 
+body[data-page="item-detail"] .data-table tbody tr td {
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+body[data-page="item-detail"] .data-table tbody tr.detail-row--ko td {
+  background: #fff5f5;
+  border-bottom-color: #ffd4d4;
+}
+
 body[data-page="item-detail"] .data-table td {
   text-align: center;
   vertical-align: middle;

@@ -5494,8 +5494,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             const ecart = computeEcart(detail);
             const ecartClassName = typeof ecart === 'number' && ecart !== 0 ? ' cell-input--ecart-alert' : '';
             const enterAnimationStyle = animateNextTableRender ? ` style="--detail-row-enter-delay:${Math.min(index, 5) * 40}ms"` : '';
+            const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
+            const rowClasses = [
+              animateNextTableRender ? 'detail-row-enter' : '',
+              isKoStatus ? 'detail-row--ko' : '',
+            ].filter(Boolean).join(' ');
             return `
-            <tr data-detail-id="${detail.id}" class="${animateNextTableRender ? 'detail-row-enter' : ''}"${enterAnimationStyle}>
+            <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input cell-input--autosize cell-input--left" data-field="code" value="${escapeHtml(detail.code)}" size="${Math.max(String(detail.code || '').length + 1, 10)}" /></td>
               <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
@@ -5512,10 +5517,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
               <td>
-                <div class="detail-status-field detail-status-field--${normalizeDetailStatut(detail.statut) === 'K.O' ? 'ko' : 'ok'}">
+                <div class="detail-status-field detail-status-field--${isKoStatus ? 'ko' : 'ok'}">
                   <select class="cell-input cell-input--compact-dynamic detail-status-select" data-col-key="statut" data-field="statut" aria-label="Statut">
-                    <option value="OK" ${normalizeDetailStatut(detail.statut) === 'OK' ? 'selected' : ''}>OK</option>
-                    <option value="K.O" ${normalizeDetailStatut(detail.statut) === 'K.O' ? 'selected' : ''}>K.O</option>
+                    <option value="OK" ${!isKoStatus ? 'selected' : ''}>OK</option>
+                    <option value="K.O" ${isKoStatus ? 'selected' : ''}>K.O</option>
                   </select>
                 </div>
               </td>
@@ -5560,9 +5565,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           });
           if (fieldName === 'statut') {
             const statusField = event.target.closest('.detail-status-field');
+            const row = event.target.closest('tr');
             if (statusField) {
               statusField.classList.toggle('detail-status-field--ok', nextValue === 'OK');
               statusField.classList.toggle('detail-status-field--ko', nextValue === 'K.O');
+            }
+            if (row) {
+              row.classList.toggle('detail-row--ko', nextValue === 'K.O');
             }
           }
           applyCompactColumnWidths();
