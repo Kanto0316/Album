@@ -2630,6 +2630,16 @@ body[data-page="item-detail"] .data-table tbody tr.detail-row--ko td {
   border-bottom-color: #ffd4d4;
 }
 
+body[data-page="item-detail"] .data-table tbody tr.detail-row--done td {
+  background: #f0fdf4;
+  border-bottom-color: #bbf7d0;
+}
+
+body[data-page="item-detail"] .data-table tbody tr.detail-row--attention td {
+  background: #fffbeb;
+  border-bottom-color: #fde68a;
+}
+
 body[data-page="item-detail"] .data-table td {
   text-align: center;
   vertical-align: middle;
