@@ -2457,6 +2457,19 @@ body[data-page="item-detail"] .page3-filter-option {
   color: #334155;
   padding: 8px 10px;
   transition: background-color 0.18s ease, color 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body[data-page="item-detail"] .page3-filter-option__count {
+  min-width: 1.5em;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+body[data-page="item-detail"] .page3-filter-option__label {
+  color: inherit;
 }
 
 body[data-page="item-detail"] .page3-filter-option:hover,
