@@ -3652,7 +3652,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         button.addEventListener('click', () => {
           if (query) {
             viewedOutSearchResultIds.add(String(button.dataset.itemOpen || ''));
-            persistSeenOutResultsForQuery(activeOutSearchQuery);
             const card = button.closest('.list-card');
             card?.classList.remove('list-card--search-unread');
           }
@@ -3701,44 +3700,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let activeOutSearchQuery = (itemSearchInput.value || "").trim().toUpperCase();
     let viewedOutSearchResultIds = new Set();
 
-    function buildOutSearchSeenStorageKey(queryValue) {
-      return `search_seen_${queryValue}`;
+    function resetSeenOutResults() {
+      viewedOutSearchResultIds = new Set();
     }
 
-    function loadSeenOutResultsForQuery(queryValue) {
-      if (!queryValue) {
-        return new Set();
-      }
-      try {
-        const rawValue = window.localStorage.getItem(buildOutSearchSeenStorageKey(queryValue));
-        if (!rawValue) {
-          return new Set();
-        }
-        const parsedValue = JSON.parse(rawValue);
-        if (!Array.isArray(parsedValue)) {
-          return new Set();
-        }
-        return new Set(parsedValue.map((value) => String(value || '')));
-      } catch (_error) {
-        return new Set();
-      }
-    }
-
-    function persistSeenOutResultsForQuery(queryValue) {
-      if (!queryValue) {
-        return;
-      }
-      try {
-        window.localStorage.setItem(
-          buildOutSearchSeenStorageKey(queryValue),
-          JSON.stringify(Array.from(viewedOutSearchResultIds)),
-        );
-      } catch (_error) {
-        // Ignore localStorage restrictions.
-      }
-    }
-
-    viewedOutSearchResultIds = loadSeenOutResultsForQuery(activeOutSearchQuery);
+    resetSeenOutResults();
 
     function isFirebaseUserAuthenticated(user) {
       return Boolean(user?.uid);
@@ -3973,7 +3939,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const normalizedQuery = (itemSearchInput.value || '').trim().toUpperCase();
         if (normalizedQuery !== activeOutSearchQuery) {
           activeOutSearchQuery = normalizedQuery;
-          viewedOutSearchResultIds = loadSeenOutResultsForQuery(normalizedQuery);
+          resetSeenOutResults();
         }
       }
       saveActiveSiteTab(safeTabName);
@@ -4546,7 +4512,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const normalizedQuery = (searchValue || '').trim().toUpperCase();
         if (normalizedQuery !== activeOutSearchQuery) {
           activeOutSearchQuery = normalizedQuery;
-          viewedOutSearchResultIds = loadSeenOutResultsForQuery(normalizedQuery);
+          resetSeenOutResults();
         }
       }
       renderActiveTabContent({
