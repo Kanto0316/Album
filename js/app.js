@@ -4490,26 +4490,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (siteDetailFabStack) {
       const siteDetailScrollContainer = document.querySelector('body[data-page="site-detail"] .page-content');
-      let siteDetailScrollTimerId = null;
-      const SCROLL_IDLE_DELAY_MS = 180;
-
-      const setFabStackScrollingState = (isScrolling) => {
-        siteDetailFabStack.classList.toggle('is-scroll-hidden', isScrolling);
-      };
-
-      const handleSiteDetailScroll = () => {
-        persistOutPageScrollPosition();
-        setFabStackScrollingState(true);
-        if (siteDetailScrollTimerId) {
-          window.clearTimeout(siteDetailScrollTimerId);
-        }
-        siteDetailScrollTimerId = window.setTimeout(() => {
-          setFabStackScrollingState(false);
-          siteDetailScrollTimerId = null;
-        }, SCROLL_IDLE_DELAY_MS);
-      };
-
-      siteDetailScrollContainer?.addEventListener('scroll', handleSiteDetailScroll, { passive: true });
+      siteDetailFabStack.classList.remove('is-scroll-hidden');
+      siteDetailScrollContainer?.addEventListener('scroll', persistOutPageScrollPosition, { passive: true });
     }
 
     itemSearchInput.addEventListener('input', () => {
