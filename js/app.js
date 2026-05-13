@@ -3747,6 +3747,20 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return detailRows.some((detail) => matchesStatusClassification(detail, filterKey));
     }
 
+    function detailMatchesOutSearch(detail, query) {
+      if (!query) {
+        return true;
+      }
+      const designation = String(detail?.designation || '').toUpperCase();
+      const code = String(detail?.code || '').toUpperCase();
+      return designation.includes(query) || code.includes(query);
+    }
+
+    function itemMatchesCombinedSearchAndStatus(item, query, filterKey) {
+      const detailRows = detailRowsByItem[item.id] || [];
+      return detailRows.some((detail) => detailMatchesOutSearch(detail, query) && matchesStatusClassification(detail, filterKey));
+    }
+
     function getOutDetailCountForActiveFilter(itemId) {
       const detailRows = detailRowsByItem[itemId] || [];
       if (activeStatusFilter === 'all') {
@@ -3756,7 +3770,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function getFilteredOutItems(query) {
-      return currentItems.filter((item) => itemMatchesDateFilter(item, selectedDateFilter) && outMatchesSearch(item, query) && itemMatchesStatusFilter(item, activeStatusFilter));
+      return currentItems.filter((item) => {
+        if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+          return false;
+        }
+        if (activeStatusFilter === 'all') {
+          return outMatchesSearch(item, query);
+        }
+        if (!query) {
+          return itemMatchesStatusFilter(item, activeStatusFilter);
+        }
+        const outMatches = String(item.numero || '').toUpperCase().includes(query);
+        if (outMatches) {
+          return itemMatchesStatusFilter(item, activeStatusFilter);
+        }
+        return itemMatchesCombinedSearchAndStatus(item, query, activeStatusFilter);
+      });
     }
 
     function updateCursorFilterCounters() {
