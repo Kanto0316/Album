@@ -4313,6 +4313,7 @@ body[data-page="site-detail"] .filter-chip.is-active {
   color: #fff;
 }
 
+
 body[data-page="site-detail"] .list-separator {
   margin: 0.55rem 0 0.25rem;
 }
@@ -6016,4 +6017,21 @@ body[data-page="site-detail"] .page2-out-filter-option:focus-visible {
 body[data-page="site-detail"] .page2-out-filter-option.is-active {
   background: rgba(68, 151, 255, 0.16);
   color: var(--brand-strong);
+}
+
+body[data-page="site-detail"] .filters-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+body[data-page="site-detail"] .filters-row .page2-out-filter-menu-wrap {
+  margin-left: 0;
+}
+
+body[data-page="site-detail"] .filters-row .page2-out-filter-button {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
 }
