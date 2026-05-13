@@ -2855,6 +2855,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemStatusFilterOptions = Array.from(document.querySelectorAll('[data-item-status-filter]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     let activeStatusFilter = 'all';
+    const readCursorFilterOuts = new Set();
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     let hasPendingOutScrollRestore = true;
     let selectedPurchasePhotoFile = null;
@@ -3622,8 +3623,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         previousLabel = currentLabel;
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
+        const isCursorFilterActive = activeStatusFilter !== 'all';
+        const isSearchUnread = query && !readSearchResults.has(String(item.id));
+        const isCursorFilterUnread = isCursorFilterActive && !readCursorFilterOuts.has(String(item.id));
+        const unreadClassName = (isCursorFilterUnread || isSearchUnread) ? ' list-card--search-unread' : '';
         htmlParts.push(`
-            <article class="list-card${query && !readSearchResults.has(String(item.id)) ? " list-card--search-unread" : ""}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
+            <article class="list-card${unreadClassName}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
@@ -3652,12 +3657,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
         button.addEventListener('click', () => {
+          const openedItemId = String(button.dataset.itemOpen || '');
           if (query) {
-            readSearchResults.add(String(button.dataset.itemOpen || ''));
+            readSearchResults.add(openedItemId);
             persistSearchReadIdsToStorage(readSearchResults);
-            const card = button.closest('.list-card');
-            card?.classList.remove('list-card--search-unread');
           }
+          if (activeStatusFilter !== 'all') {
+            readCursorFilterOuts.add(openedItemId);
+          }
+          const card = button.closest('.list-card');
+          card?.classList.remove('list-card--search-unread');
           UiService.navigate(`page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}`);
         });
       });
@@ -3760,7 +3769,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function setItemStatusFilter(filterKey) {
-      activeStatusFilter = filterKey || 'all';
+      const nextFilter = filterKey || 'all';
+      if (nextFilter !== activeStatusFilter) {
+        readCursorFilterOuts.clear();
+      }
+      activeStatusFilter = nextFilter;
       syncItemStatusFilterUi();
       renderItems();
     }
