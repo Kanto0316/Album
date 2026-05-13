@@ -6035,3 +6035,50 @@ body[data-page="site-detail"] .filters-row .page2-out-filter-button {
   height: 34px;
   min-width: 34px;
 }
+
+/* Page 2 overflow containment fixes (search + filters row) */
+body[data-page="site-detail"] .page2-search-wrap {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-inline: 24px;
+}
+
+body[data-page="site-detail"] .page2-search-wrap input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+body[data-page="site-detail"] .page2-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  padding-inline: 24px;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+body[data-page="site-detail"] .page2-filters-row::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-page="site-detail"] .page2-filters-row > * {
+  flex: 0 0 auto;
+}
+
+body[data-page="site-detail"] .out-status-filter-btn,
+body[data-page="site-detail"] .page2-out-filter-button {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+}
+
+body[data-page="site-detail"] {
+  overflow-x: hidden;
+}
