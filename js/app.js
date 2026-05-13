@@ -3618,7 +3618,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const shouldFlashSearchMatches = Boolean(options?.flashSearchMatches);
       const query = itemSearchInput.value.trim().toUpperCase();
       const filteredItems = getFilteredOutItems(query);
-      updateItemStatusFilterCounters(query);
+      updateCursorFilterCounters();
 
       itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
 
@@ -3750,7 +3750,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return currentItems.filter((item) => itemMatchesDateFilter(item, selectedDateFilter) && outMatchesSearch(item, query) && itemMatchesStatusFilter(item, activeStatusFilter));
     }
 
-    function updateItemStatusFilterCounters(query) {
+    function updateCursorFilterCounters() {
+      const query = itemSearchInput.value.trim().toUpperCase();
       if (!itemStatusFilterOptions.length) {
         return;
       }
@@ -4914,6 +4915,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       siteId,
       (rowsByItem) => {
         detailRowsByItem = rowsByItem;
+        if (activeSiteTab === 'outs') {
+          updateCursorFilterCounters();
+          renderItems();
+        }
       },
       () => {},
     );
