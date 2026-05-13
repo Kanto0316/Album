@@ -3640,6 +3640,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         previousLabel = currentLabel;
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
+        const detailCountForCard = getOutDetailCountForActiveFilter(item.id);
         const isCursorFilterActive = activeStatusFilter !== 'all' && !query;
         const isSearchUnread = query && !readSearchResults.has(String(item.id));
         const isCursorFilterUnread = isCursorFilterActive && !readCursorFilterOuts.has(String(item.id));
@@ -3650,7 +3651,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <button class="list-card__button" type="button" data-item-open="${item.id}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
-                  <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountsByItem[item.id] || 0}</span><span class="outs-label">Article${(detailCountsByItem[item.id] || 0) > 1 ? 's' : ''}</span></span></span>
+                  <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountForCard}</span><span class="outs-label">Article${detailCountForCard > 1 ? 's' : ''}</span></span></span>
                   <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(createdLabel)}</span></span>
                   <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(createdBy)}</span></span>
                 </div>
@@ -3744,6 +3745,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       const detailRows = detailRowsByItem[item.id] || [];
       return detailRows.some((detail) => matchesStatusClassification(detail, filterKey));
+    }
+
+    function getOutDetailCountForActiveFilter(itemId) {
+      const detailRows = detailRowsByItem[itemId] || [];
+      if (activeStatusFilter === 'all') {
+        return Number(detailCountsByItem[itemId] || 0);
+      }
+      return detailRows.reduce((count, detail) => count + (matchesStatusClassification(detail, activeStatusFilter) ? 1 : 0), 0);
     }
 
     function getFilteredOutItems(query) {
