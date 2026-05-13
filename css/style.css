@@ -4346,6 +4346,15 @@ body[data-page="site-detail"] .page2-filter-menu-wrap .page3-filter-button__icon
   opacity: 0.82;
 }
 
+
+body[data-page="site-detail"] #outStatusFilterBtn {
+  pointer-events: auto;
+  z-index: 20;
+}
+
+body[data-page="site-detail"] #outStatusFilterBtn .page3-filter-button__icon {
+  pointer-events: none;
+}
 body[data-page="site-detail"] .page2-filter-menu-wrap .page3-filter-menu {
   position: absolute;
   top: calc(100% + 8px);
