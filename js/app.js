@@ -2849,13 +2849,29 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const searchStorageKey = `site-detail:item-search:${siteId}`;
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const cursorFilterReadOutsStorageKey = 'page2_cursor_filter_read_outs';
+    const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
     const itemStatusFilterMenu = document.getElementById('itemStatusFilterMenu');
     const itemStatusFilterOptions = Array.from(document.querySelectorAll('[data-item-status-filter]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
-    let activeStatusFilter = 'all';
+    const statusFilterKeyByLabel = {
+      'Tous': 'all',
+      'À faire': 'todo',
+      'À corriger': 'fix',
+      'Complété': 'done',
+      'K.O': 'ko',
+    };
+    const statusFilterLabelByKey = {
+      all: 'Tous',
+      todo: 'À faire',
+      fix: 'À corriger',
+      done: 'Complété',
+      ko: 'K.O',
+    };
+    const storedCursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
+    let activeStatusFilter = statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
     const readCursorFilterOuts = new Set();
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     let hasPendingOutScrollRestore = true;
@@ -3773,6 +3789,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function setItemStatusFilter(filterKey) {
       const nextFilter = filterKey || 'all';
       activeStatusFilter = nextFilter;
+      try {
+        window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
       if (activeStatusFilter === 'all') {
         readCursorFilterOuts.clear();
         clearCursorFilterReadIdsStorage();
