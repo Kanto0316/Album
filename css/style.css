@@ -4285,7 +4285,7 @@ body[data-page="site-detail"] .filter-chip-group {
   gap: 0.5rem;
   align-items: center;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   scrollbar-width: none;
 }
 
@@ -4307,6 +4307,13 @@ body[data-page="site-detail"] .filter-chip {
 body[data-page="site-detail"] .page2-filter-menu-wrap {
   position: relative;
   flex: 0 0 auto;
+  z-index: 40;
+}
+
+body[data-page="site-detail"] .page2-filter-menu-wrap .page3-filter-button {
+  position: relative;
+  z-index: 41;
+  pointer-events: auto;
 }
 
 body[data-page="site-detail"] .page2-filter-menu-wrap .page3-filter-button {
