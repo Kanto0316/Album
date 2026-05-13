@@ -4703,10 +4703,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (outStatusFilterButton && outStatusFilterMenu && outStatusFilterOptions.length) {
       syncOutStatusFilterUi();
-      const outStatusFilterContainer = outStatusFilterButton.closest('.page2-filter-menu-wrap');
-      outStatusFilterContainer?.addEventListener('click', (event) => {
+      document.addEventListener('click', (event) => {
         const filterButton = event.target.closest('#outStatusFilterBtn');
         if (filterButton) {
+          event.preventDefault();
           event.stopPropagation();
           if (outStatusFilterMenu.hidden) {
             openOutStatusFilterMenu();
@@ -4715,15 +4715,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           closeOutStatusFilterMenu();
           return;
         }
+
         const filterOption = event.target.closest('[data-out-status-filter]');
-        if (!filterOption) {
+        if (filterOption && event.target.closest('#outStatusFilterMenu')) {
+          event.preventDefault();
+          setOutStatusFilter(filterOption.dataset.outStatusFilter || 'all');
+          closeOutStatusFilterMenu();
           return;
         }
-        setOutStatusFilter(filterOption.dataset.outStatusFilter || 'all');
-        closeOutStatusFilterMenu();
-      });
-      document.addEventListener('click', (event) => {
-        if (!outStatusFilterMenu.hidden && !event.target.closest('.page2-filter-menu-wrap')) {
+
+        if (!outStatusFilterMenu.hidden && !event.target.closest('#outStatusFilterMenu')) {
           closeOutStatusFilterMenu();
         }
       });
