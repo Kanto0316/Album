@@ -3640,7 +3640,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         previousLabel = currentLabel;
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
-        const detailCountForCard = getOutDetailCountForActiveFilter(item.id);
+        const detailCountForCard = getOutDetailCountForActiveFilter(item.id, query);
         const isCursorFilterActive = activeStatusFilter !== 'all' && !query;
         const isSearchUnread = query && !readSearchResults.has(String(item.id));
         const isCursorFilterUnread = isCursorFilterActive && !readCursorFilterOuts.has(String(item.id));
@@ -3686,7 +3686,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           }
           const card = button.closest('.list-card');
           card?.classList.remove('list-card--search-unread');
-          UiService.navigate(`page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}`);
+          UiService.navigate(`page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}&search=${encodeURIComponent(query)}`);
         });
       });
 
@@ -3756,17 +3756,23 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return designation.includes(query) || code.includes(query);
     }
 
-    function itemMatchesCombinedSearchAndStatus(item, query, filterKey) {
-      const detailRows = detailRowsByItem[item.id] || [];
-      return detailRows.some((detail) => detailMatchesOutSearch(detail, query) && matchesStatusClassification(detail, filterKey));
+    function detailMatchesOutCombinedFilters(detail, query, filterKey) {
+      const matchSearch = detailMatchesOutSearch(detail, query);
+      const matchFilter = matchesStatusClassification(detail, filterKey);
+      return matchSearch && matchFilter;
     }
 
-    function getOutDetailCountForActiveFilter(itemId) {
+    function itemMatchesCombinedSearchAndStatus(item, query, filterKey) {
+      const detailRows = detailRowsByItem[item.id] || [];
+      return detailRows.some((detail) => detailMatchesOutCombinedFilters(detail, query, filterKey));
+    }
+
+    function getOutDetailCountForActiveFilter(itemId, query) {
       const detailRows = detailRowsByItem[itemId] || [];
-      if (activeStatusFilter === 'all') {
+      if (activeStatusFilter === 'all' && !query) {
         return Number(detailCountsByItem[itemId] || 0);
       }
-      return detailRows.reduce((count, detail) => count + (matchesStatusClassification(detail, activeStatusFilter) ? 1 : 0), 0);
+      return detailRows.reduce((count, detail) => count + (detailMatchesOutCombinedFilters(detail, query, activeStatusFilter) ? 1 : 0), 0);
     }
 
     function getFilteredOutItems(query) {
@@ -5046,6 +5052,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       'K.O': 'ko',
     };
     let activeDetailFilter = 'all';
+    const initialPage2SearchQuery = String(searchParams.get('search') || '').trim().toLowerCase();
     try {
       const page2ActiveFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
       activeDetailFilter = detailFilterKeyByPage2Label[page2ActiveFilterLabel] || 'all';
@@ -6230,7 +6237,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         renderTable();
         detailSearchInput.focus();
       });
-      detailSearchInput.value = '';
+      detailSearchInput.value = initialPage2SearchQuery;
       toggleClearButton();
     }
 
