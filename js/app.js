@@ -4707,7 +4707,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const filterButton = event.target.closest('#outStatusFilterBtn');
         if (filterButton) {
           event.preventDefault();
-          event.stopPropagation();
           if (outStatusFilterMenu.hidden) {
             openOutStatusFilterMenu();
             return;
@@ -4717,14 +4716,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
 
         const filterOption = event.target.closest('[data-out-status-filter]');
-        if (filterOption && event.target.closest('#outStatusFilterMenu')) {
+        if (filterOption && event.target.closest('.page2-filter-menu-wrap')) {
           event.preventDefault();
           setOutStatusFilter(filterOption.dataset.outStatusFilter || 'all');
           closeOutStatusFilterMenu();
           return;
         }
 
-        if (!outStatusFilterMenu.hidden && !event.target.closest('#outStatusFilterMenu')) {
+        if (!outStatusFilterMenu.hidden && !event.target.closest('.page2-filter-menu-wrap')) {
           closeOutStatusFilterMenu();
         }
       });
