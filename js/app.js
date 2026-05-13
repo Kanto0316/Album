@@ -3758,7 +3758,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const scopeItems = currentItems.filter((item) => itemMatchesDateFilter(item, selectedDateFilter) && outMatchesSearch(item, query));
       itemStatusFilterOptions.forEach((option) => {
         const filterKey = option.dataset.itemStatusFilter || 'all';
-        const count = scopeItems.filter((item) => itemMatchesStatusFilter(item, filterKey)).length;
+        const count = scopeItems.reduce((total, item) => {
+          const detailRows = detailRowsByItem[item.id] || [];
+          const matchingDetails = detailRows.filter((detail) => matchesStatusClassification(detail, filterKey));
+          return total + matchingDetails.length;
+        }, 0);
         const countNode = option.querySelector('.page2-filter-option__count');
         if (countNode) {
           countNode.textContent = String(count);
