@@ -264,6 +264,33 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return String(value || '').trim().toUpperCase() === 'K.O' ? 'K.O' : 'OK';
   }
 
+  function matchesDetailStatusFilter(detail, filterKey) {
+    const isKoStatus = normalizeDetailStatut(detail?.statut) === 'K.O';
+    if (filterKey === 'ko') {
+      return isKoStatus;
+    }
+    if (isKoStatus) {
+      return filterKey === 'all';
+    }
+    const ecart = computeEcart(detail);
+    const qtePosee = Number(detail?.qtePosee) || 0;
+    const qteRetour = Number(detail?.qteRetour) || 0;
+    const qteRebus = Number(detail?.qteRebus) || 0;
+    const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+    const isDone = qtePosee > 0 && ecart === 0;
+    const isAttention = hasActivity && ecart !== 0;
+    if (filterKey === 'done') {
+      return isDone;
+    }
+    if (filterKey === 'fix') {
+      return isAttention;
+    }
+    if (filterKey === 'todo') {
+      return !isDone && !isAttention;
+    }
+    return true;
+  }
+
   function setupZoomableDetailTable() {
     const tableContainer = requireElement('detailTableContainer');
     const tableWrapper = requireElement('detailTableWrapper');
@@ -2850,7 +2877,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
+    const outStatusFilterButton = document.querySelector('#outStatusFilterButton');
+    const outStatusFilterMenu = document.querySelector('#outStatusFilterMenu');
+    const outStatusFilterOptions = Array.from(document.querySelectorAll('[data-out-status-filter]'));
+    outStatusFilterOptions.forEach((option) => {
+      option.dataset.filterLabel = option.textContent.trim();
+    });
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
+    let selectedOutStatusFilter = 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     let hasPendingOutScrollRestore = true;
     let selectedPurchasePhotoFile = null;
@@ -3595,8 +3629,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function renderItems(options = {}) {
       const shouldFlashSearchMatches = Boolean(options?.flashSearchMatches);
       const query = itemSearchInput.value.trim().toUpperCase();
+      updateOutStatusFilterCounters();
       const filteredItems = currentItems.filter((item) => {
         if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+          return false;
+        }
+        if (!matchesOutStatusFilter(item, selectedOutStatusFilter)) {
           return false;
         }
         if (!query) {
@@ -3678,6 +3716,74 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       restoreOutPageScrollPosition();
+    }
+
+    function matchesOutStatusFilter(item, filterKey) {
+      if (filterKey === 'all') {
+        return true;
+      }
+      const details = detailRowsByItem[item.id] || [];
+      return details.some((detail) => matchesDetailStatusFilter(detail, filterKey));
+    }
+
+    function updateOutStatusFilterCounters() {
+      if (!outStatusFilterOptions.length) {
+        return;
+      }
+      const query = itemSearchInput.value.trim().toUpperCase();
+      outStatusFilterOptions.forEach((option) => {
+        const filterKey = option.dataset.outStatusFilter || 'all';
+        const count = currentItems.filter((item) => {
+          if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+            return false;
+          }
+          if (!matchesOutStatusFilter(item, filterKey)) {
+            return false;
+          }
+          if (!query) {
+            return true;
+          }
+          const outMatches = String(item.numero || '').toUpperCase().includes(query);
+          if (outMatches) {
+            return true;
+          }
+          const itemDesignations = detailDesignationsByItem[item.id] || [];
+          return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
+        }).length;
+        const label = option.dataset.filterLabel || option.textContent.trim();
+        option.textContent = `${label} (${count})`;
+      });
+    }
+
+    function syncOutStatusFilterUi() {
+      outStatusFilterButton?.classList.toggle('is-filtered', selectedOutStatusFilter !== 'all');
+      outStatusFilterOptions.forEach((option) => {
+        const isActive = option.dataset.outStatusFilter === selectedOutStatusFilter;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      });
+    }
+
+    function setOutStatusFilter(filterKey) {
+      selectedOutStatusFilter = filterKey;
+      syncOutStatusFilterUi();
+      renderActiveTabContent();
+    }
+
+    function closeOutStatusFilterMenu() {
+      if (!outStatusFilterMenu || !outStatusFilterButton) {
+        return;
+      }
+      outStatusFilterMenu.hidden = true;
+      outStatusFilterButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function openOutStatusFilterMenu() {
+      if (!outStatusFilterMenu || !outStatusFilterButton) {
+        return;
+      }
+      outStatusFilterMenu.hidden = false;
+      outStatusFilterButton.setAttribute('aria-expanded', 'true');
     }
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
@@ -4595,6 +4701,33 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    if (outStatusFilterButton && outStatusFilterMenu && outStatusFilterOptions.length) {
+      syncOutStatusFilterUi();
+      outStatusFilterButton.addEventListener('click', () => {
+        if (outStatusFilterMenu.hidden) {
+          openOutStatusFilterMenu();
+          return;
+        }
+        closeOutStatusFilterMenu();
+      });
+      outStatusFilterOptions.forEach((option) => {
+        option.addEventListener('click', () => {
+          setOutStatusFilter(option.dataset.outStatusFilter || 'all');
+          closeOutStatusFilterMenu();
+        });
+      });
+      document.addEventListener('click', (event) => {
+        if (!outStatusFilterMenu.hidden && !event.target.closest('.page2-filter-menu-wrap')) {
+          closeOutStatusFilterMenu();
+        }
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !outStatusFilterMenu.hidden) {
+          closeOutStatusFilterMenu();
+        }
+      });
+    }
+
     itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (itemCreateSubmitButton.disabled) {
@@ -5284,7 +5417,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return !query || String(detail.designation || '').toLowerCase().includes(query);
     }
 
-    function matchesDetailFilter(detail, filterKey) {
+    function matchesDetailStatusFilter(detail, filterKey) {
       const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
       if (filterKey === 'ko') {
         return isKoStatus;
@@ -5315,7 +5448,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function getFilteredDetails(details) {
       const query = getSearchQuery();
-      return details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, activeDetailFilter));
+      return details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailStatusFilter(detail, activeDetailFilter));
     }
 
     function updateDetailFilterCounters(details) {
@@ -5326,7 +5459,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const query = getSearchQuery();
       detailFilterOptions.forEach((option) => {
         const filterKey = option.dataset.detailFilter || 'all';
-        const count = details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, filterKey)).length;
+        const count = details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailStatusFilter(detail, filterKey)).length;
         const label = option.dataset.filterLabel || option.textContent.trim();
         option.textContent = `${label} (${count})`;
       });
