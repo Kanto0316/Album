@@ -2850,7 +2850,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
+    const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
+    const itemStatusFilterMenu = document.getElementById('itemStatusFilterMenu');
+    const itemStatusFilterOptions = Array.from(document.querySelectorAll('[data-item-status-filter]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
+    let activeStatusFilter = 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     let hasPendingOutScrollRestore = true;
     let selectedPurchasePhotoFile = null;
@@ -3595,20 +3599,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function renderItems(options = {}) {
       const shouldFlashSearchMatches = Boolean(options?.flashSearchMatches);
       const query = itemSearchInput.value.trim().toUpperCase();
-      const filteredItems = currentItems.filter((item) => {
-        if (!itemMatchesDateFilter(item, selectedDateFilter)) {
-          return false;
-        }
-        if (!query) {
-          return true;
-        }
-        const outMatches = String(item.numero || '').toUpperCase().includes(query);
-        if (outMatches) {
-          return true;
-        }
-        const itemDesignations = detailDesignationsByItem[item.id] || [];
-        return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
-      });
+      const filteredItems = getFilteredOutItems(query);
+      updateItemStatusFilterCounters(query);
 
       itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
 
@@ -3678,6 +3670,99 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       restoreOutPageScrollPosition();
+    }
+
+    function outMatchesSearch(item, query) {
+      if (!query) {
+        return true;
+      }
+      const outMatches = String(item.numero || '').toUpperCase().includes(query);
+      if (outMatches) {
+        return true;
+      }
+      const itemDesignations = detailDesignationsByItem[item.id] || [];
+      return itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
+    }
+
+    function matchesStatusClassification(detail, filterKey) {
+      const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
+      if (filterKey === 'ko') {
+        return isKoStatus;
+      }
+      if (isKoStatus) {
+        return filterKey === 'all';
+      }
+      const ecart = computeEcart(detail);
+      const qtePosee = Number(detail?.qtePosee) || 0;
+      const qteRetour = Number(detail?.qteRetour) || 0;
+      const qteRebus = Number(detail?.qteRebus) || 0;
+      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+      const isDone = qtePosee > 0 && ecart === 0;
+      const isAttention = hasActivity && ecart !== 0;
+      if (filterKey === 'done') {
+        return isDone;
+      }
+      if (filterKey === 'fix') {
+        return isAttention;
+      }
+      if (filterKey === 'todo') {
+        return !isDone && !isAttention;
+      }
+      return true;
+    }
+
+    function itemMatchesStatusFilter(item, filterKey) {
+      if (filterKey === 'all') {
+        return true;
+      }
+      const detailRows = detailRowsByItem[item.id] || [];
+      return detailRows.some((detail) => matchesStatusClassification(detail, filterKey));
+    }
+
+    function getFilteredOutItems(query) {
+      return currentItems.filter((item) => itemMatchesDateFilter(item, selectedDateFilter) && outMatchesSearch(item, query) && itemMatchesStatusFilter(item, activeStatusFilter));
+    }
+
+    function updateItemStatusFilterCounters(query) {
+      if (!itemStatusFilterOptions.length) {
+        return;
+      }
+      const scopeItems = currentItems.filter((item) => itemMatchesDateFilter(item, selectedDateFilter) && outMatchesSearch(item, query));
+      itemStatusFilterOptions.forEach((option) => {
+        const filterKey = option.dataset.itemStatusFilter || 'all';
+        const count = scopeItems.filter((item) => itemMatchesStatusFilter(item, filterKey)).length;
+        const countNode = option.querySelector('.page2-filter-option__count');
+        if (countNode) {
+          countNode.textContent = String(count);
+        }
+      });
+    }
+
+    function syncItemStatusFilterUi() {
+      itemStatusFilterButton?.classList.toggle('is-filtered', activeStatusFilter !== 'all');
+      itemStatusFilterOptions.forEach((option) => {
+        const isActive = option.dataset.itemStatusFilter === activeStatusFilter;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      });
+    }
+
+    function closeItemStatusFilterMenu() {
+      if (!itemStatusFilterMenu || !itemStatusFilterButton) return;
+      itemStatusFilterMenu.hidden = true;
+      itemStatusFilterButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function openItemStatusFilterMenu() {
+      if (!itemStatusFilterMenu || !itemStatusFilterButton) return;
+      itemStatusFilterMenu.hidden = false;
+      itemStatusFilterButton.setAttribute('aria-expanded', 'true');
+    }
+
+    function setItemStatusFilter(filterKey) {
+      activeStatusFilter = filterKey || 'all';
+      syncItemStatusFilterUi();
+      renderItems();
     }
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
@@ -4562,6 +4647,34 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         flashSearchMatches: isOutSearchInput,
       });
     });
+
+    if (itemStatusFilterButton && itemStatusFilterMenu && itemStatusFilterOptions.length) {
+      syncItemStatusFilterUi();
+      itemStatusFilterButton.addEventListener('click', () => {
+        if (itemStatusFilterMenu.hidden) {
+          openItemStatusFilterMenu();
+        } else {
+          closeItemStatusFilterMenu();
+        }
+      });
+      itemStatusFilterOptions.forEach((option) => {
+        option.addEventListener('click', () => {
+          setItemStatusFilter(option.dataset.itemStatusFilter || 'all');
+          closeItemStatusFilterMenu();
+        });
+      });
+      document.addEventListener('click', (event) => {
+        if (!itemStatusFilterMenu.hidden && !event.target.closest('.page2-filter-menu-wrap')) {
+          closeItemStatusFilterMenu();
+        }
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !itemStatusFilterMenu.hidden) {
+          closeItemStatusFilterMenu();
+          itemStatusFilterButton.focus();
+        }
+      });
+    }
 
     if (itemDateFilter) {
       if (!itemDateFilter.querySelector(`option[value="${selectedDateFilter}"]`)) {
