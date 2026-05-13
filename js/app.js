@@ -5053,19 +5053,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
     let activeDetailFilter = 'all';
     const page2SearchStorageKey = 'page2_search_value';
-    const initialPage2SearchQuery = (() => {
-      try {
-        return String(window.localStorage.getItem(page2SearchStorageKey) || '').trim().toLowerCase();
-      } catch (_error) {
-        return '';
-      }
-    })();
+    let initialPage2SearchQuery = '';
+    let initialPage2CursorFilterLabel = 'Tous';
     try {
-      const page2ActiveFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
-      activeDetailFilter = detailFilterKeyByPage2Label[page2ActiveFilterLabel] || 'all';
+      initialPage2SearchQuery = String(window.localStorage.getItem(page2SearchStorageKey) || '').trim().toLowerCase();
+      initialPage2CursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
     } catch (_error) {
-      activeDetailFilter = 'all';
+      initialPage2SearchQuery = '';
+      initialPage2CursorFilterLabel = 'Tous';
     }
+    const initialPage2CursorFilter = detailFilterKeyByPage2Label[initialPage2CursorFilterLabel] || 'all';
+    let isPage2FilterBridgeActive = Boolean(initialPage2SearchQuery) || initialPage2CursorFilter !== 'all';
+    activeDetailFilter = initialPage2CursorFilter;
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -5536,7 +5535,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function matchesSearchQuery(detail, query) {
-      return !query || String(detail.designation || '').toLowerCase().includes(query);
+      if (!query) {
+        return true;
+      }
+      const normalizedQuery = String(query || '').trim().toLowerCase();
+      const designation = String(detail?.designation || '').toLowerCase();
+      const code = String(detail?.code || '').toLowerCase();
+      return designation.includes(normalizedQuery) || code.includes(normalizedQuery);
     }
 
     function matchesDetailFilter(detail, filterKey) {
@@ -5570,6 +5575,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function getFilteredDetails(details) {
       const query = getSearchQuery();
+      if (isPage2FilterBridgeActive) {
+        return details.filter((detail) => matchesSearchQuery(detail, initialPage2SearchQuery)
+          && matchesDetailFilter(detail, initialPage2CursorFilter));
+      }
       return details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, activeDetailFilter));
     }
 
@@ -6239,7 +6248,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     requireElement('uniteInput')?.addEventListener('change', clearDetailFormError);
 
     if (detailSearchInput) {
-      detailSearchInput.addEventListener('input', renderTable);
+      detailSearchInput.addEventListener('input', () => {
+        isPage2FilterBridgeActive = false;
+        renderTable();
+      });
       const toggleClearButton = () => {
         if (!detailSearchInput || !clearSearchBtn) {
           return;
@@ -6272,6 +6284,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       detailFilterOptions.forEach((option) => {
         option.addEventListener('click', () => {
+          isPage2FilterBridgeActive = false;
           setDetailFilter(option.dataset.detailFilter || 'all');
           closeDetailFilterMenu();
         });
