@@ -5062,8 +5062,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       initialPage2SearchQuery = '';
       initialPage2CursorFilterLabel = 'Tous';
     }
-    const initialPage2CursorFilter = detailFilterKeyByPage2Label[initialPage2CursorFilterLabel] || 'all';
-    let isPage2FilterBridgeActive = Boolean(initialPage2SearchQuery) || initialPage2CursorFilter !== 'all';
+    const hasInitialPage2Search = Boolean(initialPage2SearchQuery);
+    const hasInitialPage2CursorFilter = initialPage2CursorFilterLabel !== 'Tous';
+    const initialPage2CursorFilter = hasInitialPage2CursorFilter
+      ? (detailFilterKeyByPage2Label[initialPage2CursorFilterLabel] || 'all')
+      : 'all';
+    let isPage2FilterBridgeActive = hasInitialPage2Search || hasInitialPage2CursorFilter;
     activeDetailFilter = initialPage2CursorFilter;
 
     function setDetailModalOpenState(isOpen) {
@@ -5576,8 +5580,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function getFilteredDetails(details) {
       const query = getSearchQuery();
       if (isPage2FilterBridgeActive) {
-        return details.filter((detail) => matchesSearchQuery(detail, initialPage2SearchQuery)
-          && matchesDetailFilter(detail, initialPage2CursorFilter));
+        return details.filter((detail) => {
+          const matchSearch = hasInitialPage2Search ? matchesSearchQuery(detail, initialPage2SearchQuery) : true;
+          const matchFilter = hasInitialPage2CursorFilter ? matchesDetailFilter(detail, initialPage2CursorFilter) : true;
+          return matchSearch && matchFilter;
+        });
       }
       return details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, activeDetailFilter));
     }
