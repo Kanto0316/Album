@@ -49,6 +49,18 @@
             <button class="filter-chip" type="button" data-filter-chip="today">Aujourd’hui</button>
             <button class="filter-chip" type="button" data-filter-chip="yesterday">Hier</button>
             <button class="filter-chip" type="button" data-filter-chip="lastMonth">Plus ancien</button>
+            <div class="page2-filter-menu-wrap">
+              <button type="button" id="outStatusFilterButton" class="page3-filter-button" aria-label="Filtrer les OUT" aria-haspopup="true" aria-expanded="false" aria-controls="outStatusFilterMenu">
+                <img src="Icon/curseurs.png" alt="" aria-hidden="true" class="page3-filter-button__icon" />
+              </button>
+              <div id="outStatusFilterMenu" class="page3-filter-menu" role="menu" hidden>
+                <button type="button" class="page3-filter-option is-active" data-out-status-filter="all" role="menuitemradio" aria-checked="true">Tous</button>
+                <button type="button" class="page3-filter-option" data-out-status-filter="todo" role="menuitemradio" aria-checked="false">À faire</button>
+                <button type="button" class="page3-filter-option" data-out-status-filter="fix" role="menuitemradio" aria-checked="false">À corriger</button>
+                <button type="button" class="page3-filter-option" data-out-status-filter="done" role="menuitemradio" aria-checked="false">Complété</button>
+                <button type="button" class="page3-filter-option" data-out-status-filter="ko" role="menuitemradio" aria-checked="false">K.O</button>
+              </div>
+            </div>
           </div>
           <label class="sr-only" for="itemDateFilter">Filtrer les résultats par date</label>
           <select id="itemDateFilter" class="visually-hidden-control" aria-label="Filtrer les résultats par date">
