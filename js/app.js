@@ -2850,7 +2850,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
+    const outStatusFilterButton = document.querySelector('#outStatusFilterButton');
+    const outStatusFilterMenu = document.querySelector('#outStatusFilterMenu');
+    const outStatusFilterOptions = Array.from(document.querySelectorAll('[data-out-filter]'));
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
+    let activeOutStatusFilter = 'all';
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     let hasPendingOutScrollRestore = true;
     let selectedPurchasePhotoFile = null;
@@ -3592,11 +3596,97 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    function matchesOutDetailFilter(detail, filterKey) {
+      const isKoStatus = normalizeDetailStatut(detail?.statut) === 'K.O';
+      if (filterKey === 'ko') {
+        return isKoStatus;
+      }
+      if (isKoStatus) {
+        return filterKey === 'all';
+      }
+      const ecart = computeEcart(detail || {});
+      const qtePosee = Number(detail?.qtePosee) || 0;
+      const qteRetour = Number(detail?.qteRetour) || 0;
+      const qteRebus = Number(detail?.qteRebus) || 0;
+      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+      const isDone = qtePosee > 0 && ecart === 0;
+      const isAttention = hasActivity && ecart !== 0;
+      if (filterKey === 'done') {
+        return isDone;
+      }
+      if (filterKey === 'fix') {
+        return isAttention;
+      }
+      if (filterKey === 'todo') {
+        return !isDone && !isAttention;
+      }
+      return true;
+    }
+
+    function outMatchesStatusFilter(item, filterKey) {
+      if (filterKey === 'all') return true;
+      const details = detailRowsByItem[item.id] || [];
+      return details.some((detail) => matchesOutDetailFilter(detail, filterKey));
+    }
+
+    function updateOutStatusFilterCounters() {
+      if (!outStatusFilterOptions.length) {
+        return;
+      }
+      const query = itemSearchInput.value.trim().toUpperCase();
+      outStatusFilterOptions.forEach((option) => {
+        const filterKey = option.dataset.outFilter || 'all';
+        const count = currentItems.filter((item) => {
+          if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+            return false;
+          }
+          const outMatches = String(item.numero || '').toUpperCase().includes(query);
+          const itemDesignations = detailDesignationsByItem[item.id] || [];
+          const queryMatches = !query || outMatches || itemDesignations.some((designation) => String(designation || '').toUpperCase().includes(query));
+          return queryMatches && outMatchesStatusFilter(item, filterKey);
+        }).length;
+        const label = option.dataset.filterLabel || option.textContent.replace(/\s*\(\d+\)\s*$/, '').trim();
+        option.dataset.filterLabel = label;
+        option.innerHTML = `<span>${label}</span><span>${count}</span>`;
+      });
+    }
+
+    function syncOutStatusFilterUi() {
+      outStatusFilterButton?.classList.toggle('is-filtered', activeOutStatusFilter !== 'all');
+      outStatusFilterOptions.forEach((option) => {
+        const isActive = option.dataset.outFilter === activeOutStatusFilter;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-checked', isActive ? 'true' : 'false');
+      });
+    }
+
+    function setOutStatusFilter(filterKey) {
+      activeOutStatusFilter = filterKey;
+      syncOutStatusFilterUi();
+      closeOutStatusFilterMenu();
+      renderActiveTabContent();
+    }
+
+    function closeOutStatusFilterMenu() {
+      if (!outStatusFilterMenu || !outStatusFilterButton) return;
+      outStatusFilterMenu.hidden = true;
+      outStatusFilterButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function openOutStatusFilterMenu() {
+      if (!outStatusFilterMenu || !outStatusFilterButton) return;
+      outStatusFilterMenu.hidden = false;
+      outStatusFilterButton.setAttribute('aria-expanded', 'true');
+    }
+
     function renderItems(options = {}) {
       const shouldFlashSearchMatches = Boolean(options?.flashSearchMatches);
       const query = itemSearchInput.value.trim().toUpperCase();
       const filteredItems = currentItems.filter((item) => {
         if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+          return false;
+        }
+        if (!outMatchesStatusFilter(item, activeOutStatusFilter)) {
           return false;
         }
         if (!query) {
@@ -3611,6 +3701,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
+      updateOutStatusFilterCounters();
 
       if (!filteredItems.length) {
         UiService.renderEmptyState(
@@ -3812,6 +3903,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const query = itemSearchInput.value.trim().toUpperCase();
       const purchases = currentPurchases.filter((purchase) => {
         if (!itemMatchesDateFilter({ dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
+          return false;
+        }
+        if (!outMatchesStatusFilter(item, activeOutStatusFilter)) {
           return false;
         }
         if (!query) {
@@ -4592,6 +4686,34 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
         updateFilterChipsState();
         renderActiveTabContent();
+      });
+    }
+
+
+    if (outStatusFilterButton && outStatusFilterMenu && outStatusFilterOptions.length) {
+      syncOutStatusFilterUi();
+      outStatusFilterButton.addEventListener('click', () => {
+        if (outStatusFilterMenu.hidden) {
+          openOutStatusFilterMenu();
+        } else {
+          closeOutStatusFilterMenu();
+        }
+      });
+      outStatusFilterOptions.forEach((option) => {
+        option.addEventListener('click', () => {
+          setOutStatusFilter(option.dataset.outFilter || 'all');
+        });
+      });
+      document.addEventListener('click', (event) => {
+        if (!outStatusFilterMenu.hidden && !event.target.closest('.page2-out-filter-menu-wrap')) {
+          closeOutStatusFilterMenu();
+        }
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !outStatusFilterMenu.hidden) {
+          closeOutStatusFilterMenu();
+          outStatusFilterButton.focus();
+        }
       });
     }
 
