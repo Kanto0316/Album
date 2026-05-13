@@ -5052,7 +5052,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       'K.O': 'ko',
     };
     let activeDetailFilter = 'all';
-    const initialPage2SearchQuery = String(searchParams.get('search') || '').trim().toLowerCase();
+    const page2SearchStorageKey = 'page2_search_value';
+    const initialPage2SearchQuery = (() => {
+      try {
+        return String(window.localStorage.getItem(page2SearchStorageKey) || '').trim().toLowerCase();
+      } catch (_error) {
+        return '';
+      }
+    })();
     try {
       const page2ActiveFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
       activeDetailFilter = detailFilterKeyByPage2Label[page2ActiveFilterLabel] || 'all';
@@ -5618,6 +5625,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
 
+      if (!hasResolvedInitialDetails || filteredCount === null || totalCount === null) {
+        countNumber.textContent = '...';
+        countLabel.textContent = 'Chargement...';
+        return;
+      }
+
       countNumber.textContent = String(filteredCount);
       if (filteredCount === totalCount) {
         countLabel.textContent = filteredCount > 1 ? 'Articles' : 'Article';
@@ -5838,6 +5851,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function renderTable() {
+      if (!hasResolvedInitialDetails) {
+        updateCount(null, null);
+        detailTableBody.innerHTML = `<tr><td colspan="14"><div class="empty-state">Chargement...</div></td></tr>`;
+        return;
+      }
+
       if (!currentItem) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
         return;
@@ -6343,6 +6362,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       isDetailSkeletonVisible = false;
       detailTableBody.innerHTML = '';
     }
+
+    updateCount(null, null);
 
     detailSkeletonTimerId = window.setTimeout(() => {
       showDetailTableSkeleton();
