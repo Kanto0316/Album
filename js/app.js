@@ -2877,7 +2877,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
-    const outStatusFilterButton = document.querySelector('#outStatusFilterButton');
+    const outStatusFilterButton = document.querySelector('#outStatusFilterBtn');
     const outStatusFilterMenu = document.querySelector('#outStatusFilterMenu');
     const outStatusFilterOptions = Array.from(document.querySelectorAll('[data-out-status-filter]'));
     outStatusFilterOptions.forEach((option) => {
@@ -4703,18 +4703,24 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (outStatusFilterButton && outStatusFilterMenu && outStatusFilterOptions.length) {
       syncOutStatusFilterUi();
-      outStatusFilterButton.addEventListener('click', () => {
-        if (outStatusFilterMenu.hidden) {
-          openOutStatusFilterMenu();
+      const outStatusFilterContainer = outStatusFilterButton.closest('.page2-filter-menu-wrap');
+      outStatusFilterContainer?.addEventListener('click', (event) => {
+        const filterButton = event.target.closest('#outStatusFilterBtn');
+        if (filterButton) {
+          event.stopPropagation();
+          if (outStatusFilterMenu.hidden) {
+            openOutStatusFilterMenu();
+            return;
+          }
+          closeOutStatusFilterMenu();
           return;
         }
+        const filterOption = event.target.closest('[data-out-status-filter]');
+        if (!filterOption) {
+          return;
+        }
+        setOutStatusFilter(filterOption.dataset.outStatusFilter || 'all');
         closeOutStatusFilterMenu();
-      });
-      outStatusFilterOptions.forEach((option) => {
-        option.addEventListener('click', () => {
-          setOutStatusFilter(option.dataset.outStatusFilter || 'all');
-          closeOutStatusFilterMenu();
-        });
       });
       document.addEventListener('click', (event) => {
         if (!outStatusFilterMenu.hidden && !event.target.closest('.page2-filter-menu-wrap')) {
