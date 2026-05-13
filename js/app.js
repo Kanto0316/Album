@@ -2848,6 +2848,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
     const searchStorageKey = `site-detail:item-search:${siteId}`;
     const searchReadIdsStorageKey = 'page2_search_read_ids';
+    const cursorFilterReadOutsStorageKey = 'page2_cursor_filter_read_outs';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
@@ -3623,7 +3624,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         previousLabel = currentLabel;
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
-        const isCursorFilterActive = activeStatusFilter !== 'all';
+        const isCursorFilterActive = activeStatusFilter !== 'all' && !query;
         const isSearchUnread = query && !readSearchResults.has(String(item.id));
         const isCursorFilterUnread = isCursorFilterActive && !readCursorFilterOuts.has(String(item.id));
         const unreadClassName = (isCursorFilterUnread || isSearchUnread) ? ' list-card--search-unread' : '';
@@ -3662,8 +3663,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             readSearchResults.add(openedItemId);
             persistSearchReadIdsToStorage(readSearchResults);
           }
-          if (activeStatusFilter !== 'all') {
+          if (activeStatusFilter !== 'all' && !query) {
             readCursorFilterOuts.add(openedItemId);
+            persistCursorFilterReadIdsToStorage(readCursorFilterOuts);
           }
           const card = button.closest('.list-card');
           card?.classList.remove('list-card--search-unread');
@@ -3772,8 +3774,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const nextFilter = filterKey || 'all';
       if (nextFilter !== activeStatusFilter) {
         readCursorFilterOuts.clear();
+        clearCursorFilterReadIdsStorage();
+        if (nextFilter !== 'all') {
+          readCursorFilterReadIdsFromStorage().forEach((id) => readCursorFilterOuts.add(id));
+        }
       }
       activeStatusFilter = nextFilter;
+      if (activeStatusFilter === 'all') {
+        readCursorFilterOuts.clear();
+        clearCursorFilterReadIdsStorage();
+      }
       syncItemStatusFilterUi();
       renderItems();
     }
@@ -3836,6 +3846,36 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     }
 
+    function readCursorFilterReadIdsFromStorage() {
+      try {
+        const rawValue = window.localStorage.getItem(cursorFilterReadOutsStorageKey);
+        const parsed = JSON.parse(rawValue || '[]');
+        if (!Array.isArray(parsed)) {
+          return new Set();
+        }
+        return new Set(parsed.map((value) => String(value || '')).filter(Boolean));
+      } catch (_error) {
+        return new Set();
+      }
+    }
+
+    function persistCursorFilterReadIdsToStorage(readIdsSet) {
+      try {
+        window.localStorage.setItem(cursorFilterReadOutsStorageKey, JSON.stringify(Array.from(readIdsSet)));
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
+    function clearCursorFilterReadIdsStorage() {
+      try {
+        window.localStorage.removeItem(cursorFilterReadOutsStorageKey);
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
+    readCursorFilterReadIdsFromStorage().forEach((id) => readCursorFilterOuts.add(id));
     const readSearchResults = readSearchReadIdsFromStorage();
 
     function isFirebaseUserAuthenticated(user) {
