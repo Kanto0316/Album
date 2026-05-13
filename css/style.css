@@ -5932,3 +5932,78 @@ body {
 .hidden {
   display: none !important;
 }
+
+body[data-page="site-detail"] .page2-out-filter-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+body[data-page="site-detail"] .page2-out-filter-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 53, 83, 0.12);
+  background: rgba(255, 255, 255, 0.86);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+body[data-page="site-detail"] .page2-out-filter-button__icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+body[data-page="site-detail"] .page2-out-filter-button:hover,
+body[data-page="site-detail"] .page2-out-filter-button:focus-visible {
+  border-color: rgba(68, 151, 255, 0.35);
+  box-shadow: 0 4px 14px rgba(31, 53, 83, 0.12);
+}
+
+body[data-page="site-detail"] .page2-out-filter-button.is-filtered {
+  background: rgba(68, 151, 255, 0.14);
+  border-color: rgba(68, 151, 255, 0.5);
+}
+
+body[data-page="site-detail"] .page2-out-filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 170px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 53, 83, 0.12);
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(12, 32, 58, 0.18);
+  z-index: 45;
+}
+
+body[data-page="site-detail"] .page2-out-filter-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 8px;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+body[data-page="site-detail"] .page2-out-filter-option:hover,
+body[data-page="site-detail"] .page2-out-filter-option:focus-visible {
+  background: rgba(68, 151, 255, 0.12);
+}
+
+body[data-page="site-detail"] .page2-out-filter-option.is-active {
+  background: rgba(68, 151, 255, 0.16);
+  color: var(--brand-strong);
+}
