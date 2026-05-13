@@ -3772,13 +3772,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function setItemStatusFilter(filterKey) {
       const nextFilter = filterKey || 'all';
-      if (nextFilter !== activeStatusFilter) {
-        readCursorFilterOuts.clear();
-        clearCursorFilterReadIdsStorage();
-        if (nextFilter !== 'all') {
-          readCursorFilterReadIdsFromStorage().forEach((id) => readCursorFilterOuts.add(id));
-        }
-      }
       activeStatusFilter = nextFilter;
       if (activeStatusFilter === 'all') {
         readCursorFilterOuts.clear();
