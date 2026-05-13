@@ -4999,7 +4999,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let designationInputErrorTimeoutId = null;
     let codeInputErrorStateTimeoutId = null;
     let designationInputErrorStateTimeoutId = null;
+    const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
+    const detailFilterKeyByPage2Label = {
+      'Tous': 'all',
+      'À faire': 'todo',
+      'À corriger': 'fix',
+      'Complété': 'done',
+      'K.O': 'ko',
+    };
     let activeDetailFilter = 'all';
+    try {
+      const page2ActiveFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
+      activeDetailFilter = detailFilterKeyByPage2Label[page2ActiveFilterLabel] || 'all';
+    } catch (_error) {
+      activeDetailFilter = 'all';
+    }
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
