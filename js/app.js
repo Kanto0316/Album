@@ -5630,7 +5630,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function setDetailFilter(filterKey) {
       activeDetailFilter = filterKey;
       syncDetailFilterUi();
-      detailFilterButton.disabled = isPage2Context;
       renderTable();
     }
 
@@ -6300,7 +6299,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailFilterButton && detailFilterMenu && detailFilterOptions.length) {
       syncDetailFilterUi();
-      detailFilterButton.disabled = isPage2Context;
       detailFilterButton.addEventListener('click', () => {
         if (detailFilterMenu.hidden) {
           openDetailFilterMenu();
@@ -6311,10 +6309,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       detailFilterOptions.forEach((option) => {
         option.addEventListener('click', () => {
-          if (isPage2Context) {
-            closeDetailFilterMenu();
-            return;
-          }
           isPage2FilterBridgeActive = false;
           setDetailFilter(option.dataset.detailFilter || 'all');
           closeDetailFilterMenu();
@@ -6341,9 +6335,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       if (clearSearchBtn) {
         clearSearchBtn.disabled = true;
-      }
-      if (detailFilterButton) {
-        detailFilterButton.disabled = true;
       }
       if (detailFilterMenu) {
         detailFilterMenu.hidden = true;
