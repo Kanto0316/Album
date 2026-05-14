@@ -2874,6 +2874,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let activeStatusFilter = statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
     const readCursorFilterOuts = new Set();
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
+    try {
+      const initialPage2SearchValue = String(itemSearchInput.value || '');
+      if (initialPage2SearchValue) {
+        window.localStorage.setItem('page2_search_value', initialPage2SearchValue);
+      } else {
+        window.localStorage.removeItem('page2_search_value');
+      }
+    } catch (_error) {
+      // Ignore localStorage restrictions.
+    }
     let hasPendingOutScrollRestore = true;
     let selectedPurchasePhotoFile = null;
     let selectedPurchasePhotoPreviewUrl = '';
@@ -4745,8 +4755,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const searchValue = itemSearchInput.value;
         if (searchValue) {
           window.localStorage.setItem(searchStorageKey, searchValue);
+          window.localStorage.setItem('page2_search_value', searchValue);
         } else {
           window.localStorage.removeItem(searchStorageKey);
+          window.localStorage.removeItem('page2_search_value');
         }
         const normalizedQuery = (searchValue || '').trim().toUpperCase();
         const hasQueryChanged = normalizedQuery !== activeOutSearchQuery;
