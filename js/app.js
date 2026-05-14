@@ -6045,7 +6045,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
-              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
+              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
               <td>
                 <div class="qte-sortie-field">
                   <input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" />

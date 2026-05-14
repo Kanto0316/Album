@@ -3308,6 +3308,17 @@ body[data-page="item-detail"] .cell-textarea.cell-input--soft-disabled {
   resize: none;
 }
 
+body[data-page="item-detail"] .designation-field {
+  overflow-y: hidden;
+  overflow-x: hidden;
+  resize: none;
+  scrollbar-width: none;
+}
+
+body[data-page="item-detail"] .designation-field::-webkit-scrollbar {
+  display: none;
+}
+
 .meta-value {
   display: inline-block;
   min-width: 6rem;
