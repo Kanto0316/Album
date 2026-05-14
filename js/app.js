@@ -5764,7 +5764,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         countLabel.textContent = filteredCount > 1 ? 'Articles' : 'Article';
         return;
       }
-      countLabel.textContent = `${filteredCount > 1 ? 'Articles' : 'Article'} affiché${filteredCount > 1 ? 's' : ''} / ${totalCount}`;
+      countLabel.textContent = `${filteredCount > 1 ? 'Articles' : 'Article'} / ${totalCount}`;
     }
 
     function exportDetails(fileNameOverride) {
