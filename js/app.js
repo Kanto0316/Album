@@ -514,6 +514,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return value;
   }
 
+  function normalizeExportNumber(value) {
+    if (
+      value === ''
+      || value === null
+      || value === undefined
+      || value === '-'
+      || Number.isNaN(Number(value))
+    ) {
+      return 0;
+    }
+    return Number(value);
+  }
+
   function buildDetailExcelContent(title, details) {
     const rows = details
       .map(
@@ -524,11 +537,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td>${escapeHtml(formatExcelCellValue(detail.designation))}</td>
               <td>${escapeHtml(formatExcelCellValue(detail.qteSortie))}</td>
               <td>${escapeHtml(formatExcelCellValue(detail.unite))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qtePosee))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qteRebus))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qteRetour))}</td>
+              <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(detail.qtePosee)))}</td>
+              <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(detail.qteRebus)))}</td>
+              <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(detail.qteRetour)))}</td>
               <td>${escapeHtml(formatExcelCellValue(formatReturnDate(detail.dateRetour)))}</td>
-              <td>${escapeHtml(formatExcelCellValue(computeEcart(detail)))}</td>
+              <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(computeEcart(detail))))}</td>
               <td>${escapeHtml(formatExcelCellValue(detail.observation))}</td>
               <td>${escapeHtml(formatExcelCellValue(normalizeDetailStatut(detail.statut)))}</td>
             </tr>
@@ -620,11 +633,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <td>${escapeHtml(formatExcelCellValue(row.designation))}</td>
             <td>${escapeHtml(formatExcelCellValue(row.qteSortie))}</td>
             <td>${escapeHtml(formatExcelCellValue(row.unite))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qtePosee))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qteRebus))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qteRetour))}</td>
+            <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(row.qtePosee)))}</td>
+            <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(row.qteRebus)))}</td>
+            <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(row.qteRetour)))}</td>
             <td>${escapeHtml(formatExcelCellValue(formatReturnDate(row.dateRetour)))}</td>
-            <td>${escapeHtml(formatExcelCellValue(computeEcart(row)))}</td>
+            <td>${escapeHtml(formatExcelCellValue(normalizeExportNumber(computeEcart(row))))}</td>
             <td>${escapeHtml(formatExcelCellValue(row.observation))}</td>
             <td>${escapeHtml(formatExcelCellValue(normalizeDetailStatut(row.statut)))}</td>
           </tr>
