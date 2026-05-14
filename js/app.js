@@ -5129,7 +5129,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const detailFilterMenu = document.querySelector('#detailFilterMenu');
     const detailFilterOptions = Array.from(document.querySelectorAll('[data-detail-filter]'));
     detailFilterOptions.forEach((option) => {
-      option.dataset.filterLabel = option.textContent.trim();
+      option.dataset.filterLabel = option.querySelector('.page3-filter-option__label')?.textContent.trim() || option.textContent.trim();
     });
     const exportButton = requireElement('exportDetailsButton');
     const detailExportDialog = requireElement('detailExportDialog');
@@ -5710,8 +5710,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       detailFilterOptions.forEach((option) => {
         const filterKey = option.dataset.detailFilter || 'all';
         const count = details.filter((detail) => matchesDetailFilter(detail, filterKey)).length;
-        const label = option.dataset.filterLabel || option.textContent.trim();
-        option.textContent = `${label} (${count})`;
+        const countNode = option.querySelector('.page3-filter-option__count');
+        if (countNode) {
+          countNode.textContent = String(count);
+        }
       });
     }
 
