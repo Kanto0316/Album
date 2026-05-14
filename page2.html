@@ -162,6 +162,17 @@
               <input id="siteExportFileNameInput" name="siteExportFileName" type="text" placeholder="Ex : export-materiel" autocomplete="off" />
             </div>
           </label>
+          <label class="input-group input-group--site-create">
+            <span>Filtrer les lignes</span>
+            <select id="siteExportLineFilterSelect" name="siteExportLineFilter">
+              <option value="">-- Sélectionner --</option>
+              <option value="all">Tous</option>
+              <option value="todo">En attente</option>
+              <option value="fix">À corriger</option>
+              <option value="done">Terminés</option>
+              <option value="ko">K.O</option>
+            </select>
+          </label>
           <p id="siteExportFileNameError" class="form-error" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button type="button" id="siteExportCancelButton" class="btn btn-neutral">Annuler</button>

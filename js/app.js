@@ -2873,6 +2873,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const siteExportDialog = requireElement('siteExportDialog');
     const siteExportForm = requireElement('siteExportForm');
     const siteExportFileNameInput = requireElement('siteExportFileNameInput');
+    const siteExportLineFilterSelect = requireElement('siteExportLineFilterSelect');
     const siteExportFileNameError = requireElement('siteExportFileNameError');
     const siteExportSubmitButton = requireElement('siteExportSubmitButton');
     const siteExportCancelButton = requireElement('siteExportCancelButton');
@@ -3288,7 +3289,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       );
     }
 
-    async function exportItems(fileNameOverride) {
+    async function exportItems(fileNameOverride, lineFilterOverride) {
       if (!currentSite) {
         UiService.navigate('index.html');
         return;
@@ -3308,7 +3309,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
 
-      const sortedRows = [...rows].sort((a, b) => {
+      const selectedLineFilter = String(lineFilterOverride || siteExportLineFilterSelect?.value || 'all').trim() || 'all';
+      const filteredRows = rows.filter((row) => matchesStatusClassification(row, selectedLineFilter));
+      if (!filteredRows.length) {
+        UiService.showToast('Aucune donnée');
+        return;
+      }
+
+      const sortedRows = [...filteredRows].sort((a, b) => {
         const designationA = String(a?.designation || '').trim();
         const designationB = String(b?.designation || '').trim();
 
@@ -3384,6 +3392,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       const defaultName = currentSite?.nom ? `SUIVI MATERIEL . ${currentSite.nom}` : 'export-materiel';
       siteExportFileNameInput.value = sanitizeExportFileName(defaultName);
+      if (siteExportLineFilterSelect) {
+        siteExportLineFilterSelect.value = '';
+      }
       if (siteExportFileNameError) {
         siteExportFileNameError.textContent = '';
       }
@@ -4841,10 +4852,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           updateSiteExportSubmitState();
           return;
         }
+        const selectedLineFilter = String(siteExportLineFilterSelect?.value || 'all').trim() || 'all';
         siteExportSubmitButton.disabled = true;
         siteExportSubmitButton.classList.add('is-loading');
         try {
-          await exportItems(fileName);
+          await exportItems(fileName, selectedLineFilter);
           closeSiteExportDialog();
         } catch (_error) {
           siteExportSubmitButton.disabled = false;
