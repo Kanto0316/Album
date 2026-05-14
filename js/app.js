@@ -6044,7 +6044,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return `
             <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
               <td><span class="field-badge">${detail.champ}</span></td>
-              <td><input class="cell-input cell-input--autosize cell-input--left" data-field="code" value="${escapeHtml(detail.code)}" size="${Math.max(String(detail.code || '').length + 1, 10)}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
               <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
               <td>
                 <div class="qte-sortie-field">
@@ -6205,6 +6205,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         dateRetour: 140,
         ecart: 48,
         observation: 48,
+        code: 48,
         statut: 84,
       };
 
