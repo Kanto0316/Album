@@ -542,7 +542,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     <meta charset="UTF-8" />
     <title>${escapeHtml(title)}</title>
     <style>
-      table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+      table { border-collapse: collapse; width: 100%; table-layout: auto; }
       th, td {
         border: 1px solid #cfd8e3;
         padding: 8px 10px;
@@ -575,18 +575,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   <body>
     <table>
       <colgroup>
-        <col style="width: 18ch;" />
-        <col style="width: 18ch;" />
-        <col style="width: 40ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 10ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 22ch;" />
-        <col style="width: 12ch;" />
-        <col style="width: 30ch;" />
-        <col style="width: 12ch;" />
+        <col style="width: 18ch; min-width: 18ch;" />
+        <col style="width: 22ch; min-width: 22ch;" />
+        <col style="width: 45ch; min-width: 45ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 10ch; min-width: 10ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 20ch; min-width: 20ch;" />
+        <col style="width: 12ch; min-width: 12ch;" />
+        <col style="width: 30ch; min-width: 30ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
       </colgroup>
       <thead>
         <tr>
@@ -638,7 +638,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     <meta charset="UTF-8" />
     <title>${escapeHtml(title)}</title>
     <style>
-      table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+      table { border-collapse: collapse; width: 100%; table-layout: auto; }
       th, td {
         border: 1px solid #cfd8e3;
         padding: 8px 10px;
@@ -671,18 +671,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   <body>
     <table>
       <colgroup>
-        <col style="width: 18ch;" />
-        <col style="width: 18ch;" />
-        <col style="width: 40ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 10ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 14ch;" />
-        <col style="width: 22ch;" />
-        <col style="width: 12ch;" />
-        <col style="width: 30ch;" />
-        <col style="width: 12ch;" />
+        <col style="width: 18ch; min-width: 18ch;" />
+        <col style="width: 22ch; min-width: 22ch;" />
+        <col style="width: 45ch; min-width: 45ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 10ch; min-width: 10ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
+        <col style="width: 20ch; min-width: 20ch;" />
+        <col style="width: 12ch; min-width: 12ch;" />
+        <col style="width: 30ch; min-width: 30ch;" />
+        <col style="width: 14ch; min-width: 14ch;" />
       </colgroup>
       <thead>
         <tr>
