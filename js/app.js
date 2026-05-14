@@ -5669,6 +5669,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return designation.includes(normalizedQuery) || code.includes(normalizedQuery);
     }
 
+    function isDetailCompleted(detail) {
+      const qteSortie = Number(detail?.qteSortie) || 0;
+      const qtePosee = Number(detail?.qtePosee) || 0;
+      const qteRetour = Number(detail?.qteRetour) || 0;
+      const qteRebus = Number(detail?.qteRebus) || 0;
+      const ecart = computeEcart(detail);
+
+      return (qtePosee > 0 && ecart === 0)
+        || qteSortie === qteRebus
+        || qteSortie === qteRetour;
+    }
+
     function matchesDetailFilter(detail, filterKey) {
       const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
       if (filterKey === 'ko') {
@@ -5683,7 +5695,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const qteRetour = Number(detail?.qteRetour) || 0;
       const qteRebus = Number(detail?.qteRebus) || 0;
       const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
-      const isDone = qtePosee > 0 && ecart === 0;
+      const isDone = isDetailCompleted(detail);
       const isAttention = hasActivity && ecart !== 0;
 
       if (filterKey === 'done') {
@@ -5971,13 +5983,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const isKoStatus = normalizeDetailStatut(row.querySelector('[data-field="statut"]')?.value) === 'K.O';
+      const qteSortie = Number(row.querySelector('[data-field="qteSortie"]')?.value ?? 0);
       const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
       const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
       const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
       const ecart = Number(row.querySelector('[data-col-key="ecart"]')?.value ?? 0);
       const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+      const isDone = (qtePosee > 0 && ecart === 0)
+        || qteSortie === qteRebus
+        || qteSortie === qteRetour;
 
-      row.classList.toggle('detail-row--done', !isKoStatus && qtePosee > 0 && ecart === 0);
+      row.classList.toggle('detail-row--done', !isKoStatus && isDone);
       row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && ecart !== 0);
     }
 
