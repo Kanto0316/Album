@@ -3297,8 +3297,8 @@ body[data-page="item-detail"] .cell-textarea.cell-input--soft-disabled {
 }
 
 .cell-input--designation {
-  min-width: 40ch;
-  max-width: 88ch;
+  min-width: 32ch;
+  max-width: 80ch;
   min-height: 2.75rem;
   line-height: 1.4;
   white-space: normal;
