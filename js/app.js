@@ -5065,11 +5065,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const normalizedPage2SearchValue = page2SearchValue.toLowerCase();
     const hasPage2SearchContext = Boolean(page2SearchValue);
     const hasPage2CursorFilterContext = page2CursorFilterLabel !== 'Tous';
+    const isPage2Context = hasPage2SearchContext || hasPage2CursorFilterContext;
     const page2CursorFilterKey = hasPage2CursorFilterContext
       ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
       : 'all';
-    const isPage2BridgeLocked = hasPage2SearchContext || hasPage2CursorFilterContext;
-    let isPage2FilterBridgeActive = isPage2BridgeLocked;
+    const isPage2BridgeLocked = isPage2Context;
+    let isPage2FilterBridgeActive = isPage2Context;
     activeDetailFilter = page2CursorFilterKey;
 
     function setDetailModalOpenState(isOpen) {
@@ -5617,6 +5618,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function setDetailFilter(filterKey) {
       activeDetailFilter = filterKey;
       syncDetailFilterUi();
+      detailFilterButton.disabled = isPage2Context;
       renderTable();
     }
 
@@ -6258,7 +6260,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', () => {
-        if (!isPage2BridgeLocked) {
+        if (!isPage2Context) {
           isPage2FilterBridgeActive = false;
         }
         renderTable();
@@ -6280,11 +6282,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         detailSearchInput.focus();
       });
       detailSearchInput.value = page2SearchValue;
+      detailSearchInput.readOnly = isPage2Context;
       toggleClearButton();
     }
 
     if (detailFilterButton && detailFilterMenu && detailFilterOptions.length) {
       syncDetailFilterUi();
+      detailFilterButton.disabled = isPage2Context;
       detailFilterButton.addEventListener('click', () => {
         if (detailFilterMenu.hidden) {
           openDetailFilterMenu();
@@ -6295,9 +6299,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       detailFilterOptions.forEach((option) => {
         option.addEventListener('click', () => {
-          if (!isPage2BridgeLocked) {
-            isPage2FilterBridgeActive = false;
+          if (isPage2Context) {
+            closeDetailFilterMenu();
+            return;
           }
+          isPage2FilterBridgeActive = false;
           setDetailFilter(option.dataset.detailFilter || 'all');
           closeDetailFilterMenu();
         });
