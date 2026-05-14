@@ -3811,11 +3811,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return filterKey === 'all';
       }
       const ecart = computeEcart(detail);
+      const qteSortie = Number(detail?.qteSortie) || 0;
       const qtePosee = Number(detail?.qtePosee) || 0;
       const qteRetour = Number(detail?.qteRetour) || 0;
       const qteRebus = Number(detail?.qteRebus) || 0;
       const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
-      const isDone = qtePosee > 0 && ecart === 0;
+      const isDone = ecart === 0 && (qteRebus <= qteSortie || qteRetour <= qteSortie);
       const isAttention = hasActivity && ecart !== 0;
       if (filterKey === 'done') {
         return isDone;
