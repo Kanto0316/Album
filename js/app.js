@@ -6189,9 +6189,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             if (field.value.length > 120) {
               field.value = field.value.slice(0, 120);
             }
-            if ((field.dataset.field === 'qtePosee' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour') && String(field.value).trim() === '') {
-              field.value = '0';
-            }
             if (field.dataset.field === 'qtePosee' || field.dataset.field === 'qteSortie' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour' || field.dataset.field === 'statut') {
               const row = field.closest('tr');
               if (row) {
