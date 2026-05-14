@@ -1402,6 +1402,7 @@ async function createDetail(siteId, itemId, payload) {
     dateRetour: '',
     qtePosee: 0,
     qteRebus: 0,
+    ecart: payload.qteSortie === '' ? 0 : sanitizeNumber(payload.qteSortie),
     observation: '',
     statut: sanitizeDetailStatut(payload.statut),
     ownerId: state.userId,
@@ -1461,6 +1462,10 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   if ('qteRebus' in changes) {
     nextValues.qteRebus = sanitizeNumber(changes.qteRebus);
     syncedChanges.qteRebus = nextValues.qteRebus;
+  }
+  if ('ecart' in changes) {
+    nextValues.ecart = sanitizeNumber(changes.ecart);
+    syncedChanges.ecart = nextValues.ecart;
   }
   if ('observation' in changes) {
     nextValues.observation = sanitizeText(changes.observation, false);
@@ -1631,6 +1636,7 @@ function normalizeImportPayload(payload) {
           dateRetour: sanitizeReturnDate(detail.dateRetour),
           qtePosee: sanitizeNumber(detail.qtePosee),
           qteRebus: sanitizeNumber(detail.qteRebus),
+          ecart: sanitizeNumber(detail.ecart),
           observation: sanitizeText(detail.observation, false),
           statut: sanitizeDetailStatut(detail.statut),
           ownerId: state.userId,

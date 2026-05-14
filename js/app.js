@@ -235,16 +235,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return null;
   }
 
-  function computeEcart(detail) {
-    const qteSortie = Number(detail?.qteSortie) || 0;
-    const qtePosee = Number(detail?.qtePosee) || 0;
-    const qteRetour = Number(detail?.qteRetour) || 0;
-    const qteRebus = Number(detail?.qteRebus) || 0;
-
-    if (qtePosee === 0 && qteRetour === 0 && qteRebus === 0) {
-      return '';
+  function toNumber(value) {
+    if (value === '' || value === null || value === undefined || value === '-') {
+      return 0;
     }
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
 
+  function computeEcart(detail) {
+    const qteSortie = toNumber(detail?.qteSortie);
+    const qtePosee = toNumber(detail?.qtePosee);
+    const qteRetour = toNumber(detail?.qteRetour);
+    const qteRebus = toNumber(detail?.qteRebus);
     return qteSortie - (qtePosee + qteRetour + qteRebus);
   }
 
@@ -6008,11 +6011,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const isKoStatus = normalizeDetailStatut(row.querySelector('[data-field="statut"]')?.value) === 'K.O';
-      const qteSortie = Number(row.querySelector('[data-field="qteSortie"]')?.value ?? 0);
-      const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
-      const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
-      const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
-      const ecart = Number(row.querySelector('[data-col-key="ecart"]')?.value ?? 0);
+      const qteSortie = toNumber(row.querySelector('[data-field="qteSortie"]')?.value);
+      const qtePosee = toNumber(row.querySelector('[data-field="qtePosee"]')?.value);
+      const qteRetour = toNumber(row.querySelector('[data-field="qteRetour"]')?.value);
+      const qteRebus = toNumber(row.querySelector('[data-field="qteRebus"]')?.value);
+      const ecart = toNumber(row.querySelector('[data-col-key="ecart"]')?.value);
       const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
       const isDone = (qtePosee > 0 && ecart === 0)
         || qteSortie === qteRebus
@@ -6023,8 +6026,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function sanitizeNumericDisplayValue(value) {
-      const numericValue = Number(value);
+      const numericValue = toNumber(value);
       return Number.isFinite(numericValue) ? String(numericValue) : '0';
+    }
+
+    function syncRowEcart(row) {
+      if (!row) {
+        return 0;
+      }
+      const ecartField = row.querySelector('[data-col-key="ecart"]');
+      const nextEcart = computeEcart({
+        qteSortie: row.querySelector('[data-field="qteSortie"]')?.value,
+        qtePosee: row.querySelector('[data-field="qtePosee"]')?.value,
+        qteRebus: row.querySelector('[data-field="qteRebus"]')?.value,
+        qteRetour: row.querySelector('[data-field="qteRetour"]')?.value,
+      });
+      if (ecartField) {
+        ecartField.value = String(nextEcart);
+        ecartField.classList.toggle('cell-input--ecart-alert', nextEcart !== 0);
+      }
+      return nextEcart;
     }
 
     function normalizeDetailNumericCells(row) {
@@ -6140,7 +6161,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
 
-          const shouldForceNumericZero = fieldName === 'qtePosee' || fieldName === 'qteRebus' || fieldName === 'qteRetour';
+          const shouldForceNumericZero = fieldName === 'qtePosee' || fieldName === 'qteRebus' || fieldName === 'qteRetour' || fieldName === 'qteSortie';
           if (shouldForceNumericZero && String(event.target.value).trim() === '') {
             event.target.value = '0';
           }
@@ -6150,9 +6171,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
 
-          await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, {
-            [fieldName]: nextValue,
-          });
+          const payload = { [fieldName]: nextValue };
+          if (fieldName === 'qtePosee' || fieldName === 'qteSortie' || fieldName === 'qteRebus' || fieldName === 'qteRetour') {
+            payload.ecart = syncRowEcart(row);
+          }
+          await StorageService.updateDetail(siteId, itemId, row.dataset.detailId, payload);
           if (fieldName === 'statut') {
             const statusField = event.target.closest('.detail-status-field');
             const row = event.target.closest('tr');
@@ -6167,15 +6190,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             }
           }
           if (fieldName === 'qtePosee' || fieldName === 'qteSortie' || fieldName === 'qteRebus' || fieldName === 'qteRetour') {
-            const ecartField = row.querySelector('[data-col-key="ecart"]');
-            if (ecartField) {
-              const nextEcart = computeEcart({
-                ...currentDetail,
-                [fieldName]: nextValue,
-              });
-              ecartField.value = Number.isFinite(nextEcart) ? String(nextEcart) : '0';
-              ecartField.classList.toggle('cell-input--ecart-alert', typeof nextEcart === 'number' && nextEcart !== 0);
-            }
+            syncRowEcart(row);
             applyDetailRowSemanticState(row);
           }
           applyCompactColumnWidths();
@@ -6193,22 +6208,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               const row = field.closest('tr');
               if (row) {
                 if (field.dataset.field !== 'statut') {
-                  const qteSortie = Number(row.querySelector('[data-field="qteSortie"]')?.value ?? 0);
-                  const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
-                  const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
-                  const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
-                  const ecart = qteSortie - qtePosee - qteRebus - qteRetour;
-                  const ecartField = row.querySelector('[data-col-key="ecart"]');
-                  if (ecartField) {
-                    ecartField.value = String(ecart);
-                    ecartField.classList.toggle('cell-input--ecart-alert', ecart !== 0);
-                  }
+                  syncRowEcart(row);
                 }
                 applyDetailRowSemanticState(row);
               }
             }
             applyCompactColumnWidths();
           });
+
+          if (field.dataset.field === 'qtePosee' || field.dataset.field === 'qteSortie' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour') {
+            field.addEventListener('blur', () => {
+              if (String(field.value).trim() === '') {
+                field.value = '0';
+                const row = field.closest('tr');
+                if (row) {
+                  syncRowEcart(row);
+                  applyDetailRowSemanticState(row);
+                }
+              }
+            });
+          }
         }
       });
 
