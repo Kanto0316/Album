@@ -3809,6 +3809,29 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return getMatchingOutArticles(currentItems, query, activeStatusFilter);
     }
 
+    function getTotalMatchingDetailCount(searchText, filterKey) {
+      const query = String(searchText || '').trim().toUpperCase();
+      const normalizedFilterKey = filterKey || 'all';
+      return currentItems.reduce((total, item) => {
+        if (!itemMatchesDateFilter(item, selectedDateFilter)) {
+          return total;
+        }
+        if (!outMatchesSearch(item, query)) {
+          return total;
+        }
+
+        const detailRows = detailRowsByItem[item.id] || [];
+        const matchingDetailCount = detailRows.reduce((count, detail) => {
+          const outMatchesQuery = query ? String(item.numero || '').toUpperCase().includes(query) : false;
+          const matchSearch = !query || outMatchesQuery ? true : detailMatchesOutSearch(detail, query);
+          const matchFilter = matchesStatusClassification(detail, normalizedFilterKey);
+          return count + (matchSearch && matchFilter ? 1 : 0);
+        }, 0);
+
+        return total + matchingDetailCount;
+      }, 0);
+    }
+
     function updateCursorFilterCounters() {
       const query = itemSearchInput.value;
       if (!itemStatusFilterOptions.length) {
@@ -3816,7 +3839,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       itemStatusFilterOptions.forEach((option) => {
         const filterKey = option.dataset.itemStatusFilter || 'all';
-        const count = getMatchingOutArticles(currentItems, query, filterKey).length;
+        const count = getTotalMatchingDetailCount(query, filterKey);
         const countNode = option.querySelector('.page2-filter-option__count');
         if (countNode) {
           countNode.textContent = String(count);
