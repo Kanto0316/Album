@@ -3785,38 +3785,38 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return detailRows.reduce((count, detail) => count + (detailMatchesOutCombinedFilters(detail, query, activeStatusFilter) ? 1 : 0), 0);
     }
 
-    function getFilteredOutItems(query) {
-      return currentItems.filter((item) => {
-        if (!itemMatchesDateFilter(item, selectedDateFilter)) {
-          return false;
+    function getMatchingOutArticles(articleList, searchText, cursorFilter) {
+      const query = String(searchText || '').trim().toUpperCase();
+      const filterKey = cursorFilter || 'all';
+      return articleList.filter((item) => {
+        const matchSearch = query ? outMatchesSearch(item, query) : true;
+        let matchFilter = true;
+        if (filterKey !== 'all') {
+          if (!query) {
+            matchFilter = itemMatchesStatusFilter(item, filterKey);
+          } else {
+            const outMatches = String(item.numero || '').toUpperCase().includes(query);
+            matchFilter = outMatches
+              ? itemMatchesStatusFilter(item, filterKey)
+              : itemMatchesCombinedSearchAndStatus(item, query, filterKey);
+          }
         }
-        if (activeStatusFilter === 'all') {
-          return outMatchesSearch(item, query);
-        }
-        if (!query) {
-          return itemMatchesStatusFilter(item, activeStatusFilter);
-        }
-        const outMatches = String(item.numero || '').toUpperCase().includes(query);
-        if (outMatches) {
-          return itemMatchesStatusFilter(item, activeStatusFilter);
-        }
-        return itemMatchesCombinedSearchAndStatus(item, query, activeStatusFilter);
+        return itemMatchesDateFilter(item, selectedDateFilter) && matchSearch && matchFilter;
       });
     }
 
+    function getFilteredOutItems(query) {
+      return getMatchingOutArticles(currentItems, query, activeStatusFilter);
+    }
+
     function updateCursorFilterCounters() {
-      const query = itemSearchInput.value.trim().toUpperCase();
+      const query = itemSearchInput.value;
       if (!itemStatusFilterOptions.length) {
         return;
       }
-      const scopeItems = currentItems.filter((item) => itemMatchesDateFilter(item, selectedDateFilter) && outMatchesSearch(item, query));
       itemStatusFilterOptions.forEach((option) => {
         const filterKey = option.dataset.itemStatusFilter || 'all';
-        const count = scopeItems.reduce((total, item) => {
-          const detailRows = detailRowsByItem[item.id] || [];
-          const matchingDetails = detailRows.filter((detail) => matchesStatusClassification(detail, filterKey));
-          return total + matchingDetails.length;
-        }, 0);
+        const count = getMatchingOutArticles(currentItems, query, filterKey).length;
         const countNode = option.querySelector('.page2-filter-option__count');
         if (countNode) {
           countNode.textContent = String(count);
