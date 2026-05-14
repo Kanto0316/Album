@@ -6045,7 +6045,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
-              <td><input class="cell-input cell-input--autosize cell-input--designation cell-input--left" data-field="designation" value="${escapeHtml(detail.designation)}" size="${Math.max(String(detail.designation || '').length + 1, 20)}" /></td>
+              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
               <td>
                 <div class="qte-sortie-field">
                   <input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" />
@@ -6167,6 +6167,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             applyCompactColumnWidths();
           });
         }
+
+        if (field.classList.contains('cell-input--designation')) {
+          field.addEventListener('input', () => {
+            if (field.value.length > 120) {
+              field.value = field.value.slice(0, 120);
+            }
+            adjustDesignationFieldHeight(field);
+          });
+          adjustDesignationFieldHeight(field);
+        }
       });
 
       detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
@@ -6231,6 +6241,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       measurer.remove();
+    }
+
+    function adjustDesignationFieldHeight(field) {
+      if (!field || !field.classList?.contains('cell-input--designation')) {
+        return;
+      }
+
+      field.style.height = 'auto';
+      const minHeight = parseFloat(window.getComputedStyle(field).minHeight) || 0;
+      const nextHeight = Math.max(minHeight, field.scrollHeight);
+      field.style.height = `${Math.ceil(nextHeight)}px`;
     }
 
     detailForm.addEventListener('submit', async (event) => {

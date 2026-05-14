@@ -3298,6 +3298,14 @@ body[data-page="item-detail"] .cell-textarea.cell-input--soft-disabled {
 
 .cell-input--designation {
   min-width: 20ch;
+  max-width: 44ch;
+  min-height: 2.75rem;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  resize: none;
 }
 
 .meta-value {
