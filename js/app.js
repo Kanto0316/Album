@@ -542,12 +542,52 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     <meta charset="UTF-8" />
     <title>${escapeHtml(title)}</title>
     <style>
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #cfd8e3; padding: 8px; text-align: center; vertical-align: middle; }
+      table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+      th, td {
+        border: 1px solid #cfd8e3;
+        padding: 8px 10px;
+        vertical-align: middle;
+        white-space: normal;
+        word-break: break-word;
+      }
+      th {
+        font-weight: 700;
+        background: #f3f6fa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-align: left;
+      }
+      td { text-align: left; }
+      td:nth-child(4),
+      td:nth-child(6),
+      td:nth-child(7),
+      td:nth-child(8),
+      td:nth-child(10) {
+        text-align: right;
+      }
+      td:nth-child(5),
+      td:nth-child(12) {
+        text-align: center;
+      }
     </style>
   </head>
   <body>
     <table>
+      <colgroup>
+        <col style="width: 18ch;" />
+        <col style="width: 18ch;" />
+        <col style="width: 40ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 10ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 22ch;" />
+        <col style="width: 12ch;" />
+        <col style="width: 30ch;" />
+        <col style="width: 12ch;" />
+      </colgroup>
       <thead>
         <tr>
           <th>#</th>
@@ -598,12 +638,52 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     <meta charset="UTF-8" />
     <title>${escapeHtml(title)}</title>
     <style>
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #cfd8e3; padding: 8px; text-align: center; vertical-align: middle; }
+      table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+      th, td {
+        border: 1px solid #cfd8e3;
+        padding: 8px 10px;
+        vertical-align: middle;
+        white-space: normal;
+        word-break: break-word;
+      }
+      th {
+        font-weight: 700;
+        background: #f3f6fa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-align: left;
+      }
+      td { text-align: left; }
+      td:nth-child(4),
+      td:nth-child(6),
+      td:nth-child(7),
+      td:nth-child(8),
+      td:nth-child(10) {
+        text-align: right;
+      }
+      td:nth-child(5),
+      td:nth-child(12) {
+        text-align: center;
+      }
     </style>
   </head>
   <body>
     <table>
+      <colgroup>
+        <col style="width: 18ch;" />
+        <col style="width: 18ch;" />
+        <col style="width: 40ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 10ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 14ch;" />
+        <col style="width: 22ch;" />
+        <col style="width: 12ch;" />
+        <col style="width: 30ch;" />
+        <col style="width: 12ch;" />
+      </colgroup>
       <thead>
         <tr>
           <th>OUT</th>
