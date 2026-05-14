@@ -5074,15 +5074,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       page2SearchValue = '';
       page2CursorFilterLabel = 'Tous';
     }
-    const normalizedPage2SearchValue = page2SearchValue.toLowerCase();
-    const hasPage2SearchContext = Boolean(page2SearchValue);
     const hasPage2CursorFilterContext = page2CursorFilterLabel !== 'Tous';
-    const isPage2Context = hasPage2SearchContext || hasPage2CursorFilterContext;
     const page2CursorFilterKey = hasPage2CursorFilterContext
       ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
       : 'all';
-    const isPage2BridgeLocked = isPage2Context;
-    let isPage2FilterBridgeActive = isPage2Context;
     activeDetailFilter = page2CursorFilterKey;
 
     function setDetailModalOpenState(isOpen) {
@@ -5594,13 +5589,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function getFilteredDetails(details) {
       const query = getSearchQuery();
-      if (isPage2FilterBridgeActive) {
-        return details.filter((detail) => {
-          const matchSearch = hasPage2SearchContext ? matchesSearchQuery(detail, normalizedPage2SearchValue) : true;
-          const matchFilter = hasPage2CursorFilterContext ? matchesDetailFilter(detail, page2CursorFilterKey) : true;
-          return matchSearch && matchFilter;
-        });
-      }
       return details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, activeDetailFilter));
     }
 
@@ -6270,9 +6258,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', () => {
-        if (!isPage2Context) {
-          isPage2FilterBridgeActive = false;
-        }
         renderTable();
       });
       const toggleClearButton = () => {
@@ -6292,7 +6277,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         detailSearchInput.focus();
       });
       detailSearchInput.value = page2SearchValue;
-      detailSearchInput.readOnly = isPage2Context;
       toggleClearButton();
     }
 
@@ -6308,7 +6292,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       detailFilterOptions.forEach((option) => {
         option.addEventListener('click', () => {
-          isPage2FilterBridgeActive = false;
           setDetailFilter(option.dataset.detailFilter || 'all');
           closeDetailFilterMenu();
         });
@@ -6327,18 +6310,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
-
-    if (isPage2BridgeLocked) {
-      if (detailSearchInput) {
-        detailSearchInput.readOnly = true;
-      }
-      if (clearSearchBtn) {
-        clearSearchBtn.disabled = true;
-      }
-      if (detailFilterMenu) {
-        detailFilterMenu.hidden = true;
-      }
-    }
     if (exportButton) {
       exportButton.addEventListener('click', openDetailExportDialog);
     }
