@@ -5053,22 +5053,23 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
     let activeDetailFilter = 'all';
     const page2SearchStorageKey = 'page2_search_value';
-    let initialPage2SearchQuery = '';
-    let initialPage2CursorFilterLabel = 'Tous';
+    let page2SearchValue = '';
+    let page2CursorFilterLabel = 'Tous';
     try {
-      initialPage2SearchQuery = String(window.localStorage.getItem(page2SearchStorageKey) || '').trim().toLowerCase();
-      initialPage2CursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
+      page2SearchValue = String(window.localStorage.getItem(page2SearchStorageKey) || '').trim();
+      page2CursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
     } catch (_error) {
-      initialPage2SearchQuery = '';
-      initialPage2CursorFilterLabel = 'Tous';
+      page2SearchValue = '';
+      page2CursorFilterLabel = 'Tous';
     }
-    const hasInitialPage2Search = Boolean(initialPage2SearchQuery);
-    const hasInitialPage2CursorFilter = initialPage2CursorFilterLabel !== 'Tous';
-    const initialPage2CursorFilter = hasInitialPage2CursorFilter
-      ? (detailFilterKeyByPage2Label[initialPage2CursorFilterLabel] || 'all')
+    const normalizedPage2SearchValue = page2SearchValue.toLowerCase();
+    const hasPage2SearchContext = Boolean(page2SearchValue);
+    const hasPage2CursorFilterContext = page2CursorFilterLabel !== 'Tous';
+    const page2CursorFilterKey = hasPage2CursorFilterContext
+      ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
       : 'all';
-    let isPage2FilterBridgeActive = hasInitialPage2Search || hasInitialPage2CursorFilter;
-    activeDetailFilter = initialPage2CursorFilter;
+    let isPage2FilterBridgeActive = hasPage2SearchContext || hasPage2CursorFilterContext;
+    activeDetailFilter = page2CursorFilterKey;
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -5581,8 +5582,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const query = getSearchQuery();
       if (isPage2FilterBridgeActive) {
         return details.filter((detail) => {
-          const matchSearch = hasInitialPage2Search ? matchesSearchQuery(detail, initialPage2SearchQuery) : true;
-          const matchFilter = hasInitialPage2CursorFilter ? matchesDetailFilter(detail, initialPage2CursorFilter) : true;
+          const matchSearch = hasPage2SearchContext ? matchesSearchQuery(detail, normalizedPage2SearchValue) : true;
+          const matchFilter = hasPage2CursorFilterContext ? matchesDetailFilter(detail, page2CursorFilterKey) : true;
           return matchSearch && matchFilter;
         });
       }
@@ -6275,7 +6276,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         renderTable();
         detailSearchInput.focus();
       });
-      detailSearchInput.value = initialPage2SearchQuery;
+      detailSearchInput.value = page2SearchValue;
       toggleClearButton();
     }
 
