@@ -5068,7 +5068,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const page2CursorFilterKey = hasPage2CursorFilterContext
       ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
       : 'all';
-    let isPage2FilterBridgeActive = hasPage2SearchContext || hasPage2CursorFilterContext;
+    const isPage2BridgeLocked = hasPage2SearchContext || hasPage2CursorFilterContext;
+    let isPage2FilterBridgeActive = isPage2BridgeLocked;
     activeDetailFilter = page2CursorFilterKey;
 
     function setDetailModalOpenState(isOpen) {
@@ -6257,7 +6258,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', () => {
-        isPage2FilterBridgeActive = false;
+        if (!isPage2BridgeLocked) {
+          isPage2FilterBridgeActive = false;
+        }
         renderTable();
       });
       const toggleClearButton = () => {
@@ -6292,7 +6295,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       detailFilterOptions.forEach((option) => {
         option.addEventListener('click', () => {
-          isPage2FilterBridgeActive = false;
+          if (!isPage2BridgeLocked) {
+            isPage2FilterBridgeActive = false;
+          }
           setDetailFilter(option.dataset.detailFilter || 'all');
           closeDetailFilterMenu();
         });
@@ -6311,6 +6316,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+
+    if (isPage2BridgeLocked) {
+      if (detailSearchInput) {
+        detailSearchInput.readOnly = true;
+      }
+      if (clearSearchBtn) {
+        clearSearchBtn.disabled = true;
+      }
+      if (detailFilterButton) {
+        detailFilterButton.disabled = true;
+      }
+      if (detailFilterMenu) {
+        detailFilterMenu.hidden = true;
+      }
+    }
     if (exportButton) {
       exportButton.addEventListener('click', openDetailExportDialog);
     }
