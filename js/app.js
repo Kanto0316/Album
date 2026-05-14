@@ -5609,10 +5609,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
 
-      const query = getSearchQuery();
       detailFilterOptions.forEach((option) => {
         const filterKey = option.dataset.detailFilter || 'all';
-        const count = details.filter((detail) => matchesSearchQuery(detail, query) && matchesDetailFilter(detail, filterKey)).length;
+        const count = details.filter((detail) => matchesDetailFilter(detail, filterKey)).length;
         const label = option.dataset.filterLabel || option.textContent.trim();
         option.textContent = `${label} (${count})`;
       });
