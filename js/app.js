@@ -6009,6 +6009,30 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && ecart !== 0);
     }
 
+    function sanitizeNumericDisplayValue(value) {
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) ? String(numericValue) : '0';
+    }
+
+    function normalizeDetailNumericCells(row) {
+      if (!row) {
+        return;
+      }
+
+      ['qtePosee', 'qteRebus', 'qteRetour'].forEach((fieldName) => {
+        const input = row.querySelector(`[data-field="${fieldName}"]`);
+        if (!input) {
+          return;
+        }
+        input.value = sanitizeNumericDisplayValue(input.value);
+      });
+
+      const ecartField = row.querySelector('[data-col-key="ecart"]');
+      if (ecartField) {
+        ecartField.value = sanitizeNumericDisplayValue(ecartField.value);
+      }
+    }
+
     function renderTable() {
       if (!hasResolvedInitialDetails) {
         updateCount(null, null);
@@ -6052,11 +6076,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   <span class="meta-value meta-value--inline">${escapeHtml(detail.unite)}</span>
                 </div>
               </td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${sanitizeNumericDisplayValue(detail.qtePosee)}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${sanitizeNumericDisplayValue(detail.qteRebus)}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${sanitizeNumericDisplayValue(detail.qteRetour)}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${sanitizeNumericDisplayValue(ecart)}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
               <td>
                 <div class="detail-status-field detail-status-field--${isKoStatus ? 'ko' : 'ok'}">
@@ -6084,6 +6108,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const statusSelect = row.querySelector('[data-field="statut"]');
         const isKoStatus = normalizeDetailStatut(statusSelect?.value) === 'K.O';
         setRowKoInteractionState(row, isKoStatus);
+        normalizeDetailNumericCells(row);
         applyDetailRowSemanticState(row);
       });
 
@@ -6100,6 +6125,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const isKoRow = normalizeDetailStatut(currentDetail.statut) === 'K.O';
           if (fieldName !== 'statut' && isKoRow) {
             return;
+          }
+
+          const shouldForceNumericZero = fieldName === 'qtePosee' || fieldName === 'qteRebus' || fieldName === 'qteRetour';
+          if (shouldForceNumericZero && String(event.target.value).trim() === '') {
+            event.target.value = '0';
           }
 
           const nextValue = fieldName === 'statut' ? normalizeDetailStatut(event.target.value) : event.target.value;
@@ -6145,6 +6175,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             }
             if (field.value.length > 120) {
               field.value = field.value.slice(0, 120);
+            }
+            if ((field.dataset.field === 'qtePosee' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour') && String(field.value).trim() === '') {
+              field.value = '0';
             }
             if (field.dataset.field === 'qtePosee' || field.dataset.field === 'qteSortie' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour' || field.dataset.field === 'statut') {
               const row = field.closest('tr');
