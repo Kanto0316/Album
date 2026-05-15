@@ -64,6 +64,36 @@
             <button class="filter-chip" type="button" data-filter-chip="yesterday">Hier</button>
             <button class="filter-chip" type="button" data-filter-chip="lastMonth">Plus ancien</button>
           </div>
+          <section id="itemProgressStatsCard" class="progress-stats-card" aria-live="polite" hidden>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span>Terminés</span>
+                <span id="itemProgressDoneMeta">0 • 0%</span>
+              </div>
+              <div class="progress-track"><div id="itemProgressDoneFill" class="progress-fill completed" style="width: 0%;"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span>En attente</span>
+                <span id="itemProgressTodoMeta">0 • 0%</span>
+              </div>
+              <div class="progress-track"><div id="itemProgressTodoFill" class="progress-fill pending" style="width: 0%;"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span>À corriger</span>
+                <span id="itemProgressFixMeta">0 • 0%</span>
+              </div>
+              <div class="progress-track"><div id="itemProgressFixFill" class="progress-fill warning" style="width: 0%;"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span>K.O</span>
+                <span id="itemProgressKoMeta">0 • 0%</span>
+              </div>
+              <div class="progress-track"><div id="itemProgressKoFill" class="progress-fill ko" style="width: 0%;"></div></div>
+            </div>
+          </section>
           <label class="sr-only" for="itemDateFilter">Filtrer les résultats par date</label>
           <select id="itemDateFilter" class="visually-hidden-control" aria-label="Filtrer les résultats par date">
             <option value="all">Tous</option>
