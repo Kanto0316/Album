@@ -4424,6 +4424,13 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
   line-height: 1;
 }
 
+.bottom-nav-icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+
 .bottom-nav-label {
   font-size: 13px;
   line-height: 1;
@@ -6111,4 +6118,3 @@ body[data-page="item-detail"] .search-highlight {
   padding: 0 2px;
   font-weight: 700;
 }
-
