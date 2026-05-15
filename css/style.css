@@ -2380,7 +2380,9 @@ body[data-page="item-detail"] .table-wrapper--shared {
 body[data-page="item-detail"] .table-container--card {
   max-width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
 }
 
 body[data-page="item-detail"] .search-panel .input-group {
