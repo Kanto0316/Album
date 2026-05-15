@@ -3286,7 +3286,7 @@ body[data-page="item-detail"] .date-retour-field {
   width: 94px !important;
   max-width: 94px !important;
   min-height: 2.25rem;
-  padding: 0.3rem 1.8rem 0.3rem 0.38rem;
+  padding: 0.3rem 0.38rem;
   text-align: center;
   line-height: 1.2;
 }
