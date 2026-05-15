@@ -2904,6 +2904,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemStatusFilterMenu = document.getElementById('itemStatusFilterMenu');
     const itemStatusFilterOptions = Array.from(document.querySelectorAll('[data-item-status-filter]'));
     const itemProgressStatsCard = document.getElementById('itemProgressStatsCard');
+    const itemProgressTotal = document.getElementById('itemProgressTotal');
     const itemProgressDoneMeta = document.getElementById('itemProgressDoneMeta');
     const itemProgressTodoMeta = document.getElementById('itemProgressTodoMeta');
     const itemProgressFixMeta = document.getElementById('itemProgressFixMeta');
@@ -3937,6 +3938,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const total = doneCount + todoCount + fixCount + koCount;
 
       itemProgressStatsCard.hidden = total <= 0;
+      if (itemProgressTotal) {
+        itemProgressTotal.textContent = `Total • ${total} OUT${total > 1 ? 'S' : ''}`;
+      }
       if (total <= 0) {
         return;
       }
