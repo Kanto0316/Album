@@ -6012,7 +6012,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function renderTable() {
       if (!hasResolvedInitialDetails) {
         updateCount(null, null);
-        detailTableBody.innerHTML = `<tr><td colspan="14"><div class="empty-state">Chargement...</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="15"><div class="empty-state">Chargement...</div></td></tr>`;
         return;
       }
 
@@ -6026,7 +6026,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       updateDetailFilterCounters(currentDetails);
 
       if (!filteredDetails.length) {
-        detailTableBody.innerHTML = `<tr><td colspan="14"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
+        detailTableBody.innerHTML = `<tr><td colspan="15"><div class="empty-state">${currentDetails.length ? 'Aucune  désignation ne correspond à votre recherche.' : 'Aucune article enregistrée.'}</div></td></tr>`;
         return;
       }
 
@@ -6046,13 +6046,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><span class="field-badge">${detail.champ}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
               <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
-              <td>
-                <div class="qte-sortie-field">
-                  <span class="qte-sortie-unit-spacer" aria-hidden="true">${escapeHtml(detail.unite)}</span>
-                  <input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" />
-                  <span class="meta-value meta-value--inline">${escapeHtml(detail.unite)}</span>
-                </div>
-              </td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" /></td>
+              <td><span class="meta-value">${escapeHtml(detail.unite)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
