@@ -3911,12 +3911,28 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           countNode.textContent = String(count);
         }
       });
+      enforceItemStatusFilterAvailability();
+    }
+
+    function enforceItemStatusFilterAvailability() {
+      const activeOption = itemStatusFilterOptions.find((option) => option.dataset.itemStatusFilter === activeStatusFilter);
+      const activeCount = Number(activeOption?.querySelector('.page2-filter-option__count')?.textContent || '0');
+      if (activeStatusFilter !== 'all' && activeCount <= 0) {
+        activeStatusFilter = 'all';
+      }
+      itemStatusFilterOptions.forEach((option) => {
+        const count = Number(option.querySelector('.page2-filter-option__count')?.textContent || '0');
+        const isDisabled = count <= 0;
+        option.classList.toggle('is-disabled', isDisabled);
+        option.disabled = isDisabled;
+        option.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+      });
     }
 
     function syncItemStatusFilterUi() {
       itemStatusFilterButton?.classList.toggle('is-filtered', activeStatusFilter !== 'all');
       itemStatusFilterOptions.forEach((option) => {
-        const isActive = option.dataset.itemStatusFilter === activeStatusFilter;
+        const isActive = option.dataset.itemStatusFilter === activeStatusFilter && !option.classList.contains('is-disabled');
         option.classList.toggle('is-active', isActive);
         option.setAttribute('aria-checked', isActive ? 'true' : 'false');
       });
@@ -3936,6 +3952,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function setItemStatusFilter(filterKey) {
       const nextFilter = filterKey || 'all';
+      const targetOption = itemStatusFilterOptions.find((option) => (option.dataset.itemStatusFilter || 'all') === nextFilter);
+      if (targetOption?.classList.contains('is-disabled')) {
+        return;
+      }
       activeStatusFilter = nextFilter;
       try {
         window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
@@ -5707,18 +5727,38 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           countNode.textContent = String(count);
         }
       });
+      enforceDetailFilterAvailability();
+    }
+
+    function enforceDetailFilterAvailability() {
+      const activeOption = detailFilterOptions.find((option) => option.dataset.detailFilter === activeDetailFilter);
+      const activeCount = Number(activeOption?.querySelector('.page3-filter-option__count')?.textContent || '0');
+      if (activeDetailFilter !== 'all' && activeCount <= 0) {
+        activeDetailFilter = 'all';
+      }
+      detailFilterOptions.forEach((option) => {
+        const count = Number(option.querySelector('.page3-filter-option__count')?.textContent || '0');
+        const isDisabled = count <= 0;
+        option.classList.toggle('is-disabled', isDisabled);
+        option.disabled = isDisabled;
+        option.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
+      });
     }
 
     function syncDetailFilterUi() {
       detailFilterButton?.classList.toggle('is-filtered', activeDetailFilter !== 'all');
       detailFilterOptions.forEach((option) => {
-        const isActive = option.dataset.detailFilter === activeDetailFilter;
+        const isActive = option.dataset.detailFilter === activeDetailFilter && !option.classList.contains('is-disabled');
         option.classList.toggle('is-active', isActive);
         option.setAttribute('aria-checked', isActive ? 'true' : 'false');
       });
     }
 
     function setDetailFilter(filterKey) {
+      const targetOption = detailFilterOptions.find((option) => (option.dataset.detailFilter || 'all') === filterKey);
+      if (targetOption?.classList.contains('is-disabled')) {
+        return;
+      }
       activeDetailFilter = filterKey;
       syncDetailFilterUi();
       renderTable();
