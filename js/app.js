@@ -3959,11 +3959,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function enforceItemStatusFilterAvailability() {
-      const activeOption = itemStatusFilterOptions.find((option) => option.dataset.itemStatusFilter === activeStatusFilter);
-      const activeCount = Number(activeOption?.querySelector('.page2-filter-option__count')?.textContent || '0');
-      if (activeStatusFilter !== 'all' && activeCount <= 0) {
-        activeStatusFilter = 'all';
-      }
       itemStatusFilterOptions.forEach((option) => {
         const count = Number(option.querySelector('.page2-filter-option__count')?.textContent || '0');
         const isDisabled = count <= 0;
@@ -3976,7 +3971,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function syncItemStatusFilterUi() {
       itemStatusFilterButton?.classList.toggle('is-filtered', activeStatusFilter !== 'all');
       itemStatusFilterOptions.forEach((option) => {
-        const isActive = option.dataset.itemStatusFilter === activeStatusFilter && !option.classList.contains('is-disabled');
+        const isActive = option.dataset.itemStatusFilter === activeStatusFilter;
         option.classList.toggle('is-active', isActive);
         option.setAttribute('aria-checked', isActive ? 'true' : 'false');
       });
@@ -5217,6 +5212,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       'Complété': 'done',
       'K.O': 'ko',
     };
+    const detailFilterLabelByKey = {
+      all: 'Tous',
+      todo: 'À faire',
+      fix: 'À corriger',
+      done: 'Complété',
+      ko: 'K.O',
+    };
     let activeDetailFilter = 'all';
     const page2SearchStorageKey = 'page2_search_value';
     let page2SearchValue = '';
@@ -5786,11 +5788,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function enforceDetailFilterAvailability() {
-      const activeOption = detailFilterOptions.find((option) => option.dataset.detailFilter === activeDetailFilter);
-      const activeCount = Number(activeOption?.querySelector('.page3-filter-option__count')?.textContent || '0');
-      if (activeDetailFilter !== 'all' && activeCount <= 0) {
-        activeDetailFilter = 'all';
-      }
       detailFilterOptions.forEach((option) => {
         const count = Number(option.querySelector('.page3-filter-option__count')?.textContent || '0');
         const isDisabled = count <= 0;
@@ -5803,7 +5800,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function syncDetailFilterUi() {
       detailFilterButton?.classList.toggle('is-filtered', activeDetailFilter !== 'all');
       detailFilterOptions.forEach((option) => {
-        const isActive = option.dataset.detailFilter === activeDetailFilter && !option.classList.contains('is-disabled');
+        const isActive = option.dataset.detailFilter === activeDetailFilter;
         option.classList.toggle('is-active', isActive);
         option.setAttribute('aria-checked', isActive ? 'true' : 'false');
       });
@@ -5815,6 +5812,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       activeDetailFilter = filterKey;
+      try {
+        window.localStorage.setItem(cursorFilterActiveStorageKey, detailFilterLabelByKey[activeDetailFilter] || 'Tous');
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
       syncDetailFilterUi();
       renderTable();
     }
