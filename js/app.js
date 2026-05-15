@@ -2898,6 +2898,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const cursorFilterReadOutsStorageKey = 'page2_cursor_filter_read_outs';
     const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
+    const activeOutStatusFilterStorageKey = 'activeOutStatusFilter';
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
@@ -2929,7 +2930,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       ko: 'K.O',
     };
     const storedCursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
-    let activeStatusFilter = statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
+    const storedSharedStatusFilter = window.localStorage.getItem(activeOutStatusFilterStorageKey) || '';
+    let activeStatusFilter = storedSharedStatusFilter || statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
+    if (!['all', 'todo', 'fix', 'done', 'ko'].includes(activeStatusFilter)) {
+      activeStatusFilter = 'all';
+    }
     const readCursorFilterOuts = new Set();
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     try {
@@ -3963,6 +3968,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const activeCount = Number(activeOption?.querySelector('.page2-filter-option__count')?.textContent || '0');
       if (activeStatusFilter !== 'all' && activeCount <= 0) {
         activeStatusFilter = 'all';
+        try {
+          window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
+          window.localStorage.setItem(activeOutStatusFilterStorageKey, activeStatusFilter);
+        } catch (_error) {
+          // Ignore localStorage restrictions.
+        }
       }
       itemStatusFilterOptions.forEach((option) => {
         const filterKey = option.dataset.itemStatusFilter || 'all';
@@ -4004,6 +4015,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       activeStatusFilter = nextFilter;
       try {
         window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
+        window.localStorage.setItem(activeOutStatusFilterStorageKey, activeStatusFilter);
       } catch (_error) {
         // Ignore localStorage restrictions.
       }
@@ -5211,6 +5223,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let codeInputErrorStateTimeoutId = null;
     let designationInputErrorStateTimeoutId = null;
     const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
+    const activeOutStatusFilterStorageKey = 'activeOutStatusFilter';
     const detailFilterKeyByPage2Label = {
       'Tous': 'all',
       'À faire': 'todo',
@@ -5225,6 +5238,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     try {
       page2SearchValue = String(window.localStorage.getItem(page2SearchStorageKey) || '').trim();
       page2CursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
+      const sharedStatusFilter = String(window.localStorage.getItem(activeOutStatusFilterStorageKey) || '').trim();
+      if (['all', 'todo', 'fix', 'done', 'ko'].includes(sharedStatusFilter)) {
+        activeDetailFilter = sharedStatusFilter;
+      }
     } catch (_error) {
       page2SearchValue = '';
       page2CursorFilterLabel = 'Tous';
@@ -5233,7 +5250,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const page2CursorFilterKey = hasPage2CursorFilterContext
       ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
       : 'all';
-    activeDetailFilter = page2CursorFilterKey;
+    if (!activeDetailFilter) {
+      activeDetailFilter = page2CursorFilterKey;
+    }
 
     function setDetailModalOpenState(isOpen) {
       document.body.classList.toggle('item-detail-modal-open', isOpen);
@@ -5816,6 +5835,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       activeDetailFilter = filterKey;
+      try {
+        window.localStorage.setItem(activeOutStatusFilterStorageKey, activeDetailFilter);
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
       syncDetailFilterUi();
       renderTable();
     }
