@@ -2953,12 +2953,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       done: 'Complété',
       ko: 'K.O',
     };
+    const validOutStatusFilters = ['all', 'todo', 'fix', 'done', 'ko'];
     const storedCursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
     const rawStoredSharedStatusFilter = window.localStorage.getItem(activeOutStatusFilterStorageKey) || '';
     const storedSharedStatusFilter = normalizeStoredOutStatusFilter(rawStoredSharedStatusFilter);
-    let activeStatusFilter = storedSharedStatusFilter || statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
-    if (!['all', 'todo', 'fix', 'done', 'ko'].includes(activeStatusFilter)) {
+    const fallbackStatusFilter = statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
+    const hasValidStoredSharedStatusFilter = validOutStatusFilters.includes(storedSharedStatusFilter);
+    let activeStatusFilter = hasValidStoredSharedStatusFilter ? storedSharedStatusFilter : fallbackStatusFilter;
+    if (!validOutStatusFilters.includes(activeStatusFilter)) {
       activeStatusFilter = 'all';
+    }
+    if (!hasValidStoredSharedStatusFilter) {
+      try {
+        window.localStorage.setItem(activeOutStatusFilterStorageKey, toStoredOutStatusFilterValue(activeStatusFilter));
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
     }
     const readCursorFilterOuts = new Set();
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
@@ -5280,6 +5290,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       'Complété': 'done',
       'K.O': 'ko',
     };
+    const validOutStatusFilters = ['all', 'todo', 'fix', 'done', 'ko'];
     let activeDetailFilter = 'all';
     const page2SearchStorageKey = 'page2_search_value';
     let page2SearchValue = '';
@@ -5288,17 +5299,23 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       page2SearchValue = String(window.localStorage.getItem(page2SearchStorageKey) || '').trim();
       page2CursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
       const sharedStatusFilter = String(window.localStorage.getItem(activeOutStatusFilterStorageKey) || '').trim();
-      activeDetailFilter = normalizeStoredOutStatusFilter(sharedStatusFilter);
+      const normalizedSharedStatusFilter = normalizeStoredOutStatusFilter(sharedStatusFilter);
+      const hasValidSharedStatusFilter = validOutStatusFilters.includes(normalizedSharedStatusFilter);
+      const hasPage2CursorFilterContext = page2CursorFilterLabel !== 'Tous';
+      const page2CursorFilterKey = hasPage2CursorFilterContext
+        ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
+        : 'all';
+      activeDetailFilter = hasValidSharedStatusFilter ? normalizedSharedStatusFilter : page2CursorFilterKey;
+      if (!validOutStatusFilters.includes(activeDetailFilter)) {
+        activeDetailFilter = 'all';
+      }
+      if (!hasValidSharedStatusFilter) {
+        window.localStorage.setItem(activeOutStatusFilterStorageKey, toStoredOutStatusFilterValue(activeDetailFilter));
+      }
     } catch (_error) {
       page2SearchValue = '';
       page2CursorFilterLabel = 'Tous';
-    }
-    const hasPage2CursorFilterContext = page2CursorFilterLabel !== 'Tous';
-    const page2CursorFilterKey = hasPage2CursorFilterContext
-      ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
-      : 'all';
-    if (!activeDetailFilter) {
-      activeDetailFilter = page2CursorFilterKey || 'all';
+      activeDetailFilter = 'all';
     }
 
     function setDetailModalOpenState(isOpen) {
