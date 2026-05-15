@@ -3965,8 +3965,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         activeStatusFilter = 'all';
       }
       itemStatusFilterOptions.forEach((option) => {
+        const filterKey = option.dataset.itemStatusFilter || 'all';
         const count = Number(option.querySelector('.page2-filter-option__count')?.textContent || '0');
-        const isDisabled = count <= 0;
+        const isDisabled = filterKey === 'all' ? false : count <= 0;
         option.classList.toggle('is-disabled', isDisabled);
         option.disabled = isDisabled;
         option.setAttribute('aria-disabled', isDisabled ? 'true' : 'false');
@@ -3976,7 +3977,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function syncItemStatusFilterUi() {
       itemStatusFilterButton?.classList.toggle('is-filtered', activeStatusFilter !== 'all');
       itemStatusFilterOptions.forEach((option) => {
-        const isActive = option.dataset.itemStatusFilter === activeStatusFilter && !option.classList.contains('is-disabled');
+        const isActive = option.dataset.itemStatusFilter === activeStatusFilter;
         option.classList.toggle('is-active', isActive);
         option.setAttribute('aria-checked', isActive ? 'true' : 'false');
       });
