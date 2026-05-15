@@ -277,7 +277,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let translateX = 0;
     let translateY = 0;
     let dragState = null;
-    let pinchState = null;
 
     function clampScale(value) {
       return Math.min(maxScale, Math.max(minScale, value));
@@ -347,47 +346,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       tableContainer.classList.remove('is-grabbing');
     });
 
-    tableContainer.addEventListener('touchstart', (event) => {
-      if (event.touches.length === 2) {
-        const [touchA, touchB] = event.touches;
-        const dx = touchB.clientX - touchA.clientX;
-        const dy = touchB.clientY - touchA.clientY;
-        pinchState = {
-          distance: Math.hypot(dx, dy),
-          scale,
-        };
-      }
-    }, { passive: true });
-
-    tableContainer.addEventListener('touchmove', (event) => {
-      if (event.touches.length !== 2 || !pinchState) {
-        return;
-      }
-
-      const [touchA, touchB] = event.touches;
-      const dx = touchB.clientX - touchA.clientX;
-      const dy = touchB.clientY - touchA.clientY;
-      const currentDistance = Math.hypot(dx, dy);
-      if (!currentDistance || !pinchState.distance) {
-        return;
-      }
-
-      const midpointX = (touchA.clientX + touchB.clientX) / 2;
-      const midpointY = (touchA.clientY + touchB.clientY) / 2;
-      const scaleFactor = currentDistance / pinchState.distance;
-      zoomAtPoint(pinchState.scale * scaleFactor, midpointX, midpointY);
+    tableContainer.addEventListener('gesturestart', (event) => {
       event.preventDefault();
     }, { passive: false });
 
-    tableContainer.addEventListener('touchend', (event) => {
-      if (event.touches.length < 2) {
-        pinchState = null;
+    tableContainer.addEventListener('touchmove', (event) => {
+      if (typeof event.scale === 'number' && event.scale !== 1) {
+        event.preventDefault();
       }
-    });
-
-    tableContainer.addEventListener('touchcancel', () => {
-      pinchState = null;
-    });
+    }, { passive: false });
 
     applyTransform();
   }
