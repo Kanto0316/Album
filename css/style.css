@@ -3282,13 +3282,12 @@ body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="observa
 }
 
 body[data-page="item-detail"] .date-retour-field {
-  min-width: 98px !important;
-  width: 98px !important;
-  max-width: 98px !important;
-  min-height: 2.25rem;
-  padding: 0.3rem 0.38rem;
+  width: 112px !important;
+  min-width: 112px !important;
+  max-width: 112px !important;
+  padding-left: 0.35rem;
+  padding-right: 1.4rem;
   text-align: center;
-  line-height: 1.2;
 }
 
 body[data-page="item-detail"] .date-retour-field::-webkit-datetime-edit {
