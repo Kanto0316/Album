@@ -53,6 +53,13 @@
         bottom: 24px !important;
       }
 
+      .materials-page .cart-fab-icon {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+        display: block;
+      }
+
       .materials-page .cart-badge {
         position: absolute;
         top: -6px;
@@ -379,7 +386,7 @@
       </main>
 
       <button id="materialCartFab" class="fab fab-add cart-fab" type="button" aria-label="Voir la demande matériel">
-        🛒
+        <img src="Icon/Chariot.png" alt="" aria-hidden="true" class="cart-fab-icon" />
         <span id="materialCartBadge" class="cart-badge">0</span>
       </button>
 
