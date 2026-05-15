@@ -2903,6 +2903,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
     const itemStatusFilterMenu = document.getElementById('itemStatusFilterMenu');
     const itemStatusFilterOptions = Array.from(document.querySelectorAll('[data-item-status-filter]'));
+    const itemProgressStatsCard = document.getElementById('itemProgressStatsCard');
+    const itemProgressDoneMeta = document.getElementById('itemProgressDoneMeta');
+    const itemProgressTodoMeta = document.getElementById('itemProgressTodoMeta');
+    const itemProgressFixMeta = document.getElementById('itemProgressFixMeta');
+    const itemProgressKoMeta = document.getElementById('itemProgressKoMeta');
+    const itemProgressDoneFill = document.getElementById('itemProgressDoneFill');
+    const itemProgressTodoFill = document.getElementById('itemProgressTodoFill');
+    const itemProgressFixFill = document.getElementById('itemProgressFixFill');
+    const itemProgressKoFill = document.getElementById('itemProgressKoFill');
     let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
     const statusFilterKeyByLabel = {
       'Tous': 'all',
@@ -3903,15 +3912,46 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!itemStatusFilterOptions.length) {
         return;
       }
+      const countsByFilterKey = {};
       itemStatusFilterOptions.forEach((option) => {
         const filterKey = option.dataset.itemStatusFilter || 'all';
         const count = getTotalMatchingDetailCount(query, filterKey);
+        countsByFilterKey[filterKey] = count;
         const countNode = option.querySelector('.page2-filter-option__count');
         if (countNode) {
           countNode.textContent = String(count);
         }
       });
+      updateItemProgressStatsCard(countsByFilterKey);
       enforceItemStatusFilterAvailability();
+    }
+
+    function updateItemProgressStatsCard(countsByFilterKey = {}) {
+      if (!itemProgressStatsCard) {
+        return;
+      }
+      const doneCount = Number(countsByFilterKey.done || 0);
+      const todoCount = Number(countsByFilterKey.todo || 0);
+      const fixCount = Number(countsByFilterKey.fix || 0);
+      const koCount = Number(countsByFilterKey.ko || 0);
+      const total = doneCount + todoCount + fixCount + koCount;
+
+      itemProgressStatsCard.hidden = total <= 0;
+      if (total <= 0) {
+        return;
+      }
+
+      const setProgress = (metaNode, fillNode, count) => {
+        if (!metaNode || !fillNode) return;
+        const percentage = Math.round((count / total) * 100);
+        metaNode.textContent = `${count} • ${percentage}%`;
+        fillNode.style.width = `${percentage}%`;
+      };
+
+      setProgress(itemProgressDoneMeta, itemProgressDoneFill, doneCount);
+      setProgress(itemProgressTodoMeta, itemProgressTodoFill, todoCount);
+      setProgress(itemProgressFixMeta, itemProgressFixFill, fixCount);
+      setProgress(itemProgressKoMeta, itemProgressKoFill, koCount);
     }
 
     function enforceItemStatusFilterAvailability() {
