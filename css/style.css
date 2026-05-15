@@ -3352,10 +3352,17 @@ body[data-page="item-detail"] .meta-value {
 }
 
 .qte-sortie-field {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  column-gap: 0.5rem;
+}
+
+.qte-sortie-unit-spacer {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
 }
 
 .toast {
