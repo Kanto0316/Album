@@ -6051,7 +6051,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic date-retour-field" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
               <td>
@@ -6216,6 +6216,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       };
 
       columns.forEach((inputs, key) => {
+        if (key === 'dateRetour') {
+          inputs.forEach((input) => {
+            input.style.width = '';
+          });
+          return;
+        }
+
         let maxWidth = minWidthByColumn[key] || 48;
 
         inputs.forEach((input) => {
