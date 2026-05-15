@@ -6063,8 +6063,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return `
             <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
               <td><span class="field-badge">${getHighlightedHtml(detail.champ, searchQuery)}</span></td>
-              <td><input class="cell-input cell-input--compact-dynamic cell-input--left${searchQuery && String(detail.code || "").toLowerCase().includes(searchQuery) ? " search-highlight-field" : ""}" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
-              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left${searchQuery && String(detail.designation || "").toLowerCase().includes(searchQuery) ? " search-highlight-field" : ""}" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
+              <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
+              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" /></td>
               <td><span class="meta-value">${getHighlightedHtml(detail.unite, searchQuery)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
@@ -6072,7 +6072,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic date-retour-field" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
-              <td><input data-col-key="observation" data-field="observation" type="text" maxlength="120" class="cell-input cell-input--compact-dynamic${searchQuery && String(detail.observation || "").toLowerCase().includes(searchQuery) ? " search-highlight-field" : ""}" value="${escapeHtml(detail.observation)}" /></td>
+              <td><input data-col-key="observation" data-field="observation" type="text" maxlength="120" class="cell-input cell-input--compact-dynamic" value="${escapeHtml(detail.observation)}" /></td>
               <td>
                 <div class="detail-status-field detail-status-field--${isKoStatus ? 'ko' : 'ok'}">
                   <select class="cell-input cell-input--compact-dynamic detail-status-select" data-col-key="statut" data-field="statut" aria-label="Statut">
