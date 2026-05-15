@@ -5668,6 +5668,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return designation.includes(normalizedQuery) || code.includes(normalizedQuery);
     }
 
+
+    function getHighlightedHtml(value, query) {
+      const rawValue = String(value ?? '');
+      const trimmedQuery = String(query || '').trim();
+      if (!trimmedQuery) {
+        return escapeHtml(rawValue);
+      }
+      const pattern = new RegExp(`(${escapeRegExp(trimmedQuery)})`, 'ig');
+      return escapeHtml(rawValue).replace(pattern, '<span class="search-highlight">$1</span>');
+    }
+
     function isDetailCompleted(detail) {
       const qteSortie = Number(detail?.qteSortie) || 0;
       const qtePosee = Number(detail?.qtePosee) || 0;
@@ -6029,6 +6040,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const filteredDetails = getFilteredDetails(currentDetails);
+      const searchQuery = getSearchQuery();
       updateCount(filteredDetails.length, currentDetails.length);
       updateDetailFilterCounters(currentDetails);
 
@@ -6050,17 +6062,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             ].filter(Boolean).join(' ');
             return `
             <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
-              <td><span class="field-badge">${detail.champ}</span></td>
-              <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
-              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
+              <td><span class="field-badge">${getHighlightedHtml(detail.champ, searchQuery)}</span></td>
+              <td><input class="cell-input cell-input--compact-dynamic cell-input--left${searchQuery && String(detail.code || "").toLowerCase().includes(searchQuery) ? " search-highlight-field" : ""}" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
+              <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left${searchQuery && String(detail.designation || "").toLowerCase().includes(searchQuery) ? " search-highlight-field" : ""}" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" /></td>
-              <td><span class="meta-value">${escapeHtml(detail.unite)}</span></td>
+              <td><span class="meta-value">${getHighlightedHtml(detail.unite, searchQuery)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic date-retour-field" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="observation" data-field="observation" type="text" maxlength="120" value="${escapeHtml(detail.observation)}" /></td>
+              <td><input data-col-key="observation" data-field="observation" type="text" maxlength="120" class="cell-input cell-input--compact-dynamic${searchQuery && String(detail.observation || "").toLowerCase().includes(searchQuery) ? " search-highlight-field" : ""}" value="${escapeHtml(detail.observation)}" /></td>
               <td>
                 <div class="detail-status-field detail-status-field--${isKoStatus ? 'ko' : 'ok'}">
                   <select class="cell-input cell-input--compact-dynamic detail-status-select" data-col-key="statut" data-field="statut" aria-label="Statut">
@@ -6069,8 +6081,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   </select>
                 </div>
               </td>
-              <td><span class="meta-value">${UiService.formatDate(detail.dateCreation)}</span></td>
-              <td><span class="meta-value">${UiService.formatDate(detail.dateModification)}</span></td>
+              <td><span class="meta-value">${getHighlightedHtml(UiService.formatDate(detail.dateCreation), searchQuery)}</span></td>
+              <td><span class="meta-value">${getHighlightedHtml(UiService.formatDate(detail.dateModification), searchQuery)}</span></td>
               <td>
                 ${permissions.canDelete && !permissions.isLecture
       ? `<button class="table-delete-icon-button" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`
