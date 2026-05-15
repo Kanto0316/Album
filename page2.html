@@ -39,7 +39,7 @@
             </label>
             <div class="page2-filter-menu-wrap">
               <button type="button" id="itemStatusFilterButton" class="page2-filter-button" aria-label="Filtrer les OUT par statut" aria-haspopup="true" aria-expanded="false" aria-controls="itemStatusFilterMenu">
-                <img src="Icon/curseurs.png" alt="" aria-hidden="true" class="page2-filter-button__icon" />
+                <img src="Icon/filtre.png" alt="" aria-hidden="true" class="page2-filter-button__icon" />
               </button>
               <div id="itemStatusFilterMenu" class="page2-filter-menu" role="menu" hidden>
                 <button type="button" class="page2-filter-option is-active" data-item-status-filter="all" role="menuitemradio" aria-checked="true"><span class="page2-filter-option__label">Tous</span><span class="page2-filter-option__count">0</span></button>
@@ -269,10 +269,10 @@
           </div>
           <label class="input-group input-group--site-create input-group--item-create">
             <span>Nom</span>
-            <input id="editOutNameInput" type="text" maxlength="25" placeholder="Nom OUT" inputmode="numeric" pattern="[0-9]*" />
+            <input id="editOutNameInput" type="text" maxlength="10" placeholder="Nom OUT" inputmode="numeric" pattern="[0-9]*" />
             <div class="item-input-feedback-row">
               <p id="editOutNameFormError" class="form-error error-message" aria-live="polite"></p>
-              <span id="editOutNameCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
+              <span id="editOutNameCounter" class="input-char-counter" aria-live="polite">0 / 10</span>
             </div>
           </label>
           <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
