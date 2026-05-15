@@ -3281,22 +3281,22 @@ body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="observa
   min-width: 88px;
 }
 
-body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="dateRetour"] {
-  min-width: 122px;
-  width: 122px;
-  max-width: 122px;
+body[data-page="item-detail"] .date-retour-field {
+  min-width: 122px !important;
+  width: 122px !important;
+  max-width: 122px !important;
   min-height: 2.25rem;
   padding: 0.3rem 0.38rem;
   text-align: center;
   line-height: 1.2;
 }
 
-body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="dateRetour"]::-webkit-datetime-edit {
+body[data-page="item-detail"] .date-retour-field::-webkit-datetime-edit {
   text-align: center;
   padding: 0;
 }
 
-body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="dateRetour"]::-webkit-calendar-picker-indicator {
+body[data-page="item-detail"] .date-retour-field::-webkit-calendar-picker-indicator {
   margin: 0;
   padding: 0.02rem;
 }
