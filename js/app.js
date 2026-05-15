@@ -2899,6 +2899,30 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const cursorFilterReadOutsStorageKey = 'page2_cursor_filter_read_outs';
     const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
     const activeOutStatusFilterStorageKey = 'activeOutStatusFilter';
+    const uiStatusFilterToStorageValue = {
+      all: 'all',
+      todo: 'pending',
+      fix: 'warning',
+      done: 'completed',
+      ko: 'ko',
+    };
+    const storageValueToUiStatusFilter = {
+      all: 'all',
+      pending: 'todo',
+      warning: 'fix',
+      completed: 'done',
+      ko: 'ko',
+      todo: 'todo',
+      fix: 'fix',
+      done: 'done',
+    };
+    function normalizeStoredOutStatusFilter(value) {
+      const normalized = String(value || '').trim().toLowerCase();
+      return storageValueToUiStatusFilter[normalized] || 'all';
+    }
+    function toStoredOutStatusFilterValue(filterKey) {
+      return uiStatusFilterToStorageValue[filterKey] || 'all';
+    }
     const outPageScrollStorageKey = 'outPageScrollY';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
@@ -2930,7 +2954,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       ko: 'K.O',
     };
     const storedCursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
-    const storedSharedStatusFilter = window.localStorage.getItem(activeOutStatusFilterStorageKey) || '';
+    const storedSharedStatusFilter = normalizeStoredOutStatusFilter(window.localStorage.getItem(activeOutStatusFilterStorageKey) || '');
     let activeStatusFilter = storedSharedStatusFilter || statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
     if (!['all', 'todo', 'fix', 'done', 'ko'].includes(activeStatusFilter)) {
       activeStatusFilter = 'all';
@@ -3970,7 +3994,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         activeStatusFilter = 'all';
         try {
           window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
-          window.localStorage.setItem(activeOutStatusFilterStorageKey, activeStatusFilter);
+          window.localStorage.setItem(activeOutStatusFilterStorageKey, toStoredOutStatusFilterValue(activeStatusFilter));
         } catch (_error) {
           // Ignore localStorage restrictions.
         }
@@ -4015,7 +4039,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       activeStatusFilter = nextFilter;
       try {
         window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
-        window.localStorage.setItem(activeOutStatusFilterStorageKey, activeStatusFilter);
+        window.localStorage.setItem(activeOutStatusFilterStorageKey, toStoredOutStatusFilterValue(activeStatusFilter));
       } catch (_error) {
         // Ignore localStorage restrictions.
       }
@@ -5224,6 +5248,30 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let designationInputErrorStateTimeoutId = null;
     const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
     const activeOutStatusFilterStorageKey = 'activeOutStatusFilter';
+    const uiStatusFilterToStorageValue = {
+      all: 'all',
+      todo: 'pending',
+      fix: 'warning',
+      done: 'completed',
+      ko: 'ko',
+    };
+    const storageValueToUiStatusFilter = {
+      all: 'all',
+      pending: 'todo',
+      warning: 'fix',
+      completed: 'done',
+      ko: 'ko',
+      todo: 'todo',
+      fix: 'fix',
+      done: 'done',
+    };
+    function normalizeStoredOutStatusFilter(value) {
+      const normalized = String(value || '').trim().toLowerCase();
+      return storageValueToUiStatusFilter[normalized] || 'all';
+    }
+    function toStoredOutStatusFilterValue(filterKey) {
+      return uiStatusFilterToStorageValue[filterKey] || 'all';
+    }
     const detailFilterKeyByPage2Label = {
       'Tous': 'all',
       'À faire': 'todo',
@@ -5239,9 +5287,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       page2SearchValue = String(window.localStorage.getItem(page2SearchStorageKey) || '').trim();
       page2CursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
       const sharedStatusFilter = String(window.localStorage.getItem(activeOutStatusFilterStorageKey) || '').trim();
-      if (['all', 'todo', 'fix', 'done', 'ko'].includes(sharedStatusFilter)) {
-        activeDetailFilter = sharedStatusFilter;
-      }
+      activeDetailFilter = normalizeStoredOutStatusFilter(sharedStatusFilter);
     } catch (_error) {
       page2SearchValue = '';
       page2CursorFilterLabel = 'Tous';
@@ -5810,6 +5856,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const activeCount = Number(activeOption?.querySelector('.page3-filter-option__count')?.textContent || '0');
       if (activeDetailFilter !== 'all' && activeCount <= 0) {
         activeDetailFilter = 'all';
+        try {
+          window.localStorage.setItem(activeOutStatusFilterStorageKey, toStoredOutStatusFilterValue(activeDetailFilter));
+        } catch (_error) {
+          // Ignore localStorage restrictions.
+        }
       }
       detailFilterOptions.forEach((option) => {
         const count = Number(option.querySelector('.page3-filter-option__count')?.textContent || '0');
@@ -5836,7 +5887,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       activeDetailFilter = filterKey;
       try {
-        window.localStorage.setItem(activeOutStatusFilterStorageKey, activeDetailFilter);
+        window.localStorage.setItem(activeOutStatusFilterStorageKey, toStoredOutStatusFilterValue(activeDetailFilter));
       } catch (_error) {
         // Ignore localStorage restrictions.
       }
