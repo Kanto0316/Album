@@ -6102,3 +6102,19 @@ body {
 .hidden {
   display: none !important;
 }
+
+
+body[data-page="item-detail"] .search-highlight {
+  background: #ffe66b;
+  color: inherit;
+  border-radius: 4px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+
+body[data-page="item-detail"] .search-highlight-field {
+  background-color: #ffe66b;
+  color: inherit;
+  border-radius: 4px;
+  font-weight: 600;
+}
