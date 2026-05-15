@@ -2918,7 +2918,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
     function normalizeStoredOutStatusFilter(value) {
       const normalized = String(value || '').trim().toLowerCase();
-      return storageValueToUiStatusFilter[normalized] || 'all';
+      return storageValueToUiStatusFilter[normalized] || '';
     }
     function toStoredOutStatusFilterValue(filterKey) {
       return uiStatusFilterToStorageValue[filterKey] || 'all';
@@ -2954,7 +2954,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       ko: 'K.O',
     };
     const storedCursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
-    const storedSharedStatusFilter = normalizeStoredOutStatusFilter(window.localStorage.getItem(activeOutStatusFilterStorageKey) || '');
+    const rawStoredSharedStatusFilter = window.localStorage.getItem(activeOutStatusFilterStorageKey) || '';
+    const storedSharedStatusFilter = normalizeStoredOutStatusFilter(rawStoredSharedStatusFilter);
     let activeStatusFilter = storedSharedStatusFilter || statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
     if (!['all', 'todo', 'fix', 'done', 'ko'].includes(activeStatusFilter)) {
       activeStatusFilter = 'all';
@@ -5267,7 +5268,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
     function normalizeStoredOutStatusFilter(value) {
       const normalized = String(value || '').trim().toLowerCase();
-      return storageValueToUiStatusFilter[normalized] || 'all';
+      return storageValueToUiStatusFilter[normalized] || '';
     }
     function toStoredOutStatusFilterValue(filterKey) {
       return uiStatusFilterToStorageValue[filterKey] || 'all';
@@ -5297,7 +5298,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       ? (detailFilterKeyByPage2Label[page2CursorFilterLabel] || 'all')
       : 'all';
     if (!activeDetailFilter) {
-      activeDetailFilter = page2CursorFilterKey;
+      activeDetailFilter = page2CursorFilterKey || 'all';
     }
 
     function setDetailModalOpenState(isOpen) {
