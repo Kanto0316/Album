@@ -3939,7 +3939,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       itemProgressStatsCard.hidden = total <= 0;
       if (itemProgressTotal) {
-        itemProgressTotal.textContent = `Total • ${total} OUT${total > 1 ? 'S' : ''}`;
+        itemProgressTotal.textContent = `Total • ${total} ARTICLE${total > 1 ? 'S' : ''}`;
       }
       if (total <= 0) {
         return;
