@@ -3335,6 +3335,17 @@ body[data-page="item-detail"] .cell-textarea.cell-input--soft-disabled {
   pointer-events: none;
 }
 
+
+body[data-page="item-detail"] [data-col-key="designation"] .cell-input,
+body[data-page="item-detail"] .cell-input--designation,
+body[data-page="item-detail"] textarea.cell-input--designation,
+body[data-page="item-detail"] input[data-field="designation"] {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  align-items: center;
+  padding-left: 0.75rem !important;
+}
+
 body[data-page="item-detail"] .cell-input--designation {
   min-width: 22ch;
   max-width: 44ch;
