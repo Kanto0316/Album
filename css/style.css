@@ -3346,25 +3346,6 @@ body[data-page="item-detail"] .meta-value {
   font-size: 0.83rem;
 }
 
-.meta-value--inline {
-  min-width: auto;
-  padding: 0;
-}
-
-.qte-sortie-field {
-  display: inline-grid;
-  grid-template-columns: auto auto auto;
-  align-items: center;
-  justify-content: center;
-  column-gap: 0.5rem;
-}
-
-.qte-sortie-unit-spacer {
-  visibility: hidden;
-  user-select: none;
-  pointer-events: none;
-}
-
 .toast {
   --toast-bg: #3b82f6;
   --toast-text: #ffffff;
