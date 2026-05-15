@@ -2486,6 +2486,12 @@ body[data-page="item-detail"] .page3-filter-option.is-active {
   font-weight: 600;
 }
 
+body[data-page="item-detail"] .page3-filter-option.is-disabled {
+  opacity: 0.38;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 body[data-page="item-detail"] .search-input__icon-wrap {
   position: absolute;
   left: 0.85rem;
@@ -3913,6 +3919,12 @@ body[data-page="site-detail"] .page2-filter-option.is-active {
   background: #e7f0ff;
   color: #1d4ed8;
   font-weight: 600;
+}
+
+body[data-page="site-detail"] .page2-filter-option.is-disabled {
+  opacity: 0.38;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 body[data-page="site-detail"] .site-search-icon-wrap {
