@@ -3282,9 +3282,9 @@ body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="observa
 }
 
 body[data-page="item-detail"] .date-retour-field {
-  min-width: 99px !important;
-  width: 99px !important;
-  max-width: 99px !important;
+  min-width: 94px !important;
+  width: 94px !important;
+  max-width: 94px !important;
   min-height: 2.25rem;
   padding: 0.3rem 1.8rem 0.3rem 0.38rem;
   text-align: center;
