@@ -294,6 +294,19 @@
       }
 
 
+
+
+      .materials-page .export-img-btn {
+        background: var(--green-color, var(--success, #22c55e));
+        color: #fff;
+        border: none;
+      }
+
+      .materials-page .export-img-btn:hover,
+      .materials-page .export-img-btn:active {
+        filter: brightness(0.95);
+      }
+
       .materials-page #confirmRequestPngBtn {
         display: inline-flex;
         align-items: center;
@@ -407,7 +420,7 @@
           <div id="materialCartList" class="material-cart-list"></div>
           <div class="modal-actions modal-actions__row modal-actions__row--pair">
             <button id="clearMaterialCartBtn" class="btn btn-secondary" type="button">Vider</button>
-            <button id="downloadRequestPngBtn" class="btn btn-primary" type="button">Exporter IMG</button>
+            <button id="downloadRequestPngBtn" class="btn btn-primary export-img-btn" type="button">Exporter IMG</button>
           </div>
         </div>
       </dialog>
