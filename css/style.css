@@ -3935,6 +3935,14 @@ body[data-page="site-detail"] .progress-stats-card {
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
 }
 
+body[data-page="site-detail"] .progress-total {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
 body[data-page="site-detail"] .progress-item {
   margin-bottom: 10px;
 }
