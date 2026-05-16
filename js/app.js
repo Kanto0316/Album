@@ -91,7 +91,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
   }
 
-  function buildPage2ExportFileName(siteName, extension = 'xls') {
+  function buildPage2ExportFileName(siteName, extension = 'xlsx') {
     const safeSiteName = toFileSlug(siteName);
     const timestamp = buildExportTimestamp();
     return `suivi-materiel-${safeSiteName}-${timestamp}.${extension}`;
@@ -459,16 +459,57 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
   }
 
-  function downloadExcelFile(fileName, title, workbook) {
-    const blob = new Blob(['\ufeff', workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
-    UiService.showToast(`${title} lancé.`);
+  let excelJsModulePromise = null;
+
+  async function getExcelJsModule() {
+    if (window.ExcelJS) {
+      return window.ExcelJS;
+    }
+    if (!excelJsModulePromise) {
+      excelJsModulePromise = import('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm')
+        .then((module) => module.default || module)
+        .catch((error) => {
+          excelJsModulePromise = null;
+          throw error;
+        });
+    }
+    return excelJsModulePromise;
+  }
+
+  function computeWrappedRowHeightFromValues(values) {
+    const baseHeight = 20;
+    const lineHeight = 15;
+    const maxLines = values.reduce((max, value) => {
+      const raw = String(value || '');
+      if (!raw.trim()) {
+        return max;
+      }
+      const manualBreaks = raw.split('\n').length;
+      const wrappedLines = Math.ceil(raw.length / 42);
+      return Math.max(max, manualBreaks, wrappedLines);
+    }, 1);
+    return Math.min(120, baseHeight + ((maxLines - 1) * lineHeight));
+  }
+
+  async function downloadExcelFile(fileName, title, workbookFactory) {
+    try {
+      const workbook = await workbookFactory();
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+      UiService.showToast(`${title} lancé.`);
+    } catch (error) {
+      console.error('Erreur export Excel :', error);
+      UiService.showToast('Impossible de générer le fichier Excel.');
+    }
   }
 
   function formatExcelCellValue(value) {
@@ -482,201 +523,111 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   }
 
   function buildDetailExcelContent(title, details) {
-    const rows = details
-      .map(
-        (detail) => `
-            <tr>
-              <td>${escapeHtml(formatExcelCellValue(detail.champ))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.code))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.designation))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qteSortie))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.unite))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qtePosee))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qteRebus))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.qteRetour))}</td>
-              <td>${escapeHtml(formatExcelCellValue(formatReturnDate(detail.dateRetour)))}</td>
-              <td>${escapeHtml(formatExcelCellValue(computeEcart(detail)))}</td>
-              <td>${escapeHtml(formatExcelCellValue(detail.observation))}</td>
-              <td>${escapeHtml(formatExcelCellValue(normalizeDetailStatut(detail.statut)))}</td>
-            </tr>
-          `,
-      )
-      .join('');
-
-    return `<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-      th, td {
-        border: 1px solid #cfd8e3;
-        padding: 8px 10px;
-        vertical-align: middle;
-        white-space: nowrap;
-        word-break: normal;
-      }
-      th {
-        font-weight: 700;
-        background: #f3f6fa;
-        text-align: left;
-      }
-      tr { height: auto; }
-      td { text-align: left; }
-      th:nth-child(3),
-      td:nth-child(3) {
-        white-space: normal;
-        word-break: break-word;
-      }
-      td:nth-child(4),
-      td:nth-child(6),
-      td:nth-child(7),
-      td:nth-child(8),
-      td:nth-child(10) {
-        text-align: right;
-      }
-      td:nth-child(5),
-      td:nth-child(12) {
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <table>
-      <colgroup>
-        <col style="width: 20ch; min-width: 20ch;" />
-        <col style="width: 24ch; min-width: 24ch;" />
-        <col style="width: 56ch; min-width: 47ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 12ch; min-width: 12ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 20ch; min-width: 20ch;" />
-        <col style="width: 12ch; min-width: 12ch;" />
-        <col style="width: 32ch; min-width: 24ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Code</th>
-          <th>Désignation</th>
-          <th>Qté Sortie</th>
-          <th>Unité</th>
-          <th>Qté posée</th>
-          <th>Qté Rebus</th>
-          <th>Qté Retour</th>
-          <th>Date de retour</th>
-          <th>Ecart</th>
-          <th>Remarque</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </body>
-</html>`;
+    return async () => {
+      const ExcelJS = await getExcelJsModule();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(String(title || 'Export').slice(0, 31));
+      worksheet.columns = [
+        { header: '#', key: 'champ', width: 20 },
+        { header: 'Code', key: 'code', width: 24 },
+        { header: 'Désignation', key: 'designation', width: 56 },
+        { header: 'Qté Sortie', key: 'qteSortie', width: 14 },
+        { header: 'Unité', key: 'unite', width: 12 },
+        { header: 'Qté posée', key: 'qtePosee', width: 14 },
+        { header: 'Qté Rebus', key: 'qteRebus', width: 14 },
+        { header: 'Qté Retour', key: 'qteRetour', width: 14 },
+        { header: 'Date de retour', key: 'dateRetour', width: 20 },
+        { header: 'Ecart', key: 'ecart', width: 12 },
+        { header: 'Remarque', key: 'observation', width: 32 },
+        { header: 'Statut', key: 'statut', width: 14 },
+      ];
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      details.forEach((detail) => {
+        worksheet.addRow({
+          champ: formatExcelCellValue(detail.champ),
+          code: formatExcelCellValue(detail.code),
+          designation: formatExcelCellValue(detail.designation),
+          qteSortie: formatExcelCellValue(detail.qteSortie),
+          unite: formatExcelCellValue(detail.unite),
+          qtePosee: formatExcelCellValue(detail.qtePosee),
+          qteRebus: formatExcelCellValue(detail.qteRebus),
+          qteRetour: formatExcelCellValue(detail.qteRetour),
+          dateRetour: formatExcelCellValue(formatReturnDate(detail.dateRetour)),
+          ecart: formatExcelCellValue(computeEcart(detail)),
+          observation: formatExcelCellValue(detail.observation),
+          statut: formatExcelCellValue(normalizeDetailStatut(detail.statut)),
+        });
+      });
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: [4, 6, 7, 8, 10].includes(colNumber) ? 'right' : ([5, 12].includes(colNumber) ? 'center' : 'left'),
+            wrapText: colNumber === 3 || colNumber === 11,
+          };
+        });
+        if (rowNumber > 1) {
+          row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
+        }
+      });
+      return workbook;
+    };
   }
 
   function buildSiteExcelContent(title, rows) {
-    const bodyRows = rows
-      .map(
-        (row) => `
-          <tr>
-            <td>${escapeHtml(formatExcelCellValue(row.out))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.code))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.designation))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qteSortie))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.unite))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qtePosee))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qteRebus))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.qteRetour))}</td>
-            <td>${escapeHtml(formatExcelCellValue(formatReturnDate(row.dateRetour)))}</td>
-            <td>${escapeHtml(formatExcelCellValue(computeEcart(row)))}</td>
-            <td>${escapeHtml(formatExcelCellValue(row.observation))}</td>
-            <td>${escapeHtml(formatExcelCellValue(normalizeDetailStatut(row.statut)))}</td>
-          </tr>
-        `,
-      )
-      .join('');
-
-    return `<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-      th, td {
-        border: 1px solid #cfd8e3;
-        padding: 8px 10px;
-        vertical-align: middle;
-        white-space: nowrap;
-        word-break: normal;
-      }
-      th {
-        font-weight: 700;
-        background: #f3f6fa;
-        text-align: left;
-      }
-      tr { height: auto; }
-      td { text-align: left; }
-      th:nth-child(3),
-      td:nth-child(3) {
-        white-space: normal;
-        word-break: break-word;
-      }
-      td:nth-child(4),
-      td:nth-child(6),
-      td:nth-child(7),
-      td:nth-child(8),
-      td:nth-child(10) {
-        text-align: right;
-      }
-      td:nth-child(5),
-      td:nth-child(12) {
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <table>
-      <colgroup>
-        <col style="width: 20ch; min-width: 20ch;" />
-        <col style="width: 24ch; min-width: 24ch;" />
-        <col style="width: 56ch; min-width: 47ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 12ch; min-width: 12ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-        <col style="width: 20ch; min-width: 20ch;" />
-        <col style="width: 12ch; min-width: 12ch;" />
-        <col style="width: 32ch; min-width: 24ch;" />
-        <col style="width: 14ch; min-width: 14ch;" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th>OUT</th>
-          <th>Code</th>
-          <th>Désignation</th>
-          <th>Qté Sortie</th>
-          <th>Unité</th>
-          <th>Qté posée</th>
-          <th>Qté Rebus</th>
-          <th>Qté Retour</th>
-          <th>Date de retour</th>
-          <th>Ecart</th>
-          <th>Remarque</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody>${bodyRows}</tbody>
-    </table>
-  </body>
-</html>`;
+    return async () => {
+      const ExcelJS = await getExcelJsModule();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(String(title || 'Export').slice(0, 31));
+      worksheet.columns = [
+        { header: 'OUT', key: 'out', width: 20 },
+        { header: 'Code', key: 'code', width: 24 },
+        { header: 'Désignation', key: 'designation', width: 56 },
+        { header: 'Qté Sortie', key: 'qteSortie', width: 14 },
+        { header: 'Unité', key: 'unite', width: 12 },
+        { header: 'Qté posée', key: 'qtePosee', width: 14 },
+        { header: 'Qté Rebus', key: 'qteRebus', width: 14 },
+        { header: 'Qté Retour', key: 'qteRetour', width: 14 },
+        { header: 'Date de retour', key: 'dateRetour', width: 20 },
+        { header: 'Ecart', key: 'ecart', width: 12 },
+        { header: 'Remarque', key: 'observation', width: 32 },
+        { header: 'Statut', key: 'statut', width: 14 },
+      ];
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      rows.forEach((row) => {
+        worksheet.addRow({
+          out: formatExcelCellValue(row.out),
+          code: formatExcelCellValue(row.code),
+          designation: formatExcelCellValue(row.designation),
+          qteSortie: formatExcelCellValue(row.qteSortie),
+          unite: formatExcelCellValue(row.unite),
+          qtePosee: formatExcelCellValue(row.qtePosee),
+          qteRebus: formatExcelCellValue(row.qteRebus),
+          qteRetour: formatExcelCellValue(row.qteRetour),
+          dateRetour: formatExcelCellValue(formatReturnDate(row.dateRetour)),
+          ecart: formatExcelCellValue(computeEcart(row)),
+          observation: formatExcelCellValue(row.observation),
+          statut: formatExcelCellValue(normalizeDetailStatut(row.statut)),
+        });
+      });
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: [4, 6, 7, 8, 10].includes(colNumber) ? 'right' : ([5, 12].includes(colNumber) ? 'center' : 'left'),
+            wrapText: colNumber === 3 || colNumber === 11,
+          };
+        });
+        if (rowNumber > 1) {
+          row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
+        }
+      });
+      return workbook;
+    };
   }
 
 
@@ -3347,7 +3298,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       const title = `SUIVI MATERIEL . ${currentSite.nom}`;
       const workbook = buildSiteExcelContent(title, sortedRows);
-      const fileName = buildPage2ExportFileName(currentSite?.nom, 'xls');
+      const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
       downloadExcelFile(fileName, 'Export Excel', workbook);
       saveExportFileNameToHistory(fileName);
     }
@@ -5894,7 +5845,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const workbook = buildDetailExcelContent(`${currentSite.nom} · ${currentItem.numero}`, filteredDetails);
-      const fileName = buildPage2ExportFileName(currentSite?.nom, 'xls');
+      const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
       downloadExcelFile(fileName, 'Export Excel', workbook);
       saveExportFileNameToHistory(fileName);
     }
