@@ -3776,7 +3776,19 @@ body[data-page="home"] .app-header--home > h1 {
   border-radius: 12px;
   padding: 0.625rem 1.25rem;
   margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.bottom-sheet__action-icon {
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+  opacity: 0.86;
+  display: block;
 }
 
 .bottom-sheet__action:hover,

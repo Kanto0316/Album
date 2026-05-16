@@ -829,7 +829,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <div class="bottom-sheet__avatar" id="avatarSheetPreview">U</div>
           </div>
           <p class="bottom-sheet__name" id="avatarSheetName">Utilisateur</p>
-          <button type="button" class="bottom-sheet__action" id="avatarSheetLogout">Déconnexion</button>
+          <button type="button" class="bottom-sheet__action" id="avatarSheetLogout">
+            <img src="Icon/se-deconnecter.png" alt="" class="bottom-sheet__action-icon" aria-hidden="true">
+            <span>Déconnexion</span>
+          </button>
           <p id="avatarSheetMessage" class="form-error" aria-live="polite"></p>
         </div>
       </div>
