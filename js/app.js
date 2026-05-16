@@ -522,6 +522,42 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return value;
   }
 
+  function applyProfessionalExcelStyling(worksheet) {
+    const centeredColumns = [4, 6, 7, 8, 9, 10, 11];
+    const wrappedColumns = [3, 11];
+    const headerRow = worksheet.getRow(1);
+
+    headerRow.font = { bold: true, color: { argb: 'FF1F2937' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFEFF3F8' },
+    };
+    headerRow.height = 24;
+
+    worksheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell, colNumber) => {
+        const isCentered = centeredColumns.includes(colNumber);
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: isCentered ? 'center' : 'left',
+          wrapText: wrappedColumns.includes(colNumber),
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        };
+      });
+
+      if (rowNumber > 1) {
+        row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
+      }
+    });
+  }
+
   function buildDetailExcelContent(title, details) {
     return async () => {
       const ExcelJS = await getExcelJsModule();
@@ -536,14 +572,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         { header: 'Qté posée', key: 'qtePosee', width: 14 },
         { header: 'Qté Rebus', key: 'qteRebus', width: 14 },
         { header: 'Qté Retour', key: 'qteRetour', width: 14 },
-        { header: 'Date de retour', key: 'dateRetour', width: 20 },
-        { header: 'Ecart', key: 'ecart', width: 12 },
-        { header: 'Remarque', key: 'observation', width: 32 },
+        { header: 'Date de retour', key: 'dateRetour', width: 14 },
+        { header: 'Ecart', key: 'ecart', width: 14 },
+        { header: 'Remarque', key: 'observation', width: 14 },
         { header: 'Statut', key: 'statut', width: 14 },
       ];
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true };
-      headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      applyProfessionalExcelStyling(worksheet);
       details.forEach((detail) => {
         worksheet.addRow({
           champ: formatExcelCellValue(detail.champ),
@@ -559,18 +593,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           observation: formatExcelCellValue(detail.observation),
           statut: formatExcelCellValue(normalizeDetailStatut(detail.statut)),
         });
-      });
-      worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-          cell.alignment = {
-            vertical: 'middle',
-            horizontal: [4, 6, 7, 8, 10].includes(colNumber) ? 'right' : ([5, 12].includes(colNumber) ? 'center' : 'left'),
-            wrapText: colNumber === 3 || colNumber === 11,
-          };
-        });
-        if (rowNumber > 1) {
-          row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
-        }
       });
       return workbook;
     };
@@ -590,14 +612,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         { header: 'Qté posée', key: 'qtePosee', width: 14 },
         { header: 'Qté Rebus', key: 'qteRebus', width: 14 },
         { header: 'Qté Retour', key: 'qteRetour', width: 14 },
-        { header: 'Date de retour', key: 'dateRetour', width: 20 },
-        { header: 'Ecart', key: 'ecart', width: 12 },
-        { header: 'Remarque', key: 'observation', width: 32 },
+        { header: 'Date de retour', key: 'dateRetour', width: 14 },
+        { header: 'Ecart', key: 'ecart', width: 14 },
+        { header: 'Remarque', key: 'observation', width: 14 },
         { header: 'Statut', key: 'statut', width: 14 },
       ];
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true };
-      headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+      applyProfessionalExcelStyling(worksheet);
       rows.forEach((row) => {
         worksheet.addRow({
           out: formatExcelCellValue(row.out),
@@ -613,18 +633,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           observation: formatExcelCellValue(row.observation),
           statut: formatExcelCellValue(normalizeDetailStatut(row.statut)),
         });
-      });
-      worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-          cell.alignment = {
-            vertical: 'middle',
-            horizontal: [4, 6, 7, 8, 10].includes(colNumber) ? 'right' : ([5, 12].includes(colNumber) ? 'center' : 'left'),
-            wrapText: colNumber === 3 || colNumber === 11,
-          };
-        });
-        if (rowNumber > 1) {
-          row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
-        }
       });
       return workbook;
     };
