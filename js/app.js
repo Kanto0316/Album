@@ -3701,10 +3701,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       itemCount.innerHTML = `<span class="outs-number">${filteredItems.length}</span><span class="outs-label">OUT${filteredItems.length > 1 ? 'S' : ''}</span>`;
 
       if (!filteredItems.length) {
-        UiService.renderEmptyState(
-          itemList,
-          query ? 'Aucun N° OUT Ou Article correspond à votre recherche.' : 'Aucune Article Disponible.',
-        );
+        if (query) {
+          itemList.innerHTML = `
+            <div class="empty-state empty-search-state">
+              <img src="Icon/Stikers.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+              <div class="empty-text">Aucun N° OUT Ou Article correspond à votre recherche.</div>
+            </div>
+          `;
+        } else {
+          UiService.renderEmptyState(itemList, 'Aucune Article Disponible.');
+        }
         return;
       }
 

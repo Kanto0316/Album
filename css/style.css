@@ -6172,3 +6172,29 @@ body[data-page="item-detail"] .search-highlight {
   padding: 0 2px;
   font-weight: 700;
 }
+
+.empty-search-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 16px;
+}
+
+.empty-search-state img {
+  width: 110px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 14px;
+  opacity: 0.92;
+  pointer-events: none;
+  user-select: none;
+}
+
+.empty-search-state .empty-text {
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+}
