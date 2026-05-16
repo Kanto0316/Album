@@ -3709,7 +3709,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             </div>
           `;
         } else {
-          UiService.renderEmptyState(itemList, 'Aucune Article Disponible.');
+          itemList.innerHTML = `
+            <div class="empty-state empty-state--page2" role="status" aria-live="polite">
+              <img src="Icon/boite.png" alt="" aria-hidden="true" loading="lazy" decoding="async" class="empty-state__icon" />
+              <div class="empty-text">Aucune Article Disponible.</div>
+            </div>
+          `;
         }
         return;
       }
