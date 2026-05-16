@@ -829,6 +829,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             <div class="bottom-sheet__avatar" id="avatarSheetPreview">U</div>
           </div>
           <p class="bottom-sheet__name" id="avatarSheetName">Utilisateur</p>
+          <p class="bottom-sheet__email" id="avatarSheetEmail"></p>
           <button type="button" class="bottom-sheet__action" id="avatarSheetLogout">
             <img src="Icon/se-deconnecter.png" alt="" class="bottom-sheet__action-icon" aria-hidden="true">
             <span>Déconnexion</span>
@@ -927,15 +928,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const sheet = overlay.querySelector('#avatarBottomSheet');
     const avatarPreview = overlay.querySelector('#avatarSheetPreview');
     const nameLabel = overlay.querySelector('#avatarSheetName');
+    const emailLabel = overlay.querySelector('#avatarSheetEmail');
     const logoutButton = overlay.querySelector('#avatarSheetLogout');
     const message = overlay.querySelector('#avatarSheetMessage');
 
-    if (!sheet || !avatarPreview || !nameLabel || !logoutButton || !message) {
+    if (!sheet || !avatarPreview || !nameLabel || !emailLabel || !logoutButton || !message) {
       return;
     }
 
     renderUserAvatar(authUserData);
     nameLabel.textContent = String(authUserData?.name || authUserData?.email || 'Utilisateur');
+    emailLabel.textContent = String(authUserData?.email || '');
     avatarPreview.title = authUserData?.name || authUserData?.email || '';
     message.textContent = '';
 
