@@ -3750,6 +3750,17 @@ body[data-page="home"] .app-header--home > h1 {
   text-align: center;
 }
 
+
+.bottom-sheet__email {
+  margin: 6px 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7d8592;
+  text-align: center;
+  line-height: 1.35;
+  max-width: min(88vw, 320px);
+  word-break: break-word;
+}
 .bottom-sheet__avatar-edit {
   position: absolute;
   right: -0.15rem;
