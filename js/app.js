@@ -525,6 +525,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   function applyProfessionalExcelStyling(worksheet) {
     const centeredColumns = [4, 5, 6, 7, 8, 9, 10, 11, 12];
     const wrappedColumns = [3];
+    const statusColumnNumber = 12;
+    const koRowFill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFFF1F1' },
+    };
     const headerRow = worksheet.getRow(1);
 
     headerRow.font = { bold: true, color: { argb: 'FF1F2937' } };
@@ -553,6 +559,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       if (rowNumber > 1) {
+        const statusValue = String(row.getCell(statusColumnNumber).value || '').trim().toUpperCase();
+        if (statusValue === 'K.O') {
+          row.eachCell({ includeEmpty: true }, (cell) => {
+            cell.fill = koRowFill;
+          });
+        }
         row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
       }
     });
