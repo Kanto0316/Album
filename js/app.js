@@ -529,7 +529,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const koRowFill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFFFF1F1' },
+      fgColor: { argb: ''FFFFD6D6' },
     };
     const headerRow = worksheet.getRow(1);
 
