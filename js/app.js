@@ -616,7 +616,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(String(title || 'Export').slice(0, 31));
       worksheet.columns = [
-        { header: '#', key: 'champ', width: 20 },
+        { header: '#', key: 'champ', width: 10 },
         { header: 'Code', key: 'code', width: 24 },
         { header: 'Désignation', key: 'designation', width: 56 },
         { header: 'Qté Sortie', key: 'qteSortie', width: 14 },
