@@ -3136,10 +3136,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function updateEditOutNameCounter() {
       if (!editOutNameInput || !editOutNameCounter) return;
-      if (editOutNameInput.value.length > 25) {
-        editOutNameInput.value = editOutNameInput.value.slice(0, 25);
+      const maxLength = Number(editOutNameInput.maxLength);
+      if (Number.isFinite(maxLength) && maxLength >= 0 && editOutNameInput.value.length > maxLength) {
+        editOutNameInput.value = editOutNameInput.value.slice(0, maxLength);
       }
-      editOutNameCounter.textContent = `${editOutNameInput.value.length} / 25`;
+      const counterMax = Number.isFinite(maxLength) && maxLength >= 0 ? maxLength : editOutNameInput.value.length;
+      editOutNameCounter.textContent = `${editOutNameInput.value.length} / ${counterMax}`;
     }
 
     function showEditOutNameFieldError(message) {
