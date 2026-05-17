@@ -19,23 +19,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
 
-function ensureAppCache() {
-  if (!window.APP_CACHE || typeof window.APP_CACHE !== 'object') {
-    window.APP_CACHE = {
-      sites: [],
-      outs: [],
-      articlesByOutId: new Map(),
-      stats: {},
-      initialized: false,
-      lastRefresh: null,
-    };
-  }
-  if (!(window.APP_CACHE.articlesByOutId instanceof Map)) {
-    window.APP_CACHE.articlesByOutId = new Map();
-  }
-  return window.APP_CACHE;
-}
-
 const state = {
   initialized: false,
   db: null,
@@ -54,8 +37,6 @@ const state = {
     detailsByPair: new Map(),
   },
 };
-
-const appCache = ensureAppCache();
 
 function normalizeRole(value) {
   const role = String(value || '').trim().toLowerCase();
@@ -663,7 +644,6 @@ function persistOfflineState() {
     },
   };
   localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(payload));
-  appCache.lastRefresh = payload.savedAt;
 }
 
 function parseOfflineState() {
@@ -734,29 +714,6 @@ function applySnapshot(snapshot) {
   });
 
   sortState();
-  syncStateToAppCache();
-}
-
-function syncStateToAppCache() {
-  appCache.sites = clone(state.sites);
-  const outs = [];
-  const articlesByOutId = new Map();
-  state.itemsBySite.forEach((items, siteId) => {
-    items.forEach((item) => {
-      outs.push({ ...item, siteId });
-      const key = `${siteId}:${item.id}`;
-      const details = clone(state.detailsByItem.get(key) || []);
-      articlesByOutId.set(item.id, details);
-      articlesByOutId.set(key, details);
-    });
-  });
-  appCache.outs = outs;
-  appCache.articlesByOutId = articlesByOutId;
-  appCache.stats = {
-    sites: appCache.sites.length,
-    outs: appCache.outs.length,
-    articles: Array.from(state.detailsByItem.values()).reduce((total, details) => total + details.length, 0),
-  };
 }
 
 function sortState() {
@@ -803,7 +760,6 @@ function emitForSite(siteId) {
 }
 
 function emitAll() {
-  syncStateToAppCache();
   state.listeners.sites.forEach((listener) => listener(clone(state.sites)));
 
   const itemCounts = {};
@@ -830,34 +786,30 @@ async function init() {
   state.userId = state.authUser?.uid || null;
   state.db = firebaseDb;
 
-  if (appCache.initialized) {
-    const snapshot = {
-      page1: appCache.sites || [],
-      page2: appCache.outs || [],
-      page3: Array.from((appCache.articlesByOutId || new Map()).entries())
-        .filter(([key]) => String(key).includes(':'))
-        .flatMap(([, details]) => details || []),
-    };
-    applySnapshot(snapshot);
-    return;
-  }
-
   const offlineState = parseOfflineState();
   if (offlineState?.snapshot) {
     applySnapshot(offlineState.snapshot);
   }
 
-  try {
-    const remote = await loadRemoteSnapshot();
-    applySnapshot(remote);
-    persistOfflineState();
-    appCache.initialized = true;
-    appCache.lastRefresh = nowIso();
-  } catch (_error) {
-    if (!offlineState?.snapshot) {
+  if (!offlineState?.isFresh) {
+    try {
+      const remote = await loadRemoteSnapshot();
+      applySnapshot(remote);
+      persistOfflineState();
+    } catch (_error) {
+      if (!offlineState?.snapshot) {
+        applySnapshot({ page1: [], page2: [], page3: [] });
+      }
+    }
+  } else if (!offlineState.snapshot) {
+    // Defensive fallback, should never happen.
+    try {
+      const remote = await loadRemoteSnapshot();
+      applySnapshot(remote);
+      persistOfflineState();
+    } catch (_error) {
       applySnapshot({ page1: [], page2: [], page3: [] });
     }
-    appCache.initialized = Boolean(offlineState?.snapshot);
   }
 }
 
