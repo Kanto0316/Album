@@ -528,15 +528,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   }
 
   function applyExcelProfessionalHeader(worksheet, siteName) {
-    const totalColumns = worksheet.columns.length || 12;
-    const mergeEndColumnLetter = worksheet.getColumn(totalColumns).letter;
-    const mergedRange = `A1:${mergeEndColumnLetter}1`;
-    worksheet.mergeCells(mergedRange);
-
     const titleCell = worksheet.getCell('A1');
     titleCell.value = 'SUIVI MATERIEL';
-    titleCell.font = { bold: true, size: 20, color: { argb: 'FF1F2937' } };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleCell.font = { bold: true, size: 12, color: { argb: 'FF374151' } };
+    titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
     const siteCell = worksheet.getCell('A2');
     siteCell.value = `Site concerné : ${siteName || '-'}`;
@@ -548,8 +543,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     updateCell.font = { size: 11, color: { argb: 'FF4B5563' } };
     updateCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-    worksheet.getRow(1).height = 32;
-    worksheet.getRow(2).height = 22;
+    worksheet.getRow(1).height = 20;
+    worksheet.getRow(2).height = 20;
     worksheet.getRow(3).height = 20;
     worksheet.getRow(4).height = 12;
   }
