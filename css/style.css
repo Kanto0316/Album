@@ -2412,23 +2412,23 @@ body[data-page="item-detail"] .search-panel .input-group {
   position: relative;
 }
 
-body[data-page="item-detail"] .page3-search-filter-bar {
+body[data-page="item-detail"] .page2-search-filter-bar {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-body[data-page="item-detail"] .page3-search-filter-bar .input-group {
+body[data-page="item-detail"] .page2-search-filter-bar .input-group {
   flex: 1;
   min-width: 0;
 }
 
-body[data-page="item-detail"] .page3-filter-menu-wrap {
+body[data-page="item-detail"] .page2-filter-menu-wrap {
   position: relative;
   flex-shrink: 0;
 }
 
-body[data-page="item-detail"] .page3-filter-button {
+body[data-page="item-detail"] .page2-filter-button {
   width: 42px;
   height: 42px;
   border-radius: 999px;
@@ -2441,20 +2441,20 @@ body[data-page="item-detail"] .page3-filter-button {
   transition: transform 0.18s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
-body[data-page="item-detail"] .page3-filter-button:hover,
-body[data-page="item-detail"] .page3-filter-button:focus-visible {
+body[data-page="item-detail"] .page2-filter-button:hover,
+body[data-page="item-detail"] .page2-filter-button:focus-visible {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
 }
 
-body[data-page="item-detail"] .page3-filter-button.is-filtered {
+body[data-page="item-detail"] .page2-filter-button.is-filtered {
   background: #e8f1ff;
   border-color: #b6cbef;
 }
 
-body[data-page="item-detail"] .page3-filter-button__icon {
-  width: 17px;
-  height: 17px;
+body[data-page="item-detail"] .page2-filter-button__icon {
+  width: 18px;
+  height: 18px;
   object-fit: contain;
   opacity: 0.82;
 }
@@ -2515,30 +2515,42 @@ body[data-page="item-detail"] .page3-filter-option.is-disabled {
   cursor: not-allowed;
 }
 
-body[data-page="item-detail"] .search-input__icon-wrap {
+body[data-page="item-detail"] .site-search-icon-wrap {
   position: absolute;
-  left: 0.85rem;
+  left: 0.95rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.72;
-  filter: grayscale(1) brightness(0.65);
+  opacity: 0.8;
   pointer-events: none;
 }
 
-body[data-page="item-detail"] .search-input__icon {
+body[data-page="item-detail"] .site-search-icon {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
 body[data-page="item-detail"] #detailSearchInput {
-  padding-left: 2.9rem;
+  width: 100%;
+  min-height: 3rem;
+  border-radius: 999px;
+  border: 1px solid #d8e2ef;
+  background: #fff;
+  padding-left: 2.6rem;
   padding-right: 52px;
+  box-shadow: 0 7px 18px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body[data-page="item-detail"] #detailSearchInput:focus {
+  outline: none;
+  border: 2px solid var(--detail-primary);
+  box-shadow: 0 0 0 4px rgba(39, 141, 218, 0.12);
 }
 
 body[data-page="all-materials"] #materialsSearchInput {
