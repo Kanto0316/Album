@@ -4049,34 +4049,6 @@ body[data-page="site-detail"] .progress-fill.pending { background: #facc15; }
 body[data-page="site-detail"] .progress-fill.warning { background: #fb923c; }
 body[data-page="site-detail"] .progress-fill.ko { background: #ef4444; }
 
-body[data-page="site-detail"] .outs-pagination {
-  margin: 14px 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-body[data-page="site-detail"] .outs-pagination__btn {
-  border: 1px solid #d8e2ef;
-  background: #fff;
-  color: var(--primary, #1d4ed8);
-  border-radius: 12px;
-  padding: 9px 12px;
-  font-weight: 600;
-}
-
-body[data-page="site-detail"] .outs-pagination__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-body[data-page="site-detail"] .outs-pagination__indicator {
-  color: #475569;
-  font-weight: 600;
-  font-size: 14px;
-}
-
 body[data-page="site-detail"] .site-search-icon-wrap {
   position: absolute;
   left: 0.95rem;
