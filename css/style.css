@@ -2898,7 +2898,7 @@ body[data-page="item-detail"] .fab-add--item-detail {
   justify-content: center;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
-  font-size: 32px;
+  font-size: 28px;
   line-height: 1;
   box-shadow: 0 10px 22px var(--detail-primary-shadow);
   z-index: 45;
