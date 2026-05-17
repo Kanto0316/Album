@@ -3310,6 +3310,11 @@ body[data-page="item-detail"] .cell-input--compact-dynamic {
 
 body[data-page="item-detail"] .cell-input--compact-dynamic[data-col-key="observation"] {
   min-width: 88px;
+  text-align: center;
+}
+
+body[data-page="item-detail"] .data-table th:nth-child(11) {
+  text-align: center;
 }
 
 body[data-page="item-detail"] .date-retour-field {
