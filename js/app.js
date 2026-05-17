@@ -5864,6 +5864,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       detailFilterMenu.hidden = true;
+      detailFilterMenu.style.display = 'none';
       detailFilterButton.setAttribute('aria-expanded', 'false');
     }
 
@@ -5872,6 +5873,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       detailFilterMenu.hidden = false;
+      detailFilterMenu.style.display = '';
       detailFilterButton.setAttribute('aria-expanded', 'true');
     }
 
@@ -6549,8 +6551,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       toggleClearButton();
     }
 
-    if (detailFilterButton && detailFilterMenu && detailFilterOptions.length) {
+    function bindDetailFilterMenuEvents() {
+      if (!detailFilterButton || !detailFilterMenu || !detailFilterOptions.length) {
+        return;
+      }
+      if (detailFilterButton.dataset.menuBound === 'true') {
+        return;
+      }
+
       syncDetailFilterUi();
+      closeDetailFilterMenu();
+
       detailFilterButton.addEventListener('click', () => {
         if (detailFilterMenu.hidden) {
           openDetailFilterMenu();
@@ -6577,7 +6588,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           closeDetailFilterMenu();
         }
       });
+
+      detailFilterButton.dataset.menuBound = 'true';
     }
+
+    bindDetailFilterMenuEvents();
+    window.addEventListener('pageshow', () => {
+      bindDetailFilterMenuEvents();
+      closeDetailFilterMenu();
+    });
 
     if (exportButton) {
       exportButton.addEventListener('click', openDetailExportDialog);
