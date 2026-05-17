@@ -4321,10 +4321,24 @@ body[data-page="site-detail"] #itemDialog .required-star {
   vertical-align: baseline;
 }
 
+body[data-page="site-detail"] #itemDialog .item-number-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+body[data-page="site-detail"] #itemDialog .item-number-label-text {
+  display: inline-block;
+}
+
 body[data-page="site-detail"] #itemDialog .item-number-label .required-star {
-  display: inline;
-  opacity: 1;
-  visibility: visible;
+  color: #ef4444 !important;
+  font-weight: 700;
+  display: inline-block !important;
+  line-height: 1;
+  opacity: 1 !important;
+  visibility: visible !important;
+  flex-shrink: 0;
 }
 
 body[data-page="home"] #siteDialog .required-star {
