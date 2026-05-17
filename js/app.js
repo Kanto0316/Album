@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, startAfter, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -2903,6 +2903,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const saveEditOutNameBtn = document.getElementById('saveEditOutNameBtn');
     const itemSearchInput = requireElement('itemSearchInput');
     const itemDateFilter = requireElement('itemDateFilter');
+    const outsPagination = requireElement('outsPagination');
+    const outsPrevPageBtn = requireElement('outsPrevPageBtn');
+    const outsNextPageBtn = requireElement('outsNextPageBtn');
+    const outsPaginationLabel = requireElement('outsPaginationLabel');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
 
@@ -4044,7 +4048,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         clearCursorFilterReadIdsStorage();
       }
       syncItemStatusFilterUi();
-      renderItems();
+      outPageLastDocs = [];
+      loadOutPage(1).catch(() => {
+        UiService.showToast('Chargement impossible.');
+      });
     }
 
     const openCreateItem = document.querySelector('body[data-page="site-detail"] #openCreateItem');
@@ -4076,6 +4083,44 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let itemDialogMode = ITEM_DIALOG_MODE_CREATE;
     let editingItemId = null;
     let activeOutSearchQuery = (itemSearchInput.value || "").trim().toUpperCase();
+    const PAGE_SIZE = 20;
+    let currentOutPage = 1;
+    let hasMoreOutPages = false;
+    let outPageLastDocs = [];
+
+    function buildOutsFirestoreQuery(pageIndex) {
+      // Pagination Firestore réelle : ne pas remplacer par slice()
+      const constraints = [orderBy('dateCreation', 'desc')];
+      if (pageIndex > 0 && outPageLastDocs[pageIndex - 1]) {
+        constraints.push(startAfter(outPageLastDocs[pageIndex - 1]));
+      }
+      constraints.push(limit(PAGE_SIZE + 1));
+      return query(collection(firebaseDb, 'sites', siteId, 'items'), ...constraints);
+    }
+
+    async function loadOutPage(page = 1) {
+      const targetPage = Math.max(1, Number(page) || 1);
+      const pageIndex = targetPage - 1;
+      const snap = await getDocs(buildOutsFirestoreQuery(pageIndex));
+      const docs = snap.docs || [];
+      hasMoreOutPages = docs.length > PAGE_SIZE;
+      const visibleDocs = hasMoreOutPages ? docs.slice(0, PAGE_SIZE) : docs;
+      currentItems = visibleDocs.map((entry) => ({ id: entry.id, ...entry.data() }));
+      outPageLastDocs[pageIndex] = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
+      currentOutPage = targetPage;
+      updateOutPaginationUi();
+      renderActiveTabContent();
+    }
+
+    function updateOutPaginationUi() {
+      if (!outsPagination) return;
+      const isOutsTab = activeSiteTab === 'outs';
+      outsPagination.classList.toggle('hidden', !isOutsTab);
+      if (!isOutsTab) return;
+      outsPrevPageBtn.disabled = currentOutPage <= 1;
+      outsNextPageBtn.disabled = !hasMoreOutPages;
+      outsPaginationLabel.textContent = hasMoreOutPages ? `Page ${currentOutPage} / ...` : `Page ${currentOutPage}`;
+    }
     function readSearchReadIdsFromStorage() {
       try {
         const rawValue = window.localStorage.getItem(searchReadIdsStorageKey);
@@ -4961,6 +5006,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       renderActiveTabContent({
         flashSearchMatches: isOutSearchInput,
       });
+      if (isOutSearchInput) {
+        outPageLastDocs = [];
+        loadOutPage(1).catch(() => {
+          UiService.showToast('Chargement impossible.');
+        });
+      }
+    });
+
+    outsPrevPageBtn?.addEventListener('click', async () => {
+      if (currentOutPage <= 1) return;
+      await loadOutPage(currentOutPage - 1);
+    });
+
+    outsNextPageBtn?.addEventListener('click', async () => {
+      if (!hasMoreOutPages) return;
+      await loadOutPage(currentOutPage + 1);
     });
 
     if (itemStatusFilterButton && itemStatusFilterMenu && itemStatusFilterOptions.length) {
@@ -5019,7 +5080,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         selectedDateFilter = itemDateFilter.value || 'all';
         window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
         updateFilterChipsState();
-        renderActiveTabContent();
+        outPageLastDocs = [];
+        loadOutPage(1).catch(() => {
+          UiService.showToast('Chargement impossible.');
+        });
       });
     }
 
@@ -5126,19 +5190,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       siteTitle.textContent = currentSite.nom;
     });
 
-    StorageService.subscribeItems(
-      siteId,
-      (items) => {
-        currentItems = items;
-        renderActiveTabContent();
-        if (itemDialog.open && itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
-          validateItemNumberAvailability();
-        }
-      },
-      () => {
-        UiService.showToast('Synchronisation  indisponible.');
-      },
-    );
+    loadOutPage(1).catch(() => {
+      UiService.showToast('Synchronisation  indisponible.');
+    });
 
     StorageService.subscribeDetailCounts(
       siteId,

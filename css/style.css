@@ -6266,3 +6266,26 @@ body[data-page="item-detail"] .search-highlight {
   font-weight: 500;
   line-height: 1.45;
 }
+
+.outs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 16px 4px 8px;
+}
+.outs-pagination__button {
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--primary, #2457f5);
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+.outs-pagination__button:disabled { opacity: .45; }
+.outs-pagination__label { font-weight: 700; color: var(--text, #12131a); }
+@media (max-width: 540px) {
+  .outs-pagination { gap: 6px; }
+  .outs-pagination__button { padding: 9px 10px; font-size: 13px; }
+  .outs-pagination__label { font-size: 13px; }
+}
