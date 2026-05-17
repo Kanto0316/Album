@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, serverTimestamp, startAfter, updateDoc, where } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -2905,9 +2905,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
+    const outsPagination = requireElement('outsPagination');
+    const outsPrevPageBtn = requireElement('outsPrevPageBtn');
+    const outsNextPageBtn = requireElement('outsNextPageBtn');
+    const outsPageIndicator = requireElement('outsPageIndicator');
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
+    const PAGE_SIZE = 20;
+    let currentOutPage = 1;
+    let hasNextOutPage = false;
+    const outPageCursors = new Map();
+    const outPageCache = new Map();
     let currentPurchases = [];
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
@@ -3006,6 +3015,69 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     siteTitle.textContent = currentSite ? currentSite.nom : 'Chargement...';
+
+    async function loadOutPage(pageToLoad = 1) {
+      // Pagination Firestore réelle : ne pas remplacer par slice()
+      const targetPage = Math.max(1, Number(pageToLoad) || 1);
+      const cachedPage = outPageCache.get(targetPage);
+      if (cachedPage) {
+        currentOutPage = targetPage;
+        currentItems = cachedPage.items;
+        hasNextOutPage = cachedPage.hasNext;
+        renderItems();
+        return;
+      }
+      let outQuery = query(
+        collection(firebaseDb, 'pages', 'page2', 'items'),
+        where('siteId', '==', siteId),
+        orderBy('dateModification', 'desc'),
+        limit(PAGE_SIZE),
+      );
+      if (targetPage > 1) {
+        const previousLastDoc = outPageCursors.get(targetPage - 1);
+        if (!previousLastDoc) {
+          return;
+        }
+        outQuery = query(
+          collection(firebaseDb, 'pages', 'page2', 'items'),
+          where('siteId', '==', siteId),
+          orderBy('dateModification', 'desc'),
+          startAfter(previousLastDoc),
+          limit(PAGE_SIZE),
+        );
+      }
+      const pageSnapshot = await getDocs(outQuery);
+      const docs = pageSnapshot.docs;
+      const items = docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }));
+      const lastVisibleDoc = docs.length ? docs[docs.length - 1] : null;
+      if (lastVisibleDoc) {
+        outPageCursors.set(targetPage, lastVisibleDoc);
+      }
+      let hasNext = false;
+      if (lastVisibleDoc && docs.length === PAGE_SIZE) {
+        const nextProbe = await getDocs(query(
+          collection(firebaseDb, 'pages', 'page2', 'items'),
+          where('siteId', '==', siteId),
+          orderBy('dateModification', 'desc'),
+          startAfter(lastVisibleDoc),
+          limit(1),
+        ));
+        hasNext = !nextProbe.empty;
+      }
+      outPageCache.set(targetPage, { items, hasNext });
+      currentOutPage = targetPage;
+      currentItems = items;
+      hasNextOutPage = hasNext;
+      renderItems();
+    }
+
+    function resetOutPaginationAndReload() {
+      currentOutPage = 1;
+      hasNextOutPage = false;
+      outPageCursors.clear();
+      outPageCache.clear();
+      loadOutPage(1);
+    }
 
     function resetPurchaseForm() {
       purchaseForm?.reset();
@@ -3814,6 +3886,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       restoreOutPageScrollPosition();
+      if (outsPagination && outsPageIndicator && outsPrevPageBtn && outsNextPageBtn) {
+        outsPagination.hidden = activeSiteTab !== 'outs';
+        outsPageIndicator.textContent = hasNextOutPage ? `Page ${currentOutPage} / ...` : `Page ${currentOutPage}`;
+        outsPrevPageBtn.disabled = currentOutPage <= 1;
+        outsNextPageBtn.disabled = !hasNextOutPage;
+      }
     }
 
     function outMatchesSearch(item, query) {
@@ -4379,8 +4457,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       saveActiveSiteTab(safeTabName);
       if (safeTabName === 'outs') {
+        outsPagination.hidden = false;
         itemCount.innerHTML = `<span class="outs-number">0</span><span class="outs-label">OUTS</span>`;
       } else {
+        outsPagination.hidden = true;
         itemCount.innerHTML = `<span class="outs-number">0</span><span class="outs-label">Achat</span>`;
       }
       updateFabByActiveTab(safeTabName);
@@ -4961,6 +5041,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       renderActiveTabContent({
         flashSearchMatches: isOutSearchInput,
       });
+      if (isOutSearchInput) {
+        resetOutPaginationAndReload();
+      }
     });
 
     if (itemStatusFilterButton && itemStatusFilterMenu && itemStatusFilterOptions.length) {
@@ -5013,6 +5096,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
           updateFilterChipsState();
           renderActiveTabContent();
+          resetOutPaginationAndReload();
         });
       });
       itemDateFilter.addEventListener('change', () => {
@@ -5020,8 +5104,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
         updateFilterChipsState();
         renderActiveTabContent();
+        resetOutPaginationAndReload();
       });
     }
+
+    outsPrevPageBtn?.addEventListener('click', () => {
+      if (currentOutPage <= 1) return;
+      loadOutPage(currentOutPage - 1);
+    });
+
+    outsNextPageBtn?.addEventListener('click', () => {
+      if (!hasNextOutPage) return;
+      loadOutPage(currentOutPage + 1);
+    });
 
     itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -5126,19 +5221,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       siteTitle.textContent = currentSite.nom;
     });
 
-    StorageService.subscribeItems(
-      siteId,
-      (items) => {
-        currentItems = items;
-        renderActiveTabContent();
-        if (itemDialog.open && itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
-          validateItemNumberAvailability();
-        }
-      },
-      () => {
-        UiService.showToast('Synchronisation  indisponible.');
-      },
-    );
+    resetOutPaginationAndReload();
 
     StorageService.subscribeDetailCounts(
       siteId,
