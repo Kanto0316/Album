@@ -523,7 +523,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   }
 
   function applyProfessionalExcelStyling(worksheet) {
-    const centeredColumns = [4, 6, 7, 8, 9, 10, 11];
+    const centeredColumns = [4, 5, 6, 7, 8, 9, 10, 12];
     const wrappedColumns = [3, 11];
     const headerRow = worksheet.getRow(1);
 
