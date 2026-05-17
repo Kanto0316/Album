@@ -3366,7 +3366,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const defaultName = currentSite?.nom ? `SUIVI MATERIEL . ${currentSite.nom}` : 'export-materiel';
       siteExportFileNameInput.value = sanitizeExportFileName(defaultName);
       if (siteExportLineFilterSelect) {
-        siteExportLineFilterSelect.value = '';
+        siteExportLineFilterSelect.value = 'all';
       }
       if (siteExportFileNameError) {
         siteExportFileNameError.textContent = '';
