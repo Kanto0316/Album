@@ -3793,6 +3793,15 @@ body[data-page="home"] .app-header--home > h1 {
   max-width: min(88vw, 320px);
   word-break: break-word;
 }
+
+body[data-page="home"] .bottom-sheet__name {
+  margin-bottom: 4px;
+}
+
+body[data-page="home"] .bottom-sheet__email {
+  margin-top: 2px;
+}
+
 .bottom-sheet__avatar-edit {
   position: absolute;
   right: -0.15rem;
