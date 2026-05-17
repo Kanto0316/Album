@@ -2429,8 +2429,9 @@ body[data-page="item-detail"] .page2-filter-menu-wrap {
 }
 
 body[data-page="item-detail"] .page2-filter-button {
-  width: 42px;
-  height: 42px;
+  width: 3rem;
+  height: 3rem;
+  min-height: 3rem;
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: #ffffff;
@@ -3907,8 +3908,9 @@ body[data-page="site-detail"] .page2-filter-menu-wrap {
 }
 
 body[data-page="site-detail"] .page2-filter-button {
-  width: 42px;
-  height: 42px;
+  width: 3rem;
+  height: 3rem;
+  min-height: 3rem;
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: #ffffff;
