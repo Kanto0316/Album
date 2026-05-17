@@ -2916,8 +2916,8 @@ body[data-page="item-detail"] .item-detail-fab-row .fab-add--item-detail {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   z-index: 1000;
   box-shadow: 0 10px 22px var(--detail-primary-shadow);
@@ -4982,8 +4982,8 @@ body[data-page="item-detail"] .item-detail-fab-row .fab-add--item-detail {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   z-index: 1000;
   box-shadow: 0 10px 22px var(--detail-primary-shadow);
