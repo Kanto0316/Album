@@ -599,7 +599,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         { header: 'Qté Retour', key: 'qteRetour', width: 14 },
         { header: 'Date de retour', key: 'dateRetour', width: 14 },
         { header: 'Ecart', key: 'ecart', width: 14 },
-        { header: 'Remarque', key: 'observation', width: 14 },
+        { header: 'Remarque', key: 'observation', width: 16 },
         { header: 'Statut', key: 'statut', width: 14 },
       ];
       details.forEach((detail) => {
@@ -639,7 +639,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         { header: 'Qté Retour', key: 'qteRetour', width: 14 },
         { header: 'Date de retour', key: 'dateRetour', width: 14 },
         { header: 'Ecart', key: 'ecart', width: 14 },
-        { header: 'Remarque', key: 'observation', width: 14 },
+        { header: 'Remarque', key: 'observation', width: 16 },
         { header: 'Statut', key: 'statut', width: 14 },
       ];
       rows.forEach((row) => {
