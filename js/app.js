@@ -5813,7 +5813,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!detailFilterOptions.length) {
         return;
       }
-
       detailFilterOptions.forEach((option) => {
         const filterKey = option.dataset.detailFilter || 'all';
         const count = details.filter((detail) => matchesDetailFilter(detail, filterKey)).length;
@@ -6551,12 +6550,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailFilterButton && detailFilterMenu && detailFilterOptions.length) {
       syncDetailFilterUi();
-      detailFilterButton.addEventListener('click', () => {
+      detailFilterButton.addEventListener('click', (event) => {
+        event.stopPropagation();
         if (detailFilterMenu.hidden) {
           openDetailFilterMenu();
           return;
         }
         closeDetailFilterMenu();
+      });
+
+      detailFilterMenu.addEventListener('click', (event) => {
+        event.stopPropagation();
       });
 
       detailFilterOptions.forEach((option) => {
