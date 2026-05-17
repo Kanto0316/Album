@@ -4321,6 +4321,12 @@ body[data-page="site-detail"] #itemDialog .required-star {
   vertical-align: baseline;
 }
 
+body[data-page="site-detail"] #itemDialog .item-number-label .required-star {
+  display: inline;
+  opacity: 1;
+  visibility: visible;
+}
+
 body[data-page="home"] #siteDialog .required-star {
   color: #ef4444;
   font-weight: 700;
