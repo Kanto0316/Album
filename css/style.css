@@ -2567,9 +2567,7 @@ body[data-page="all-materials"] .clear-search-btn {
   transform: translateY(-50%);
   width: 30px;
   height: 30px;
-  border-radius: 50%;
   border: none;
-  background: #eef5fb;
   color: #6b7280;
   font-size: 20px;
   font-weight: 600;
@@ -2578,9 +2576,22 @@ body[data-page="all-materials"] .clear-search-btn {
   padding: 0;
 }
 
+body[data-page="item-detail"] .clear-search-btn {
+  background: transparent;
+  border-radius: 0;
+}
+
+body[data-page="all-materials"] .clear-search-btn {
+  border-radius: 50%;
+  background: #eef5fb;
+}
+
 body[data-page="item-detail"] .clear-search-btn:active,
 body[data-page="all-materials"] .clear-search-btn:active {
   transform: translateY(-50%) scale(0.94);
+}
+
+body[data-page="all-materials"] .clear-search-btn:active {
   background: #e0eefc;
 }
 
