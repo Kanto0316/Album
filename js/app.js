@@ -522,7 +522,39 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return value;
   }
 
-  function applyProfessionalExcelStyling(worksheet) {
+  function formatExcelHeaderDate(date = new Date()) {
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function applyExcelProfessionalHeader(worksheet, siteName) {
+    const totalColumns = worksheet.columns.length || 12;
+    const mergeEndColumnLetter = worksheet.getColumn(totalColumns).letter;
+    const mergedRange = `A1:${mergeEndColumnLetter}1`;
+    worksheet.mergeCells(mergedRange);
+
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = 'SUIVI MATERIEL';
+    titleCell.font = { bold: true, size: 20, color: { argb: 'FF1F2937' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    const siteCell = worksheet.getCell('A2');
+    siteCell.value = `Site concerné : ${siteName || '-'}`;
+    siteCell.font = { bold: true, size: 12, color: { argb: 'FF374151' } };
+    siteCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+    const updateCell = worksheet.getCell('A3');
+    updateCell.value = `Date de dernière mise à jour : ${formatExcelHeaderDate()}`;
+    updateCell.font = { size: 11, color: { argb: 'FF4B5563' } };
+    updateCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+    worksheet.getRow(1).height = 32;
+    worksheet.getRow(2).height = 22;
+    worksheet.getRow(3).height = 20;
+    worksheet.getRow(4).height = 12;
+  }
+
+  function applyProfessionalExcelStyling(worksheet, tableStartRow = 1) {
     const centeredColumns = [4, 5, 6, 7, 8, 9, 10, 11, 12];
     const wrappedColumns = [3];
     const statusColumnNumber = 12;
@@ -531,7 +563,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       pattern: 'solid',
       fgColor: { argb: 'FFFFD6D6' },
     };
-    const headerRow = worksheet.getRow(1);
+    const headerRow = worksheet.getRow(tableStartRow);
 
     headerRow.font = { bold: true, color: { argb: 'FF1F2937' } };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -558,7 +590,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         };
       });
 
-      if (rowNumber > 1) {
+      if (rowNumber > tableStartRow) {
         const statusValue = String(row.getCell(statusColumnNumber).value || '').trim().toUpperCase();
         if (statusValue === 'K.O') {
           row.eachCell({ includeEmpty: true }, (cell) => {
@@ -571,7 +603,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     centeredColumns.forEach((columnNumber) => {
       worksheet.getColumn(columnNumber).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
-        if (rowNumber === 1) {
+        if (rowNumber === tableStartRow) {
           return;
         }
         cell.alignment = {
@@ -583,7 +615,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
   }
 
-  function buildDetailExcelContent(title, details) {
+  function buildDetailExcelContent(title, details, siteName) {
     return async () => {
       const ExcelJS = await getExcelJsModule();
       const workbook = new ExcelJS.Workbook();
@@ -618,12 +650,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           statut: formatExcelCellValue(normalizeDetailStatut(detail.statut)),
         });
       });
-      applyProfessionalExcelStyling(worksheet);
+      worksheet.spliceRows(1, 0, [], [], [], []);
+      applyExcelProfessionalHeader(worksheet, siteName);
+      applyProfessionalExcelStyling(worksheet, 5);
       return workbook;
     };
   }
 
-  function buildSiteExcelContent(title, rows) {
+  function buildSiteExcelContent(title, rows, siteName) {
     return async () => {
       const ExcelJS = await getExcelJsModule();
       const workbook = new ExcelJS.Workbook();
@@ -658,7 +692,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           statut: formatExcelCellValue(normalizeDetailStatut(row.statut)),
         });
       });
-      applyProfessionalExcelStyling(worksheet);
+      worksheet.spliceRows(1, 0, [], [], [], []);
+      applyExcelProfessionalHeader(worksheet, siteName);
+      applyProfessionalExcelStyling(worksheet, 5);
       return workbook;
     };
   }
@@ -3330,7 +3366,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
 
       const title = `SUIVI MATERIEL . ${currentSite.nom}`;
-      const workbook = buildSiteExcelContent(title, sortedRows);
+      const workbook = buildSiteExcelContent(title, sortedRows, currentSite?.nom);
       const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
       downloadExcelFile(fileName, 'Export Excel', workbook);
       saveExportFileNameToHistory(fileName);
@@ -5877,7 +5913,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
 
-      const workbook = buildDetailExcelContent(`${currentSite.nom} · ${currentItem.numero}`, filteredDetails);
+      const workbook = buildDetailExcelContent(`${currentSite.nom} · ${currentItem.numero}`, filteredDetails, currentSite?.nom);
       const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
       downloadExcelFile(fileName, 'Export Excel', workbook);
       saveExportFileNameToHistory(fileName);
