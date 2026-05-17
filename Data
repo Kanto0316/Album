@@ -1,1 +1,10 @@
-
+[
+  {
+    "code": "0001",
+    "designation": "Kanto"
+  },
+  {
+    "code": "0002",
+    "designation": "Ravaka"
+  }
+]
