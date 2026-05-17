@@ -537,7 +537,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     headerRow.height = 24;
 
     worksheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const isCentered = centeredColumns.includes(colNumber);
         cell.alignment = {
           vertical: 'middle',
@@ -555,6 +555,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (rowNumber > 1) {
         row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
       }
+    });
+
+    centeredColumns.forEach((columnNumber) => {
+      worksheet.getColumn(columnNumber).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+        if (rowNumber === 1) {
+          return;
+        }
+        cell.alignment = {
+          ...(cell.alignment || {}),
+          horizontal: 'center',
+          vertical: 'middle',
+        };
+      });
     });
   }
 
@@ -577,7 +590,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         { header: 'Remarque', key: 'observation', width: 14 },
         { header: 'Statut', key: 'statut', width: 14 },
       ];
-      applyProfessionalExcelStyling(worksheet);
       details.forEach((detail) => {
         worksheet.addRow({
           champ: formatExcelCellValue(detail.champ),
@@ -594,6 +606,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           statut: formatExcelCellValue(normalizeDetailStatut(detail.statut)),
         });
       });
+      applyProfessionalExcelStyling(worksheet);
       return workbook;
     };
   }
@@ -617,7 +630,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         { header: 'Remarque', key: 'observation', width: 14 },
         { header: 'Statut', key: 'statut', width: 14 },
       ];
-      applyProfessionalExcelStyling(worksheet);
       rows.forEach((row) => {
         worksheet.addRow({
           out: formatExcelCellValue(row.out),
@@ -634,6 +646,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           statut: formatExcelCellValue(normalizeDetailStatut(row.statut)),
         });
       });
+      applyProfessionalExcelStyling(worksheet);
       return workbook;
     };
   }
