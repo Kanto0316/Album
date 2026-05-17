@@ -2476,7 +2476,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       const name = siteNameInput.value.trim();
       if (!name) {
-        showSiteNameError('Veuillez remplir ce champ');
+        showSiteNameError('Veuillez renseigner le nom du site.');
+        siteNameInput.focus();
         return;
       }
 
