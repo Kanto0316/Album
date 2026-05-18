@@ -1694,12 +1694,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span id="siteActionLockToggleLabel">Verrouiller</span>
             </button>
-            <div class="item-action-sheet__divider" aria-hidden="true"></div>
+            <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton">
               <img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Modifier le nom</span>
             </button>
-            <div class="item-action-sheet__divider" aria-hidden="true"></div>
+            <div class="item-action-sheet__divider" id="siteActionDividerBeforeDelete" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
@@ -1882,7 +1882,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const lockToggleLabel = overlay.querySelector('#siteActionLockToggleLabel');
       const editNameButton = overlay.querySelector('#siteActionEditNameButton');
       const deleteButton = overlay.querySelector('#siteActionDeleteButton');
-      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !editNameButton || !deleteButton) {
+      const dividerAfterLock = overlay.querySelector('#siteActionDividerAfterLock');
+      const dividerBeforeDelete = overlay.querySelector('#siteActionDividerBeforeDelete');
+      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !editNameButton || !deleteButton || !dividerAfterLock || !dividerBeforeDelete) {
         return;
       }
       const closeTransitionDurationMs = 280;
@@ -1904,6 +1906,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         deleteButton.hidden = !canDeleteSite;
         deleteButton.style.display = canDeleteSite ? 'inline-flex' : 'none';
         deleteButton.disabled = !canDeleteSite;
+
+        const showDividerAfterLock = canEditSiteName || canDeleteSite;
+        const showDividerBeforeDelete = canEditSiteName && canDeleteSite;
+
+        dividerAfterLock.hidden = !showDividerAfterLock;
+        dividerAfterLock.style.display = showDividerAfterLock ? '' : 'none';
+
+        dividerBeforeDelete.hidden = !showDividerBeforeDelete;
+        dividerBeforeDelete.style.display = showDividerBeforeDelete ? '' : 'none';
         return latestSite;
       };
 
