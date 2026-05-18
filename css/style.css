@@ -3407,10 +3407,16 @@ body[data-page="item-detail"] input[data-field="designation"] {
 }
 
 body[data-page="item-detail"] .cell-input--designation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   min-width: 22ch;
   max-width: 44ch;
   min-height: 2.25rem;
-  line-height: 1.3;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1.2;
+  box-sizing: border-box;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: anywhere;
