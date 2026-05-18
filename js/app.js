@@ -4507,6 +4507,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function clearItemStoreErrorState() {
       itemStoreError.textContent = '';
       itemStoreSelect.classList.remove('is-error', 'is-shaking');
+      itemStoreOtherInput?.classList.remove('is-error', 'is-shaking');
     }
 
     function showItemStoreError(message = 'Veuillez sélectionner un magasin.') {
@@ -4834,6 +4835,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     itemStoreOtherInput?.addEventListener('input', () => {
+      clearItemStoreErrorState();
       setItemCreateButtonState();
     });
 
@@ -5062,7 +5064,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (itemCreateSubmitButton.disabled) {
+      if (itemCreateSubmitButton.classList.contains('is-loading')) {
         return;
       }
       const value = itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
@@ -5101,11 +5103,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           showItemFormError('Veuillez saisir au moins 4 chiffres.');
           return;
         }
-        const storeValue = resolveItemStoreValue();
-        if (!storeValue || storeValue === 'None') {
-          showItemStoreError();
+        const selectedStoreValue = String(itemStoreSelect?.value || '').trim();
+        if (!selectedStoreValue) {
+          showItemStoreError('Veuillez sélectionner un magasin.');
           itemStoreSelect.focus();
           return;
+        }
+        if (selectedStoreValue === 'Autre à préciser') {
+          const customStoreValue = String(itemStoreOtherInput?.value || '').trim();
+          if (!customStoreValue) {
+            showItemStoreError('Veuillez préciser le magasin.');
+            itemStoreOtherInput?.classList.remove('is-shaking');
+            void itemStoreOtherInput?.offsetWidth;
+            itemStoreOtherInput?.classList.add('is-error', 'is-shaking');
+            itemStoreOtherInput?.focus();
+            return;
+          }
         }
       }
       if (itemDialogMode === ITEM_DIALOG_MODE_CREATE) {
