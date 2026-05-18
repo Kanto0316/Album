@@ -1262,7 +1262,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       isSiteCreateInputValid = Boolean(isEnabled);
-      siteCreateSubmitButton.disabled = isSiteCreationPending || !isSiteCreateInputValid;
+      siteCreateSubmitButton.disabled = isSiteCreationPending;
     }
 
     function clearSiteNameAvailabilityMessage() {
@@ -2438,6 +2438,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     siteNameInput.addEventListener('input', () => {
+      clearTransientError(siteFormError);
+      siteFormError.style.color = '';
+      clearSiteNameErrorState();
       updateSiteNameCounter();
       if (siteNameAvailabilityDebounceTimer) {
         window.clearTimeout(siteNameAvailabilityDebounceTimer);
@@ -2445,6 +2448,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       siteNameAvailabilityDebounceTimer = window.setTimeout(() => {
         validateSiteNameDuringInput();
       }, 200);
+    });
+
+    siteCreateSubmitButton?.addEventListener('click', () => {
+      if (isSiteCreationPending) {
+        return;
+      }
+      siteForm.requestSubmit();
     });
     siteEditNameInput?.addEventListener('input', () => {
       clearTransientError(siteEditNameError);
@@ -2470,6 +2480,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
 
     siteForm.addEventListener('submit', async (event) => {
+      console.log('site validation triggered');
       event.preventDefault();
       if (isSiteCreationPending) {
         return;
