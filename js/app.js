@@ -2870,6 +2870,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemForm = requireElement('itemForm');
     const itemNumberInput = requireElement('itemNumberInput');
     const itemStoreSelect = requireElement('itemStoreSelect');
+    const itemStoreError = requireElement('itemStoreError');
     const itemStoreOtherGroup = requireElement('itemStoreOtherGroup');
     const itemStoreOtherInput = requireElement('itemStoreOtherInput');
     const itemNumberCounter = requireElement('itemNumberCounter');
@@ -4503,6 +4504,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       itemNumberInput.classList.remove('is-error', 'is-shaking');
     }
 
+    function clearItemStoreErrorState() {
+      itemStoreSelect?.classList.remove('is-error', 'is-shaking');
+      itemStoreSelect?.closest('.magasin-group')?.classList.remove('is-shaking');
+      if (itemStoreError) {
+        itemStoreError.textContent = '';
+      }
+    }
+
+    function showItemStoreErrorState() {
+      itemStoreSelect?.classList.remove('is-shaking');
+      itemStoreSelect?.closest('.magasin-group')?.classList.remove('is-shaking');
+      // Force un reflow pour rejouer l'animation à chaque nouvelle erreur.
+      void itemStoreSelect?.offsetWidth;
+      itemStoreSelect?.classList.add('is-error', 'is-shaking');
+      itemStoreSelect?.closest('.magasin-group')?.classList.add('is-shaking');
+      if (itemStoreError) {
+        itemStoreError.textContent = 'Veuillez sélectionner un magasin.';
+      }
+    }
+
     function showItemFormError(message, durationMs = 2300) {
       clearItemNumberErrorState();
       hasBlockingItemNumberError = true;
@@ -4811,6 +4832,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     updatePurchaseDesignationCounter();
 
     itemStoreSelect?.addEventListener('change', () => {
+      clearItemStoreErrorState();
       updateItemStoreOtherVisibility();
       setItemCreateButtonState();
     });
@@ -4884,6 +4906,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     itemDialog.addEventListener('close', () => {
       clearItemFormError();
       clearItemNumberErrorState();
+      clearItemStoreErrorState();
       hasBlockingItemNumberError = false;
       if (itemAvailabilityDebounceTimer) {
         window.clearTimeout(itemAvailabilityDebounceTimer);
@@ -5080,6 +5103,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
         if (value.length < 4) {
           showItemFormError('Veuillez saisir au moins 4 chiffres.');
+          return;
+        }
+        const hasStoreValue = Boolean(resolveItemStoreValue() !== 'None');
+        if (!hasStoreValue) {
+          showItemStoreErrorState();
+          if (!hasBlockingItemNumberError) {
+            itemStoreSelect?.focus();
+          }
           return;
         }
       }
