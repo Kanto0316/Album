@@ -4139,12 +4139,16 @@ body[data-page="site-detail"] #itemDialog #itemNumberInput {
 }
 
 body[data-page="site-detail"] #itemDialog #itemNumberInput.is-error,
-body[data-page="site-detail"] #itemDialog #itemNumberInput.is-error:focus {
+body[data-page="site-detail"] #itemDialog #itemNumberInput.is-error:focus,
+body[data-page="site-detail"] #itemDialog #itemStoreSelect.is-error,
+body[data-page="site-detail"] #itemDialog #itemStoreSelect.is-error:focus {
   border-color: #e53935;
   box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.14);
 }
 
-body[data-page="site-detail"] #itemDialog #itemNumberInput.is-shaking {
+body[data-page="site-detail"] #itemDialog #itemNumberInput.is-shaking,
+body[data-page="site-detail"] #itemDialog #itemStoreSelect.is-shaking,
+body[data-page="site-detail"] #itemDialog .magasin-group.is-shaking {
   animation: item-number-input-shake 300ms ease-in-out 1;
 }
 
