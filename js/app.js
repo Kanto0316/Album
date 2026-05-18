@@ -4551,8 +4551,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function setItemCreateButtonState() {
       const value = normalizeItemNumberInput(itemNumberInput.value.trim());
       const isValidLength = value.length >= 4;
-      const hasStoreValue = itemDialogMode === ITEM_DIALOG_MODE_EDIT || Boolean(resolveItemStoreValue() !== 'None');
-      itemCreateSubmitButton.disabled = hasBlockingItemNumberError || !isValidLength || !hasStoreValue;
+      itemCreateSubmitButton.disabled = hasBlockingItemNumberError || !isValidLength;
     }
 
     function validateItemNumberAvailability() {
