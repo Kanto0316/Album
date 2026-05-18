@@ -4505,23 +4505,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function clearItemStoreErrorState() {
-      itemStoreSelect?.classList.remove('is-error', 'is-shaking');
-      itemStoreSelect?.closest('.magasin-group')?.classList.remove('is-shaking');
-      if (itemStoreError) {
-        itemStoreError.textContent = '';
-      }
+      itemStoreError.textContent = '';
+      itemStoreSelect.classList.remove('is-error', 'is-shaking');
     }
 
-    function showItemStoreErrorState() {
-      itemStoreSelect?.classList.remove('is-shaking');
-      itemStoreSelect?.closest('.magasin-group')?.classList.remove('is-shaking');
-      // Force un reflow pour rejouer l'animation à chaque nouvelle erreur.
-      void itemStoreSelect?.offsetWidth;
-      itemStoreSelect?.classList.add('is-error', 'is-shaking');
-      itemStoreSelect?.closest('.magasin-group')?.classList.add('is-shaking');
-      if (itemStoreError) {
-        itemStoreError.textContent = 'Veuillez sélectionner un magasin.';
-      }
+    function showItemStoreError(message = 'Veuillez sélectionner un magasin.') {
+      itemStoreError.textContent = message;
+      itemStoreSelect.classList.remove('is-shaking');
+      void itemStoreSelect.offsetWidth;
+      itemStoreSelect.classList.add('is-error', 'is-shaking');
+
+      window.setTimeout(() => {
+        clearItemStoreErrorState();
+      }, 2300);
     }
 
     function showItemFormError(message, durationMs = 2300) {
@@ -5105,12 +5101,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           showItemFormError('Veuillez saisir au moins 4 chiffres.');
           return;
         }
-        const hasStoreValue = Boolean(resolveItemStoreValue() !== 'None');
-        if (!hasStoreValue) {
-          showItemStoreErrorState();
-          if (!hasBlockingItemNumberError) {
-            itemStoreSelect?.focus();
-          }
+        const storeValue = resolveItemStoreValue();
+        if (!storeValue || storeValue === 'None') {
+          showItemStoreError();
+          itemStoreSelect.focus();
           return;
         }
       }
