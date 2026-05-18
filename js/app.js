@@ -2906,6 +2906,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
+    const itemNumberLabelText = itemDialog?.querySelector('.item-number-label-text');
 
     let currentSite = StorageService.getSite(siteId);
     let currentItems = [];
@@ -4573,9 +4574,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             ? 'Modifier l’achat matériel'
             : 'Nouveau numéro OUT';
       }
-      if (itemNumberLabel) {
+      if (itemNumberLabelText) {
+        itemNumberLabelText.textContent = itemDialogMode === ITEM_DIALOG_MODE_CREATE ? 'Numéro OUT' : 'Nom';
+      } else if (itemNumberLabel) {
         itemNumberLabel.textContent = itemDialogMode === ITEM_DIALOG_MODE_CREATE ? 'Numéro OUT' : 'Nom';
       }
+      console.log('item-number-label innerHTML:', document.querySelector('#itemDialog .item-number-label')?.innerHTML);
       const defaultLabel = itemCreateSubmitButton?.querySelector('.btn-label-default');
       const loadingLabel = itemCreateSubmitButton?.querySelector('.btn-label-loading');
       const isEditMode = itemDialogMode === ITEM_DIALOG_MODE_EDIT || itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE;
