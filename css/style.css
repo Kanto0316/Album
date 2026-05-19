@@ -6251,47 +6251,41 @@ body[data-page="item-detail"] .search-highlight {
 
 @media (min-width: 1024px) {
   :root {
-    --content-max-width: 1500px;
-    --content-max-width-wide: 1500px;
-    --app-shell-max-width: 1500px;
+    --content-max-width: 100%;
+    --content-max-width-wide: 100%;
+    --app-shell-max-width: 100%;
+  }
+
+  html {
+    font-size: 18px;
   }
 
   .app-shell,
   .app-shell--wide {
-    width: 96%;
-    max-width: 1500px;
-    margin-inline: auto;
-  }
-
-  .bottom-navigation {
-    left: 50%;
-    right: auto;
-    width: 96%;
-    max-width: 1500px;
-    margin-inline: auto;
-    transform: translateX(-50%);
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
   }
 
   .page-content,
   .page-content--wide {
     width: 100%;
     max-width: 100%;
-    margin-inline: auto;
-    padding-left: 32px;
-    padding-right: 32px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
   .surface-card,
   .table-card,
-  .search-panel,
-  .list-card {
+  .list-card,
+  .search-panel {
     width: 100%;
     max-width: 100%;
   }
 
   .list-card {
-    padding: 1.25rem 1.4rem;
-    font-size: 1rem;
+    padding: 1.35rem 1.5rem;
+    border-radius: 20px;
   }
 
   .search-panel .input-group {
@@ -6299,33 +6293,51 @@ body[data-page="item-detail"] .search-highlight {
     width: 100%;
   }
 
-  .search-input {
-    min-height: 52px;
+  .search-input,
+  #detailSearchInput,
+  #searchInput {
+    min-height: 56px;
     font-size: 1rem;
   }
 
   .list-card__title {
-    font-size: 1.12rem;
+    font-size: 1.18rem;
+  }
+
+  .section-heading h2,
+  .section-title {
+    font-size: 1.2rem;
   }
 
   .list-card__meta {
-    font-size: 0.98rem;
-  }
-
-  .section-title,
-  .section-heading h2 {
-    font-size: 1.15rem;
+    font-size: 1rem;
   }
 
   .table-wrapper--shared,
-  .table-container--card {
+  .table-container--card,
+  .table-wrapper--users {
     width: 100%;
     max-width: 100%;
   }
 
-  body[data-page="users-management"] .table-wrapper--users {
-    width: 100%;
+  .app-header {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .fab,
+  .fab-add {
+    transform: scale(1.08);
+  }
+
+  .bottom-nav,
+  .bottom-navigation,
+  .mobile-nav,
+  .tab-bar {
+    width: calc(100% - 24px);
     max-width: 100%;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   body[data-page="users-management"] .table-wrapper--users .data-table {
@@ -6334,12 +6346,5 @@ body[data-page="item-detail"] .search-highlight {
 
   body[data-page="item-detail"] .data-table {
     min-width: 82rem;
-  }
-
-  body[data-page="site-detail"] .site-detail-fab-stack,
-  body[data-page="site-detail"] .site-detail-fab-row,
-  body[data-page="site-detail"] .fab-add,
-  body[data-page="site-detail"] #openCreateItem {
-    right: max(24px, calc((100vw - min(96vw, 1500px)) / 2 + 24px));
   }
 }
