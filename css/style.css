@@ -6264,6 +6264,15 @@ body[data-page="item-detail"] .search-highlight {
     margin-inline: auto;
   }
 
+  .bottom-navigation {
+    left: 50%;
+    right: auto;
+    width: 96%;
+    max-width: var(--app-shell-max-width);
+    margin-inline: auto;
+    transform: translateX(-50%);
+  }
+
   .page-content,
   .page-content--wide,
   body[data-page="users-management"] .page-content--wide,
