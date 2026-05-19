@@ -6348,3 +6348,54 @@ body[data-page="item-detail"] .search-highlight {
     min-width: 82rem;
   }
 }
+
+@media (min-width: 1024px) {
+  :root {
+    --content-max-width: 100%;
+    --content-max-width-wide: 100%;
+    --app-shell-max-width: 100%;
+  }
+
+  .app-shell,
+  .app-shell--wide {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+  }
+
+  .page-content,
+  .page-content--wide,
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+
+  .app-header,
+  .page1-header,
+  .app-header--detail,
+  .app-header--home {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .surface-card,
+  .table-card,
+  .search-panel,
+  .list-card,
+  body[data-page="home"] .list-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .search-panel .input-group {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body[data-page="users-management"] .app-shell.app-shell--wide {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
