@@ -6500,3 +6500,37 @@ body[data-page="item-detail"] .search-highlight {
   .list-grid { gap: 1.2rem; }
   .list-card { padding: 1.4rem; }
 }
+
+/* Premium fluid width guardrails (tablet/desktop zoom safe) */
+@media (min-width: 768px) {
+  .app-shell,
+  .app-shell--wide {
+    width: min(calc(100% - 24px), 1600px) !important;
+    max-width: 1600px !important;
+    margin-inline: auto !important;
+  }
+
+  .page-content,
+  .page-content--wide,
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    box-sizing: border-box;
+  }
+
+  .app-header {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .list-card,
+  .surface-card,
+  .table-card,
+  .search-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+}
