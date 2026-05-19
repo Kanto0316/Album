@@ -6248,3 +6248,53 @@ body[data-page="item-detail"] .search-highlight {
   font-weight: 500;
   line-height: 1.45;
 }
+
+@media (min-width: 1024px) {
+  :root {
+    --content-max-width: 1800px;
+    --content-max-width-wide: 1800px;
+    --app-shell-max-width: 1800px;
+  }
+
+  .app-shell,
+  .app-shell--wide,
+  body[data-page="users-management"] .app-shell.app-shell--wide {
+    width: min(96%, var(--app-shell-max-width));
+    max-width: var(--app-shell-max-width);
+    margin-inline: auto;
+  }
+
+  .page-content,
+  .page-content--wide,
+  body[data-page="users-management"] .page-content--wide,
+  body[data-page="item-detail"] .page-content,
+  body[data-page="site-detail"] .page-content {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .surface-card,
+  .table-card,
+  .details-card,
+  .list-card,
+  .card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body[data-page="item-detail"] .table-container--card,
+  body[data-page="item-detail"] .table-wrapper--shared,
+  body[data-page="users-management"] .table-wrapper--users {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body[data-page="users-management"] .table-wrapper--users .data-table {
+    min-width: 64rem;
+  }
+
+  body[data-page="item-detail"] .data-table {
+    min-width: 82rem;
+  }
+}
