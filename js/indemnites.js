@@ -393,6 +393,10 @@ import { firebaseDb } from './firebase-core.js';
     }
   }
 
+  function markIndemnitiesPageReady() {
+    window.UiService?.markAppReady?.();
+  }
+
   function initIndemnitiesPage() {
     requireElement('indemnitiesBackButton')?.addEventListener('click', () => {
       window.location.assign('index.html');
@@ -410,6 +414,8 @@ import { firebaseDb } from './firebase-core.js';
         closePreviewModal();
       }
     });
+
+    markIndemnitiesPageReady();
   }
 
   if (isIndemnitiesPage) {
