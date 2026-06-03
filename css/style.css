@@ -5608,9 +5608,23 @@ body[data-page="site-detail"] .filter-chip-group {
   width: 100%;
 }
 
-body[data-page="site-detail"] .filter-chip {
+body.page2 .filter-chips-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body.page2 .filter-chips-container::-webkit-scrollbar {
+  display: none;
+}
+
+body.page2 .filter-chips-container .filter-chip {
   flex: 0 0 auto;
+  width: fit-content;
+  white-space: nowrap;
 }
 
 body[data-page="site-detail"] .list-grid {
