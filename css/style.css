@@ -6183,11 +6183,19 @@ body.sidebar-open {
   padding: 0 14px;
   display: flex;
   align-items: center;
+  gap: 10px;
   font-size: 15px;
   font-weight: 600;
   color: #1f2937;
   background: transparent;
   transition: all 0.2s ease;
+}
+
+.sidebar-item__icon {
+  width: 20px;
+  color: #2563eb;
+  font-size: 18px;
+  text-align: center;
 }
 
 .sidebar-item:hover {

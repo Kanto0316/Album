@@ -1075,6 +1075,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const usersSidebarBtn = homeMenuPanel?.querySelector('#sidebarUsersBtn') || null;
     const historySidebarBtn = homeMenuPanel?.querySelector('#sidebarHistoryBtn') || null;
     const allMaterialsSidebarBtn = homeMenuPanel?.querySelector('#sidebarAllMaterialsBtn') || null;
+    const indemnitiesSidebarBtn = homeMenuPanel?.querySelector('#sidebarIndemnitiesBtn') || null;
     const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
@@ -2304,6 +2305,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    if (indemnitiesSidebarBtn) {
+      indemnitiesSidebarBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.assign('indemnites.html');
+      });
+    }
+
     if (historySidebarBtn) {
       historySidebarBtn.addEventListener('click', (event) => {
         event.preventDefault();
@@ -2352,6 +2361,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       setSidebarItemVisible('#sidebarHistoryBtn', true);
       setSidebarItemVisible('#sidebarAllMaterialsBtn', isConnected);
+      setSidebarItemVisible('#sidebarIndemnitiesBtn', isConnected);
 
       if (!isConnected || isLimited) {
         setSidebarItemVisible('#sidebarImportBtn', false);
