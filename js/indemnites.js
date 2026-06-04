@@ -1,6 +1,3 @@
-import { addDoc, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-import { firebaseDb } from './firebase-core.js';
-
 (function () {
   const isIndemnitiesPage = location.pathname.includes('indemnites.html');
   const STORAGE_KEY = 'indemnityRequestEntries';
@@ -74,7 +71,74 @@ import { firebaseDb } from './firebase-core.js';
     return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
   }
 
+  function buildDemandeIndemnitesHtml() {
+    return `
+      <section class="indemnity-card" aria-labelledby="indemnityFormTitle">
+        <h2 id="indemnityFormTitle" class="indemnity-section-title">Ajouter une personne</h2>
+        <form id="indemnityForm" class="indemnity-form">
+          <label class="input-group">
+            <span>Nom de la personne</span>
+            <input id="indemnityNameInput" type="text" autocomplete="off" maxlength="80" required />
+          </label>
+          <label class="input-group">
+            <span>Date de travail</span>
+            <input id="indemnityDateInput" type="date" required />
+          </label>
+          <label class="input-group">
+            <span>Nombre de jours</span>
+            <input id="indemnityDaysInput" type="number" min="1" max="999" step="1" inputmode="numeric" value="1" required />
+          </label>
+          <button id="indemnitySubmitButton" class="btn btn-success" type="submit">Ajouter</button>
+        </form>
+        <p id="indemnityFormError" class="form-error" aria-live="polite"></p>
+      </section>
+
+      <section class="indemnity-card" aria-labelledby="indemnitySummaryTitle">
+        <h2 id="indemnitySummaryTitle" class="indemnity-section-title">Résumé</h2>
+        <div class="indemnity-summary-grid">
+          <div class="indemnity-summary-item">
+            <p class="indemnity-summary-label">Personnes enregistrées</p>
+            <p id="indemnityPeopleTotal" class="indemnity-summary-value">0</p>
+          </div>
+          <div class="indemnity-summary-item">
+            <p class="indemnity-summary-label">Total des jours travaillés</p>
+            <p id="indemnityDaysTotal" class="indemnity-summary-value">0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="indemnity-card" aria-labelledby="indemnityListTitle">
+        <div class="indemnity-list-header">
+          <h2 id="indemnityListTitle" class="indemnity-section-title">Liste des personnes</h2>
+          <span id="indemnityListCount" class="indemnity-list-count">0 personne</span>
+        </div>
+        <div id="indemnityList" class="indemnity-list" aria-live="polite"></div>
+      </section>
+
+      <section class="indemnity-card" aria-labelledby="indemnityExportTitle">
+        <h2 id="indemnityExportTitle" class="indemnity-section-title">Export</h2>
+        <div class="indemnity-export-row">
+          <button id="exportIndemnityImageBtn" class="btn btn-primary export-img-btn" type="button">Exporter en image</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderDemandeIndemnites() {
+    console.log('[Demande indemnités] rendu du formulaire');
+    const container = requireElement('demandeIndemnitesRoot') || document.querySelector('main.page-content');
+    if (!container) {
+      console.error('[Demande indemnités] conteneur principal introuvable');
+      return false;
+    }
+
+    container.innerHTML = buildDemandeIndemnitesHtml();
+    console.log('[Demande indemnités] HTML injecté dans le conteneur principal', container);
+    return true;
+  }
+
   function loadEntries() {
+    console.log('[Demande indemnités] chargement des données');
     try {
       const savedEntries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
       indemnityEntries = Array.isArray(savedEntries)
@@ -85,7 +149,9 @@ import { firebaseDb } from './firebase-core.js';
           days: sanitizeDays(entry.days),
         })).filter((entry) => entry.name && entry.workDate)
         : [];
-    } catch (_error) {
+      console.log('[Demande indemnités] données chargées', indemnityEntries.length);
+    } catch (error) {
+      console.error('[Demande indemnités] erreur de chargement des données', error);
       indemnityEntries = [];
     }
   }
@@ -120,8 +186,10 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   function renderEntries() {
+    console.log('[Demande indemnités] rendu de la liste', indemnityEntries.length);
     const list = requireElement('indemnityList');
     if (!list) {
+      console.error('[Demande indemnités] #indemnityList introuvable');
       return;
     }
 
@@ -243,15 +311,19 @@ import { firebaseDb } from './firebase-core.js';
 
   function startEditEntry(id) {
     const entry = indemnityEntries.find((item) => item.id === id);
-    if (!entry) {
+    const nameInput = requireElement('indemnityNameInput');
+    const dateInput = requireElement('indemnityDateInput');
+    const daysInput = requireElement('indemnityDaysInput');
+    const submitButton = requireElement('indemnitySubmitButton');
+    if (!entry || !nameInput || !dateInput || !daysInput || !submitButton) {
       return;
     }
     editingId = id;
-    requireElement('indemnityNameInput').value = entry.name;
-    requireElement('indemnityDateInput').value = entry.workDate;
-    requireElement('indemnityDaysInput').value = String(sanitizeDays(entry.days));
-    requireElement('indemnitySubmitButton').textContent = 'Modifier';
-    requireElement('indemnityNameInput')?.focus();
+    nameInput.value = entry.name;
+    dateInput.value = entry.workDate;
+    daysInput.value = String(sanitizeDays(entry.days));
+    submitButton.textContent = 'Modifier';
+    nameInput.focus();
     showFormError('');
   }
 
@@ -266,6 +338,12 @@ import { firebaseDb } from './firebase-core.js';
   }
 
   async function createIndemnityRequestRecord(exportDateLabel) {
+    const [firestoreModule, firebaseCoreModule] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js'),
+      import('./firebase-core.js'),
+    ]);
+    const { addDoc, collection, serverTimestamp } = firestoreModule;
+    const { firebaseDb } = firebaseCoreModule;
     const people = indemnityEntries.map((entry) => ({
       name: String(entry.name || ''),
       workDate: String(entry.workDate || ''),
@@ -393,19 +471,7 @@ import { firebaseDb } from './firebase-core.js';
     }
   }
 
-  function markIndemnitiesPageReady() {
-    window.UiService?.markAppReady?.();
-  }
-
-  function initIndemnitiesPage() {
-    requireElement('indemnitiesBackButton')?.addEventListener('click', () => {
-      window.location.assign('index.html');
-    });
-
-    loadEntries();
-    resetForm();
-    renderEntries();
-
+  function bindDemandeIndemnitesEvents() {
     requireElement('indemnityForm')?.addEventListener('submit', saveFormEntry);
     requireElement('exportIndemnityImageBtn')?.addEventListener('click', exportAsImage);
     requireElement('indemnityPreviewOkBtn')?.addEventListener('click', closePreviewModal);
@@ -414,15 +480,43 @@ import { firebaseDb } from './firebase-core.js';
         closePreviewModal();
       }
     });
-
-    markIndemnitiesPageReady();
   }
+
+  function markIndemnitiesPageReady() {
+    window.UiService?.markAppReady?.();
+    document.body.classList.remove('loading', 'is-loading', 'app-content-loading', 'app-content-pending');
+    document.body.classList.add('app-content-ready');
+  }
+
+  function openDemandeIndemnites() {
+    console.log('[Demande indemnités] ouverture de la page');
+    try {
+      requireElement('indemnitiesBackButton')?.addEventListener('click', () => {
+        window.location.assign('index.html');
+      });
+
+      if (!renderDemandeIndemnites()) {
+        return;
+      }
+      loadEntries();
+      resetForm();
+      renderEntries();
+      bindDemandeIndemnitesEvents();
+    } catch (error) {
+      console.error('[Demande indemnités] erreur JavaScript pendant l’ouverture', error);
+    } finally {
+      markIndemnitiesPageReady();
+    }
+  }
+
+  window.openDemandeIndemnites = openDemandeIndemnites;
+  window.renderDemandeIndemnites = renderDemandeIndemnites;
 
   if (isIndemnitiesPage) {
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initIndemnitiesPage);
+      document.addEventListener('DOMContentLoaded', openDemandeIndemnites);
     } else {
-      initIndemnitiesPage();
+      openDemandeIndemnites();
     }
   }
 }());
