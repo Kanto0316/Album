@@ -7,10 +7,14 @@
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-      body[data-page="indemnites"] .page-content {
+      body[data-page="indemnites"] .page-content,
+      #demandeIndemnitesRoot {
         display: flex;
         flex-direction: column;
         gap: 16px;
+      }
+
+      body[data-page="indemnites"] .page-content {
         padding-bottom: 28px;
       }
 
@@ -217,54 +221,7 @@
       </header>
 
       <main class="page-content main-content">
-        <section class="indemnity-card" aria-labelledby="indemnityFormTitle">
-          <h2 id="indemnityFormTitle" class="indemnity-section-title">Ajouter une personne</h2>
-          <form id="indemnityForm" class="indemnity-form">
-            <label class="input-group">
-              <span>Nom de la personne</span>
-              <input id="indemnityNameInput" type="text" autocomplete="off" maxlength="80" required />
-            </label>
-            <label class="input-group">
-              <span>Date de travail</span>
-              <input id="indemnityDateInput" type="date" required />
-            </label>
-            <label class="input-group">
-              <span>Nombre de jours</span>
-              <input id="indemnityDaysInput" type="number" min="1" max="999" step="1" inputmode="numeric" value="1" required />
-            </label>
-            <button id="indemnitySubmitButton" class="btn btn-success" type="submit">Ajouter</button>
-          </form>
-          <p id="indemnityFormError" class="form-error" aria-live="polite"></p>
-        </section>
-
-        <section class="indemnity-card" aria-labelledby="indemnitySummaryTitle">
-          <h2 id="indemnitySummaryTitle" class="indemnity-section-title">Résumé</h2>
-          <div class="indemnity-summary-grid">
-            <div class="indemnity-summary-item">
-              <p class="indemnity-summary-label">Personnes enregistrées</p>
-              <p id="indemnityPeopleTotal" class="indemnity-summary-value">0</p>
-            </div>
-            <div class="indemnity-summary-item">
-              <p class="indemnity-summary-label">Total des jours travaillés</p>
-              <p id="indemnityDaysTotal" class="indemnity-summary-value">0</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="indemnity-card" aria-labelledby="indemnityListTitle">
-          <div class="indemnity-list-header">
-            <h2 id="indemnityListTitle" class="indemnity-section-title">Liste des personnes</h2>
-            <span id="indemnityListCount" class="indemnity-list-count">0 personne</span>
-          </div>
-          <div id="indemnityList" class="indemnity-list" aria-live="polite"></div>
-        </section>
-
-        <section class="indemnity-card" aria-labelledby="indemnityExportTitle">
-          <h2 id="indemnityExportTitle" class="indemnity-section-title">Export</h2>
-          <div class="indemnity-export-row">
-            <button id="exportIndemnityImageBtn" class="btn btn-primary export-img-btn" type="button">Exporter en image</button>
-          </div>
-        </section>
+        <div id="demandeIndemnitesRoot"></div>
       </main>
 
       <dialog id="indemnityPreviewModal" class="modal-card">
