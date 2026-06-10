@@ -2355,7 +2355,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       setSidebarItemVisible('#sidebarHistoryBtn', true);
       setSidebarItemVisible('#sidebarAllMaterialsBtn', isConnected);
-      setSidebarItemVisible('#sidebarIndemnitiesBtn', isConnected);
+      
 
       if (!isConnected || isLimited) {
         setSidebarItemVisible('#sidebarImportBtn', false);
