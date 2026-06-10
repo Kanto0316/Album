@@ -2305,13 +2305,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
-    if (indemnitiesSidebarBtn) {
-      indemnitiesSidebarBtn.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        window.location.assign('indemnites.html');
-      });
-    }
+
 
     if (historySidebarBtn) {
       historySidebarBtn.addEventListener('click', (event) => {
