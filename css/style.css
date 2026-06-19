@@ -44,6 +44,31 @@
   gap: 0.55rem;
 }
 
+@media (min-width: 1024px) {
+  :root {
+    --content-max-width: none;
+    --content-max-width-wide: none;
+    --app-shell-max-width: none;
+  }
+
+  .app-shell,
+  .app-shell--wide {
+    width: 100%;
+    max-width: none;
+    margin-inline: auto;
+  }
+
+  .page-content--wide {
+    width: 100%;
+    max-width: none;
+  }
+
+  body[data-page="users-management"] .app-shell.app-shell--wide {
+    width: 100%;
+    max-width: none;
+  }
+}
+
 .app-header__side {
   min-width: 0;
   min-height: 100%;
