@@ -1085,6 +1085,8 @@ async function setSiteLock(siteId, lockPayload) {
     lockedBy: lockerEmail,
     lockedByName: lockerName,
     unlockedBy: deleteField(),
+    unlockAttemptsRemaining: 3,
+    unlockBlockedUntil: deleteField(),
     dateModification: timestamp,
   };
 
@@ -1123,6 +1125,8 @@ async function clearSiteLock(siteId) {
     lockedByName: deleteField(),
     lockedBy: deleteField(),
     unlockedBy: unlockerEmail,
+    unlockAttemptsRemaining: deleteField(),
+    unlockBlockedUntil: deleteField(),
     dateModification: timestamp,
   };
 
@@ -1140,12 +1144,91 @@ async function clearSiteLock(siteId) {
     lockedBy: '',
     lockedByName: '',
     unlockedBy: unlockerEmail,
+    unlockAttemptsRemaining: null,
+    unlockBlockedUntil: null,
     dateModification: timestamp,
   };
   sortState();
   persistOfflineState();
   emitAll();
   return { ok: true };
+}
+
+function normalizeUnlockProtection(site) {
+  const blockedUntilRaw = site?.unlockBlockedUntil || null;
+  const blockedUntilDate = blockedUntilRaw ? new Date(blockedUntilRaw) : null;
+  const blockedUntilMs = blockedUntilDate && !Number.isNaN(blockedUntilDate.getTime()) ? blockedUntilDate.getTime() : 0;
+  if (blockedUntilMs > Date.now()) {
+    return {
+      attemptsRemaining: 0,
+      blockedUntil: new Date(blockedUntilMs).toISOString(),
+      isBlocked: true,
+    };
+  }
+  const attempts = Number(site?.unlockAttemptsRemaining);
+  return {
+    attemptsRemaining: Number.isInteger(attempts) && attempts >= 0 && attempts <= 3 ? attempts : 3,
+    blockedUntil: null,
+    isBlocked: false,
+  };
+}
+
+async function resetSiteUnlockProtection(siteId) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+  const payload = {
+    unlockAttemptsRemaining: 3,
+    unlockBlockedUntil: deleteField(),
+  };
+  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true });
+  state.sites[siteIndex] = {
+    ...state.sites[siteIndex],
+    unlockAttemptsRemaining: 3,
+    unlockBlockedUntil: null,
+  };
+  persistOfflineState();
+  emitAll();
+  return { ok: true, ...normalizeUnlockProtection(state.sites[siteIndex]) };
+}
+
+async function getSiteUnlockProtectionState(siteId) {
+  const site = state.sites.find((item) => item.id === siteId);
+  if (!site) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+  const protection = normalizeUnlockProtection(site);
+  if (!protection.isBlocked && site.unlockBlockedUntil) {
+    return resetSiteUnlockProtection(siteId);
+  }
+  return { ok: true, ...protection };
+}
+
+async function registerSiteUnlockFailure(siteId) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+  const current = normalizeUnlockProtection(state.sites[siteIndex]);
+  if (current.isBlocked) {
+    return { ok: true, ...current };
+  }
+  const attemptsRemaining = Math.max(0, current.attemptsRemaining - 1);
+  const blockedUntil = attemptsRemaining === 0 ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+  const payload = {
+    unlockAttemptsRemaining: attemptsRemaining,
+    unlockBlockedUntil: blockedUntil || deleteField(),
+  };
+  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true });
+  state.sites[siteIndex] = {
+    ...state.sites[siteIndex],
+    unlockAttemptsRemaining: attemptsRemaining,
+    unlockBlockedUntil: blockedUntil,
+  };
+  persistOfflineState();
+  emitAll();
+  return { ok: true, attemptsRemaining, blockedUntil, isBlocked: Boolean(blockedUntil) };
 }
 
 async function removeSite(siteId) {
@@ -1737,6 +1820,9 @@ window.StorageService = {
   updateSiteName,
   setSiteLock,
   clearSiteLock,
+  getSiteUnlockProtectionState,
+  registerSiteUnlockFailure,
+  resetSiteUnlockProtection,
   removeSite,
   restoreSite,
   createItem,

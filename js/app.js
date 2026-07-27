@@ -1090,6 +1090,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
     const siteUnlockPasswordToggle = requireElement('siteUnlockPasswordToggle');
     const siteUnlockSubmitButton = requireElement('siteUnlockSubmitButton');
+    const siteUnlockAttemptsInfo = requireElement('siteUnlockAttemptsInfo');
     const siteUnlockError = requireElement('siteUnlockError');
     const siteLockManageDialog = requireElement('siteLockManageDialog');
     const siteLockManageForm = requireElement('siteLockManageForm');
@@ -1127,6 +1128,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let isSiteCreateInputValid = false;
     const siteLockFieldStateTimers = new WeakMap();
     let isSiteUnlockPending = false;
+    let siteUnlockBlockTimer = null;
     let isSiteLockManageUpdatePending = false;
     let isSiteLockManageUnlockPending = false;
 
@@ -1153,7 +1155,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!siteUnlockSubmitButton) {
         return;
       }
-      siteUnlockSubmitButton.disabled = isSiteUnlockPending;
+      siteUnlockSubmitButton.disabled = isSiteUnlockPending || Boolean(siteUnlockSubmitButton.dataset.blocked === 'true');
       siteUnlockSubmitButton.classList.toggle('is-loading', isSiteUnlockPending);
       siteUnlockSubmitButton.setAttribute('aria-busy', String(isSiteUnlockPending));
     }
@@ -1429,6 +1431,68 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         siteLockFieldStateTimers.delete(siteUnlockPasswordInput);
       }, durationMs);
       siteLockFieldStateTimers.set(siteUnlockPasswordInput, timer);
+    }
+
+    function formatAttemptsRemainingMessage(attemptsRemaining) {
+      const count = Math.max(0, Number(attemptsRemaining) || 0);
+      return `Il vous reste ${count} ${count === 1 ? 'tentative' : 'tentatives'}.`;
+    }
+
+    function setSiteUnlockBlockedState(isBlocked) {
+      if (siteUnlockPasswordInput) {
+        siteUnlockPasswordInput.disabled = Boolean(isBlocked);
+      }
+      if (siteUnlockPasswordToggle) {
+        siteUnlockPasswordToggle.disabled = Boolean(isBlocked);
+      }
+      if (siteUnlockSubmitButton) {
+        siteUnlockSubmitButton.dataset.blocked = String(Boolean(isBlocked));
+        siteUnlockSubmitButton.disabled = Boolean(isBlocked) || isSiteUnlockPending;
+      }
+    }
+
+    function updateSiteUnlockAttemptsInfo(attemptsRemaining) {
+      if (!siteUnlockAttemptsInfo) {
+        return;
+      }
+      siteUnlockAttemptsInfo.textContent = formatAttemptsRemainingMessage(attemptsRemaining);
+    }
+
+    function clearSiteUnlockBlockTimer() {
+      if (siteUnlockBlockTimer) {
+        window.clearTimeout(siteUnlockBlockTimer);
+        siteUnlockBlockTimer = null;
+      }
+    }
+
+    function scheduleSiteUnlockUnblock(siteId, blockedUntil) {
+      clearSiteUnlockBlockTimer();
+      const unblockAt = new Date(blockedUntil || '').getTime();
+      const delayMs = unblockAt - Date.now();
+      if (!Number.isFinite(delayMs) || delayMs <= 0) {
+        return;
+      }
+      siteUnlockBlockTimer = window.setTimeout(() => {
+        if (siteIdPendingUnlock === siteId && siteUnlockDialog?.open) {
+          refreshSiteUnlockProtectionState(siteId);
+        }
+      }, Math.min(delayMs, 24 * 60 * 60 * 1000));
+    }
+
+    async function refreshSiteUnlockProtectionState(siteId) {
+      const protection = await StorageService.getSiteUnlockProtectionState(siteId);
+      if (!protection?.ok) {
+        return null;
+      }
+      updateSiteUnlockAttemptsInfo(protection.attemptsRemaining);
+      setSiteUnlockBlockedState(protection.isBlocked);
+      if (protection.isBlocked) {
+        showSiteUnlockFieldError('Réessayez dans 24 heures.', 24 * 60 * 60 * 1000);
+        scheduleSiteUnlockUnblock(siteId, protection.blockedUntil);
+      } else {
+        clearSiteUnlockBlockTimer();
+      }
+      return protection;
     }
 
     function setPasswordVisibility(inputElement, toggleButton, isVisible) {
@@ -2139,8 +2203,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           clearSiteUnlockFieldErrorState();
           setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, false);
           setSiteUnlockLoadingState(false);
+          setSiteUnlockBlockedState(false);
           siteUnlockDialog.showModal();
-          siteUnlockPasswordInput.focus();
+          refreshSiteUnlockProtectionState(siteId).then((protection) => {
+            if (!protection?.isBlocked) {
+              siteUnlockPasswordInput.focus();
+            }
+          });
         });
       });
 
@@ -2683,6 +2752,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       clearSiteUnlockFieldErrorState();
+      const protection = await refreshSiteUnlockProtectionState(siteIdPendingUnlock);
+      if (protection?.isBlocked) {
+        return;
+      }
       const passwordValue = siteUnlockPasswordInput?.value || '';
       if (!passwordValue.trim()) {
         showSiteUnlockFieldError('Veuillez entrer le mot de passe.');
@@ -2703,10 +2776,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         setSiteUnlockLoadingState(true);
         const passwordHash = await hashPassword(passwordValue);
         if (passwordHash !== targetSite.passwordHash) {
-          showSiteUnlockFieldError('Mot de passe incorrect.');
+          const failure = await StorageService.registerSiteUnlockFailure(siteIdPendingUnlock);
+          updateSiteUnlockAttemptsInfo(failure?.attemptsRemaining ?? 0);
+          if (failure?.isBlocked) {
+            setSiteUnlockBlockedState(true);
+            showSiteUnlockFieldError('Vous avez atteint le nombre maximal de tentatives. Réessayez dans 24 heures.', 24 * 60 * 60 * 1000);
+          } else {
+            showSiteUnlockFieldError(`Mot de passe incorrect. ${formatAttemptsRemainingMessage(failure?.attemptsRemaining)}`);
+          }
           setSiteUnlockLoadingState(false);
           return;
         }
+        await StorageService.resetSiteUnlockProtection(siteIdPendingUnlock);
         const openSiteId = siteIdPendingUnlock;
         siteUnlockDialog?.close();
         siteIdPendingUnlock = null;
@@ -2829,7 +2910,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     siteUnlockDialog?.addEventListener('close', () => {
       siteIdPendingUnlock = null;
+      clearSiteUnlockBlockTimer();
       clearSiteUnlockFieldErrorState();
+      if (siteUnlockAttemptsInfo) {
+        siteUnlockAttemptsInfo.textContent = '';
+      }
+      setSiteUnlockBlockedState(false);
       setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, false);
       setSiteUnlockLoadingState(false);
     });
