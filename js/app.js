@@ -2635,7 +2635,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
         siteLockDialog?.close();
         siteIdPendingLock = null;
-        UiService.showToast('Site verrouillé.');
+        UiService.showToast('Site protégé par un mot de passe.');
       } catch (_error) {
         showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Erreur pendant le verrouillage.');
       }
