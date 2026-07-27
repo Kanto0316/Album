@@ -1451,11 +1451,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     }
 
-    function updateSiteUnlockAttemptsInfo(attemptsRemaining) {
+    function clearSiteUnlockAttemptsInfo() {
       if (!siteUnlockAttemptsInfo) {
         return;
       }
-      siteUnlockAttemptsInfo.textContent = formatAttemptsRemainingMessage(attemptsRemaining);
+      siteUnlockAttemptsInfo.textContent = '';
     }
 
     function clearSiteUnlockBlockTimer() {
@@ -1484,7 +1484,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!protection?.ok) {
         return null;
       }
-      updateSiteUnlockAttemptsInfo(protection.attemptsRemaining);
+      clearSiteUnlockAttemptsInfo();
       setSiteUnlockBlockedState(protection.isBlocked);
       if (protection.isBlocked) {
         showSiteUnlockFieldError('Réessayez dans 24 heures.', 24 * 60 * 60 * 1000);
@@ -2777,7 +2777,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const passwordHash = await hashPassword(passwordValue);
         if (passwordHash !== targetSite.passwordHash) {
           const failure = await StorageService.registerSiteUnlockFailure(siteIdPendingUnlock);
-          updateSiteUnlockAttemptsInfo(failure?.attemptsRemaining ?? 0);
+          clearSiteUnlockAttemptsInfo();
           if (failure?.isBlocked) {
             setSiteUnlockBlockedState(true);
             showSiteUnlockFieldError('Vous avez atteint le nombre maximal de tentatives. Réessayez dans 24 heures.', 24 * 60 * 60 * 1000);
@@ -2912,9 +2912,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       siteIdPendingUnlock = null;
       clearSiteUnlockBlockTimer();
       clearSiteUnlockFieldErrorState();
-      if (siteUnlockAttemptsInfo) {
-        siteUnlockAttemptsInfo.textContent = '';
-      }
+      clearSiteUnlockAttemptsInfo();
       setSiteUnlockBlockedState(false);
       setPasswordVisibility(siteUnlockPasswordInput, siteUnlockPasswordToggle, false);
       setSiteUnlockLoadingState(false);
