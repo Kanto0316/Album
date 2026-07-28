@@ -1484,6 +1484,10 @@ body[data-page="home"] #siteUnlockDialog .form-info--attempts {
   font-size: 0.82rem;
 }
 
+body[data-page="home"] #siteUnlockDialog .form-info--attempts.form-info--blocked {
+  color: var(--danger);
+}
+
 body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-error,
 body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-error:focus {
   border-color: #e57373;
