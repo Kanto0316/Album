@@ -1154,8 +1154,22 @@ async function clearSiteLock(siteId) {
   return { ok: true };
 }
 
-function normalizeUnlockProtection(site) {
-  const blockedUntilRaw = site?.unlockBlockedUntil || null;
+function buildSiteUnlockProtectionKey(siteId) {
+  const uid = String(state.authUser?.uid || state.userId || firebaseAuth.currentUser?.uid || '').trim();
+  const normalizedSiteId = String(siteId || '').trim();
+  return uid && normalizedSiteId ? `${normalizedSiteId}_${uid}` : '';
+}
+
+function readSiteUnlockProtection(site, siteId) {
+  const protectionKey = buildSiteUnlockProtectionKey(siteId || site?.id);
+  const protections = site?.unlockProtections && typeof site.unlockProtections === 'object' ? site.unlockProtections : {};
+  const scopedProtection = protectionKey ? protections[protectionKey] : null;
+  return scopedProtection && typeof scopedProtection === 'object' ? scopedProtection : {};
+}
+
+function normalizeUnlockProtection(site, siteId) {
+  const scopedProtection = readSiteUnlockProtection(site, siteId);
+  const blockedUntilRaw = scopedProtection?.blockedUntil || null;
   const blockedUntilDate = blockedUntilRaw ? new Date(blockedUntilRaw) : null;
   const blockedUntilMs = blockedUntilDate && !Number.isNaN(blockedUntilDate.getTime()) ? blockedUntilDate.getTime() : 0;
   if (blockedUntilMs > Date.now()) {
@@ -1165,7 +1179,7 @@ function normalizeUnlockProtection(site) {
       isBlocked: true,
     };
   }
-  const attempts = Number(site?.unlockAttemptsRemaining);
+  const attempts = Number(scopedProtection?.attemptsRemaining);
   return {
     attemptsRemaining: Number.isInteger(attempts) && attempts >= 0 && attempts <= 3 ? attempts : 3,
     blockedUntil: null,
@@ -1178,19 +1192,28 @@ async function resetSiteUnlockProtection(siteId) {
   if (siteIndex === -1) {
     return { ok: false, reason: 'site_not_found' };
   }
-  const payload = {
-    unlockAttemptsRemaining: 3,
-    unlockBlockedUntil: deleteField(),
+  const protectionKey = buildSiteUnlockProtectionKey(siteId);
+  if (!protectionKey) {
+    return { ok: false, reason: 'auth_required' };
+  }
+  const unlockProtections = {
+    ...(state.sites[siteIndex].unlockProtections && typeof state.sites[siteIndex].unlockProtections === 'object'
+      ? state.sites[siteIndex].unlockProtections
+      : {}),
+    [protectionKey]: {
+      attemptsRemaining: 3,
+      blockedUntil: null,
+    },
   };
+  const payload = { unlockProtections };
   await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true });
   state.sites[siteIndex] = {
     ...state.sites[siteIndex],
-    unlockAttemptsRemaining: 3,
-    unlockBlockedUntil: null,
+    unlockProtections,
   };
   persistOfflineState();
   emitAll();
-  return { ok: true, ...normalizeUnlockProtection(state.sites[siteIndex]) };
+  return { ok: true, ...normalizeUnlockProtection(state.sites[siteIndex], siteId) };
 }
 
 async function getSiteUnlockProtectionState(siteId) {
@@ -1198,8 +1221,9 @@ async function getSiteUnlockProtectionState(siteId) {
   if (!site) {
     return { ok: false, reason: 'site_not_found' };
   }
-  const protection = normalizeUnlockProtection(site);
-  if (!protection.isBlocked && site.unlockBlockedUntil) {
+  const protection = normalizeUnlockProtection(site, siteId);
+  const scopedProtection = readSiteUnlockProtection(site, siteId);
+  if (!protection.isBlocked && scopedProtection.blockedUntil) {
     return resetSiteUnlockProtection(siteId);
   }
   return { ok: true, ...protection };
@@ -1210,21 +1234,30 @@ async function registerSiteUnlockFailure(siteId) {
   if (siteIndex === -1) {
     return { ok: false, reason: 'site_not_found' };
   }
-  const current = normalizeUnlockProtection(state.sites[siteIndex]);
+  const current = normalizeUnlockProtection(state.sites[siteIndex], siteId);
   if (current.isBlocked) {
     return { ok: true, ...current };
   }
   const attemptsRemaining = Math.max(0, current.attemptsRemaining - 1);
   const blockedUntil = attemptsRemaining === 0 ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
-  const payload = {
-    unlockAttemptsRemaining: attemptsRemaining,
-    unlockBlockedUntil: blockedUntil || deleteField(),
+  const protectionKey = buildSiteUnlockProtectionKey(siteId);
+  if (!protectionKey) {
+    return { ok: false, reason: 'auth_required' };
+  }
+  const unlockProtections = {
+    ...(state.sites[siteIndex].unlockProtections && typeof state.sites[siteIndex].unlockProtections === 'object'
+      ? state.sites[siteIndex].unlockProtections
+      : {}),
+    [protectionKey]: {
+      attemptsRemaining,
+      blockedUntil,
+    },
   };
+  const payload = { unlockProtections };
   await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true });
   state.sites[siteIndex] = {
     ...state.sites[siteIndex],
-    unlockAttemptsRemaining: attemptsRemaining,
-    unlockBlockedUntil: blockedUntil,
+    unlockProtections,
   };
   persistOfflineState();
   emitAll();

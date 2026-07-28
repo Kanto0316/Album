@@ -1129,6 +1129,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const siteLockFieldStateTimers = new WeakMap();
     let isSiteUnlockPending = false;
     let siteUnlockBlockTimer = null;
+    let siteUnlockCountdownTimer = null;
     let isSiteLockManageUpdatePending = false;
     let isSiteLockManageUnlockPending = false;
 
@@ -1456,12 +1457,54 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       siteUnlockAttemptsInfo.textContent = '';
+      siteUnlockAttemptsInfo.hidden = true;
+    }
+
+    function formatSiteUnlockCountdown(blockedUntil) {
+      const unblockAt = new Date(blockedUntil || '').getTime();
+      const remainingMs = unblockAt - Date.now();
+      if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+        return '';
+      }
+      const totalMinutes = Math.ceil(remainingMs / (60 * 1000));
+      if (totalMinutes <= 1) {
+        return "Réessayez dans moins d'une minute";
+      }
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      if (hours <= 0) {
+        return `Réessayez dans ${minutes} min`;
+      }
+      if (minutes <= 0) {
+        return `Réessayez dans ${hours} h`;
+      }
+      return `Réessayez dans ${hours} h ${minutes} min`;
+    }
+
+    function updateSiteUnlockCountdownMessage(siteId, blockedUntil) {
+      const message = formatSiteUnlockCountdown(blockedUntil);
+      if (!message) {
+        clearSiteUnlockAttemptsInfo();
+        setSiteUnlockBlockedState(false);
+        if (siteIdPendingUnlock === siteId && siteUnlockDialog?.open) {
+          refreshSiteUnlockProtectionState(siteId);
+        }
+        return;
+      }
+      if (siteUnlockAttemptsInfo) {
+        siteUnlockAttemptsInfo.textContent = message;
+        siteUnlockAttemptsInfo.hidden = false;
+      }
     }
 
     function clearSiteUnlockBlockTimer() {
       if (siteUnlockBlockTimer) {
         window.clearTimeout(siteUnlockBlockTimer);
         siteUnlockBlockTimer = null;
+      }
+      if (siteUnlockCountdownTimer) {
+        window.clearInterval(siteUnlockCountdownTimer);
+        siteUnlockCountdownTimer = null;
       }
     }
 
@@ -1472,6 +1515,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!Number.isFinite(delayMs) || delayMs <= 0) {
         return;
       }
+      updateSiteUnlockCountdownMessage(siteId, blockedUntil);
+      siteUnlockCountdownTimer = window.setInterval(() => {
+        updateSiteUnlockCountdownMessage(siteId, blockedUntil);
+      }, 60 * 1000);
       siteUnlockBlockTimer = window.setTimeout(() => {
         if (siteIdPendingUnlock === siteId && siteUnlockDialog?.open) {
           refreshSiteUnlockProtectionState(siteId);
@@ -1487,7 +1534,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       clearSiteUnlockAttemptsInfo();
       setSiteUnlockBlockedState(protection.isBlocked);
       if (protection.isBlocked) {
-        showSiteUnlockFieldError('Réessayez dans 24 heures.', 24 * 60 * 60 * 1000);
+        clearSiteUnlockFieldErrorState();
         scheduleSiteUnlockUnblock(siteId, protection.blockedUntil);
       } else {
         clearSiteUnlockBlockTimer();
@@ -2780,7 +2827,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           clearSiteUnlockAttemptsInfo();
           if (failure?.isBlocked) {
             setSiteUnlockBlockedState(true);
-            showSiteUnlockFieldError('Vous avez atteint le nombre maximal de tentatives. Réessayez dans 24 heures.', 24 * 60 * 60 * 1000);
+            clearSiteUnlockFieldErrorState();
+            scheduleSiteUnlockUnblock(siteIdPendingUnlock, failure.blockedUntil);
           } else {
             showSiteUnlockFieldError(`Mot de passe incorrect. ${formatAttemptsRemainingMessage(failure?.attemptsRemaining)}`);
           }
