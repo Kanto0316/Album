@@ -1458,6 +1458,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       siteUnlockAttemptsInfo.textContent = '';
       siteUnlockAttemptsInfo.hidden = true;
+      siteUnlockAttemptsInfo.classList.remove('form-info--blocked');
     }
 
     function formatSiteUnlockCountdown(blockedUntil) {
@@ -1494,6 +1495,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (siteUnlockAttemptsInfo) {
         siteUnlockAttemptsInfo.textContent = message;
         siteUnlockAttemptsInfo.hidden = false;
+        siteUnlockAttemptsInfo.classList.add('form-info--blocked');
       }
     }
 
