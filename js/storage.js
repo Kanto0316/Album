@@ -1027,7 +1027,7 @@ async function createSite(name) {
   const site = { id: created.id, ...sitePayload };
 
   state.sites.unshift(site);
-  await appendHistoryEntry(`a créé le site ${site.nom}`);
+  await appendHistoryEntry(`a créé le site ${site.nom}`, { siteId: site.id, siteName: site.nom });
   persistOfflineState();
   emitAll();
   return { ok: true, id: site.id };
@@ -1051,6 +1051,7 @@ async function updateSiteName(siteId, name) {
     return { ok: false, reason: 'duplicate_site' };
   }
 
+  const previousSiteName = sanitizeText(state.sites[siteIndex]?.nom, false);
   const timestamp = nowIso();
   await setDoc(
     doc(state.db, 'pages', 'page1', 'items', siteId),
@@ -1064,6 +1065,7 @@ async function updateSiteName(siteId, name) {
     dateModification: timestamp,
   };
   sortState();
+  await appendHistoryEntry(`a modifié le site ${previousSiteName || siteName} en ${siteName}`, { siteId, siteName });
   persistOfflineState();
   emitAll();
   return { ok: true };
@@ -1105,6 +1107,7 @@ async function setSiteLock(siteId, lockPayload) {
     ...nextLockState,
   };
   sortState();
+  await appendHistoryEntry(lockPayload?.historyAction || 'a protégé le site par un mot de passe', { siteId });
   persistOfflineState();
   emitAll();
   return { ok: true };
@@ -1149,9 +1152,14 @@ async function clearSiteLock(siteId) {
     dateModification: timestamp,
   };
   sortState();
+  await appendHistoryEntry('a retiré le mot de passe du site', { siteId });
   persistOfflineState();
   emitAll();
   return { ok: true };
+}
+
+async function recordSiteUnlockHistory(siteId) {
+  await appendHistoryEntry('a déverrouillé le site', { siteId });
 }
 
 function getAuthenticatedUnlockProtectionUid() {
@@ -1356,7 +1364,7 @@ async function removeSite(siteId) {
     }
   });
 
-  await appendHistoryEntry(`a supprimé le site ${site.nom}`);
+  await appendHistoryEntry(`a supprimé le site ${site.nom}`, { siteId, siteName: site.nom });
   persistOfflineState();
   emitAll();
 
@@ -1393,7 +1401,7 @@ async function createItem(siteId, numberValue, options = {}) {
   }
   state.itemsBySite.get(siteId).unshift(item);
 
-  await appendHistoryEntry(`a créé ${item.numero}`);
+  await appendHistoryEntry(`a créé ${item.numero}`, { siteId });
   persistOfflineState();
   emitAll();
   return { ok: true, id: item.id };
@@ -1449,6 +1457,7 @@ async function updateItemName(siteId, itemId, nextValue) {
     dateModification: timestamp,
   };
   sortState();
+  await appendHistoryEntry(`a modifié ${currentNumero || 'OUT inconnu'} en ${normalizedNumero}`, { siteId });
   persistOfflineState();
   emitAll();
   return { ok: true };
@@ -1468,7 +1477,7 @@ async function removeItem(siteId, itemId) {
   const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
 
-  await appendHistoryEntry(`a supprimé ${item.numero}`);
+  await appendHistoryEntry(`a supprimé ${item.numero}`, { siteId });
   persistOfflineState();
   emitAll();
   return { item: clone(item), details };
@@ -1607,7 +1616,7 @@ async function createDetail(siteId, itemId, payload) {
   state.detailsByItem.get(detailsKey).push(detail);
 
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`);
+  await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`, { siteId });
   persistOfflineState();
   emitAll();
   return { ok: true, id: detail.id };
@@ -1669,7 +1678,7 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), syncedChanges);
   Object.assign(target, nextValues);
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`);
+  await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
   persistOfflineState();
   emitAll();
   return true;
@@ -1686,13 +1695,25 @@ async function removeDetail(siteId, itemId, detailId) {
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
   details.splice(detailIndex, 1);
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`);
+  await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
   persistOfflineState();
   emitAll();
   return true;
 }
 
-async function appendHistoryEntry(actionText) {
+function resolveSiteNameForHistory(siteId, fallbackName = '') {
+  const explicitName = sanitizeText(fallbackName, false);
+  if (explicitName) {
+    return explicitName;
+  }
+  const normalizedSiteId = sanitizeText(siteId, false);
+  if (!normalizedSiteId) {
+    return '';
+  }
+  return sanitizeText(state.sites.find((site) => site.id === normalizedSiteId)?.nom, false);
+}
+
+async function appendHistoryEntry(actionText, context = {}) {
   const action = sanitizeText(actionText, false);
   if (!action) {
     return;
@@ -1700,10 +1721,14 @@ async function appendHistoryEntry(actionText) {
   try {
     const profile = await getCurrentUserProfile();
     const username = normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu';
+    const siteId = sanitizeText(context?.siteId, false);
+    const siteName = resolveSiteNameForHistory(siteId, context?.siteName);
     await addDoc(historyCollection(), {
       userId: profile?.id || state.userId || null,
       userName: username,
       action,
+      siteId: siteId || null,
+      siteName: siteName || null,
       createdAt: serverTimestamp(),
     });
     await pruneHistoryEntries();
@@ -1731,6 +1756,8 @@ async function listHistoriques() {
       userId: sanitizeText(data.userId, false),
       userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
       action: sanitizeText(data.action, false),
+      siteId: sanitizeText(data.siteId, false),
+      siteName: resolveSiteNameForHistory(data.siteId, data.siteName),
       createdAt: data.createdAt || null,
     };
   });
@@ -1938,6 +1965,7 @@ window.StorageService = {
   createDetail,
   updateDetail,
   removeDetail,
+  recordSiteUnlockHistory,
   exportData,
   importData,
   ensureCurrentUser,

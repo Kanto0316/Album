@@ -2839,7 +2839,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       try {
         const passwordHash = await hashPassword(passwordValue);
-        const result = await StorageService.setSiteLock(siteIdPendingLock, { passwordHash });
+        const result = await StorageService.setSiteLock(siteIdPendingLock, { passwordHash, historyAction: 'a protégé le site par un mot de passe' });
         if (!result?.ok) {
           showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Impossible de verrouiller ce site.');
           return;
@@ -2931,6 +2931,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           return;
         }
         await StorageService.resetSiteUnlockProtection(siteIdPendingUnlock);
+        await StorageService.recordSiteUnlockHistory(siteIdPendingUnlock);
         const openSiteId = siteIdPendingUnlock;
         siteUnlockDialog?.close();
         siteIdPendingUnlock = null;
@@ -3026,7 +3027,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
 
         const nextPasswordHash = await hashPassword(newPasswordValue);
-        const result = await StorageService.setSiteLock(siteIdPendingLockManage, { passwordHash: nextPasswordHash });
+        const result = await StorageService.setSiteLock(siteIdPendingLockManage, { passwordHash: nextPasswordHash, historyAction: 'a changé le mot de passe du site' });
         if (!result?.ok) {
           showSiteLockManageFieldError(
             siteLockNewPasswordInput,
@@ -7190,6 +7191,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     );
   }
 
+  function formatHistoryActionWithSite(history) {
+    const action = String(history?.action || '').trim();
+    const siteName = String(history?.siteName || '').trim();
+    if (!action || !siteName) {
+      return action;
+    }
+    if (/\bsite\s+«[^»]+»[.!?]?$/i.test(action) || /\bdans le site\s+«[^»]+»[.!?]?$/i.test(action) || /\bdu site\s+«[^»]+»[.!?]?$/i.test(action)) {
+      return action;
+    }
+    const suffix = `site « ${siteName} »`;
+    if (/^a créé le site\b/i.test(action) || /^a supprimé le site\b/i.test(action) || /\ble site\b/i.test(action)) {
+      return `${action} dans le ${suffix}.`;
+    }
+    return `${action} du ${suffix}.`;
+  }
+
   async function initHistoryPage() {
     const historyList = requireElement('historyList');
     if (!historyList) {
@@ -7236,7 +7253,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                 </div>
                 <div class="history-list__content">
                   <p class="history-list__name">${escapeHtml(displayName)}</p>
-                  <p class="history-list__title">${escapeHtml(history.action)}</p>
+                  <p class="history-list__title">${escapeHtml(formatHistoryActionWithSite(history))}</p>
                   <p class="history-list__date">${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</p>
                 </div>
               </li>
