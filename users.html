@@ -36,6 +36,7 @@
             <table class="data-table">
               <thead>
                 <tr>
+                  <th>Point</th>
                   <th>Photo</th>
                   <th>Nom</th>
                   <th>Email</th>
@@ -127,13 +128,24 @@
         }
       }
 
-      function renderUsers(users) {
+      function sortUsersByPointsAndName(users, pointsByUser) {
+        return [...users].sort((a, b) => {
+          const pointsA = Number(pointsByUser?.[a.id] || 0);
+          const pointsB = Number(pointsByUser?.[b.id] || 0);
+          if (pointsA !== pointsB) {
+            return pointsB - pointsA;
+          }
+          return resolveDisplayName(a).localeCompare(resolveDisplayName(b), 'fr', { sensitivity: 'base' });
+        });
+      }
+
+      function renderUsers(users, pointsByUser = {}) {
         const tableBody = document.getElementById('usersTableBody');
         if (!tableBody) {
           return;
         }
 
-        const rows = users
+        const rows = sortUsersByPointsAndName(users, pointsByUser)
           .map((user) => {
             const displayName = resolveDisplayName(user);
             const email = cleanString(user.email);
@@ -148,6 +160,7 @@
 
             return `
               <tr data-user-id="${user.id}">
+                <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)}</td>
                 <td>${avatarMarkup}</td>
                 <td>${displayName}</td>
                 <td class="users-email-cell">${email || '-'}</td>
@@ -238,16 +251,43 @@
         });
       }
 
+      let currentUsers = [];
+      let currentPointsByUser = {};
+
+      function renderCurrentUsers() {
+        renderUsers(currentUsers, currentPointsByUser);
+      }
+
       const usersRef = collection(firebaseDb, 'users');
+      const outsRef = collection(firebaseDb, 'pages', 'page2', 'items');
       onSnapshot(
         usersRef,
         (snapshot) => {
           const users = snapshot.docs.map((entry) => ({ id: entry.id, ...(entry.data() || {}) }));
           users.forEach(syncDefaults);
-          renderUsers(users);
+          currentUsers = users;
+          renderCurrentUsers();
         },
         () => {
           window.UiService?.showToast('Impossible de charger la liste des utilisateurs.');
+        },
+      );
+
+      onSnapshot(
+        outsRef,
+        (snapshot) => {
+          currentPointsByUser = snapshot.docs.reduce((pointsByUser, entry) => {
+            const data = entry.data() || {};
+            const creatorId = cleanString(data.createdBy || data.ownerId);
+            if (creatorId) {
+              pointsByUser[creatorId] = (pointsByUser[creatorId] || 0) + 1;
+            }
+            return pointsByUser;
+          }, {});
+          renderCurrentUsers();
+        },
+        () => {
+          window.UiService?.showToast('Impossible de charger les points utilisateurs.');
         },
       );
     </script>

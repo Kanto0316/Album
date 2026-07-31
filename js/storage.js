@@ -401,6 +401,45 @@ async function listUsers() {
     });
 }
 
+
+function normalizeOutCreationPointsSnapshot(snapshot) {
+  return snapshot.docs.reduce((pointsByUser, snap) => {
+    const data = snap.data() || {};
+    const creatorId = String(data.createdBy || data.ownerId || '').trim();
+    if (!creatorId) {
+      return pointsByUser;
+    }
+    pointsByUser[creatorId] = (pointsByUser[creatorId] || 0) + 1;
+    return pointsByUser;
+  }, {});
+}
+
+async function listOutCreationPoints() {
+  const snapshot = await getDocs(makePageItemsCollection('page2'));
+  return normalizeOutCreationPointsSnapshot(snapshot);
+}
+
+function subscribeOutCreationPoints(onChange, onError) {
+  try {
+    return onSnapshot(
+      makePageItemsCollection('page2'),
+      (snapshot) => {
+        onChange(normalizeOutCreationPointsSnapshot(snapshot));
+      },
+      (error) => {
+        if (typeof onError === 'function') {
+          onError(error);
+        }
+      },
+    );
+  } catch (error) {
+    if (typeof onError === 'function') {
+      onError(error);
+    }
+    return () => {};
+  }
+}
+
 async function updateUserRole(userId, role) {
   const nextRole = normalizeRole(role);
   await setDoc(
@@ -1975,6 +2014,8 @@ window.StorageService = {
   updateAvatarUrl,
   listUsers,
   subscribeUsers,
+  listOutCreationPoints,
+  subscribeOutCreationPoints,
   updateUserRole,
   updateUserMaintenanceAccess,
   deleteUser,
