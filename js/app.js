@@ -1127,7 +1127,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let isSiteNameEditPending = false;
     let siteNameAvailabilityDebounceTimer = null;
     let isSiteCreateInputValid = false;
+    const siteNameCollator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
     const siteLockFieldStateTimers = new WeakMap();
+
+    function compareSitesByName(siteA, siteB) {
+      return siteNameCollator.compare(String(siteA?.nom || ''), String(siteB?.nom || ''));
+    }
     let isSiteUnlockPending = false;
     let siteUnlockBlockTimer = null;
     let siteUnlockCountdownTimer = null;
@@ -2268,7 +2273,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
-      const sites = currentSites.filter((site) => String(site.nom || '').toUpperCase().includes(query));
+      const sites = currentSites
+        .filter((site) => String(site.nom || '').toUpperCase().includes(query))
+        .sort(compareSitesByName);
       siteCount.textContent = String(sites.length);
 
       if (!sites.length) {
