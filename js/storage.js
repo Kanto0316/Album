@@ -1154,14 +1154,68 @@ async function clearSiteLock(siteId) {
   return { ok: true };
 }
 
+function getAuthenticatedUnlockProtectionUid() {
+  return String(state.authUser?.uid || state.userId || firebaseAuth.currentUser?.uid || '').trim();
+}
+
 function buildSiteUnlockProtectionKey(siteId) {
-  const uid = String(state.authUser?.uid || state.userId || firebaseAuth.currentUser?.uid || '').trim();
+  const uid = getAuthenticatedUnlockProtectionUid();
   const normalizedSiteId = String(siteId || '').trim();
   return uid && normalizedSiteId ? `${normalizedSiteId}_${uid}` : '';
 }
 
+function isLocalUnlockProtectionEnabled() {
+  return !getAuthenticatedUnlockProtectionUid() && typeof window !== 'undefined' && window.localStorage;
+}
+
+function buildLocalSiteUnlockProtectionKey(siteId) {
+  const normalizedSiteId = String(siteId || '').trim();
+  return normalizedSiteId ? `security_attempts_${normalizedSiteId}` : '';
+}
+
+function readLocalSiteUnlockProtection(siteId) {
+  if (!isLocalUnlockProtectionEnabled()) {
+    return {};
+  }
+  const storageKey = buildLocalSiteUnlockProtectionKey(siteId);
+  if (!storageKey) {
+    return {};
+  }
+  try {
+    const rawValue = window.localStorage.getItem(storageKey);
+    const parsedValue = rawValue ? JSON.parse(rawValue) : null;
+    return parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function writeLocalSiteUnlockProtection(siteId, protection) {
+  if (!isLocalUnlockProtectionEnabled()) {
+    return false;
+  }
+  const storageKey = buildLocalSiteUnlockProtectionKey(siteId);
+  if (!storageKey) {
+    return false;
+  }
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify({
+      attemptsRemaining: protection.attemptsRemaining,
+      blockedUntil: protection.blockedUntil || null,
+      hasAttempted: Boolean(protection.hasAttempted),
+    }));
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
 function readSiteUnlockProtection(site, siteId) {
-  const protectionKey = buildSiteUnlockProtectionKey(siteId || site?.id);
+  const normalizedSiteId = String(siteId || site?.id || '').trim();
+  if (isLocalUnlockProtectionEnabled()) {
+    return readLocalSiteUnlockProtection(normalizedSiteId);
+  }
+  const protectionKey = buildSiteUnlockProtectionKey(normalizedSiteId);
   const protections = site?.unlockProtections && typeof site.unlockProtections === 'object' ? site.unlockProtections : {};
   const scopedProtection = protectionKey ? protections[protectionKey] : null;
   return scopedProtection && typeof scopedProtection === 'object' ? scopedProtection : {};
@@ -1176,13 +1230,16 @@ function normalizeUnlockProtection(site, siteId) {
     return {
       attemptsRemaining: 0,
       blockedUntil: new Date(blockedUntilMs).toISOString(),
+      hasAttempted: true,
       isBlocked: true,
     };
   }
   const attempts = Number(scopedProtection?.attemptsRemaining);
+  const hasAttempted = Boolean(scopedProtection?.hasAttempted);
   return {
     attemptsRemaining: Number.isInteger(attempts) && attempts >= 0 && attempts <= 3 ? attempts : 3,
     blockedUntil: null,
+    hasAttempted,
     isBlocked: false,
   };
 }
@@ -1191,6 +1248,14 @@ async function resetSiteUnlockProtection(siteId) {
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return { ok: false, reason: 'site_not_found' };
+  }
+  if (isLocalUnlockProtectionEnabled()) {
+    writeLocalSiteUnlockProtection(siteId, {
+      attemptsRemaining: 3,
+      blockedUntil: null,
+      hasAttempted: false,
+    });
+    return { ok: true, ...normalizeUnlockProtection(state.sites[siteIndex], siteId) };
   }
   const protectionKey = buildSiteUnlockProtectionKey(siteId);
   if (!protectionKey) {
@@ -1240,6 +1305,14 @@ async function registerSiteUnlockFailure(siteId) {
   }
   const attemptsRemaining = Math.max(0, current.attemptsRemaining - 1);
   const blockedUntil = attemptsRemaining === 0 ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+  if (isLocalUnlockProtectionEnabled()) {
+    writeLocalSiteUnlockProtection(siteId, {
+      attemptsRemaining,
+      blockedUntil,
+      hasAttempted: true,
+    });
+    return { ok: true, attemptsRemaining, blockedUntil, hasAttempted: true, isBlocked: Boolean(blockedUntil) };
+  }
   const protectionKey = buildSiteUnlockProtectionKey(siteId);
   if (!protectionKey) {
     return { ok: false, reason: 'auth_required' };
