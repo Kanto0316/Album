@@ -2299,7 +2299,7 @@ body[data-page="users-management"] .table-wrapper--users .data-table th {
   color: #3b4a5f;
 }
 
-body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(2) {
+body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(3) {
   min-width: 0;
   max-width: 15rem;
   overflow: hidden;
@@ -2307,8 +2307,15 @@ body[data-page="users-management"] .table-wrapper--users .data-table td:nth-chil
   white-space: nowrap;
 }
 
-body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(4) select {
+body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(5) select {
   max-width: 100%;
+}
+
+
+body[data-page="users-management"] .users-point-cell {
+  font-weight: 700;
+  text-align: center;
+  color: #1f2a44;
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table td:last-child {

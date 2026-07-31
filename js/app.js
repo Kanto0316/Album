@@ -7093,10 +7093,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     }
 
-    function renderUsers(users) {
-      tableBody.innerHTML = users
+    function sortUsersByPointsAndName(users, pointsByUser) {
+      return [...users].sort((a, b) => {
+        const pointsA = Number(pointsByUser?.[a.id] || 0);
+        const pointsB = Number(pointsByUser?.[b.id] || 0);
+        if (pointsA !== pointsB) {
+          return pointsB - pointsA;
+        }
+        return resolveDisplayName(a).localeCompare(resolveDisplayName(b), 'fr', { sensitivity: 'base' });
+      });
+    }
+
+    function renderUsers(users, pointsByUser = {}) {
+      tableBody.innerHTML = sortUsersByPointsAndName(users, pointsByUser)
         .map((user) => `
           <tr>
+            <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)}</td>
             <td>
               ${cleanText(user.avatarUrl)
       ? `<img class="table-avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(resolveDisplayName(user))}" />`
@@ -7187,9 +7199,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     });
 
+    let currentUsers = [];
+    let currentPointsByUser = {};
+
+    function renderCurrentUsers() {
+      renderUsers(currentUsers, currentPointsByUser);
+    }
+
     try {
-      const initialUsers = await StorageService.listUsers();
-      renderUsers(initialUsers);
+      const [initialUsers, initialPointsByUser] = await Promise.all([
+        StorageService.listUsers(),
+        StorageService.listOutCreationPoints(),
+      ]);
+      currentUsers = initialUsers;
+      currentPointsByUser = initialPointsByUser;
+      renderCurrentUsers();
     } catch (_error) {
       UiService.showToast('Impossible de charger les utilisateurs.');
     }
@@ -7205,10 +7229,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             maintenanceAuthorized: resolveMaintenanceAuthorized(user),
           });
         });
-        renderUsers(users);
+        currentUsers = users;
+        renderCurrentUsers();
       },
       () => {
         UiService.showToast('Synchronisation des utilisateurs indisponible.');
+      },
+    );
+
+    StorageService.subscribeOutCreationPoints(
+      (pointsByUser) => {
+        currentPointsByUser = pointsByUser;
+        renderCurrentUsers();
+      },
+      () => {
+        UiService.showToast('Synchronisation des points indisponible.');
       },
     );
   }
