@@ -36,6 +36,19 @@ body {
 .login-card__header h1 { margin: 0; font-size: 1.35rem; color: #fff; line-height: 1.2; }
 .login-card__header p { margin: .25rem 0 .75rem; color: rgba(255,255,255,.88); font-size: .92rem; }
 .login-form { display: grid; gap: .62rem; }
+.login-form--google-only {
+  gap: 0;
+  margin-top: .9rem;
+}
+.login-form--google-only .email-auth-fields,
+.login-form--google-only .login-separator {
+  display: none;
+}
+.login-form--google-only .btn-google {
+  align-self: center;
+  width: 100%;
+  margin: .55rem 0;
+}
 .field-group { display: grid; gap: .32rem; color: #f8fafc; }
 .field-group input {
   width: 100%;
