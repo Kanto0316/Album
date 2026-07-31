@@ -4634,7 +4634,7 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
 .page2 #createOutFab,
 body.page2 .fab,
 body.page2 #createOutFab {
-  bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+  bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-fab-bottom-gap, 20px)) !important;
   z-index: 1001 !important;
 }
 
@@ -4642,7 +4642,7 @@ body.page2 #createOutFab {
 .page2 .page-content,
 .page2 .outs-list,
 body.page2 main {
-  padding-bottom: calc(102px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-content-bottom-gap, 38px)) !important;
 }
 
 body[data-page="site-detail"] .bottom-nav-item.hidden,

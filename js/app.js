@@ -4437,6 +4437,22 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     }
 
+    function updateSiteDetailFloatingOffsets() {
+      if (!bottomNavigation) {
+        document.body.style.setProperty('--page2-visible-bottom-nav-height', '0px');
+        return;
+      }
+      const bottomNavigationStyle = window.getComputedStyle(bottomNavigation);
+      const isBottomNavigationVisible = !bottomNavigation.hidden
+        && !bottomNavigation.classList.contains('hidden')
+        && bottomNavigationStyle.display !== 'none'
+        && bottomNavigationStyle.visibility !== 'hidden';
+      const bottomNavigationHeight = isBottomNavigationVisible
+        ? bottomNavigation.getBoundingClientRect().height
+        : 0;
+      document.body.style.setProperty('--page2-visible-bottom-nav-height', `${bottomNavigationHeight}px`);
+    }
+
     function updateTabsByRole() {
       isAdminTabAllowed = Boolean(permissions?.isAdmin);
       siteTabButtons.forEach((tabButton) => {
@@ -4448,6 +4464,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (purchasesTabButton) {
         purchasesTabButton.classList.toggle('hidden', !isAdminTabAllowed);
       }
+      updateSiteDetailFloatingOffsets();
       if (!isAdminTabAllowed && activeSiteTab === 'purchases') {
         setActiveSiteTab('outs');
       }
@@ -4903,6 +4920,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     updateCreateItemButtonVisibility(firebaseAuth.currentUser);
     updateTabsByRole();
+    window.addEventListener('resize', updateSiteDetailFloatingOffsets, { passive: true });
+    if (bottomNavigation && 'ResizeObserver' in window) {
+      const bottomNavigationResizeObserver = new ResizeObserver(updateSiteDetailFloatingOffsets);
+      bottomNavigationResizeObserver.observe(bottomNavigation);
+    }
     const savedActiveTab = getSavedActiveSiteTab();
     setActiveSiteTab(savedActiveTab === 'purchases' ? 'purchases' : 'outs');
     loadPurchasesForCurrentSite();
