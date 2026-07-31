@@ -7214,6 +7214,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     try {
+      const cleanupResult = await StorageService.cleanupInactiveUsers?.();
+      if (cleanupResult?.deletedCount) {
+        UiService.showToast(`${cleanupResult.deletedCount} utilisateur(s) inactif(s) supprimé(s).`);
+      }
+
       const [initialUsers, initialPointsByUser] = await Promise.all([
         StorageService.listUsers(),
         StorageService.listOutCreationPoints(),

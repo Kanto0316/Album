@@ -152,6 +152,42 @@ function maintenanceDocRef() {
   return doc(state.db, 'appSettings', 'maintenance');
 }
 
+function parseFirestoreDate(value) {
+  if (!value) {
+    return null;
+  }
+  let normalizedValue = value;
+  if (typeof value?.toDate === 'function') {
+    normalizedValue = value.toDate();
+  } else if (typeof value?.seconds === 'number') {
+    normalizedValue = new Date(value.seconds * 1000);
+  }
+  const parsed = new Date(normalizedValue);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getInactiveUserCutoffDate(referenceDate = new Date()) {
+  const cutoffDate = new Date(referenceDate);
+  cutoffDate.setMonth(cutoffDate.getMonth() - 5);
+  return cutoffDate;
+}
+
+async function recordCurrentUserActivity(extraUpdates = {}) {
+  if (!state.userId) {
+    return false;
+  }
+  await setDoc(
+    userDocRef(),
+    {
+      ...extraUpdates,
+      lastActivity: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+  return true;
+}
+
 async function isUsernameDuplicate(username, excludedUserId) {
   const normalizedTarget = normalizeUsername(username).toUpperCase();
   const snapshot = await getDocs(usersCollection());
@@ -194,6 +230,7 @@ async function ensureCurrentUser() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
+        lastActivity: serverTimestamp(),
         lastNameChange: null,
       },
       { merge: true },
@@ -220,6 +257,7 @@ async function ensureCurrentUser() {
     avatarUrl: authPhotoUrl,
     avatar: authPhotoUrl,
     lastLoginAt: serverTimestamp(),
+    lastActivity: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
   if (!Object.prototype.hasOwnProperty.call(data, 'role') || !String(data.role || '').trim()) {
@@ -359,6 +397,7 @@ async function changeUsername(username) {
       username: nextName,
       name: nextName,
       lastNameChange: Timestamp.fromDate(new Date()),
+      lastActivity: serverTimestamp(),
       updatedAt: serverTimestamp(),
     },
     { merge: true },
@@ -374,6 +413,7 @@ async function updateAvatarUrl(avatarUrl) {
     {
       avatarUrl: nextAvatarUrl,
       avatar: nextAvatarUrl,
+      lastActivity: serverTimestamp(),
       updatedAt: serverTimestamp(),
     },
     { merge: true },
@@ -397,8 +437,29 @@ async function listUsers() {
         maintenanceAccess: normalizeMaintenanceAuthorized(data),
         maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
         createdAt: data.createdAt || null,
+        lastActivity: data.lastActivity || null,
       };
     });
+}
+
+async function cleanupInactiveUsers(options = {}) {
+  const cutoffDate = getInactiveUserCutoffDate(options.referenceDate || new Date());
+  const snapshot = await getDocs(usersCollection());
+  const deletedUserIds = [];
+  const currentUserId = String(state.userId || '').trim();
+
+  for (const userSnapshot of snapshot.docs) {
+    const data = userSnapshot.data() || {};
+    const email = String(data.email || '').trim();
+    const lastActivityDate = parseFirestoreDate(data.lastActivity);
+    if (!lastActivityDate || lastActivityDate >= cutoffDate || isAdminEmail(email) || userSnapshot.id === currentUserId) {
+      continue;
+    }
+    await deleteDoc(userSnapshot.ref);
+    deletedUserIds.push(userSnapshot.id);
+  }
+
+  return { deletedCount: deletedUserIds.length, deletedUserIds, cutoffDate };
 }
 
 
@@ -451,6 +512,7 @@ async function updateUserRole(userId, role) {
     { merge: true },
   );
 
+  await recordCurrentUserActivity();
   return true;
 }
 
@@ -459,11 +521,13 @@ async function updateUserMaintenanceAccess(userId, maintenanceAccess) {
     userDocRef(userId),
     {
       maintenanceAccess: Boolean(maintenanceAccess),
+      maintenanceAuthorized: Boolean(maintenanceAccess),
       updatedAt: serverTimestamp(),
     },
     { merge: true },
   );
 
+  await recordCurrentUserActivity();
   return true;
 }
 
@@ -543,6 +607,7 @@ function subscribeUsers(onChange, onError) {
               maintenanceAccess: normalizeMaintenanceAuthorized(data),
               maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
               createdAt: data.createdAt || null,
+              lastActivity: data.lastActivity || null,
             };
           });
         onChange(users);
@@ -1773,6 +1838,8 @@ async function appendHistoryEntry(actionText, context = {}) {
     await pruneHistoryEntries();
   } catch (_error) {
     // L'historique ne doit pas bloquer l'action principale.
+  } finally {
+    recordCurrentUserActivity().catch(() => {});
   }
 }
 
@@ -2019,6 +2086,8 @@ window.StorageService = {
   updateUserRole,
   updateUserMaintenanceAccess,
   deleteUser,
+  cleanupInactiveUsers,
+  recordCurrentUserActivity,
   setMaintenanceState,
   subscribeMaintenanceState,
   subscribeCurrentUserProfile,
