@@ -39,6 +39,7 @@
                   <th>Point</th>
                   <th>Photo</th>
                   <th>Nom</th>
+                  <th>Dernière activité</th>
                   <th>Email</th>
                   <th>Rôle</th>
                   <th>Autorisé (maintenance)</th>
@@ -128,6 +129,54 @@
         }
       }
 
+      function parseActivityDate(value) {
+        if (!value) {
+          return null;
+        }
+        let normalizedValue = value;
+        if (typeof value?.toDate === 'function') {
+          normalizedValue = value.toDate();
+        } else if (typeof value?.seconds === 'number') {
+          normalizedValue = new Date(value.seconds * 1000);
+        }
+        const parsed = new Date(normalizedValue);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      function formatLastActivity(value, referenceDate = new Date()) {
+        const activityDate = parseActivityDate(value);
+        if (!activityDate) {
+          return '-';
+        }
+
+        const elapsedMs = Math.max(0, referenceDate.getTime() - activityDate.getTime());
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+        if (elapsedMinutes < 5) {
+          return '🟢 En ligne';
+        }
+        if (elapsedMinutes < 60) {
+          return `Il y a ${elapsedMinutes} min`;
+        }
+
+        const elapsedHours = Math.floor(elapsedMinutes / 60);
+        if (elapsedHours < 24) {
+          return `Il y a ${elapsedHours} h`;
+        }
+
+        const elapsedDays = Math.floor(elapsedHours / 24);
+        if (elapsedDays < 7) {
+          return `Il y a ${elapsedDays} jour${elapsedDays > 1 ? 's' : ''}`;
+        }
+
+        const elapsedWeeks = Math.floor(elapsedDays / 7);
+        if (elapsedDays < 30) {
+          return `Il y a ${elapsedWeeks} semaine${elapsedWeeks > 1 ? 's' : ''}`;
+        }
+
+        const elapsedMonths = Math.max(1, Math.floor(elapsedDays / 30));
+        return `Il y a ${elapsedMonths} mois`;
+      }
+
       function sortUsersByPointsAndName(users, pointsByUser) {
         return [...users].sort((a, b) => {
           const pointsA = Number(pointsByUser?.[a.id] || 0);
@@ -163,6 +212,7 @@
                 <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)}</td>
                 <td>${avatarMarkup}</td>
                 <td>${displayName}</td>
+                <td class="users-last-activity-cell">${formatLastActivity(user.lastActivity)}</td>
                 <td class="users-email-cell">${email || '-'}</td>
                 <td>
                   ${isPrimaryAdmin ? 'admin' : `
@@ -203,6 +253,7 @@
                 },
                 { merge: true },
               );
+              await window.StorageService?.recordCurrentUserActivity?.();
               window.UiService?.showToast('Rôle mis à jour.');
             } catch (_error) {
               window.UiService?.showToast('Impossible de mettre à jour le rôle.');
@@ -224,6 +275,7 @@
                 },
                 { merge: true },
               );
+              await window.StorageService?.recordCurrentUserActivity?.();
               window.UiService?.showToast('Accès maintenance mis à jour.');
             } catch (_error) {
               checkbox.checked = !checked;
@@ -253,10 +305,18 @@
 
       let currentUsers = [];
       let currentPointsByUser = {};
+      let lastActivityRefreshId = null;
 
       function renderCurrentUsers() {
         renderUsers(currentUsers, currentPointsByUser);
       }
+
+      lastActivityRefreshId = window.setInterval(renderCurrentUsers, 60000);
+      window.addEventListener('pagehide', () => {
+        if (lastActivityRefreshId) {
+          window.clearInterval(lastActivityRefreshId);
+        }
+      });
 
       const usersRef = collection(firebaseDb, 'users');
       const outsRef = collection(firebaseDb, 'pages', 'page2', 'items');
