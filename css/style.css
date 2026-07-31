@@ -1476,7 +1476,8 @@ body[data-page="home"] #siteUnlockDialog .form-error--field {
   font-size: 0.82rem;
 }
 
-body[data-page="home"] #siteUnlockDialog .form-info--attempts {
+body[data-page="home"] #siteUnlockDialog .form-info--attempts,
+body[data-page="home"] #siteLockManageDialog .form-info--attempts {
   margin: 0.1rem 0 0;
   min-height: 1rem;
   text-align: left;
@@ -1484,7 +1485,8 @@ body[data-page="home"] #siteUnlockDialog .form-info--attempts {
   font-size: 0.82rem;
 }
 
-body[data-page="home"] #siteUnlockDialog .form-info--attempts.form-info--blocked {
+body[data-page="home"] #siteUnlockDialog .form-info--attempts.form-info--blocked,
+body[data-page="home"] #siteLockManageDialog .form-info--attempts.form-info--blocked {
   color: var(--danger);
 }
 

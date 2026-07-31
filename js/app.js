@@ -1097,6 +1097,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const siteLockCurrentPasswordInput = requireElement('siteLockCurrentPasswordInput');
     const siteLockNewPasswordInput = requireElement('siteLockNewPasswordInput');
     const siteLockCurrentPasswordError = requireElement('siteLockCurrentPasswordError');
+    const siteLockManageAttemptsInfo = requireElement('siteLockManageAttemptsInfo');
     const siteLockNewPasswordError = requireElement('siteLockNewPasswordError');
     const siteLockCurrentPasswordToggle = requireElement('siteLockCurrentPasswordToggle');
     const siteLockNewPasswordToggle = requireElement('siteLockNewPasswordToggle');
@@ -1130,6 +1131,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let isSiteUnlockPending = false;
     let siteUnlockBlockTimer = null;
     let siteUnlockCountdownTimer = null;
+    let siteLockManageBlockTimer = null;
+    let siteLockManageCountdownTimer = null;
+    let isSiteLockManageBlocked = false;
     let isSiteLockManageUpdatePending = false;
     let isSiteLockManageUnlockPending = false;
 
@@ -1167,7 +1171,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         if (!siteLockManageUnlockButton) {
           return;
         }
-        siteLockManageUnlockButton.disabled = isSiteLockManageUnlockPending;
+        siteLockManageUnlockButton.disabled = isSiteLockManageUnlockPending || isSiteLockManageBlocked;
         siteLockManageUnlockButton.classList.toggle('is-loading', isSiteLockManageUnlockPending);
         siteLockManageUnlockButton.setAttribute('aria-busy', String(isSiteLockManageUnlockPending));
         return;
@@ -1176,7 +1180,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!siteLockManageUpdateButton) {
         return;
       }
-      siteLockManageUpdateButton.disabled = isSiteLockManageUpdatePending;
+      siteLockManageUpdateButton.disabled = isSiteLockManageUpdatePending || isSiteLockManageBlocked;
       siteLockManageUpdateButton.classList.toggle('is-loading', isSiteLockManageUpdatePending);
       siteLockManageUpdateButton.setAttribute('aria-busy', String(isSiteLockManageUpdatePending));
     }
@@ -1403,6 +1407,89 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function clearSiteLockManageLoadingStates() {
       setSiteLockManageActionLoadingState('update', false);
       setSiteLockManageActionLoadingState('unlock', false);
+    }
+
+    function setSiteLockManageBlockedState(isBlocked) {
+      isSiteLockManageBlocked = Boolean(isBlocked);
+      if (siteLockCurrentPasswordInput) {
+        siteLockCurrentPasswordInput.disabled = isSiteLockManageBlocked;
+      }
+      if (siteLockCurrentPasswordToggle) {
+        siteLockCurrentPasswordToggle.disabled = isSiteLockManageBlocked;
+      }
+      setSiteLockManageActionLoadingState('update', isSiteLockManageUpdatePending);
+      setSiteLockManageActionLoadingState('unlock', isSiteLockManageUnlockPending);
+    }
+
+    function clearSiteLockManageAttemptsInfo() {
+      if (!siteLockManageAttemptsInfo) {
+        return;
+      }
+      siteLockManageAttemptsInfo.textContent = '';
+      siteLockManageAttemptsInfo.hidden = true;
+      siteLockManageAttemptsInfo.classList.remove('form-info--blocked');
+    }
+
+    function updateSiteLockManageCountdownMessage(siteId, blockedUntil) {
+      const message = formatSiteUnlockCountdown(blockedUntil);
+      if (!message) {
+        clearSiteLockManageAttemptsInfo();
+        setSiteLockManageBlockedState(false);
+        if (siteIdPendingLockManage === siteId && siteLockManageDialog?.open) {
+          refreshSiteLockManageProtectionState(siteId);
+        }
+        return;
+      }
+      if (siteLockManageAttemptsInfo) {
+        siteLockManageAttemptsInfo.textContent = message;
+        siteLockManageAttemptsInfo.hidden = false;
+        siteLockManageAttemptsInfo.classList.add('form-info--blocked');
+      }
+    }
+
+    function clearSiteLockManageBlockTimer() {
+      if (siteLockManageBlockTimer) {
+        window.clearTimeout(siteLockManageBlockTimer);
+        siteLockManageBlockTimer = null;
+      }
+      if (siteLockManageCountdownTimer) {
+        window.clearInterval(siteLockManageCountdownTimer);
+        siteLockManageCountdownTimer = null;
+      }
+    }
+
+    function scheduleSiteLockManageUnblock(siteId, blockedUntil) {
+      clearSiteLockManageBlockTimer();
+      const unblockAt = new Date(blockedUntil || '').getTime();
+      const delayMs = unblockAt - Date.now();
+      if (!Number.isFinite(delayMs) || delayMs <= 0) {
+        return;
+      }
+      updateSiteLockManageCountdownMessage(siteId, blockedUntil);
+      siteLockManageCountdownTimer = window.setInterval(() => {
+        updateSiteLockManageCountdownMessage(siteId, blockedUntil);
+      }, 60 * 1000);
+      siteLockManageBlockTimer = window.setTimeout(() => {
+        if (siteIdPendingLockManage === siteId && siteLockManageDialog?.open) {
+          refreshSiteLockManageProtectionState(siteId);
+        }
+      }, Math.min(delayMs, 24 * 60 * 60 * 1000));
+    }
+
+    async function refreshSiteLockManageProtectionState(siteId) {
+      const protection = await StorageService.getSiteUnlockProtectionState(siteId);
+      if (!protection?.ok) {
+        return null;
+      }
+      clearSiteLockManageAttemptsInfo();
+      setSiteLockManageBlockedState(protection.isBlocked);
+      if (protection.isBlocked) {
+        clearSiteLockManageFieldErrorState(siteLockCurrentPasswordInput, siteLockCurrentPasswordError);
+        scheduleSiteLockManageUnblock(siteId, protection.blockedUntil);
+      } else {
+        clearSiteLockManageBlockTimer();
+      }
+      return protection;
     }
 
     function clearSiteUnlockFieldErrorState() {
@@ -1956,8 +2043,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         clearSiteLockManageLoadingStates();
         setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, false);
         setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, false);
+        setSiteLockManageBlockedState(false);
+        clearSiteLockManageAttemptsInfo();
         siteLockManageDialog.showModal();
-        siteLockCurrentPasswordInput.focus();
+        refreshSiteLockManageProtectionState(siteId).then((protection) => {
+          if (!protection?.isBlocked) {
+            siteLockCurrentPasswordInput.focus();
+          }
+        });
         return;
       }
 
@@ -2863,6 +2956,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       clearSiteLockManageErrors();
+      const protection = await refreshSiteLockManageProtectionState(siteIdPendingLockManage);
+      if (protection?.isBlocked) {
+        return;
+      }
 
       const currentPasswordValue = siteLockCurrentPasswordInput?.value || '';
       const newPasswordValue = siteLockNewPasswordInput?.value || '';
@@ -2892,14 +2989,24 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         setSiteLockManageActionLoadingState(submittedAction, true);
         const currentPasswordHash = await hashPassword(currentPasswordValue);
         if (currentPasswordHash !== targetSite.passwordHash) {
-          showSiteLockManageFieldError(
-            siteLockCurrentPasswordInput,
-            siteLockCurrentPasswordError,
-            'Mot de passe actuel incorrect.',
-          );
+          const failure = await StorageService.registerSiteUnlockFailure(siteIdPendingLockManage);
+          clearSiteLockManageAttemptsInfo();
+          if (failure?.isBlocked) {
+            setSiteLockManageBlockedState(true);
+            clearSiteLockManageFieldErrorState(siteLockCurrentPasswordInput, siteLockCurrentPasswordError);
+            scheduleSiteLockManageUnblock(siteIdPendingLockManage, failure.blockedUntil);
+          } else {
+            showSiteLockManageFieldError(
+              siteLockCurrentPasswordInput,
+              siteLockCurrentPasswordError,
+              `Mot de passe actuel incorrect. ${formatAttemptsRemainingMessage(failure?.attemptsRemaining)}`,
+            );
+          }
           setSiteLockManageActionLoadingState(submittedAction, false);
           return;
         }
+
+        await StorageService.resetSiteUnlockProtection(siteIdPendingLockManage);
 
         if (submittedAction === 'unlock') {
           const result = await StorageService.clearSiteLock(siteIdPendingLockManage);
@@ -2970,8 +3077,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     siteLockManageDialog?.addEventListener('close', () => {
       siteIdPendingLockManage = null;
+      clearSiteLockManageBlockTimer();
       clearSiteLockManageErrors();
+      clearSiteLockManageAttemptsInfo();
       clearSiteLockManageLoadingStates();
+      setSiteLockManageBlockedState(false);
       setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, false);
       setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, false);
     });
