@@ -1014,6 +1014,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
       try {
+        await StorageService?.recordCurrentUserActivity?.();
         await signOut(firebaseAuth);
       } catch (_error) {
         message.textContent = "Impossible de se déconnecter pour l'instant.";
@@ -7100,6 +7101,49 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
     }
 
+    function parseActivityDate(value) {
+      if (!value) {
+        return null;
+      }
+      let normalizedValue = value;
+      if (typeof value?.toDate === 'function') {
+        normalizedValue = value.toDate();
+      } else if (typeof value?.seconds === 'number') {
+        normalizedValue = new Date(value.seconds * 1000);
+      }
+      const parsed = new Date(normalizedValue);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function formatLastActivity(value, referenceDate = new Date()) {
+      const activityDate = parseActivityDate(value);
+      if (!activityDate) {
+        return '-';
+      }
+      const elapsedMs = Math.max(0, referenceDate.getTime() - activityDate.getTime());
+      const elapsedMinutes = Math.floor(elapsedMs / 60000);
+      if (elapsedMinutes < 5) {
+        return '🟢 En ligne';
+      }
+      if (elapsedMinutes < 60) {
+        return `Il y a ${elapsedMinutes} min`;
+      }
+      const elapsedHours = Math.floor(elapsedMinutes / 60);
+      if (elapsedHours < 24) {
+        return `Il y a ${elapsedHours} h`;
+      }
+      const elapsedDays = Math.floor(elapsedHours / 24);
+      if (elapsedDays < 7) {
+        return `Il y a ${elapsedDays} jour${elapsedDays > 1 ? 's' : ''}`;
+      }
+      const elapsedWeeks = Math.floor(elapsedDays / 7);
+      if (elapsedDays < 30) {
+        return `Il y a ${elapsedWeeks} semaine${elapsedWeeks > 1 ? 's' : ''}`;
+      }
+      const elapsedMonths = Math.max(1, Math.floor(elapsedDays / 30));
+      return `Il y a ${elapsedMonths} mois`;
+    }
+
     function sortUsersByPointsAndName(users, pointsByUser) {
       return [...users].sort((a, b) => {
         const pointsA = Number(pointsByUser?.[a.id] || 0);
@@ -7122,6 +7166,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       : `<span class="table-avatar table-avatar--fallback">${escapeHtml(getInitialsFromName(resolveDisplayName(user)).slice(0, 2))}</span>`}
             </td>
             <td>${escapeHtml(resolveDisplayName(user))}</td>
+            <td class="users-last-activity-cell">${escapeHtml(formatLastActivity(user.lastActivity))}</td>
             <td class="users-email-cell">${escapeHtml(cleanText(user.email) || '-')}</td>
             <td>
               ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com' ? 'admin' : `
@@ -7208,10 +7253,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     let currentUsers = [];
     let currentPointsByUser = {};
+    let lastActivityRefreshId = null;
 
     function renderCurrentUsers() {
       renderUsers(currentUsers, currentPointsByUser);
     }
+
+    lastActivityRefreshId = window.setInterval(renderCurrentUsers, 60000);
+    window.addEventListener('pagehide', () => {
+      if (lastActivityRefreshId) {
+        window.clearInterval(lastActivityRefreshId);
+      }
+    });
 
     try {
       const cleanupResult = await StorageService.cleanupInactiveUsers?.();

@@ -367,7 +367,10 @@ async function saveUsername(username) {
 
   await setDoc(
     userDocRef(),
-    updates,
+    {
+      ...updates,
+      lastActivity: serverTimestamp(),
+    },
     { merge: true },
   );
 
@@ -537,6 +540,7 @@ async function deleteUser(userId) {
     return false;
   }
   await deleteDoc(userDocRef(targetId));
+  await recordCurrentUserActivity();
   return true;
 }
 
@@ -642,6 +646,7 @@ async function setMaintenanceState(enabled) {
     },
     { merge: true },
   );
+  await recordCurrentUserActivity();
   return true;
 }
 
