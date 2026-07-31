@@ -159,7 +159,15 @@ body {
 }
 
 body[data-page="history"] {
+  height: 100%;
   background: linear-gradient(180deg, #d8ecff 0%, #eef6ff 45%, #f6f9ff 100%);
+}
+
+body[data-page="history"] .app-shell {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 
@@ -948,12 +956,15 @@ body[data-page="history"] .list-grid {
 }
 
 .page-content--history {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(216, 236, 255, 0.35));
   overflow: hidden;
 }
 
 .history-list {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(182, 206, 232, 0.8);
