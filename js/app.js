@@ -745,25 +745,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return overlay;
   }
 
-  function initMaintenanceGate(permissions, profile) {
-    const bypassMaintenance = Boolean(
-      permissions?.isAdmin
-      || profile?.maintenanceAuthorized
-      || profile?.maintenanceAccess,
-    );
-    if (bypassMaintenance) {
-      return () => {};
-    }
-
-    const overlay = ensureMaintenanceOverlay();
-    return StorageService.subscribeMaintenanceState(
-      (maintenanceState) => {
-        overlay.hidden = !maintenanceState.enabled;
-      },
-      () => {
-        UiService.showToast('État de maintenance indisponible.');
-      },
-    );
+  function initMaintenanceGate() {
+    // La maintenance globale est affichée en temps réel par js/maintenance-banner.js
+    // pour tous les visiteurs, connectés ou non, sans bloquer le contenu existant.
+    return () => {};
   }
 
   function clearClientUserState() {
