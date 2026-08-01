@@ -7323,6 +7323,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return action;
     }
     const suffix = `site « ${siteName} »`;
+    if (/^a déverrouillé le site\b/i.test(action)) {
+      return `${action} « ${siteName} ».`;
+    }
     if (/^a créé le site\b/i.test(action) || /^a supprimé le site\b/i.test(action) || /\ble site\b/i.test(action)) {
       return `${action} dans le ${suffix}.`;
     }
