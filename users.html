@@ -36,6 +36,15 @@
           <section class="admin-message-modal__panel surface-card" aria-label="Message aux utilisateurs">
             <h2 id="adminMessageTitle" class="section-title">📢 Message aux utilisateurs</h2>
             <form id="adminMessageForm" class="admin-message-form">
+              <fieldset class="admin-message-recipients" aria-labelledby="adminMessageRecipientsLegend">
+                <legend id="adminMessageRecipientsLegend">Destinataires</legend>
+                <label class="admin-message-recipient admin-message-recipient--all" for="adminMessageAllRecipients">
+                  <input id="adminMessageAllRecipients" type="checkbox" checked />
+                  <span>Tous les utilisateurs</span>
+                </label>
+                <div id="adminMessageRecipientsList" class="admin-message-recipients__list" aria-label="Liste des utilisateurs"></div>
+                <p id="adminMessageRecipientsHint" class="admin-message-recipients__hint" hidden>Sélectionnez au moins un destinataire.</p>
+              </fieldset>
               <label class="admin-message-field" for="adminMessageInputTitle">
                 <span>Titre du message</span>
                 <input id="adminMessageInputTitle" type="text" maxlength="120" autocomplete="off" required />
@@ -90,6 +99,15 @@
         return cleanString(value).toLowerCase();
       }
 
+      function escapeHtml(value) {
+        return cleanString(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       function resolveDisplayName(user) {
         const displayName = cleanString(user.displayName || user.username || user.name);
         if (displayName) {
@@ -102,6 +120,12 @@
       function getInitials(name) {
         const normalized = cleanString(name).replace(/\s+/g, ' ').replace(/[^\p{L}\p{N} ]/gu, '');
         return (normalized.slice(0, 2) || 'US').toUpperCase();
+      }
+
+      function isAdminUser(user) {
+        const email = toLower(user?.email);
+        const username = cleanString(user?.username || user?.name);
+        return email === 'andrainaaina@gmail.com' || username === 'Admin' || toLower(user?.role) === 'admin';
       }
 
       function resolveRole(user) {
@@ -223,7 +247,7 @@
             const role = resolveRole(user);
             const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
             const photoURL = cleanString(user.photoURL || user.avatarUrl || user.avatar);
-            const isPrimaryAdmin = toLower(email) === 'andrainaaina@gmail.com';
+            const isPrimaryAdmin = isAdminUser(user);
 
             const avatarMarkup = photoURL
               ? `<span class="users-avatar"><img src="${photoURL.replace(/"/g, '&quot;')}" alt="Avatar de ${displayName.replace(/"/g, '&quot;')}" /></span>`
@@ -233,9 +257,9 @@
               <tr data-user-id="${user.id}">
                 <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)}</td>
                 <td>${avatarMarkup}</td>
-                <td>${displayName}</td>
+                <td>${escapeHtml(displayName)}</td>
                 <td class="users-last-activity-cell">${formatLastActivity(user.lastActivity)}</td>
-                <td class="users-email-cell">${email || '-'}</td>
+                <td class="users-email-cell">${escapeHtml(email) || '-'}</td>
                 <td>
                   ${isPrimaryAdmin ? 'admin' : `
                   <select class="users-role-select" data-user-role="${user.id}">
@@ -347,6 +371,67 @@
       const adminMessageBodyInput = document.getElementById('adminMessageInputBody');
       const adminMessageSendButton = document.getElementById('adminMessageSendButton');
       const adminMessageCancelButton = document.getElementById('adminMessageCancelButton');
+      const adminMessageAllRecipients = document.getElementById('adminMessageAllRecipients');
+      const adminMessageRecipientsList = document.getElementById('adminMessageRecipientsList');
+      const adminMessageRecipientsHint = document.getElementById('adminMessageRecipientsHint');
+
+      function getSelectableMessageRecipients() {
+        return currentUsers
+          .filter((user) => user.id && !isAdminUser(user))
+          .sort((a, b) => resolveDisplayName(a).localeCompare(resolveDisplayName(b), 'fr', { sensitivity: 'base' }));
+      }
+
+      function getSelectedRecipientIds() {
+        if (adminMessageAllRecipients?.checked) {
+          return null;
+        }
+        return Array.from(adminMessageRecipientsList?.querySelectorAll('[data-admin-message-recipient]:checked') || [])
+          .map((checkbox) => checkbox.value)
+          .filter(Boolean);
+      }
+
+      function updateAdminMessageRecipientState() {
+        const sendDisabled = !adminMessageAllRecipients?.checked && getSelectedRecipientIds().length === 0;
+        if (adminMessageSendButton) {
+          adminMessageSendButton.disabled = sendDisabled;
+        }
+        if (adminMessageRecipientsHint) {
+          adminMessageRecipientsHint.hidden = !sendDisabled;
+        }
+      }
+
+      function renderAdminMessageRecipients() {
+        if (!adminMessageRecipientsList) {
+          return;
+        }
+        const selectedIds = new Set(getSelectedRecipientIds() || []);
+        const recipients = getSelectableMessageRecipients();
+        adminMessageRecipientsList.innerHTML = recipients.length
+          ? recipients.map((user) => {
+              const displayName = resolveDisplayName(user);
+              const email = cleanString(user.email);
+              return `
+                <label class="admin-message-recipient" for="adminMessageRecipient-${escapeHtml(user.id)}">
+                  <input
+                    id="adminMessageRecipient-${escapeHtml(user.id)}"
+                    type="checkbox"
+                    value="${escapeHtml(user.id)}"
+                    data-admin-message-recipient
+                    ${selectedIds.has(user.id) ? 'checked' : ''}
+                  />
+                  <span class="admin-message-recipient__text">
+                    <span class="admin-message-recipient__name">${escapeHtml(displayName)}</span>
+                    ${email ? `<span class="admin-message-recipient__email">${escapeHtml(email)}</span>` : ''}
+                  </span>
+                </label>
+              `;
+            }).join('')
+          : '<p class="admin-message-recipients__empty">Aucun utilisateur disponible.</p>';
+        adminMessageRecipientsList.querySelectorAll('[data-admin-message-recipient]').forEach((checkbox) => {
+          checkbox.addEventListener('change', updateAdminMessageRecipientState);
+        });
+        updateAdminMessageRecipientState();
+      }
 
       function openAdminMessageModal() {
         if (!adminMessageModal) {
@@ -354,6 +439,8 @@
         }
         adminMessageModal.hidden = false;
         document.body.classList.add('admin-message-modal-open');
+        renderAdminMessageRecipients();
+        updateAdminMessageRecipientState();
         window.setTimeout(() => adminMessageTitleInput?.focus(), 0);
       }
 
@@ -363,6 +450,10 @@
         }
         if (options.reset !== false) {
           adminMessageForm?.reset();
+          if (adminMessageAllRecipients) {
+            adminMessageAllRecipients.checked = true;
+          }
+          updateAdminMessageRecipientState();
         }
         adminMessageModal.hidden = true;
         document.body.classList.remove('admin-message-modal-open');
@@ -381,6 +472,9 @@
         }
       });
 
+      adminMessageAllRecipients?.addEventListener('change', updateAdminMessageRecipientState);
+      adminMessageRecipientsList?.addEventListener('change', updateAdminMessageRecipientState);
+
       adminMessageCancelButton?.addEventListener('click', () => {
         closeAdminMessageModal();
       });
@@ -389,8 +483,14 @@
         event.preventDefault();
         const title = cleanString(adminMessageTitleInput?.value);
         const body = cleanString(adminMessageBodyInput?.value);
+        const selectedRecipientIds = getSelectedRecipientIds();
         if (!title || !body) {
           window.UiService?.showToast('Veuillez remplir le titre et le corps du message.');
+          return;
+        }
+        if (selectedRecipientIds && selectedRecipientIds.length === 0) {
+          updateAdminMessageRecipientState();
+          window.UiService?.showToast('Sélectionnez au moins un destinataire.');
           return;
         }
 
@@ -402,6 +502,8 @@
           await addDoc(collection(firebaseDb, 'adminMessages'), {
             title,
             body,
+            recipientMode: selectedRecipientIds ? 'selected' : 'all',
+            recipientIds: selectedRecipientIds || [],
             createdAt: serverTimestamp(),
           });
           closeAdminMessageModal();
@@ -425,6 +527,7 @@
           users.forEach(syncDefaults);
           currentUsers = users;
           renderCurrentUsers();
+          renderAdminMessageRecipients();
         },
         () => {
           window.UiService?.showToast('Impossible de charger la liste des utilisateurs.');
