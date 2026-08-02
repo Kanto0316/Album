@@ -2360,6 +2360,65 @@ body[data-page="users-management"] .maintenance-access-checkbox {
   cursor: pointer;
 }
 
+
+body[data-page="users-management"] .admin-message-card {
+  display: grid;
+  gap: 1rem;
+}
+
+body[data-page="users-management"] .admin-message-card .section-title {
+  margin: 0;
+}
+
+body[data-page="users-management"] .admin-message-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+body[data-page="users-management"] .admin-message-field {
+  display: grid;
+  gap: 0.45rem;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+body[data-page="users-management"] .admin-message-field input,
+body[data-page="users-management"] .admin-message-field textarea {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 0.8rem;
+  padding: 0.75rem 0.85rem;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+body[data-page="users-management"] .admin-message-field textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+body[data-page="users-management"] .admin-message-field input:focus,
+body[data-page="users-management"] .admin-message-field textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+body[data-page="users-management"] .admin-message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+body[data-page="users-management"] .admin-message-actions .btn-primary,
+body[data-page="users-management"] .admin-message-actions .btn-secondary {
+  min-width: 7.5rem;
+}
+
 body[data-page="users-management"] .maintenance-card-header {
   display: flex;
   justify-content: space-between;
@@ -2395,7 +2454,6 @@ body[data-page="users-management"] .maintenance-toggle-row {
     gap: 0.55rem;
   }
 }
-
 .users-avatar {
   width: 36px;
   height: 36px;
