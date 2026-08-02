@@ -2448,18 +2448,6 @@ body[data-page="users-management"] .admin-message-field textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
 
-body[data-page="users-management"] .admin-message-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-body[data-page="users-management"] .admin-message-actions .btn-primary,
-body[data-page="users-management"] .admin-message-actions .btn-secondary {
-  min-width: 7.5rem;
-}
-
 body[data-page="users-management"] .maintenance-card-header {
   display: flex;
   justify-content: space-between;
