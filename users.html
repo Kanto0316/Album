@@ -30,6 +30,23 @@
             </div>
           </div>
         </section>
+        <section class="surface-card admin-message-card" aria-labelledby="adminMessageTitle">
+          <h2 id="adminMessageTitle" class="section-title">📢 Message aux utilisateurs</h2>
+          <form id="adminMessageForm" class="admin-message-form">
+            <label class="admin-message-field" for="adminMessageInputTitle">
+              <span>Titre</span>
+              <input id="adminMessageInputTitle" type="text" maxlength="120" autocomplete="off" required />
+            </label>
+            <label class="admin-message-field" for="adminMessageInputBody">
+              <span>Corps du message</span>
+              <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
+            </label>
+            <div class="admin-message-actions">
+              <button id="adminMessageSendButton" type="submit" class="btn-primary">Envoyer</button>
+              <button id="adminMessageCancelButton" type="button" class="btn-secondary">Annuler</button>
+            </div>
+          </form>
+        </section>
         <section class="surface-card table-card">
           <h2 class="section-title">Tous les utilisateurs</h2>
           <div class="table-wrapper table-wrapper--users">
@@ -58,7 +75,7 @@
     <script src="js/ui.js"></script>
     <script type="module" src="js/app.js"></script>
     <script type="module">
-      import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+      import { addDoc, collection, onSnapshot, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
       import { firebaseDb } from './js/firebase-core.js';
 
       function cleanString(value) {
@@ -316,6 +333,48 @@
       window.addEventListener('pagehide', () => {
         if (lastActivityRefreshId) {
           window.clearInterval(lastActivityRefreshId);
+        }
+      });
+
+      const adminMessageForm = document.getElementById('adminMessageForm');
+      const adminMessageTitleInput = document.getElementById('adminMessageInputTitle');
+      const adminMessageBodyInput = document.getElementById('adminMessageInputBody');
+      const adminMessageSendButton = document.getElementById('adminMessageSendButton');
+      const adminMessageCancelButton = document.getElementById('adminMessageCancelButton');
+
+      adminMessageCancelButton?.addEventListener('click', () => {
+        adminMessageForm?.reset();
+        adminMessageTitleInput?.focus();
+      });
+
+      adminMessageForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const title = cleanString(adminMessageTitleInput?.value);
+        const body = cleanString(adminMessageBodyInput?.value);
+        if (!title || !body) {
+          window.UiService?.showToast('Veuillez remplir le titre et le corps du message.');
+          return;
+        }
+
+        if (adminMessageSendButton) {
+          adminMessageSendButton.disabled = true;
+        }
+
+        try {
+          await addDoc(collection(firebaseDb, 'adminMessages'), {
+            title,
+            body,
+            createdAt: serverTimestamp(),
+          });
+          adminMessageForm.reset();
+          await window.StorageService?.recordCurrentUserActivity?.();
+          window.UiService?.showToast('Message envoyé aux utilisateurs.');
+        } catch (_error) {
+          window.UiService?.showToast('Impossible d’envoyer le message.');
+        } finally {
+          if (adminMessageSendButton) {
+            adminMessageSendButton.disabled = false;
+          }
         }
       });
 
