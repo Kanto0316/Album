@@ -2363,6 +2363,8 @@ body[data-page="users-management"] .maintenance-access-checkbox {
 
 body[data-page="users-management"] .admin-message-card {
   display: grid;
+  visibility: visible;
+  opacity: 1;
   gap: 1rem;
 }
 
