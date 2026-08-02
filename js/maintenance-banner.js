@@ -285,6 +285,17 @@ function getReadMessages(profile) {
   return Array.isArray(profile?.readMessages) ? profile.readMessages.map((id) => String(id)) : [];
 }
 
+function isMessageForCurrentUser(message) {
+  if (!currentUser?.uid) {
+    return false;
+  }
+  const recipientIds = Array.isArray(message?.recipientIds) ? message.recipientIds.map((id) => String(id)) : [];
+  if (message?.recipientMode === 'selected' || recipientIds.length > 0) {
+    return recipientIds.includes(currentUser.uid);
+  }
+  return true;
+}
+
 function renderUserMessageModal() {
   const modal = ensureUserMessageModal();
   const shouldShow = authResolved && currentUser && userProfileResolved && !currentUserIsAdmin && pendingUserMessage;
@@ -308,7 +319,7 @@ function choosePendingUserMessage(messages) {
   }
 
   const readMessages = getReadMessages(currentUserProfile);
-  pendingUserMessage = messages.find((message) => !readMessages.includes(message.id)) || null;
+  pendingUserMessage = messages.find((message) => isMessageForCurrentUser(message) && !readMessages.includes(message.id)) || null;
   renderUserMessageModal();
 }
 

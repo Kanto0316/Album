@@ -2442,6 +2442,73 @@ body[data-page="users-management"] .admin-message-field textarea {
   resize: vertical;
 }
 
+body[data-page="users-management"] .admin-message-recipients {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 1rem;
+  background: rgba(248, 250, 252, 0.75);
+}
+
+body[data-page="users-management"] .admin-message-recipients legend {
+  padding: 0 0.35rem;
+  color: #1f2937;
+  font-weight: 800;
+}
+
+body[data-page="users-management"] .admin-message-recipients__list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 13.5rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+body[data-page="users-management"] .admin-message-recipient {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.35rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+body[data-page="users-management"] .admin-message-recipient input {
+  flex: 0 0 auto;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #2563eb;
+}
+
+body[data-page="users-management"] .admin-message-recipient__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+
+body[data-page="users-management"] .admin-message-recipient__name {
+  overflow-wrap: anywhere;
+}
+
+body[data-page="users-management"] .admin-message-recipient__email {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+body[data-page="users-management"] .admin-message-recipients__hint,
+body[data-page="users-management"] .admin-message-recipients__empty {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 body[data-page="users-management"] .admin-message-field input:focus,
 body[data-page="users-management"] .admin-message-field textarea:focus {
   border-color: #2563eb;
