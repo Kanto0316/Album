@@ -2361,15 +2361,54 @@ body[data-page="users-management"] .maintenance-access-checkbox {
 }
 
 
-body[data-page="users-management"] .admin-message-card {
-  display: grid;
-  visibility: visible;
-  opacity: 1;
-  gap: 1rem;
+body[data-page="users-management"] .main-content {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
-body[data-page="users-management"] .admin-message-card .section-title {
+body[data-page="users-management"] .admin-message-fab {
+  right: calc(1.25rem + env(safe-area-inset-right, 0px));
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1100;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+body[data-page="users-management"] .admin-message-modal[hidden] {
+  display: none;
+}
+
+body[data-page="users-management"] .admin-message-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+body[data-page="users-management"] .admin-message-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+body[data-page="users-management"] .admin-message-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 34rem);
+  display: grid;
+  gap: 1rem;
+  max-height: calc(100vh - 2.5rem);
+  overflow-y: auto;
+}
+
+body[data-page="users-management"] .admin-message-modal__panel .section-title {
   margin: 0;
+}
+
+body.admin-message-modal-open {
+  overflow: hidden;
 }
 
 body[data-page="users-management"] .admin-message-form {
