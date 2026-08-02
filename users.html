@@ -30,23 +30,27 @@
             </div>
           </div>
         </section>
-        <section class="surface-card admin-message-card" aria-labelledby="adminMessageTitle">
-          <h2 id="adminMessageTitle" class="section-title">📢 Message aux utilisateurs</h2>
-          <form id="adminMessageForm" class="admin-message-form">
-            <label class="admin-message-field" for="adminMessageInputTitle">
-              <span>Titre du message</span>
-              <input id="adminMessageInputTitle" type="text" maxlength="120" autocomplete="off" required />
-            </label>
-            <label class="admin-message-field" for="adminMessageInputBody">
-              <span>Corps du message</span>
-              <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
-            </label>
-            <div class="admin-message-actions">
-              <button id="adminMessageSendButton" type="submit" class="btn-primary">Envoyer</button>
-              <button id="adminMessageCancelButton" type="button" class="btn-secondary">Annuler</button>
-            </div>
-          </form>
-        </section>
+        <button id="adminMessageFab" class="fab admin-message-fab" type="button" aria-haspopup="dialog" aria-controls="adminMessageModal" aria-label="Envoyer un message aux utilisateurs">📢</button>
+        <div id="adminMessageModal" class="admin-message-modal" role="dialog" aria-modal="true" aria-labelledby="adminMessageTitle" hidden>
+          <div class="admin-message-modal__backdrop" data-admin-message-close></div>
+          <section class="admin-message-modal__panel surface-card" aria-label="Message aux utilisateurs">
+            <h2 id="adminMessageTitle" class="section-title">📢 Message aux utilisateurs</h2>
+            <form id="adminMessageForm" class="admin-message-form">
+              <label class="admin-message-field" for="adminMessageInputTitle">
+                <span>Titre du message</span>
+                <input id="adminMessageInputTitle" type="text" maxlength="120" autocomplete="off" required />
+              </label>
+              <label class="admin-message-field" for="adminMessageInputBody">
+                <span>Corps du message</span>
+                <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
+              </label>
+              <div class="admin-message-actions">
+                <button id="adminMessageSendButton" type="submit" class="btn-primary">Envoyer</button>
+                <button id="adminMessageCancelButton" type="button" class="btn-secondary">Annuler</button>
+              </div>
+            </form>
+          </section>
+        </div>
         <section class="surface-card table-card">
           <h2 class="section-title">Tous les utilisateurs</h2>
           <div class="table-wrapper table-wrapper--users">
@@ -336,15 +340,49 @@
         }
       });
 
+      const adminMessageFab = document.getElementById('adminMessageFab');
+      const adminMessageModal = document.getElementById('adminMessageModal');
       const adminMessageForm = document.getElementById('adminMessageForm');
       const adminMessageTitleInput = document.getElementById('adminMessageInputTitle');
       const adminMessageBodyInput = document.getElementById('adminMessageInputBody');
       const adminMessageSendButton = document.getElementById('adminMessageSendButton');
       const adminMessageCancelButton = document.getElementById('adminMessageCancelButton');
 
+      function openAdminMessageModal() {
+        if (!adminMessageModal) {
+          return;
+        }
+        adminMessageModal.hidden = false;
+        document.body.classList.add('admin-message-modal-open');
+        window.setTimeout(() => adminMessageTitleInput?.focus(), 0);
+      }
+
+      function closeAdminMessageModal(options = {}) {
+        if (!adminMessageModal) {
+          return;
+        }
+        if (options.reset !== false) {
+          adminMessageForm?.reset();
+        }
+        adminMessageModal.hidden = true;
+        document.body.classList.remove('admin-message-modal-open');
+        adminMessageFab?.focus();
+      }
+
+      adminMessageFab?.addEventListener('click', openAdminMessageModal);
+
+      adminMessageModal?.querySelectorAll('[data-admin-message-close]').forEach((element) => {
+        element.addEventListener('click', () => closeAdminMessageModal());
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && adminMessageModal && !adminMessageModal.hidden) {
+          closeAdminMessageModal();
+        }
+      });
+
       adminMessageCancelButton?.addEventListener('click', () => {
-        adminMessageForm?.reset();
-        adminMessageTitleInput?.focus();
+        closeAdminMessageModal();
       });
 
       adminMessageForm?.addEventListener('submit', async (event) => {
@@ -366,7 +404,7 @@
             body,
             createdAt: serverTimestamp(),
           });
-          adminMessageForm.reset();
+          closeAdminMessageModal();
           await window.StorageService?.recordCurrentUserActivity?.();
           window.UiService?.showToast('Message envoyé aux utilisateurs.');
         } catch (_error) {
