@@ -5949,7 +5949,19 @@ body[data-page="site-detail"] .purchase-card__content {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 0.75rem;
-  align-items: start;
+  align-items: center;
+}
+
+body[data-page="site-detail"] .purchase-card__body {
+  min-width: 0;
+}
+
+body[data-page="site-detail"] .purchase-card__date {
+  margin: 0.34rem 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.86rem;
+  line-height: 1.32;
+  overflow-wrap: anywhere;
 }
 
 body[data-page="site-detail"] .purchase-card__media {
