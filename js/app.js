@@ -3144,6 +3144,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseQty = requireElement('purchaseQty');
     const purchaseUnit = requireElement('purchaseUnit');
     const purchaseStore = requireElement('purchaseStore');
+    const purchaseRemark = requireElement('purchaseRemark');
     const purchasePhotoInput = requireElement('purchasePhotoInput');
     const purchasePhotoPreviewWrap = requireElement('purchasePhotoPreviewWrap');
     const purchasePhotoPreview = requireElement('purchasePhotoPreview');
@@ -3151,12 +3152,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseDesignationError = requireElement('purchaseDesignationError');
     const purchaseQtyError = requireElement('purchaseQtyError');
     const purchaseUnitError = requireElement('purchaseUnitError');
+    const purchaseRemarkError = requireElement('purchaseRemarkError');
     const cancelPurchaseBtn = requireElement('cancelPurchaseBtn');
     const savePurchaseBtn = requireElement('savePurchaseBtn');
     const editPurchaseModal = document.getElementById('editPurchaseModal');
     const editPurchaseForm = document.getElementById('editPurchaseForm');
     const editPurchaseNameInput = document.getElementById('editPurchaseNameInput');
     const editPurchaseNameCounter = document.getElementById('editPurchaseNameCounter');
+    const editPurchaseRemarkInput = document.getElementById('editPurchaseRemarkInput');
+    const editPurchaseRemarkError = document.getElementById('editPurchaseRemarkError');
     const editPurchaseFormError = document.getElementById('editPurchaseFormError');
     const cancelEditPurchaseBtn = document.getElementById('cancelEditPurchaseBtn');
     const saveEditPurchaseBtn = document.getElementById('saveEditPurchaseBtn');
@@ -3285,6 +3289,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
       clearPurchaseFieldError(purchaseQty, purchaseQtyError);
       clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
+      clearPurchaseFieldError(purchaseRemark, purchaseRemarkError);
       selectedPurchasePhotoFile = null;
       if (selectedPurchasePhotoPreviewUrl) {
         URL.revokeObjectURL(selectedPurchasePhotoPreviewUrl);
@@ -3502,6 +3507,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       selectedPurchaseId = purchase.id;
       selectedPurchaseData = purchase;
       editPurchaseNameInput.value = String(purchase.designation || '');
+      if (editPurchaseRemarkInput) {
+        editPurchaseRemarkInput.value = String(purchase.remarque || purchase.remark || '').trim();
+      }
       clearEditPurchaseFieldError();
       updateEditPurchaseCounter();
       editPurchaseModal.showModal();
@@ -3512,6 +3520,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       clearPurchaseFieldError(purchaseDesignation, purchaseDesignationError);
       clearPurchaseFieldError(purchaseQty, purchaseQtyError);
       clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
+      clearPurchaseFieldError(purchaseRemark, purchaseRemarkError);
       if (purchaseFormError) {
         purchaseFormError.textContent = '';
       }
@@ -3519,6 +3528,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const qty = Number(purchaseQty?.value);
       const unit = String(purchaseUnit?.value || '').trim();
       const store = String(purchaseStore?.value || '').trim();
+      const remark = String(purchaseRemark?.value || '').trim();
       if (!designation) {
         showPurchaseFieldError(purchaseDesignation, purchaseDesignationError, 'Désignation obligatoire');
         return;
@@ -3547,6 +3557,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           unit,
           store,
           magasin: store,
+          remarque: remark,
+          remark,
           createdAt: serverTimestamp(),
           createdBy: currentUserName || 'Utilisateur',
           createdByEmail: currentUserEmail || '',
@@ -5081,6 +5093,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       updateEditPurchaseCounter();
     });
 
+    editPurchaseRemarkInput?.addEventListener('input', () => {
+      clearPurchaseFieldError(editPurchaseRemarkInput, editPurchaseRemarkError);
+    });
+
     cancelEditPurchaseBtn?.addEventListener('click', () => {
       editPurchaseModal?.close();
     });
@@ -5089,17 +5105,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       event.preventDefault();
       if (!selectedPurchaseId || !editPurchaseNameInput) return;
       const newName = String(editPurchaseNameInput.value || '').trim();
+      const newRemark = String(editPurchaseRemarkInput?.value || '').trim();
       if (!newName) {
         showEditPurchaseFieldError('Nom obligatoire');
         editPurchaseNameInput.focus();
         return;
       }
       clearEditPurchaseFieldError();
+      clearPurchaseFieldError(editPurchaseRemarkInput, editPurchaseRemarkError);
       setEditPurchaseSubmitLoadingState(true);
       try {
         await updateDoc(
           doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId),
-          { designation: newName },
+          { designation: newName, remarque: newRemark, remark: newRemark },
         );
         editPurchaseModal?.close();
         await loadPurchasesForCurrentSite();
@@ -7499,6 +7517,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const imagePlaceholder = requireElement('purchaseDetailImagePlaceholder');
     const qty = requireElement('purchaseDetailQty');
     const store = requireElement('purchaseDetailStore');
+    const remarkRow = requireElement('purchaseDetailRemarkRow');
+    const remark = requireElement('purchaseDetailRemark');
     const user = requireElement('purchaseDetailUser');
     const fullDate = requireElement('purchaseDetailFullDate');
     const imageDialog = requireElement('purchaseImageDialog');
@@ -7517,6 +7537,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const imageUrl = String(purchase?.imageUrl || '').trim();
       const dateLabel = formatPurchaseDateLabel(purchase);
       const purchaseStore = String(purchase?.store || purchase?.magasin || '').trim() || '-';
+      const purchaseRemark = String(purchase?.remarque || purchase?.remark || '').trim();
 
       summaryName.textContent = String(purchase?.designation || 'Achat matériel');
       summaryCreatedAt.textContent = dateLabel;
@@ -7525,6 +7546,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         : '<span>🖼️</span>';
       qty.textContent = `${Number(purchase?.qty || 0)} ${String(purchase?.unit || 'Pcs')}`;
       store.textContent = purchaseStore;
+      if (purchaseRemark) {
+        remark.textContent = purchaseRemark;
+        remarkRow.hidden = false;
+      } else {
+        remark.textContent = '';
+        remarkRow.hidden = true;
+      }
       user.textContent = String(purchase?.createdBy || 'Utilisateur');
       fullDate.textContent = dateLabel;
 

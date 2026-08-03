@@ -251,6 +251,11 @@
             <input id="purchaseStore" type="text" placeholder="Ex : Titan I" />
           </label>
           <label class="input-group input-group--site-create">
+            <span>Remarque</span>
+            <textarea id="purchaseRemark" rows="2" placeholder="Ex : Livraison urgente pour le chantier."></textarea>
+            <p id="purchaseRemarkError" class="form-error form-error--field" aria-live="polite"></p>
+          </label>
+          <label class="input-group input-group--site-create">
             <span>Photo</span>
             <input id="purchasePhotoInput" type="file" accept="image/*" />
           </label>
@@ -281,6 +286,11 @@
               <p id="editPurchaseFormError" class="form-error error-message" aria-live="polite"></p>
               <span id="editPurchaseNameCounter" class="input-char-counter" aria-live="polite">0 / 25</span>
             </div>
+          </label>
+          <label class="input-group input-group--site-create input-group--item-create">
+            <span>Remarque</span>
+            <textarea id="editPurchaseRemarkInput" rows="2" placeholder="Ex : Livraison urgente pour le chantier."></textarea>
+            <p id="editPurchaseRemarkError" class="form-error form-error--field" aria-live="polite"></p>
           </label>
           <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
             <button type="button" class="btn btn-neutral" id="cancelEditPurchaseBtn">Annuler</button>

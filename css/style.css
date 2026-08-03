@@ -803,6 +803,7 @@ body.app-content-loading .item-detail-fab-row {
 
 .input-group input,
 .input-group select,
+.input-group textarea,
 .cell-input,
 .cell-textarea {
   width: 100%;
@@ -816,10 +817,17 @@ body.app-content-loading .item-detail-fab-row {
 
 .input-group input:focus,
 .input-group select:focus,
+.input-group textarea:focus,
 .cell-input:focus,
 .cell-textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(89, 184, 255, 0.18);
+}
+
+.input-group textarea {
+  min-height: calc(2lh + 1.7rem);
+  max-height: calc(4lh + 1.7rem);
+  resize: vertical;
 }
 
 .typeahead {
