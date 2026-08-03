@@ -4305,7 +4305,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const koCount = Number(countsByFilterKey.ko || 0);
       const total = doneCount + todoCount + fixCount + koCount;
 
-      itemProgressStatsCard.hidden = total <= 0;
+      itemProgressStatsCard.hidden = activeSiteTab !== 'outs' || total <= 0;
       if (itemProgressTotal) {
         itemProgressTotal.textContent = `Total • ${total} ARTICLE${total > 1 ? 'S' : ''}`;
       }
@@ -4725,6 +4725,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         itemCount.innerHTML = `<span class="outs-number">0</span><span class="outs-label">OUTS</span>`;
       } else {
         itemCount.innerHTML = `<span class="outs-number">0</span><span class="outs-label">Achat</span>`;
+      }
+      if (safeTabName === 'purchases' && itemProgressStatsCard) {
+        itemProgressStatsCard.hidden = true;
       }
       updateFabByActiveTab(safeTabName);
       updateHeaderExportButton(safeTabName);
