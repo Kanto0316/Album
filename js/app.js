@@ -4543,6 +4543,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                 </div>
                 <div class="purchase-card__body">
                   <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
+                  <p class="purchase-card__hint">Appuyez pour voir les détails</p>
                   <p class="purchase-card__date">Créé le ${escapeHtml(createdLabel)}</p>
                 </div>
               </div>
