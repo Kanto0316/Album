@@ -63,7 +63,11 @@
               </label>
               <div class="admin-message-actions modal-actions modal-actions--split modal-actions--site-create">
                 <button id="adminMessageCancelButton" type="button" class="btn btn-neutral">Annuler</button>
-                <button id="adminMessageSendButton" type="submit" class="btn btn-success">Envoyer</button>
+                <button id="adminMessageSendButton" type="submit" class="btn btn-success">
+                  <span class="btn-label-default">Envoyer</span>
+                  <span class="btn-loading-spinner" aria-hidden="true"></span>
+                  <span class="btn-label-loading" aria-hidden="true">Envoi...</span>
+                </button>
               </div>
             </form>
           </section>
@@ -386,6 +390,9 @@
       const adminMessageRecipientsSummary = document.getElementById('adminMessageRecipientsSummary');
       const adminMessageRecipientsList = document.getElementById('adminMessageRecipientsList');
       const adminMessageRecipientsHint = document.getElementById('adminMessageRecipientsHint');
+      const ADMIN_MESSAGE_DRAFT_STORAGE_KEY = 'adminMessageDraft';
+      let isAdminMessageSending = false;
+      let isRestoringAdminMessageDraft = false;
 
       function getSelectableMessageRecipients() {
         return currentUsers
@@ -422,7 +429,7 @@
       }
 
       function updateAdminMessageRecipientState() {
-        const sendDisabled = !adminMessageAllRecipients?.checked && getSelectedRecipientIds().length === 0;
+        const sendDisabled = (!adminMessageAllRecipients?.checked && getSelectedRecipientIds().length === 0) || isAdminMessageSending;
         if (adminMessageSendButton) {
           adminMessageSendButton.disabled = sendDisabled;
         }
@@ -430,6 +437,81 @@
           adminMessageRecipientsHint.hidden = !sendDisabled;
         }
         updateAdminMessageRecipientSummary();
+      }
+
+      function persistAdminMessageDraft() {
+        if (isRestoringAdminMessageDraft) {
+          return;
+        }
+        try {
+          window.localStorage?.setItem(ADMIN_MESSAGE_DRAFT_STORAGE_KEY, JSON.stringify({
+            allRecipients: Boolean(adminMessageAllRecipients?.checked),
+            selectedRecipientIds: Array.from(adminMessageRecipientsList?.querySelectorAll('[data-admin-message-recipient]:checked') || [])
+              .map((checkbox) => checkbox.value)
+              .filter(Boolean),
+            title: adminMessageTitleInput?.value || '',
+            body: adminMessageBodyInput?.value || '',
+          }));
+        } catch (_error) {
+          // Ignore storage errors so messaging remains usable in private/restricted contexts.
+        }
+      }
+
+      function clearAdminMessageDraft() {
+        try {
+          window.localStorage?.removeItem(ADMIN_MESSAGE_DRAFT_STORAGE_KEY);
+        } catch (_error) {
+          // Ignore storage errors.
+        }
+      }
+
+      function getStoredAdminMessageDraft() {
+        try {
+          const rawDraft = window.localStorage?.getItem(ADMIN_MESSAGE_DRAFT_STORAGE_KEY);
+          return rawDraft ? JSON.parse(rawDraft) : null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function applyAdminMessageDraft() {
+        const draft = getStoredAdminMessageDraft();
+        if (!draft) {
+          return;
+        }
+        isRestoringAdminMessageDraft = true;
+        if (adminMessageTitleInput) {
+          adminMessageTitleInput.value = draft.title || '';
+        }
+        if (adminMessageBodyInput) {
+          adminMessageBodyInput.value = draft.body || '';
+        }
+        if (adminMessageAllRecipients) {
+          adminMessageAllRecipients.checked = draft.allRecipients !== false;
+        }
+        const selectedIds = new Set(Array.isArray(draft.selectedRecipientIds) ? draft.selectedRecipientIds.map(String) : []);
+        adminMessageRecipientsList?.querySelectorAll('[data-admin-message-recipient]').forEach((checkbox) => {
+          checkbox.checked = !adminMessageAllRecipients?.checked && selectedIds.has(checkbox.value);
+        });
+        isRestoringAdminMessageDraft = false;
+      }
+
+      function setAdminMessageSending(isSending) {
+        isAdminMessageSending = isSending;
+        adminMessageSendButton?.classList.toggle('is-loading', isSending);
+        adminMessageSendButton?.setAttribute('aria-busy', String(isSending));
+        updateAdminMessageRecipientState();
+      }
+
+      function enforceAdminMessageExclusiveSelection(source) {
+        if (source === 'all' && adminMessageAllRecipients?.checked) {
+          adminMessageRecipientsList?.querySelectorAll('[data-admin-message-recipient]').forEach((checkbox) => {
+            checkbox.checked = false;
+          });
+        }
+        if (source === 'individual' && adminMessageRecipientsList?.querySelector('[data-admin-message-recipient]:checked') && adminMessageAllRecipients) {
+          adminMessageAllRecipients.checked = false;
+        }
       }
 
       function setAdminMessageRecipientsDropdownOpen(isOpen) {
@@ -471,9 +553,6 @@
               `;
             }).join('')
           : '<p class="admin-message-recipients__empty">Aucun utilisateur disponible.</p>';
-        adminMessageRecipientsList.querySelectorAll('[data-admin-message-recipient]').forEach((checkbox) => {
-          checkbox.addEventListener('change', updateAdminMessageRecipientState);
-        });
         updateAdminMessageRecipientState();
       }
 
@@ -484,6 +563,7 @@
         adminMessageModal.hidden = false;
         document.body.classList.add('admin-message-modal-open');
         renderAdminMessageRecipients();
+        applyAdminMessageDraft();
         updateAdminMessageRecipientState();
         window.setTimeout(() => adminMessageTitleInput?.focus(), 0);
       }
@@ -497,6 +577,7 @@
           if (adminMessageAllRecipients) {
             adminMessageAllRecipients.checked = true;
           }
+          clearAdminMessageDraft();
           updateAdminMessageRecipientState();
         }
         setAdminMessageRecipientsDropdownOpen(false);
@@ -531,8 +612,20 @@
         }
       });
 
-      adminMessageAllRecipients?.addEventListener('change', updateAdminMessageRecipientState);
-      adminMessageRecipientsList?.addEventListener('change', updateAdminMessageRecipientState);
+      adminMessageAllRecipients?.addEventListener('change', () => {
+        enforceAdminMessageExclusiveSelection('all');
+        updateAdminMessageRecipientState();
+        persistAdminMessageDraft();
+      });
+      adminMessageRecipientsList?.addEventListener('change', (event) => {
+        if (event.target?.matches?.('[data-admin-message-recipient]')) {
+          enforceAdminMessageExclusiveSelection('individual');
+          updateAdminMessageRecipientState();
+          persistAdminMessageDraft();
+        }
+      });
+      adminMessageTitleInput?.addEventListener('input', persistAdminMessageDraft);
+      adminMessageBodyInput?.addEventListener('input', persistAdminMessageDraft);
 
       adminMessageCancelButton?.addEventListener('click', () => {
         closeAdminMessageModal();
@@ -553,9 +646,11 @@
           return;
         }
 
-        if (adminMessageSendButton) {
-          adminMessageSendButton.disabled = true;
+        if (isAdminMessageSending) {
+          return;
         }
+
+        setAdminMessageSending(true);
 
         try {
           await addDoc(collection(firebaseDb, 'adminMessages'), {
@@ -571,9 +666,7 @@
         } catch (_error) {
           window.UiService?.showToast('Impossible d’envoyer le message.');
         } finally {
-          if (adminMessageSendButton) {
-            adminMessageSendButton.disabled = false;
-          }
+          setAdminMessageSending(false);
         }
       });
 
