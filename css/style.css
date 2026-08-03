@@ -6862,23 +6862,12 @@ body[data-page="purchase-detail"] .purchase-detail-content {
 body[data-page="purchase-detail"] .purchase-detail-summary {
   width: min(100%, var(--content-max-width));
   margin-inline: auto;
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 0.85rem;
-  align-items: center;
+  display: block;
+  text-align: center;
 }
 
 body[data-page="purchase-detail"] .purchase-detail-summary__media {
-  width: 64px;
-  height: 64px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  font-size: 1.55rem;
+  display: none;
 }
 
 body[data-page="purchase-detail"] .purchase-detail-summary__media img {
@@ -6894,14 +6883,16 @@ body[data-page="purchase-detail"] .purchase-detail-summary__body {
 
 body[data-page="purchase-detail"] .purchase-detail-summary__title {
   margin: 0;
+  color: var(--text);
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
 body[data-page="purchase-detail"] .purchase-detail-summary__date {
-  margin: 0.28rem 0 0;
-  color: #64748b;
-  font-size: 0.92rem;
-  line-height: 1.35;
+  display: none;
 }
 
 body[data-page="purchase-detail"] .purchase-detail-main {
@@ -6948,6 +6939,10 @@ body[data-page="purchase-detail"] .purchase-detail-info-card {
   gap: 0.72rem;
 }
 
+body[data-page="purchase-detail"] .purchase-label {
+  color: var(--primary-color);
+}
+
 body[data-page="purchase-detail"] .purchase-image-dialog {
   width: min(92vw, 720px);
   max-width: 92vw;
@@ -6984,15 +6979,6 @@ body[data-page="purchase-detail"] .purchase-image-dialog__close {
 }
 
 @media (max-width: 520px) {
-  body[data-page="purchase-detail"] .purchase-detail-summary {
-    grid-template-columns: 58px minmax(0, 1fr);
-  }
-
-  body[data-page="purchase-detail"] .purchase-detail-summary__media {
-    width: 58px;
-    height: 58px;
-  }
-
   body[data-page="purchase-detail"] .purchase-info-row {
     grid-template-columns: minmax(6.9rem, auto) minmax(0, 1fr);
   }
