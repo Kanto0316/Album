@@ -3200,6 +3200,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const filterChipButtons = Array.from(document.querySelectorAll('[data-filter-chip]'));
     const itemStatusFilterButton = document.getElementById('itemStatusFilterButton');
     const itemStatusFilterMenu = document.getElementById('itemStatusFilterMenu');
+    const itemStatusFilterMenuWrap = itemStatusFilterButton?.closest('.page2-filter-menu-wrap');
     const itemStatusFilterOptions = Array.from(document.querySelectorAll('[data-item-status-filter]'));
     const itemProgressStatsCard = document.getElementById('itemProgressStatsCard');
     const itemProgressTotal = document.getElementById('itemProgressTotal');
@@ -4312,6 +4313,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       itemStatusFilterButton.setAttribute('aria-expanded', 'false');
     }
 
+    function updateItemStatusFilterVisibility(tabName) {
+      const shouldShowStatusFilter = tabName === 'outs';
+      itemStatusFilterMenuWrap?.classList.toggle('hidden', !shouldShowStatusFilter);
+      if (!shouldShowStatusFilter) {
+        closeItemStatusFilterMenu();
+      }
+    }
+
     function openItemStatusFilterMenu() {
       if (!itemStatusFilterMenu || !itemStatusFilterButton) return;
       itemStatusFilterMenu.hidden = false;
@@ -4690,6 +4699,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (safeTabName === 'purchases' && itemProgressStatsCard) {
         itemProgressStatsCard.hidden = true;
       }
+      updateItemStatusFilterVisibility(safeTabName);
       updateFabByActiveTab(safeTabName);
       updateHeaderExportButton(safeTabName);
       renderActiveTabContent();
