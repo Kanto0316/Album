@@ -8,7 +8,8 @@ const MAINTENANCE_DOC_REF = doc(firebaseDb, 'appSettings', 'maintenance');
 const PRIMARY_ADMIN_EMAIL = 'andrainaaina@gmail.com';
 const BODY_LOCK_CLASS = 'global-maintenance-modal-open';
 const USER_MESSAGE_MODAL_ID = 'globalUserMessageModal';
-const USER_MESSAGES_QUERY = query(collection(firebaseDb, 'adminMessages'), orderBy('createdAt', 'desc'), limit(20));
+const RECENT_USER_MESSAGES_LIMIT = 3;
+const USER_MESSAGES_QUERY = query(collection(firebaseDb, 'adminMessages'), orderBy('createdAt', 'desc'), limit(RECENT_USER_MESSAGES_LIMIT));
 
 let maintenanceEnabled = false;
 let authResolved = false;
@@ -311,7 +312,7 @@ function renderUserMessageModal() {
 }
 
 function choosePendingUserMessage(messages) {
-  receivedUserMessages = messages;
+  receivedUserMessages = messages.slice(0, RECENT_USER_MESSAGES_LIMIT);
   if (!currentUser || !userProfileResolved || currentUserIsAdmin) {
     pendingUserMessage = null;
     renderUserMessageModal();
@@ -319,7 +320,7 @@ function choosePendingUserMessage(messages) {
   }
 
   const readMessages = getReadMessages(currentUserProfile);
-  pendingUserMessage = messages.find((message) => isMessageForCurrentUser(message) && !readMessages.includes(message.id)) || null;
+  pendingUserMessage = receivedUserMessages.find((message) => isMessageForCurrentUser(message) && !readMessages.includes(message.id)) || null;
   renderUserMessageModal();
 }
 
@@ -334,6 +335,7 @@ async function acknowledgeCurrentUserMessage() {
   pendingUserMessage = null;
   renderUserMessageModal();
   currentUserProfile = { ...(currentUserProfile || {}), readMessages: [...new Set([...getReadMessages(currentUserProfile), messageId])] };
+  choosePendingUserMessage(receivedUserMessages);
 
   try {
     await setDoc(doc(firebaseDb, 'users', currentUser.uid), { readMessages: arrayUnion(messageId) }, { merge: true });
