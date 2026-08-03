@@ -2571,6 +2571,41 @@ body[data-page="users-management"] .admin-message-field textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
 
+body[data-page="users-management"] #adminMessageSendButton {
+  position: relative;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+body[data-page="users-management"] #adminMessageSendButton .btn-label-loading {
+  display: none;
+}
+
+body[data-page="users-management"] #adminMessageSendButton .btn-loading-spinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  display: none;
+  animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
+body[data-page="users-management"] #adminMessageSendButton.is-loading {
+  filter: saturate(0.95);
+}
+
+body[data-page="users-management"] #adminMessageSendButton.is-loading .btn-label-default {
+  display: none;
+}
+
+body[data-page="users-management"] #adminMessageSendButton.is-loading .btn-loading-spinner,
+body[data-page="users-management"] #adminMessageSendButton.is-loading .btn-label-loading {
+  display: inline-flex;
+}
+
 body[data-page="users-management"] .maintenance-card-header {
   display: flex;
   justify-content: space-between;
