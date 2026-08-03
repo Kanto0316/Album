@@ -5958,9 +5958,10 @@ body[data-page="site-detail"] .purchase-card__body {
 
 body[data-page="site-detail"] .purchase-card__hint {
   margin: 0.22rem 0 0;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-muted);
   font-size: 0.82rem;
   line-height: 1.32;
+  text-align: left;
   overflow-wrap: anywhere;
 }
 
