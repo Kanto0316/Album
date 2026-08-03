@@ -7100,6 +7100,27 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
+    function isUserOnline(user, referenceDate = new Date()) {
+      if (user?.online === true || cleanText(user?.presence).toLowerCase() === 'online' || cleanText(user?.status).toLowerCase() === 'online') {
+        return true;
+      }
+      const lastSeenDate = parseActivityDate(user?.lastSeen || user?.lastActivity);
+      if (!lastSeenDate) {
+        return false;
+      }
+      return Math.max(0, referenceDate.getTime() - lastSeenDate.getTime()) < 5 * 60000;
+    }
+
+    function updateUsersCardHeader(users) {
+      const usersCardHeader = document.getElementById('usersCardHeader');
+      if (!usersCardHeader) {
+        return;
+      }
+      const referenceDate = new Date();
+      const onlineCount = users.filter((user) => isUserOnline(user, referenceDate)).length;
+      usersCardHeader.innerHTML = `Tous les utilisateurs : ${users.length}<br />En ligne : ${onlineCount}`;
+    }
+
     function formatLastActivity(value, referenceDate = new Date()) {
       const activityDate = parseActivityDate(value);
       if (!activityDate) {
@@ -7241,6 +7262,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let lastActivityRefreshId = null;
 
     function renderCurrentUsers() {
+      updateUsersCardHeader(currentUsers);
       renderUsers(currentUsers, currentPointsByUser);
     }
 

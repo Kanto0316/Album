@@ -73,7 +73,7 @@
           </section>
         </div>
         <section class="surface-card table-card">
-          <h2 class="section-title">Tous les utilisateurs</h2>
+          <h2 class="section-title" id="usersCardHeader">Tous les utilisateurs : 0<br />En ligne : 0</h2>
           <div class="table-wrapper table-wrapper--users">
             <table class="data-table">
               <thead>
@@ -199,6 +199,27 @@
         }
         const parsed = new Date(normalizedValue);
         return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      function isUserOnline(user, referenceDate = new Date()) {
+        if (user?.online === true || toLower(user?.presence) === 'online' || toLower(user?.status) === 'online') {
+          return true;
+        }
+        const lastSeenDate = parseActivityDate(user?.lastSeen || user?.lastActivity);
+        if (!lastSeenDate) {
+          return false;
+        }
+        return Math.max(0, referenceDate.getTime() - lastSeenDate.getTime()) < 5 * 60000;
+      }
+
+      function updateUsersCardHeader(users) {
+        const usersCardHeader = document.getElementById('usersCardHeader');
+        if (!usersCardHeader) {
+          return;
+        }
+        const referenceDate = new Date();
+        const onlineCount = users.filter((user) => isUserOnline(user, referenceDate)).length;
+        usersCardHeader.innerHTML = `Tous les utilisateurs : ${users.length}<br />En ligne : ${onlineCount}`;
       }
 
       function formatLastActivity(value, referenceDate = new Date()) {
@@ -366,6 +387,7 @@
       let lastActivityRefreshId = null;
 
       function renderCurrentUsers() {
+        updateUsersCardHeader(currentUsers);
         renderUsers(currentUsers, currentPointsByUser);
       }
 
