@@ -38,11 +38,19 @@
             <form id="adminMessageForm" class="admin-message-form">
               <fieldset class="admin-message-recipients" aria-labelledby="adminMessageRecipientsLegend">
                 <legend id="adminMessageRecipientsLegend">Destinataires</legend>
-                <label class="admin-message-recipient admin-message-recipient--all" for="adminMessageAllRecipients">
-                  <input id="adminMessageAllRecipients" type="checkbox" checked />
-                  <span>Tous les utilisateurs</span>
-                </label>
-                <div id="adminMessageRecipientsList" class="admin-message-recipients__list" aria-label="Liste des utilisateurs"></div>
+                <div id="adminMessageRecipientsDropdown" class="admin-message-recipients-dropdown">
+                  <button id="adminMessageRecipientsToggle" class="admin-message-recipients-dropdown__toggle" type="button" aria-expanded="false" aria-controls="adminMessageRecipientsMenu">
+                    <span id="adminMessageRecipientsSummary">Tous les utilisateurs</span>
+                    <span class="admin-message-recipients-dropdown__chevron" aria-hidden="true">▾</span>
+                  </button>
+                  <div id="adminMessageRecipientsMenu" class="admin-message-recipients-dropdown__menu" hidden>
+                    <label class="admin-message-recipient admin-message-recipient--all" for="adminMessageAllRecipients">
+                      <input id="adminMessageAllRecipients" type="checkbox" checked />
+                      <span>Tous les utilisateurs</span>
+                    </label>
+                    <div id="adminMessageRecipientsList" class="admin-message-recipients__list" aria-label="Liste des utilisateurs"></div>
+                  </div>
+                </div>
                 <p id="adminMessageRecipientsHint" class="admin-message-recipients__hint" hidden>Sélectionnez au moins un destinataire.</p>
               </fieldset>
               <label class="admin-message-field" for="adminMessageInputTitle">
@@ -372,6 +380,10 @@
       const adminMessageSendButton = document.getElementById('adminMessageSendButton');
       const adminMessageCancelButton = document.getElementById('adminMessageCancelButton');
       const adminMessageAllRecipients = document.getElementById('adminMessageAllRecipients');
+      const adminMessageRecipientsDropdown = document.getElementById('adminMessageRecipientsDropdown');
+      const adminMessageRecipientsToggle = document.getElementById('adminMessageRecipientsToggle');
+      const adminMessageRecipientsMenu = document.getElementById('adminMessageRecipientsMenu');
+      const adminMessageRecipientsSummary = document.getElementById('adminMessageRecipientsSummary');
       const adminMessageRecipientsList = document.getElementById('adminMessageRecipientsList');
       const adminMessageRecipientsHint = document.getElementById('adminMessageRecipientsHint');
 
@@ -390,6 +402,25 @@
           .filter(Boolean);
       }
 
+      function updateAdminMessageRecipientSummary() {
+        if (!adminMessageRecipientsSummary) {
+          return;
+        }
+        if (adminMessageAllRecipients?.checked) {
+          adminMessageRecipientsSummary.textContent = 'Tous les utilisateurs';
+          return;
+        }
+        const selectedIds = getSelectedRecipientIds();
+        if (selectedIds.length === 1) {
+          const selectedUser = getSelectableMessageRecipients().find((user) => user.id === selectedIds[0]);
+          adminMessageRecipientsSummary.textContent = selectedUser ? resolveDisplayName(selectedUser) : '1 utilisateur sélectionné';
+          return;
+        }
+        adminMessageRecipientsSummary.textContent = selectedIds.length > 1
+          ? `${selectedIds.length} utilisateurs sélectionnés`
+          : 'Sélectionner des destinataires';
+      }
+
       function updateAdminMessageRecipientState() {
         const sendDisabled = !adminMessageAllRecipients?.checked && getSelectedRecipientIds().length === 0;
         if (adminMessageSendButton) {
@@ -397,6 +428,19 @@
         }
         if (adminMessageRecipientsHint) {
           adminMessageRecipientsHint.hidden = !sendDisabled;
+        }
+        updateAdminMessageRecipientSummary();
+      }
+
+      function setAdminMessageRecipientsDropdownOpen(isOpen) {
+        if (!adminMessageRecipientsMenu || !adminMessageRecipientsToggle) {
+          return;
+        }
+        adminMessageRecipientsMenu.hidden = !isOpen;
+        adminMessageRecipientsToggle.setAttribute('aria-expanded', String(isOpen));
+        adminMessageRecipientsDropdown?.classList.toggle('is-open', isOpen);
+        if (!isOpen) {
+          updateAdminMessageRecipientSummary();
         }
       }
 
@@ -455,6 +499,7 @@
           }
           updateAdminMessageRecipientState();
         }
+        setAdminMessageRecipientsDropdownOpen(false);
         adminMessageModal.hidden = true;
         document.body.classList.remove('admin-message-modal-open');
         adminMessageFab?.focus();
@@ -469,6 +514,20 @@
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && adminMessageModal && !adminMessageModal.hidden) {
           closeAdminMessageModal();
+        }
+      });
+
+      adminMessageRecipientsToggle?.addEventListener('click', () => {
+        const isOpen = adminMessageRecipientsToggle.getAttribute('aria-expanded') === 'true';
+        setAdminMessageRecipientsDropdownOpen(!isOpen);
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!adminMessageRecipientsDropdown || adminMessageModal?.hidden) {
+          return;
+        }
+        if (!adminMessageRecipientsDropdown.contains(event.target)) {
+          setAdminMessageRecipientsDropdownOpen(false);
         }
       });
 
