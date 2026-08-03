@@ -3310,34 +3310,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       };
     }
 
-    function getCloudinaryDestroyConfig() {
-      const uploadConfig = getCloudinaryUploadConfig();
-      const runtimeConfig = window.CLOUDINARY_CONFIG || {};
-      const cloudName = String(runtimeConfig.cloudName || uploadConfig.cloudName || '').trim();
-      return {
-        cloudName,
-        apiKey: String(runtimeConfig.apiKey || '').trim(),
-        apiSecret: String(runtimeConfig.apiSecret || '').trim(),
-        destroyUrl: `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
-      };
-    }
-
-    async function createCloudinarySignature(params, apiSecret) {
-      const serializedParams = Object.keys(params)
-        .sort()
-        .map((key) => `${key}=${params[key]}`)
-        .join('&');
-      const payload = `${serializedParams}${apiSecret}`;
-      const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(payload));
-      return Array.from(new Uint8Array(digest))
-        .map((byte) => byte.toString(16).padStart(2, '0'))
-        .join('');
-    }
-
-    function getSavedCloudinaryPublicId(purchase) {
-      return String(purchase?.imagePublicId || purchase?.cloudinaryPublicId || '').trim();
-    }
-
     async function uploadPurchaseImageToCloudinary(file) {
       if (!file) {
         return null;
@@ -3367,70 +3339,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       return { imageUrl, publicId };
-    }
-
-    async function deletePurchaseImageFromCloudinary(purchase) {
-      if (!purchase) {
-        return;
-      }
-      if (!purchase.imageUrl && !purchase.imagePublicId && !purchase.cloudinaryPublicId) {
-        return;
-      }
-
-      const publicId = getSavedCloudinaryPublicId(purchase);
-      const { cloudName, apiKey, apiSecret, destroyUrl } = getCloudinaryDestroyConfig();
-      const logContext = {
-        cloud_name: cloudName,
-        api_key: apiKey,
-        public_id: publicId,
-        url: destroyUrl,
-      };
-
-      if (!publicId) {
-        console.error('Configuration suppression Cloudinary invalide : public_id enregistré introuvable.', logContext);
-        throw new Error('Suppression Cloudinary impossible : public_id enregistré introuvable.');
-      }
-      if (!cloudName || !apiKey || !apiSecret) {
-        console.error('Configuration suppression Cloudinary invalide : cloud_name, api_key ou api_secret manquant.', logContext);
-        throw new Error('Configuration Cloudinary incorrecte. Vérifiez le cloud_name, l’API Key et l’API Secret.');
-      }
-      if (!crypto?.subtle) {
-        throw new Error('Suppression Cloudinary impossible : signature SHA-1 indisponible.');
-      }
-
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const signature = await createCloudinarySignature({ public_id: publicId, timestamp }, apiSecret);
-      const formData = new FormData();
-      formData.append('public_id', publicId);
-      formData.append('timestamp', timestamp);
-      formData.append('api_key', apiKey);
-      formData.append('signature', signature);
-
-      let response;
-      try {
-        response = await fetch(destroyUrl, {
-          method: 'POST',
-          body: formData,
-        });
-      } catch (error) {
-        console.error('Erreur réseau suppression Cloudinary :', error, logContext);
-        throw new Error('Suppression Cloudinary impossible. Vérifiez votre connexion puis réessayez.');
-      }
-
-      const data = await response.json().catch(() => ({}));
-      const cloudinaryDebug = { ...logContext, http_status: response.status, response: data };
-      console.info('Suppression Cloudinary :', cloudinaryDebug);
-
-      const errorMessage = String(data?.error?.message || '').trim();
-      if (errorMessage.toLowerCase().includes('unknown api key')) {
-        console.error('Configuration Cloudinary incorrecte : API Key inconnue.', cloudinaryDebug);
-        throw new Error('Configuration Cloudinary incorrecte : l’API Key est inconnue. La suppression en base de données a été annulée.');
-      }
-
-      if (!response.ok || !['ok', 'not found'].includes(String(data?.result || '').toLowerCase())) {
-        console.error('Erreur suppression Cloudinary :', cloudinaryDebug);
-        throw new Error(errorMessage || 'Suppression Cloudinary impossible.');
-      }
     }
 
     function showPurchaseFieldError(field, errorElement, message) {
@@ -4046,10 +3954,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           }
           if (isPurchaseActions) {
             try {
-              await deletePurchaseImageFromCloudinary(selectedPurchaseData);
               await deleteDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId));
               await loadPurchasesForCurrentSite();
               setActiveSiteTab('purchases');
+              UiService.showToast('Achat matériel supprimé.');
             } catch (error) {
               console.error('Erreur suppression achat matériel :', error);
               UiService.showToast(error?.message || 'Suppression de l’achat matériel impossible.');
