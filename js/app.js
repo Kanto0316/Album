@@ -2557,7 +2557,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const isStandard = normalizedRole === 'standard';
       const isLimited = normalizedRole === 'limité' || normalizedRole === 'limite' || normalizedRole === 'limited';
 
-      setSidebarItemVisible('#sidebarHistoryBtn', true);
+      setSidebarItemVisible('#sidebarHistoryBtn', isAdmin);
       setSidebarItemVisible('#sidebarAllMaterialsBtn', isConnected);
       
 
