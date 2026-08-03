@@ -441,6 +441,10 @@ async function listUsers() {
         maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
         createdAt: data.createdAt || null,
         lastActivity: data.lastActivity || null,
+        lastSeen: data.lastSeen || null,
+        online: data.online === true,
+        presence: data.presence || null,
+        status: data.status || null,
       };
     });
 }
@@ -612,6 +616,10 @@ function subscribeUsers(onChange, onError) {
               maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
               createdAt: data.createdAt || null,
               lastActivity: data.lastActivity || null,
+              lastSeen: data.lastSeen || null,
+              online: data.online === true,
+              presence: data.presence || null,
+              status: data.status || null,
             };
           });
         onChange(users);
