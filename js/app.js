@@ -3303,9 +3303,29 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       };
     }
 
+    function getCloudinaryPublicIdFromUrl(imageUrl) {
+      const rawUrl = String(imageUrl || '').trim();
+      if (!rawUrl) {
+        return '';
+      }
+      try {
+        const url = new URL(rawUrl);
+        const uploadMarker = '/image/upload/';
+        const markerIndex = url.pathname.indexOf(uploadMarker);
+        if (markerIndex === -1) {
+          return '';
+        }
+        const pathAfterUpload = decodeURIComponent(url.pathname.slice(markerIndex + uploadMarker.length));
+        const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+        return pathWithoutVersion.replace(/\.[^/.]+$/, '').trim();
+      } catch (_error) {
+        return '';
+      }
+    }
+
     async function uploadPurchaseImageToCloudinary(file) {
       if (!file) {
-        return '';
+        return null;
       }
       const { uploadPreset, uploadUrl } = getCloudinaryUploadConfig();
       const formData = new FormData();
@@ -3317,7 +3337,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         console.error('Erreur Cloudinary :', data);
@@ -3325,12 +3345,46 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const imageUrl = String(data?.secure_url || '').trim();
-      if (!imageUrl) {
+      const publicId = String(data?.public_id || '').trim();
+      if (!imageUrl || !publicId) {
         console.error('Erreur Cloudinary :', data);
         throw new Error('Upload Cloudinary échoué');
       }
 
-      return imageUrl;
+      return { imageUrl, publicId };
+    }
+
+    async function deletePurchaseImageFromCloudinary(purchase) {
+      if (!purchase) {
+        return;
+      }
+      const publicId = String(purchase.imagePublicId || purchase.cloudinaryPublicId || '').trim()
+        || getCloudinaryPublicIdFromUrl(purchase.imageUrl);
+      if (!publicId) {
+        return;
+      }
+
+      const { uploadUrl } = getCloudinaryUploadConfig();
+      const destroyUrl = uploadUrl.replace(/\/upload(?:\?.*)?$/, '/destroy');
+      const formData = new FormData();
+      formData.append('public_id', publicId);
+
+      let response;
+      try {
+        response = await fetch(destroyUrl, {
+          method: 'POST',
+          body: formData,
+        });
+      } catch (error) {
+        console.error('Erreur réseau suppression Cloudinary :', error);
+        throw new Error('Suppression Cloudinary impossible. Vérifiez votre connexion puis réessayez.');
+      }
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !['ok', 'not found'].includes(String(data?.result || '').toLowerCase())) {
+        console.error('Erreur suppression Cloudinary :', data);
+        throw new Error(data.error?.message || 'Suppression Cloudinary impossible.');
+      }
     }
 
     function showPurchaseFieldError(field, errorElement, message) {
@@ -3486,7 +3540,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const currentUserEmail = String(firebaseAuth.currentUser?.email || '').trim();
       setPurchaseSubmitLoadingState(true);
       try {
-        const imageUrl = selectedPurchasePhotoFile ? await uploadPurchaseImageToCloudinary(selectedPurchasePhotoFile) : '';
+        const uploadedImage = selectedPurchasePhotoFile ? await uploadPurchaseImageToCloudinary(selectedPurchasePhotoFile) : null;
         const purchasePayload = {
           designation,
           qty,
@@ -3499,8 +3553,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           siteId,
           siteName: currentSite?.nom || '',
         };
-        if (imageUrl) {
-          purchasePayload.imageUrl = imageUrl;
+        if (uploadedImage?.imageUrl) {
+          purchasePayload.imageUrl = uploadedImage.imageUrl;
+          purchasePayload.imagePublicId = uploadedImage.publicId;
         }
         await addDoc(
           collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
@@ -3937,9 +3992,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
           if (isPurchaseActions) {
-            await deleteDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId));
-            await loadPurchasesForCurrentSite();
-            setActiveSiteTab('purchases');
+            try {
+              await deletePurchaseImageFromCloudinary(selectedPurchaseData);
+              await deleteDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId));
+              await loadPurchasesForCurrentSite();
+              setActiveSiteTab('purchases');
+            } catch (error) {
+              console.error('Erreur suppression achat matériel :', error);
+              UiService.showToast(error?.message || 'Suppression de l’achat matériel impossible.');
+            }
             return;
           }
           const removedSnapshot = await StorageService.removeItem(siteId, itemId);
