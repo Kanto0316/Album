@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -4532,7 +4532,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
         previousLabel = currentLabel;
         htmlParts.push(`
-          <article class="list-card purchase-card">
+          <article class="list-card purchase-card" data-purchase-open="${escapeHtml(purchase.id)}" tabindex="0" role="button" aria-label="Voir le détail de ${escapeHtml(purchase?.designation || 'cet achat matériel')}">
             ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
             <div class="list-card__button">
               <div class="purchase-card__content">
@@ -4570,6 +4570,20 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         `);
       });
       purchasesList.innerHTML = htmlParts.join('');
+      purchasesList.querySelectorAll('[data-purchase-open]').forEach((card) => {
+        const openPurchaseDetail = () => {
+          const purchaseId = String(card.dataset.purchaseOpen || '').trim();
+          if (!purchaseId) return;
+          UiService.navigate(`purchase-detail.html?siteId=${encodeURIComponent(siteId)}&purchaseId=${encodeURIComponent(purchaseId)}`);
+        };
+        card.addEventListener('click', openPurchaseDetail);
+        card.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPurchaseDetail();
+          }
+        });
+      });
       purchasesList.querySelectorAll('[data-purchase-menu]').forEach((button) => {
         button.addEventListener('click', (event) => {
           event.stopPropagation();
@@ -7417,6 +7431,96 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return nextProfile;
   }
 
+
+  function initPurchaseDetailPage() {
+    initAuthRequiredNoticeCard();
+
+    const params = UiService.getQueryParams();
+    const siteId = params.get('siteId');
+    const purchaseId = params.get('purchaseId');
+    if (!siteId || !purchaseId) {
+      UiService.navigate('index.html');
+      return;
+    }
+
+    const backButton = requireElement('purchaseDetailBackButton');
+    const summary = requireElement('purchaseDetailSummary');
+    const summaryName = requireElement('purchaseDetailName');
+    const summaryCreatedAt = requireElement('purchaseDetailCreatedAt');
+    const summaryMedia = summary?.querySelector('.purchase-detail-summary__media');
+    const imageButton = requireElement('purchaseDetailImageButton');
+    const image = requireElement('purchaseDetailImage');
+    const imagePlaceholder = requireElement('purchaseDetailImagePlaceholder');
+    const qty = requireElement('purchaseDetailQty');
+    const store = requireElement('purchaseDetailStore');
+    const user = requireElement('purchaseDetailUser');
+    const fullDate = requireElement('purchaseDetailFullDate');
+    const imageDialog = requireElement('purchaseImageDialog');
+    const imageDialogImage = requireElement('purchaseImageDialogImage');
+    const imageDialogClose = requireElement('purchaseImageDialogClose');
+
+    backButton?.addEventListener('click', () => {
+      UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
+    });
+
+    function formatPurchaseDateLabel(purchase) {
+      return buildDateAndTimeLabel(purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
+    }
+
+    function renderPurchaseDetail(purchase) {
+      const imageUrl = String(purchase?.imageUrl || '').trim();
+      const dateLabel = formatPurchaseDateLabel(purchase);
+      const purchaseStore = String(purchase?.store || purchase?.magasin || '').trim() || '-';
+
+      summaryName.textContent = String(purchase?.designation || 'Achat matériel');
+      summaryCreatedAt.textContent = dateLabel;
+      summaryMedia.innerHTML = imageUrl
+        ? `<img src="${escapeHtml(imageUrl)}" alt="Photo achat matériel" />`
+        : '<span>🖼️</span>';
+      qty.textContent = `${Number(purchase?.qty || 0)} ${String(purchase?.unit || 'Pcs')}`;
+      store.textContent = purchaseStore;
+      user.textContent = String(purchase?.createdBy || 'Utilisateur');
+      fullDate.textContent = dateLabel;
+
+      if (imageUrl) {
+        image.src = imageUrl;
+        imageButton.hidden = false;
+        imagePlaceholder.hidden = true;
+      } else {
+        image.removeAttribute('src');
+        imageButton.hidden = true;
+        imagePlaceholder.hidden = false;
+      }
+    }
+
+    imageButton?.addEventListener('click', () => {
+      const imageUrl = String(image?.src || '').trim();
+      if (!imageUrl || !imageDialog || !imageDialogImage) return;
+      imageDialogImage.src = imageUrl;
+      imageDialog.showModal();
+    });
+    imageDialogClose?.addEventListener('click', () => imageDialog?.close());
+    imageDialog?.addEventListener('click', (event) => {
+      if (event.target === imageDialog) {
+        imageDialog.close();
+      }
+    });
+
+    getDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId))
+      .then((snapshot) => {
+        if (!snapshot.exists()) {
+          UiService.showToast?.('Achat matériel introuvable.');
+          UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
+          return;
+        }
+        renderPurchaseDetail({ id: snapshot.id, ...snapshot.data() });
+      })
+      .catch((error) => {
+        console.error('Erreur chargement détail achat matériel :', error);
+        UiService.showToast?.('Erreur lors du chargement de l’achat matériel.');
+      });
+  }
+
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
@@ -7447,6 +7551,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
     if (page === 'item-detail') {
       initItemDetailPage(permissions);
+    }
+    if (page === 'purchase-detail') {
+      initPurchaseDetailPage();
     }
     if (page === 'users-management') {
       await initUsersPage(permissions);
