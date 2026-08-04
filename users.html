@@ -522,6 +522,8 @@
         }
         highlights.innerHTML = `${highlightedMessage}
 `;
+        highlights.scrollTop = input.scrollTop;
+        highlights.scrollLeft = input.scrollLeft;
       }
 
       function renderAdminMessageTitleHighlights() {
