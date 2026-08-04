@@ -2183,7 +2183,9 @@ body[data-page="users-management"] .pending-users-list--scroll {
 body[data-page="users-management"] .table-card {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
 }
 
 body[data-page="users-management"] {
@@ -2200,9 +2202,11 @@ body[data-page="users-management"] .page-content--wide {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 1.15rem;
   min-height: 0;
+  height: 100%;
   flex: 1 1 auto;
   padding-inline: clamp(0.9rem, 2vw, 1.2rem);
   padding-bottom: clamp(0.75rem, 1.8vw, 1.25rem);
+  overflow: hidden;
 }
 
 body[data-page="users-management"] .surface-card {
@@ -2211,6 +2215,14 @@ body[data-page="users-management"] .surface-card {
   border-radius: clamp(16px, 2vw, 22px);
   box-shadow: 0 10px 28px rgba(31, 42, 55, 0.1);
   overflow: hidden;
+}
+
+body[data-page="users-management"] .main-content > .details-card {
+  grid-row: 1;
+}
+
+body[data-page="users-management"] .main-content > .table-card {
+  grid-row: 2;
 }
 
 body[data-page="users-management"] .table-card .section-title {
@@ -2370,13 +2382,14 @@ body[data-page="users-management"] .maintenance-access-checkbox {
 
 
 body[data-page="users-management"] .main-content {
-  padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: clamp(0.75rem, 1.8vw, 1.25rem);
 }
 
 body[data-page="users-management"] .admin-message-fab {
+  position: fixed;
   right: calc(1.25rem + env(safe-area-inset-right, 0px));
   bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
-  z-index: 1100;
+  z-index: 1200;
   font-size: 1.55rem;
   line-height: 1;
 }
