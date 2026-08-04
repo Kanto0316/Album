@@ -57,10 +57,21 @@
                 <span>Titre du message</span>
                 <input id="adminMessageInputTitle" type="text" maxlength="120" autocomplete="off" required />
               </label>
-              <label class="admin-message-field" for="adminMessageInputBody">
-                <span>Corps du message</span>
-                <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
-              </label>
+              <div class="admin-message-field">
+                <label for="adminMessageInputBody">Corps du message</label>
+                <div class="admin-message-body-field">
+                  <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
+                  <button id="adminMessageVariablesToggle" class="admin-message-variables__toggle" type="button" aria-expanded="false" aria-controls="adminMessageVariablesMenu" aria-label="Insérer une variable">{}</button>
+                  <div id="adminMessageVariablesMenu" class="admin-message-variables__menu" hidden>
+                    <button type="button" data-admin-message-variable="{Nom}">{Nom}</button>
+                    <button type="button" data-admin-message-variable="{Prénom}">{Prénom}</button>
+                    <button type="button" data-admin-message-variable="{NomComplet}">{NomComplet}</button>
+                    <button type="button" data-admin-message-variable="{Mail}">{Mail}</button>
+                    <button type="button" data-admin-message-variable="{Role}">{Role}</button>
+                    <button type="button" data-admin-message-variable="{Point}">{Point}</button>
+                  </div>
+                </div>
+              </div>
               <div class="admin-message-actions modal-actions modal-actions--split modal-actions--site-create">
                 <button id="adminMessageCancelButton" type="button" class="btn btn-neutral">Annuler</button>
                 <button id="adminMessageSendButton" type="submit" class="btn btn-success">
@@ -412,16 +423,70 @@
       const adminMessageRecipientsSummary = document.getElementById('adminMessageRecipientsSummary');
       const adminMessageRecipientsList = document.getElementById('adminMessageRecipientsList');
       const adminMessageRecipientsHint = document.getElementById('adminMessageRecipientsHint');
+      const adminMessageVariablesToggle = document.getElementById('adminMessageVariablesToggle');
+      const adminMessageVariablesMenu = document.getElementById('adminMessageVariablesMenu');
       const ADMIN_MESSAGE_DRAFT_STORAGE_KEY = 'adminMessageDraft';
       const ADMIN_MESSAGE_RECIPIENTS_STORAGE_KEY = 'adminMessageRecipients';
       let isAdminMessageSending = false;
       let isRestoringAdminMessageDraft = false;
+      const ADMIN_MESSAGE_VARIABLES = ['{Nom}', '{Prénom}', '{NomComplet}', '{Mail}', '{Role}', '{Point}'];
 
       function getSelectableMessageRecipients() {
         return currentUsers
           .filter((user) => user.id && !isAdminUser(user))
           .sort((a, b) => resolveDisplayName(a).localeCompare(resolveDisplayName(b), 'fr', { sensitivity: 'base' }));
       }
+      function getAdminMessageRecipientById(userId) {
+        return getSelectableMessageRecipients().find((user) => user.id === userId);
+      }
+
+      function getAdminMessageTargetRecipients(selectedRecipientIds) {
+        const recipients = getSelectableMessageRecipients();
+        if (!selectedRecipientIds) {
+          return recipients;
+        }
+        const selectedIds = new Set(selectedRecipientIds.map(String));
+        return recipients.filter((user) => selectedIds.has(String(user.id)));
+      }
+
+      function splitFullName(value) {
+        return cleanString(value).replace(/\s+/g, ' ').split(' ').filter(Boolean);
+      }
+
+      function resolveFirstName(user) {
+        const explicitFirstName = cleanString(user.firstName || user.prenom || user['prénom']);
+        if (explicitFirstName) {
+          return explicitFirstName;
+        }
+        const nameParts = splitFullName(resolveDisplayName(user));
+        return nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || '';
+      }
+
+      function resolveLastName(user) {
+        const explicitLastName = cleanString(user.lastName || user.nom);
+        if (explicitLastName) {
+          return explicitLastName;
+        }
+        const nameParts = splitFullName(resolveDisplayName(user));
+        return nameParts.length > 1 ? nameParts[nameParts.length - 1] : resolveDisplayName(user);
+      }
+
+      function buildAdminMessageVariables(user) {
+        return {
+          '{Nom}': resolveLastName(user),
+          '{Prénom}': resolveFirstName(user),
+          '{NomComplet}': resolveDisplayName(user),
+          '{Mail}': cleanString(user.email),
+          '{Role}': resolveRole(user),
+          '{Point}': String(Number(currentPointsByUser?.[user.id] || 0)),
+        };
+      }
+
+      function personalizeAdminMessageBody(body, user) {
+        const variables = buildAdminMessageVariables(user);
+        return ADMIN_MESSAGE_VARIABLES.reduce((message, variable) => message.split(variable).join(variables[variable] || ''), body);
+      }
+
 
       function getSelectedRecipientIds() {
         if (adminMessageAllRecipients?.checked) {
@@ -442,7 +507,7 @@
         }
         const selectedIds = getSelectedRecipientIds();
         if (selectedIds.length === 1) {
-          const selectedUser = getSelectableMessageRecipients().find((user) => user.id === selectedIds[0]);
+          const selectedUser = getAdminMessageRecipientById(selectedIds[0]);
           adminMessageRecipientsSummary.textContent = selectedUser ? resolveDisplayName(selectedUser) : '1 utilisateur sélectionné';
           return;
         }
@@ -582,6 +647,25 @@
         }
       }
 
+      function setAdminMessageVariablesMenuOpen(isOpen) {
+        if (!adminMessageVariablesMenu || !adminMessageVariablesToggle) {
+          return;
+        }
+        adminMessageVariablesMenu.hidden = !isOpen;
+        adminMessageVariablesToggle.setAttribute('aria-expanded', String(isOpen));
+      }
+
+      function insertAdminMessageVariable(variable) {
+        if (!adminMessageBodyInput || !ADMIN_MESSAGE_VARIABLES.includes(variable)) {
+          return;
+        }
+        const start = adminMessageBodyInput.selectionStart ?? adminMessageBodyInput.value.length;
+        const end = adminMessageBodyInput.selectionEnd ?? start;
+        adminMessageBodyInput.setRangeText(variable, start, end, 'end');
+        adminMessageBodyInput.focus();
+        persistAdminMessageDraft();
+      }
+
       function setAdminMessageRecipientsDropdownOpen(isOpen) {
         if (!adminMessageRecipientsMenu || !adminMessageRecipientsToggle) {
           return;
@@ -649,6 +733,7 @@
           updateAdminMessageRecipientState();
         }
         setAdminMessageRecipientsDropdownOpen(false);
+        setAdminMessageVariablesMenuOpen(false);
         adminMessageModal.hidden = true;
         document.body.classList.remove('admin-message-modal-open');
         adminMessageFab?.focus();
@@ -672,11 +757,14 @@
       });
 
       document.addEventListener('click', (event) => {
-        if (!adminMessageRecipientsDropdown || adminMessageModal?.hidden) {
+        if (adminMessageModal?.hidden) {
           return;
         }
-        if (!adminMessageRecipientsDropdown.contains(event.target)) {
+        if (adminMessageRecipientsDropdown && !adminMessageRecipientsDropdown.contains(event.target)) {
           setAdminMessageRecipientsDropdownOpen(false);
+        }
+        if (adminMessageVariablesMenu && adminMessageVariablesToggle && !adminMessageVariablesMenu.contains(event.target) && !adminMessageVariablesToggle.contains(event.target)) {
+          setAdminMessageVariablesMenuOpen(false);
         }
       });
 
@@ -694,6 +782,18 @@
       });
       adminMessageTitleInput?.addEventListener('input', persistAdminMessageDraft);
       adminMessageBodyInput?.addEventListener('input', persistAdminMessageDraft);
+      adminMessageVariablesToggle?.addEventListener('click', () => {
+        const isOpen = adminMessageVariablesToggle.getAttribute('aria-expanded') === 'true';
+        setAdminMessageVariablesMenuOpen(!isOpen);
+      });
+      adminMessageVariablesMenu?.addEventListener('click', (event) => {
+        const variableButton = event.target?.closest?.('[data-admin-message-variable]');
+        if (!variableButton) {
+          return;
+        }
+        insertAdminMessageVariable(variableButton.getAttribute('data-admin-message-variable'));
+        setAdminMessageVariablesMenuOpen(false);
+      });
 
       adminMessageCancelButton?.addEventListener('click', () => {
         closeAdminMessageModal();
@@ -721,13 +821,20 @@
         setAdminMessageSending(true);
 
         try {
-          await addDoc(collection(firebaseDb, 'adminMessages'), {
+          const recipients = getAdminMessageTargetRecipients(selectedRecipientIds);
+          if (!recipients.length) {
+            updateAdminMessageRecipientState();
+            window.UiService?.showToast('Aucun destinataire disponible.');
+            return;
+          }
+          await Promise.all(recipients.map((recipient) => addDoc(collection(firebaseDb, 'adminMessages'), {
             title,
-            body,
-            recipientMode: selectedRecipientIds ? 'selected' : 'all',
-            recipientIds: selectedRecipientIds || [],
+            body: personalizeAdminMessageBody(body, recipient),
+            bodyTemplate: body,
+            recipientMode: 'selected',
+            recipientIds: [recipient.id],
             createdAt: serverTimestamp(),
-          });
+          })));
           if (adminMessageTitleInput) {
             adminMessageTitleInput.value = '';
           }
