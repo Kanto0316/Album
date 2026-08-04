@@ -5971,15 +5971,19 @@ body[data-page="site-detail"] .purchase-card__content {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 0.75rem;
-  align-items: center;
+  align-items: stretch;
 }
 
 body[data-page="site-detail"] .purchase-card__body {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  height: 100%;
 }
 
 body[data-page="site-detail"] .purchase-card__hint {
-  margin: 0.22rem 0 0;
+  order: 2;
+  margin: auto 0 0;
   color: var(--text-muted);
   font-size: 0.82rem;
   line-height: 1.32;
@@ -5988,6 +5992,7 @@ body[data-page="site-detail"] .purchase-card__hint {
 }
 
 body[data-page="site-detail"] .purchase-card__date {
+  order: 1;
   margin: 0.28rem 0 0;
   color: rgba(255, 255, 255, 0.88);
   font-size: 0.86rem;
