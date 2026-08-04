@@ -2494,7 +2494,8 @@ body[data-page="users-management"] .admin-message-variables button {
 }
 
 body[data-page="users-management"] .admin-message-variables button:hover,
-body[data-page="users-management"] .admin-message-variables button:focus-visible {
+body[data-page="users-management"] .admin-message-variables button:focus-visible,
+body[data-page="users-management"] .admin-message-variables button.is-active {
   border-color: #2563eb;
   background: #dbeafe;
   color: #1e40af;
