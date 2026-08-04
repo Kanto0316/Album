@@ -7508,6 +7508,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const imageButton = requireElement('purchaseDetailImageButton');
     const image = requireElement('purchaseDetailImage');
     const imagePlaceholder = requireElement('purchaseDetailImagePlaceholder');
+    const imageEditButton = requireElement('purchaseDetailImageEditButton');
+    const imageInput = requireElement('purchaseDetailImageInput');
     const qty = requireElement('purchaseDetailQty');
     const store = requireElement('purchaseDetailStore');
     const remarkRow = requireElement('purchaseDetailRemarkRow');
@@ -7546,6 +7548,35 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       field.readOnly = !canEditPurchase;
       field.toggleAttribute('aria-readonly', !canEditPurchase);
       field.tabIndex = canEditPurchase ? 0 : -1;
+    }
+
+    async function savePurchaseImageFile(file) {
+      if (!canEditPurchase || !currentPurchase || isSavingPurchase || !file) return;
+      const previousPurchase = { ...currentPurchase };
+      setPurchaseSaving(true);
+      try {
+        const uploadedImage = await uploadPurchaseImageToCloudinary(file);
+        if (!uploadedImage?.imageUrl) {
+          throw new Error('Upload Cloudinary échoué');
+        }
+        const updates = {
+          imageUrl: uploadedImage.imageUrl,
+          imagePublicId: uploadedImage.publicId,
+        };
+        await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId), updates);
+        currentPurchase = { ...currentPurchase, ...updates };
+        renderPurchaseDetail(currentPurchase);
+      } catch (error) {
+        console.error('Erreur mise à jour image achat matériel :', error);
+        currentPurchase = previousPurchase;
+        renderPurchaseDetail(previousPurchase);
+        UiService.showToast?.('Erreur lors de l’enregistrement de l’achat matériel.');
+      } finally {
+        if (imageInput) {
+          imageInput.value = '';
+        }
+        setPurchaseSaving(false);
+      }
     }
 
     async function saveInlinePurchaseField(fieldName, input) {
@@ -7664,6 +7695,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         imageButton.hidden = true;
         imagePlaceholder.hidden = false;
       }
+      if (imageEditButton) {
+        imageEditButton.hidden = !canEditPurchase;
+      }
     }
 
     bindInlinePurchaseField(summaryName, 'designation');
@@ -7676,6 +7710,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!imageUrl || !imageDialog || !imageDialogImage) return;
       imageDialogImage.src = imageUrl;
       imageDialog.showModal();
+    });
+    imageEditButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!canEditPurchase || isSavingPurchase) return;
+      imageInput?.click();
+    });
+    imageInput?.addEventListener('change', () => {
+      const file = imageInput.files?.[0];
+      if (!file) return;
+      savePurchaseImageFile(file);
     });
     imageDialogClose?.addEventListener('click', () => imageDialog?.close());
     imageDialog?.addEventListener('click', (event) => {
