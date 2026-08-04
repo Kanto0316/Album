@@ -609,6 +609,18 @@
         }
       }
 
+      function replaceEscapedNewlinesBeforeCaret(message, caretOffset) {
+        const safeCaretOffset = Math.max(0, Math.min(Number(caretOffset) || 0, message.length));
+        const beforeCaret = message.slice(0, safeCaretOffset);
+        const afterCaret = message.slice(safeCaretOffset);
+        const normalizedBeforeCaret = beforeCaret.replace(/\\n/g, '\n');
+        const normalizedAfterCaret = afterCaret.replace(/\\n/g, '\n');
+        return {
+          message: `${normalizedBeforeCaret}${normalizedAfterCaret}`,
+          caretOffset: normalizedBeforeCaret.length,
+        };
+      }
+
       function normalizeAdminMessageEditor(editor) {
         if (!editor) {
           return;
@@ -616,8 +628,9 @@
         const maxLength = Number(editor.dataset.maxlength || 0);
         const caretOffset = getAdminMessageCaretOffset(editor);
         const message = getAdminMessageEditorText(editor);
-        const normalizedMessage = maxLength > 0 ? message.slice(0, maxLength) : message;
-        renderAdminMessageEditor(editor, normalizedMessage, Math.min(caretOffset, normalizedMessage.length));
+        const newlineNormalizedMessage = replaceEscapedNewlinesBeforeCaret(message, caretOffset);
+        const normalizedMessage = maxLength > 0 ? newlineNormalizedMessage.message.slice(0, maxLength) : newlineNormalizedMessage.message;
+        renderAdminMessageEditor(editor, normalizedMessage, Math.min(newlineNormalizedMessage.caretOffset, normalizedMessage.length));
       }
 
       function renderAdminMessageTitle() {
