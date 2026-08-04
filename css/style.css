@@ -2474,6 +2474,79 @@ body[data-page="users-management"] .admin-message-field textarea {
   min-height: 8rem;
   resize: vertical;
 }
+
+body[data-page="users-management"] .admin-message-highlighted-input {
+  position: relative;
+}
+
+body[data-page="users-management"] .admin-message-highlighted-input textarea {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  color: transparent;
+  caret-color: #111827;
+}
+
+body[data-page="users-management"] .admin-message-highlighted-input textarea::selection {
+  background: rgba(37, 99, 235, 0.24);
+  color: transparent;
+}
+
+body[data-page="users-management"] .admin-message-highlighted-input__highlights {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  padding: 0.75rem 0.85rem;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-weight: 600;
+  line-height: normal;
+  pointer-events: none;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+body[data-page="users-management"] .admin-message-variable-token {
+  border-radius: 0.45rem;
+  padding: 0.05rem 0.18rem;
+  color: #1e40af;
+  background: #dbeafe;
+  font-weight: 800;
+}
+
+body[data-page="users-management"] .admin-message-variable-token--nom {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+body[data-page="users-management"] .admin-message-variable-token--prenom {
+  color: #7e22ce;
+  background: #f3e8ff;
+}
+
+body[data-page="users-management"] .admin-message-variable-token--nom-complet {
+  color: #047857;
+  background: #d1fae5;
+}
+
+body[data-page="users-management"] .admin-message-variable-token--mail {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+body[data-page="users-management"] .admin-message-variable-token--role {
+  color: #be123c;
+  background: #ffe4e6;
+}
+
+body[data-page="users-management"] .admin-message-variable-token--point {
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
 body[data-page="users-management"] .admin-message-body-field {
   display: grid;
   gap: 0.75rem;
@@ -2505,6 +2578,32 @@ body[data-page="users-management"] .admin-message-variables button {
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
 }
 
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Prénom}"] {
+  border-color: rgba(126, 34, 206, 0.18);
+  color: #7e22ce;
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{NomComplet}"] {
+  border-color: rgba(4, 120, 87, 0.18);
+  color: #047857;
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Mail}"] {
+  border-color: rgba(180, 83, 9, 0.18);
+  color: #b45309;
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Role}"] {
+  border-color: rgba(190, 18, 60, 0.18);
+  color: #be123c;
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Point}"] {
+  border-color: rgba(15, 118, 110, 0.18);
+  color: #0f766e;
+}
+
 body[data-page="users-management"] .admin-message-variables button:hover,
 body[data-page="users-management"] .admin-message-variables button:focus-visible,
 body[data-page="users-management"] .admin-message-variables button.is-active {
@@ -2515,6 +2614,52 @@ body[data-page="users-management"] .admin-message-variables button.is-active {
   outline: none;
 }
 
+
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Prénom}"]:hover,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Prénom}"]:focus-visible,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Prénom}"].is-active {
+  border-color: #7e22ce;
+  background: #f3e8ff;
+  color: #7e22ce;
+  box-shadow: 0 0 0 3px rgba(126, 34, 206, 0.14);
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{NomComplet}"]:hover,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{NomComplet}"]:focus-visible,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{NomComplet}"].is-active {
+  border-color: #047857;
+  background: #d1fae5;
+  color: #047857;
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.14);
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Mail}"]:hover,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Mail}"]:focus-visible,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Mail}"].is-active {
+  border-color: #b45309;
+  background: #fef3c7;
+  color: #b45309;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.14);
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Role}"]:hover,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Role}"]:focus-visible,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Role}"].is-active {
+  border-color: #be123c;
+  background: #ffe4e6;
+  color: #be123c;
+  box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.14);
+}
+
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Point}"]:hover,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Point}"]:focus-visible,
+body[data-page="users-management"] .admin-message-variables button[data-admin-message-variable="{Point}"].is-active {
+  border-color: #0f766e;
+  background: #ccfbf1;
+  color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+}
 
 body[data-page="users-management"] .admin-message-recipients {
   display: grid;

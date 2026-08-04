@@ -60,7 +60,10 @@
               <div class="admin-message-field">
                 <label for="adminMessageInputBody">Corps du message</label>
                 <div class="admin-message-body-field">
-                  <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
+                  <div class="admin-message-highlighted-input">
+                    <div id="adminMessageBodyHighlights" class="admin-message-highlighted-input__highlights" aria-hidden="true"></div>
+                    <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
+                  </div>
                   <div id="adminMessageVariablesMenu" class="admin-message-variables" aria-label="Variables disponibles">
                     <button type="button" data-admin-message-variable="{Nom}">{Nom}</button>
                     <button type="button" data-admin-message-variable="{Prénom}">{Prénom}</button>
@@ -413,6 +416,7 @@
       const adminMessageForm = document.getElementById('adminMessageForm');
       const adminMessageTitleInput = document.getElementById('adminMessageInputTitle');
       const adminMessageBodyInput = document.getElementById('adminMessageInputBody');
+      const adminMessageBodyHighlights = document.getElementById('adminMessageBodyHighlights');
       const adminMessageSendButton = document.getElementById('adminMessageSendButton');
       const adminMessageCancelButton = document.getElementById('adminMessageCancelButton');
       const adminMessageAllRecipients = document.getElementById('adminMessageAllRecipients');
@@ -429,6 +433,14 @@
       let isAdminMessageSending = false;
       let isRestoringAdminMessageDraft = false;
       const ADMIN_MESSAGE_VARIABLES = ['{Nom}', '{Prénom}', '{NomComplet}', '{Mail}', '{Role}', '{Point}'];
+      const ADMIN_MESSAGE_VARIABLE_CLASS_BY_NAME = {
+        '{Nom}': 'admin-message-variable-token--nom',
+        '{Prénom}': 'admin-message-variable-token--prenom',
+        '{NomComplet}': 'admin-message-variable-token--nom-complet',
+        '{Mail}': 'admin-message-variable-token--mail',
+        '{Role}': 'admin-message-variable-token--role',
+        '{Point}': 'admin-message-variable-token--point',
+      };
 
       function getSelectableMessageRecipients() {
         return currentUsers
@@ -486,6 +498,34 @@
         return ADMIN_MESSAGE_VARIABLES.reduce((message, variable) => message.split(variable).join(variables[variable] || ''), body);
       }
 
+      function renderAdminMessageBodyHighlights() {
+        if (!adminMessageBodyInput || !adminMessageBodyHighlights) {
+          return;
+        }
+        const message = adminMessageBodyInput.value;
+        let highlightedMessage = '';
+        for (let index = 0; index < message.length;) {
+          const matchingVariable = ADMIN_MESSAGE_VARIABLES.find((variable) => message.startsWith(variable, index));
+          if (matchingVariable) {
+            const tokenClass = ADMIN_MESSAGE_VARIABLE_CLASS_BY_NAME[matchingVariable] || '';
+            highlightedMessage += `<mark class="admin-message-variable-token ${tokenClass}">${escapeHtml(matchingVariable)}</mark>`;
+            index += matchingVariable.length;
+          } else {
+            highlightedMessage += escapeHtml(message[index]);
+            index += 1;
+          }
+        }
+        adminMessageBodyHighlights.innerHTML = `${highlightedMessage}
+`;
+      }
+
+      function syncAdminMessageBodyHighlightsScroll() {
+        if (!adminMessageBodyInput || !adminMessageBodyHighlights) {
+          return;
+        }
+        adminMessageBodyHighlights.scrollTop = adminMessageBodyInput.scrollTop;
+        adminMessageBodyHighlights.scrollLeft = adminMessageBodyInput.scrollLeft;
+      }
 
       function setActiveAdminMessageVariableButton(activeButton) {
         adminMessageVariableButtons.forEach((button) => {
@@ -622,6 +662,7 @@
           }
           if (adminMessageBodyInput) {
             adminMessageBodyInput.value = draft?.body || '';
+            renderAdminMessageBodyHighlights();
           }
           if (adminMessageAllRecipients) {
             adminMessageAllRecipients.checked = recipientsDraft?.allRecipients !== false;
@@ -661,6 +702,7 @@
         const start = adminMessageBodyInput.selectionStart ?? adminMessageBodyInput.value.length;
         const end = adminMessageBodyInput.selectionEnd ?? start;
         adminMessageBodyInput.setRangeText(variable, start, end, 'end');
+        renderAdminMessageBodyHighlights();
         adminMessageBodyInput.focus();
         persistAdminMessageDraft();
       }
@@ -729,6 +771,7 @@
             adminMessageAllRecipients.checked = true;
           }
           clearAdminMessageDraft();
+          renderAdminMessageBodyHighlights();
           updateAdminMessageRecipientState();
           setActiveAdminMessageVariableButton(null);
         }
@@ -777,7 +820,11 @@
         }
       });
       adminMessageTitleInput?.addEventListener('input', persistAdminMessageDraft);
-      adminMessageBodyInput?.addEventListener('input', persistAdminMessageDraft);
+      adminMessageBodyInput?.addEventListener('input', () => {
+        persistAdminMessageDraft();
+        renderAdminMessageBodyHighlights();
+      });
+      adminMessageBodyInput?.addEventListener('scroll', syncAdminMessageBodyHighlightsScroll);
       adminMessageVariablesMenu?.addEventListener('click', (event) => {
         const variableButton = event.target?.closest?.('[data-admin-message-variable]');
         if (!variableButton) {
@@ -832,6 +879,7 @@
           }
           if (adminMessageBodyInput) {
             adminMessageBodyInput.value = '';
+            renderAdminMessageBodyHighlights();
           }
           clearAdminMessageDraft();
           closeAdminMessageModal({ reset: false });
