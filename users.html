@@ -56,16 +56,14 @@
               <label class="admin-message-field" for="adminMessageInputTitle">
                 <span>Titre du message</span>
                 <div class="admin-message-highlighted-input admin-message-highlighted-input--title">
-                  <div id="adminMessageTitleHighlights" class="admin-message-highlighted-input__highlights" aria-hidden="true"></div>
-                  <input id="adminMessageInputTitle" type="text" maxlength="120" autocomplete="off" required />
+                  <div id="adminMessageInputTitle" class="admin-message-editable" contenteditable="true" role="textbox" aria-required="true" data-maxlength="120"></div>
                 </div>
               </label>
               <div class="admin-message-field">
                 <label for="adminMessageInputBody">Corps du message</label>
                 <div class="admin-message-body-field">
                   <div class="admin-message-highlighted-input">
-                    <div id="adminMessageBodyHighlights" class="admin-message-highlighted-input__highlights" aria-hidden="true"></div>
-                    <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
+                    <div id="adminMessageInputBody" class="admin-message-editable admin-message-editable--body" contenteditable="true" role="textbox" aria-required="true" aria-multiline="true" data-maxlength="1200"></div>
                   </div>
                   <div id="adminMessageVariablesMenu" class="admin-message-variables" aria-label="Variables disponibles">
                     <button type="button" data-admin-message-variable="{Nom}">{Nom}</button>
@@ -419,8 +417,6 @@
       const adminMessageForm = document.getElementById('adminMessageForm');
       const adminMessageTitleInput = document.getElementById('adminMessageInputTitle');
       const adminMessageBodyInput = document.getElementById('adminMessageInputBody');
-      const adminMessageTitleHighlights = document.getElementById('adminMessageTitleHighlights');
-      const adminMessageBodyHighlights = document.getElementById('adminMessageBodyHighlights');
       const adminMessageSendButton = document.getElementById('adminMessageSendButton');
       const adminMessageCancelButton = document.getElementById('adminMessageCancelButton');
       const adminMessageAllRecipients = document.getElementById('adminMessageAllRecipients');
@@ -503,50 +499,133 @@
         return ADMIN_MESSAGE_VARIABLES.reduce((message, variable) => message.split(variable).join(variables[variable] || ''), body);
       }
 
-      function renderAdminMessageHighlights(input, highlights) {
-        if (!input || !highlights) {
+      function getAdminMessageEditorText(editor) {
+        return editor?.textContent || '';
+      }
+
+      function setAdminMessageEditorText(editor, value) {
+        if (!editor) {
           return;
         }
-        const message = input.value;
-        let highlightedMessage = '';
+        renderAdminMessageEditor(editor, String(value || ''));
+      }
+
+      function getAdminMessageCaretOffset(editor) {
+        const selection = window.getSelection();
+        if (!editor || !selection || selection.rangeCount === 0) {
+          return getAdminMessageEditorText(editor).length;
+        }
+        const range = selection.getRangeAt(0);
+        if (!editor.contains(range.startContainer)) {
+          return getAdminMessageEditorText(editor).length;
+        }
+        const prefixRange = range.cloneRange();
+        prefixRange.selectNodeContents(editor);
+        prefixRange.setEnd(range.startContainer, range.startOffset);
+        return prefixRange.toString().length;
+      }
+
+      function getAdminMessageSelectionOffsets(editor) {
+        const selection = window.getSelection();
+        const fallbackOffset = getAdminMessageEditorText(editor).length;
+        if (!editor || !selection || selection.rangeCount === 0) {
+          return { start: fallbackOffset, end: fallbackOffset };
+        }
+        const range = selection.getRangeAt(0);
+        if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+          return { start: fallbackOffset, end: fallbackOffset };
+        }
+        const startRange = range.cloneRange();
+        startRange.selectNodeContents(editor);
+        startRange.setEnd(range.startContainer, range.startOffset);
+        const endRange = range.cloneRange();
+        endRange.selectNodeContents(editor);
+        endRange.setEnd(range.endContainer, range.endOffset);
+        const start = startRange.toString().length;
+        const end = endRange.toString().length;
+        return { start: Math.min(start, end), end: Math.max(start, end) };
+      }
+
+      function setAdminMessageCaretOffset(editor, offset) {
+        if (!editor) {
+          return;
+        }
+        const targetOffset = Math.max(0, Math.min(Number(offset) || 0, getAdminMessageEditorText(editor).length));
+        const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+        let currentOffset = 0;
+        let node = walker.nextNode();
+        while (node) {
+          const nextOffset = currentOffset + node.textContent.length;
+          if (targetOffset <= nextOffset) {
+            const range = document.createRange();
+            range.setStart(node, targetOffset - currentOffset);
+            range.collapse(true);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return;
+          }
+          currentOffset = nextOffset;
+          node = walker.nextNode();
+        }
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function createAdminMessageVariableToken(variable) {
+        const token = document.createElement('span');
+        token.className = `admin-message-variable-token ${ADMIN_MESSAGE_VARIABLE_CLASS_BY_NAME[variable] || ''}`.trim();
+        token.textContent = variable;
+        token.setAttribute('data-admin-message-token', variable);
+        return token;
+      }
+
+      function renderAdminMessageEditor(editor, message = getAdminMessageEditorText(editor), caretOffset = null) {
+        if (!editor) {
+          return;
+        }
+        const fragment = document.createDocumentFragment();
         for (let index = 0; index < message.length;) {
           const matchingVariable = ADMIN_MESSAGE_VARIABLES.find((variable) => message.startsWith(variable, index));
           if (matchingVariable) {
-            const tokenClass = ADMIN_MESSAGE_VARIABLE_CLASS_BY_NAME[matchingVariable] || '';
-            highlightedMessage += `<mark class="admin-message-variable-token ${tokenClass}">${escapeHtml(matchingVariable)}</mark>`;
+            fragment.appendChild(createAdminMessageVariableToken(matchingVariable));
             index += matchingVariable.length;
           } else {
-            highlightedMessage += escapeHtml(message[index]);
-            index += 1;
+            let nextIndex = index + 1;
+            while (nextIndex < message.length && !ADMIN_MESSAGE_VARIABLES.some((variable) => message.startsWith(variable, nextIndex))) {
+              nextIndex += 1;
+            }
+            fragment.appendChild(document.createTextNode(message.slice(index, nextIndex)));
+            index = nextIndex;
           }
         }
-        highlights.innerHTML = `${highlightedMessage}
-`;
-        highlights.scrollTop = input.scrollTop;
-        highlights.scrollLeft = input.scrollLeft;
+        editor.replaceChildren(fragment);
+        if (caretOffset !== null) {
+          setAdminMessageCaretOffset(editor, caretOffset);
+        }
       }
 
-      function renderAdminMessageTitleHighlights() {
-        renderAdminMessageHighlights(adminMessageTitleInput, adminMessageTitleHighlights);
-      }
-
-      function renderAdminMessageBodyHighlights() {
-        renderAdminMessageHighlights(adminMessageBodyInput, adminMessageBodyHighlights);
-      }
-
-      function syncAdminMessageTitleHighlightsScroll() {
-        if (!adminMessageTitleInput || !adminMessageTitleHighlights) {
+      function normalizeAdminMessageEditor(editor) {
+        if (!editor) {
           return;
         }
-        adminMessageTitleHighlights.scrollLeft = adminMessageTitleInput.scrollLeft;
+        const maxLength = Number(editor.dataset.maxlength || 0);
+        const caretOffset = getAdminMessageCaretOffset(editor);
+        const message = getAdminMessageEditorText(editor);
+        const normalizedMessage = maxLength > 0 ? message.slice(0, maxLength) : message;
+        renderAdminMessageEditor(editor, normalizedMessage, Math.min(caretOffset, normalizedMessage.length));
       }
 
-      function syncAdminMessageBodyHighlightsScroll() {
-        if (!adminMessageBodyInput || !adminMessageBodyHighlights) {
-          return;
-        }
-        adminMessageBodyHighlights.scrollTop = adminMessageBodyInput.scrollTop;
-        adminMessageBodyHighlights.scrollLeft = adminMessageBodyInput.scrollLeft;
+      function renderAdminMessageTitle() {
+        renderAdminMessageEditor(adminMessageTitleInput);
+      }
+
+      function renderAdminMessageBody() {
+        renderAdminMessageEditor(adminMessageBodyInput);
       }
 
       function setActiveAdminMessageVariableButton(activeButton) {
@@ -619,8 +698,8 @@
       function persistAdminMessageDraft() {
         try {
           window.localStorage?.setItem(ADMIN_MESSAGE_DRAFT_STORAGE_KEY, JSON.stringify({
-            title: adminMessageTitleInput?.value || '',
-            body: adminMessageBodyInput?.value || '',
+            title: getAdminMessageEditorText(adminMessageTitleInput),
+            body: getAdminMessageEditorText(adminMessageBodyInput),
           }));
         } catch (_error) {
           // Ignore storage errors so messaging remains usable in private/restricted contexts.
@@ -680,12 +759,10 @@
         isRestoringAdminMessageDraft = true;
         try {
           if (adminMessageTitleInput) {
-            adminMessageTitleInput.value = draft?.title || '';
-            renderAdminMessageTitleHighlights();
+            setAdminMessageEditorText(adminMessageTitleInput, draft?.title || '');
           }
           if (adminMessageBodyInput) {
-            adminMessageBodyInput.value = draft?.body || '';
-            renderAdminMessageBodyHighlights();
+            setAdminMessageEditorText(adminMessageBodyInput, draft?.body || '');
           }
           if (adminMessageAllRecipients) {
             adminMessageAllRecipients.checked = recipientsDraft?.allRecipients !== false;
@@ -728,12 +805,12 @@
         return activeAdminMessageVariableField === adminMessageTitleInput ? adminMessageTitleInput : adminMessageBodyInput;
       }
 
-      function renderActiveAdminMessageVariableFieldHighlights(input) {
+      function renderActiveAdminMessageVariableField(input) {
         if (input === adminMessageTitleInput) {
-          renderAdminMessageTitleHighlights();
+          renderAdminMessageTitle();
           return;
         }
-        renderAdminMessageBodyHighlights();
+        renderAdminMessageBody();
       }
 
       function insertAdminMessageVariable(variable) {
@@ -741,13 +818,14 @@
         if (!targetInput || !ADMIN_MESSAGE_VARIABLES.includes(variable)) {
           return;
         }
-        const start = targetInput.selectionStart ?? targetInput.value.length;
-        const end = targetInput.selectionEnd ?? start;
-        const nextCursorPosition = start + variable.length;
-        targetInput.setRangeText(variable, start, end, 'end');
+        const { start, end } = getAdminMessageSelectionOffsets(targetInput);
+        const message = getAdminMessageEditorText(targetInput);
+        const maxLength = Number(targetInput.dataset.maxlength || 0);
+        const nextMessage = `${message.slice(0, start)}${variable}${message.slice(end)}`;
+        const normalizedMessage = maxLength > 0 ? nextMessage.slice(0, maxLength) : nextMessage;
+        const nextCursorPosition = Math.min(start + variable.length, normalizedMessage.length);
         targetInput.focus();
-        targetInput.setSelectionRange(nextCursorPosition, nextCursorPosition);
-        renderActiveAdminMessageVariableFieldHighlights(targetInput);
+        renderAdminMessageEditor(targetInput, normalizedMessage, nextCursorPosition);
         persistAdminMessageDraft();
       }
 
@@ -815,8 +893,8 @@
             adminMessageAllRecipients.checked = true;
           }
           clearAdminMessageDraft();
-          renderAdminMessageTitleHighlights();
-          renderAdminMessageBodyHighlights();
+          renderAdminMessageTitle();
+          renderAdminMessageBody();
           updateAdminMessageRecipientState();
           setActiveAdminMessageVariableButton(null);
         }
@@ -866,16 +944,31 @@
       });
       adminMessageTitleInput?.addEventListener('focus', () => setActiveAdminMessageVariableField(adminMessageTitleInput));
       adminMessageBodyInput?.addEventListener('focus', () => setActiveAdminMessageVariableField(adminMessageBodyInput));
+      adminMessageTitleInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+        }
+      });
+      [adminMessageTitleInput, adminMessageBodyInput].forEach((editor) => {
+        editor?.addEventListener('paste', (event) => {
+          event.preventDefault();
+          const pastedText = event.clipboardData?.getData('text/plain') || '';
+          document.execCommand('insertText', false, pastedText);
+        });
+      });
       adminMessageTitleInput?.addEventListener('input', () => {
+        normalizeAdminMessageEditor(adminMessageTitleInput);
         persistAdminMessageDraft();
-        renderAdminMessageTitleHighlights();
       });
       adminMessageBodyInput?.addEventListener('input', () => {
+        normalizeAdminMessageEditor(adminMessageBodyInput);
         persistAdminMessageDraft();
-        renderAdminMessageBodyHighlights();
       });
-      adminMessageTitleInput?.addEventListener('scroll', syncAdminMessageTitleHighlightsScroll);
-      adminMessageBodyInput?.addEventListener('scroll', syncAdminMessageBodyHighlightsScroll);
+      adminMessageVariablesMenu?.addEventListener('mousedown', (event) => {
+        if (event.target?.closest?.('[data-admin-message-variable]')) {
+          event.preventDefault();
+        }
+      });
       adminMessageVariablesMenu?.addEventListener('click', (event) => {
         const variableButton = event.target?.closest?.('[data-admin-message-variable]');
         if (!variableButton) {
@@ -891,8 +984,8 @@
 
       adminMessageForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const title = cleanString(adminMessageTitleInput?.value);
-        const body = cleanString(adminMessageBodyInput?.value);
+        const title = cleanString(getAdminMessageEditorText(adminMessageTitleInput));
+        const body = cleanString(getAdminMessageEditorText(adminMessageBodyInput));
         const selectedRecipientIds = getSelectedRecipientIds();
         if (!title || !body) {
           window.UiService?.showToast('Veuillez remplir le titre et le corps du message.');
@@ -926,12 +1019,10 @@
             createdAt: serverTimestamp(),
           })));
           if (adminMessageTitleInput) {
-            adminMessageTitleInput.value = '';
-            renderAdminMessageTitleHighlights();
+            setAdminMessageEditorText(adminMessageTitleInput, '');
           }
           if (adminMessageBodyInput) {
-            adminMessageBodyInput.value = '';
-            renderAdminMessageBodyHighlights();
+            setAdminMessageEditorText(adminMessageBodyInput, '');
           }
           clearAdminMessageDraft();
           closeAdminMessageModal({ reset: false });

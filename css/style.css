@@ -2479,35 +2479,32 @@ body[data-page="users-management"] .admin-message-highlighted-input {
   position: relative;
 }
 
-body[data-page="users-management"] .admin-message-highlighted-input input,
-body[data-page="users-management"] .admin-message-highlighted-input textarea {
-  position: relative;
-  z-index: 2;
-  background: transparent;
-  color: #111827;
-  caret-color: #111827;
-}
-
-body[data-page="users-management"] .admin-message-highlighted-input--title .admin-message-highlighted-input__highlights {
-  white-space: pre;
-}
-
-body[data-page="users-management"] .admin-message-highlighted-input__highlights {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  overflow: hidden;
-  border: 1px solid transparent;
+body[data-page="users-management"] .admin-message-editable {
+  width: 100%;
+  min-height: 2.9rem;
+  border: 1px solid #d1d5db;
   border-radius: 0.8rem;
   padding: 0.75rem 0.85rem;
   background: #fff;
-  color: transparent;
+  color: #111827;
+  caret-color: #111827;
   font: inherit;
   font-weight: 600;
   line-height: normal;
-  pointer-events: none;
-  white-space: pre-wrap;
+  outline: none;
   overflow-wrap: break-word;
+  white-space: pre-wrap;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+body[data-page="users-management"] .admin-message-editable--body {
+  min-height: 8rem;
+  overflow-y: auto;
+}
+
+body[data-page="users-management"] .admin-message-editable:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
 
 body[data-page="users-management"] .admin-message-variable-token {
