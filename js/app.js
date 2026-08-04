@@ -7189,7 +7189,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
       const referenceDate = new Date();
       const onlineCount = users.filter((user) => isUserOnline(user, referenceDate)).length;
-      usersCardHeader.innerHTML = `Tous les utilisateurs : ${users.length}<br />En ligne : ${onlineCount}`;
+      usersCardHeader.innerHTML = `Tous les utilisateurs : <span class="users-card-stat users-card-stat--total">${users.length}</span><br />En ligne : <span class="users-card-stat users-card-stat--online">${onlineCount}</span>`;
     }
 
     function formatLastActivity(value, referenceDate = new Date()) {
