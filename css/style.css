@@ -2479,6 +2479,7 @@ body[data-page="users-management"] .admin-message-highlighted-input {
   position: relative;
 }
 
+body[data-page="users-management"] .admin-message-highlighted-input input,
 body[data-page="users-management"] .admin-message-highlighted-input textarea {
   position: relative;
   z-index: 1;
@@ -2487,9 +2488,14 @@ body[data-page="users-management"] .admin-message-highlighted-input textarea {
   caret-color: #111827;
 }
 
+body[data-page="users-management"] .admin-message-highlighted-input input::selection,
 body[data-page="users-management"] .admin-message-highlighted-input textarea::selection {
   background: rgba(37, 99, 235, 0.24);
   color: transparent;
+}
+
+body[data-page="users-management"] .admin-message-highlighted-input--title .admin-message-highlighted-input__highlights {
+  white-space: pre;
 }
 
 body[data-page="users-management"] .admin-message-highlighted-input__highlights {
