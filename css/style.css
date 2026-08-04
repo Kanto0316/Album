@@ -561,6 +561,18 @@ body.app-content-loading .item-detail-fab-row {
   color: var(--text-muted);
 }
 
+.users-card-stat {
+  font-weight: 700;
+}
+
+.users-card-stat--total {
+  color: var(--primary-color);
+}
+
+.users-card-stat--online {
+  color: #15803d;
+}
+
 .switch {
   position: relative;
   display: inline-flex;
