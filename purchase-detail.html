@@ -34,10 +34,14 @@
 
         <section id="purchaseDetailMain" class="purchase-detail-main" aria-live="polite">
           <div class="purchase-detail-image-wrap">
-            <button id="purchaseDetailImageButton" class="purchase-detail-image-button" type="button" aria-label="Afficher l’image en grand" hidden>
-              <img id="purchaseDetailImage" class="purchase-detail-image" alt="Photo achat matériel" />
-            </button>
-            <div id="purchaseDetailImagePlaceholder" class="purchase-detail-image purchase-detail-image--placeholder" aria-hidden="true">🖼️</div>
+            <div class="purchase-detail-image-frame">
+              <button id="purchaseDetailImageButton" class="purchase-detail-image-button" type="button" aria-label="Afficher l’image en grand" hidden>
+                <img id="purchaseDetailImage" class="purchase-detail-image" alt="Photo achat matériel" />
+              </button>
+              <div id="purchaseDetailImagePlaceholder" class="purchase-detail-image purchase-detail-image--placeholder" aria-hidden="true">🖼️</div>
+              <button id="purchaseDetailImageEditButton" class="purchase-detail-image-edit fab" type="button" aria-label="Modifier l’image" hidden>✏️</button>
+              <input id="purchaseDetailImageInput" class="purchase-detail-image-input" type="file" accept="image/*" hidden />
+            </div>
           </div>
 
           <article class="surface-card section purchase-detail-info-card" aria-label="Informations achat matériel">
