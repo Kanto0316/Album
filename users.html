@@ -423,6 +423,7 @@
       const adminMessageRecipientsList = document.getElementById('adminMessageRecipientsList');
       const adminMessageRecipientsHint = document.getElementById('adminMessageRecipientsHint');
       const adminMessageVariablesMenu = document.getElementById('adminMessageVariablesMenu');
+      const adminMessageVariableButtons = Array.from(adminMessageVariablesMenu?.querySelectorAll('[data-admin-message-variable]') || []);
       const ADMIN_MESSAGE_DRAFT_STORAGE_KEY = 'adminMessageDraft';
       const ADMIN_MESSAGE_RECIPIENTS_STORAGE_KEY = 'adminMessageRecipients';
       let isAdminMessageSending = false;
@@ -485,6 +486,14 @@
         return ADMIN_MESSAGE_VARIABLES.reduce((message, variable) => message.split(variable).join(variables[variable] || ''), body);
       }
 
+
+      function setActiveAdminMessageVariableButton(activeButton) {
+        adminMessageVariableButtons.forEach((button) => {
+          const isActive = button === activeButton;
+          button.classList.toggle('is-active', isActive);
+          button.setAttribute('aria-pressed', String(isActive));
+        });
+      }
 
       function getSelectedRecipientIds() {
         if (adminMessageAllRecipients?.checked) {
@@ -721,6 +730,7 @@
           }
           clearAdminMessageDraft();
           updateAdminMessageRecipientState();
+          setActiveAdminMessageVariableButton(null);
         }
         setAdminMessageRecipientsDropdownOpen(false);
         adminMessageModal.hidden = true;
@@ -773,6 +783,7 @@
         if (!variableButton) {
           return;
         }
+        setActiveAdminMessageVariableButton(variableButton);
         insertAdminMessageVariable(variableButton.getAttribute('data-admin-message-variable'));
       });
 
