@@ -133,7 +133,7 @@
       </div>
 
       <dialog id="itemDialog" class="modal-card">
-        <form method="dialog" class="modal-content modal-content--site-create modal-content--item-create" id="itemForm">
+        <form method="dialog" class="modal-content modal-content--site-create modal-content--item-create" id="itemForm" autocomplete="off">
           <div class="modal-header">
             <h2>Nouveau numéro OUT <span class="required-star" aria-hidden="true">*</span></h2>
           </div>
@@ -148,6 +148,10 @@
               type="text"
               inputmode="numeric"
               pattern="[0-9]*"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
               maxlength="10"
               minlength="4"
               placeholder="Exemple : 26050200"
