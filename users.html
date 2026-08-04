@@ -61,8 +61,7 @@
                 <label for="adminMessageInputBody">Corps du message</label>
                 <div class="admin-message-body-field">
                   <textarea id="adminMessageInputBody" rows="5" maxlength="1200" required></textarea>
-                  <button id="adminMessageVariablesToggle" class="admin-message-variables__toggle" type="button" aria-expanded="false" aria-controls="adminMessageVariablesMenu" aria-label="Insérer une variable">{}</button>
-                  <div id="adminMessageVariablesMenu" class="admin-message-variables__menu" hidden>
+                  <div id="adminMessageVariablesMenu" class="admin-message-variables" aria-label="Variables disponibles">
                     <button type="button" data-admin-message-variable="{Nom}">{Nom}</button>
                     <button type="button" data-admin-message-variable="{Prénom}">{Prénom}</button>
                     <button type="button" data-admin-message-variable="{NomComplet}">{NomComplet}</button>
@@ -423,7 +422,6 @@
       const adminMessageRecipientsSummary = document.getElementById('adminMessageRecipientsSummary');
       const adminMessageRecipientsList = document.getElementById('adminMessageRecipientsList');
       const adminMessageRecipientsHint = document.getElementById('adminMessageRecipientsHint');
-      const adminMessageVariablesToggle = document.getElementById('adminMessageVariablesToggle');
       const adminMessageVariablesMenu = document.getElementById('adminMessageVariablesMenu');
       const ADMIN_MESSAGE_DRAFT_STORAGE_KEY = 'adminMessageDraft';
       const ADMIN_MESSAGE_RECIPIENTS_STORAGE_KEY = 'adminMessageRecipients';
@@ -647,14 +645,6 @@
         }
       }
 
-      function setAdminMessageVariablesMenuOpen(isOpen) {
-        if (!adminMessageVariablesMenu || !adminMessageVariablesToggle) {
-          return;
-        }
-        adminMessageVariablesMenu.hidden = !isOpen;
-        adminMessageVariablesToggle.setAttribute('aria-expanded', String(isOpen));
-      }
-
       function insertAdminMessageVariable(variable) {
         if (!adminMessageBodyInput || !ADMIN_MESSAGE_VARIABLES.includes(variable)) {
           return;
@@ -733,7 +723,6 @@
           updateAdminMessageRecipientState();
         }
         setAdminMessageRecipientsDropdownOpen(false);
-        setAdminMessageVariablesMenuOpen(false);
         adminMessageModal.hidden = true;
         document.body.classList.remove('admin-message-modal-open');
         adminMessageFab?.focus();
@@ -763,9 +752,6 @@
         if (adminMessageRecipientsDropdown && !adminMessageRecipientsDropdown.contains(event.target)) {
           setAdminMessageRecipientsDropdownOpen(false);
         }
-        if (adminMessageVariablesMenu && adminMessageVariablesToggle && !adminMessageVariablesMenu.contains(event.target) && !adminMessageVariablesToggle.contains(event.target)) {
-          setAdminMessageVariablesMenuOpen(false);
-        }
       });
 
       adminMessageAllRecipients?.addEventListener('change', () => {
@@ -782,17 +768,12 @@
       });
       adminMessageTitleInput?.addEventListener('input', persistAdminMessageDraft);
       adminMessageBodyInput?.addEventListener('input', persistAdminMessageDraft);
-      adminMessageVariablesToggle?.addEventListener('click', () => {
-        const isOpen = adminMessageVariablesToggle.getAttribute('aria-expanded') === 'true';
-        setAdminMessageVariablesMenuOpen(!isOpen);
-      });
       adminMessageVariablesMenu?.addEventListener('click', (event) => {
         const variableButton = event.target?.closest?.('[data-admin-message-variable]');
         if (!variableButton) {
           return;
         }
         insertAdminMessageVariable(variableButton.getAttribute('data-admin-message-variable'));
-        setAdminMessageVariablesMenuOpen(false);
       });
 
       adminMessageCancelButton?.addEventListener('click', () => {
