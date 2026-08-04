@@ -26,7 +26,8 @@
             <span>🖼️</span>
           </div>
           <div class="purchase-detail-summary__body">
-            <h2 id="purchaseDetailName" class="section-title purchase-detail-summary__title">Chargement...</h2>
+            <h2 class="section-title purchase-detail-summary__title"><input id="purchaseDetailName" class="purchase-inline-field" type="text" value="Chargement..." readonly /></h2>
+            <span id="purchaseDetailSaveSpinner" class="btn-loading-spinner purchase-detail-save-spinner" aria-hidden="true"></span>
             <p id="purchaseDetailCreatedAt" class="purchase-detail-summary__date">Date non définie</p>
           </div>
         </section>
@@ -42,15 +43,15 @@
           <article class="surface-card section purchase-detail-info-card" aria-label="Informations achat matériel">
             <div class="purchase-info-row" role="listitem">
               <div class="purchase-label"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>Quantité</span></div>
-              <div id="purchaseDetailQty" class="purchase-value">-</div>
+              <div class="purchase-value purchase-value--inline"><input id="purchaseDetailQty" class="purchase-inline-field" type="text" value="-" readonly /></div>
             </div>
             <div class="purchase-info-row" role="listitem">
               <div class="purchase-label"><span aria-hidden="true" class="icon">🏪</span><span>Magasin</span></div>
-              <div id="purchaseDetailStore" class="purchase-value">-</div>
+              <div class="purchase-value purchase-value--inline"><input id="purchaseDetailStore" class="purchase-inline-field" type="text" value="-" readonly /></div>
             </div>
             <div id="purchaseDetailRemarkRow" class="purchase-info-row" role="listitem" hidden>
               <div class="purchase-label"><span aria-hidden="true" class="icon">📝</span><span>Remarque</span></div>
-              <div id="purchaseDetailRemark" class="purchase-value"></div>
+              <div class="purchase-value purchase-value--inline"><textarea id="purchaseDetailRemark" class="purchase-inline-field purchase-inline-field--textarea" rows="1" readonly></textarea></div>
             </div>
             <div class="purchase-info-row" role="listitem">
               <div class="purchase-label"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>Créé par</span></div>

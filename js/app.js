@@ -7489,7 +7489,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   }
 
 
-  function initPurchaseDetailPage() {
+  function initPurchaseDetailPage(permissions) {
     initAuthRequiredNoticeCard();
 
     const params = UiService.getQueryParams();
@@ -7517,6 +7517,110 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const imageDialog = requireElement('purchaseImageDialog');
     const imageDialogImage = requireElement('purchaseImageDialogImage');
     const imageDialogClose = requireElement('purchaseImageDialogClose');
+    const saveSpinner = requireElement('purchaseDetailSaveSpinner');
+    const canEditPurchase = Boolean(permissions?.isAdmin);
+    let currentPurchase = null;
+    let isSavingPurchase = false;
+
+    function setPurchaseSaving(isSaving) {
+      isSavingPurchase = isSaving;
+      saveSpinner?.classList.toggle('is-visible', isSaving);
+    }
+
+    function normalizePurchaseQtyInput(value) {
+      const parsed = Number.parseInt(String(value || '').replace(',', '.').match(/\d+/)?.[0] || '', 10);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        return null;
+      }
+      return Math.min(parsed, 9999);
+    }
+
+    function resizeInlineTextarea(field) {
+      if (!field || field.tagName !== 'TEXTAREA') return;
+      field.style.height = 'auto';
+      field.style.height = `${field.scrollHeight}px`;
+    }
+
+    function setEditableState(field) {
+      if (!field) return;
+      field.readOnly = !canEditPurchase;
+      field.toggleAttribute('aria-readonly', !canEditPurchase);
+      field.tabIndex = canEditPurchase ? 0 : -1;
+    }
+
+    async function saveInlinePurchaseField(fieldName, input) {
+      if (!canEditPurchase || !currentPurchase || isSavingPurchase || !input) return;
+      const previousPurchase = { ...currentPurchase };
+      const previousInputValue = input.value;
+      let updates = null;
+
+      if (fieldName === 'designation') {
+        const designation = String(input.value || '').trim();
+        if (!designation) {
+          input.value = String(previousPurchase.designation || 'Achat matériel');
+          return;
+        }
+        if (designation === String(previousPurchase.designation || '').trim()) return;
+        updates = { designation };
+      }
+
+      if (fieldName === 'qty') {
+        const qtyValue = normalizePurchaseQtyInput(input.value);
+        if (!qtyValue) {
+          input.value = `${Number(previousPurchase.qty || 0)} ${String(previousPurchase.unit || 'Pcs')}`;
+          return;
+        }
+        if (qtyValue === Number(previousPurchase.qty || 0)) {
+          input.value = `${qtyValue} ${String(previousPurchase.unit || 'Pcs')}`;
+          return;
+        }
+        updates = { qty: qtyValue };
+      }
+
+      if (fieldName === 'magasin') {
+        const magasin = String(input.value || '').trim();
+        const oldStore = String(previousPurchase.store || previousPurchase.magasin || '').trim();
+        if (magasin === oldStore) return;
+        updates = { magasin, store: magasin };
+      }
+
+      if (fieldName === 'remarque') {
+        const remarque = String(input.value || '').trim();
+        if (remarque === String(previousPurchase.remarque || previousPurchase.remark || '').trim()) return;
+        updates = { remarque, remark: remarque };
+      }
+
+      if (!updates) return;
+      setPurchaseSaving(true);
+      try {
+        await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId), updates);
+        currentPurchase = { ...currentPurchase, ...updates };
+        renderPurchaseDetail(currentPurchase);
+        resizeInlineTextarea(input);
+      } catch (error) {
+        console.error('Erreur mise à jour achat matériel :', error);
+        currentPurchase = previousPurchase;
+        input.value = previousInputValue;
+        renderPurchaseDetail(previousPurchase);
+        resizeInlineTextarea(input);
+        UiService.showToast?.('Erreur lors de l’enregistrement de l’achat matériel.');
+      } finally {
+        setPurchaseSaving(false);
+      }
+    }
+
+    function bindInlinePurchaseField(input, fieldName) {
+      setEditableState(input);
+      resizeInlineTextarea(input);
+      input?.addEventListener('input', () => resizeInlineTextarea(input));
+      input?.addEventListener('blur', () => saveInlinePurchaseField(fieldName, input));
+      input?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && input.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+          input.blur();
+        }
+      });
+    }
 
     backButton?.addEventListener('click', () => {
       UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
@@ -7532,22 +7636,24 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const purchaseStore = String(purchase?.store || purchase?.magasin || '').trim() || '-';
       const purchaseRemark = String(purchase?.remarque || purchase?.remark || '').trim();
 
-      summaryName.textContent = String(purchase?.designation || 'Achat matériel');
+      currentPurchase = purchase;
+      summaryName.value = String(purchase?.designation || 'Achat matériel');
       summaryCreatedAt.textContent = dateLabel;
       summaryMedia.innerHTML = imageUrl
         ? `<img src="${escapeHtml(imageUrl)}" alt="Photo achat matériel" />`
         : '<span>🖼️</span>';
-      qty.textContent = `${Number(purchase?.qty || 0)} ${String(purchase?.unit || 'Pcs')}`;
-      store.textContent = purchaseStore;
+      qty.value = `${Number(purchase?.qty || 0)} ${String(purchase?.unit || 'Pcs')}`;
+      store.value = purchaseStore;
       if (purchaseRemark) {
-        remark.textContent = purchaseRemark;
+        remark.value = purchaseRemark;
         remarkRow.hidden = false;
       } else {
-        remark.textContent = '';
-        remarkRow.hidden = true;
+        remark.value = '';
+        remarkRow.hidden = !canEditPurchase;
       }
       user.textContent = String(purchase?.createdBy || 'Utilisateur');
       fullDate.textContent = dateLabel;
+      resizeInlineTextarea(remark);
 
       if (imageUrl) {
         image.src = imageUrl;
@@ -7559,6 +7665,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         imagePlaceholder.hidden = false;
       }
     }
+
+    bindInlinePurchaseField(summaryName, 'designation');
+    bindInlinePurchaseField(qty, 'qty');
+    bindInlinePurchaseField(store, 'magasin');
+    bindInlinePurchaseField(remark, 'remarque');
 
     imageButton?.addEventListener('click', () => {
       const imageUrl = String(image?.src || '').trim();
@@ -7620,7 +7731,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       initItemDetailPage(permissions);
     }
     if (page === 'purchase-detail') {
-      initPurchaseDetailPage();
+      initPurchaseDetailPage(permissions);
     }
     if (page === 'users-management') {
       await initUsersPage(permissions);
