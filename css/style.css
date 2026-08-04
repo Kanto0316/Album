@@ -2517,10 +2517,10 @@ body[data-page="users-management"] .admin-message-highlighted-input__highlights 
 
 body[data-page="users-management"] .admin-message-variable-token {
   border-radius: 0.45rem;
-  padding: 0.05rem 0.18rem;
   color: #1e40af;
   background: #dbeafe;
-  font-weight: 800;
+  font: inherit;
+  font-weight: 600;
 }
 
 body[data-page="users-management"] .admin-message-variable-token--nom {
