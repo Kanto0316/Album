@@ -248,6 +248,40 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return qteSortie - (qtePosee + qteRetour + qteRebus);
   }
 
+  function formatEcartDisplay(value) {
+    if (value === '') {
+      return '';
+    }
+
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) {
+      return '0';
+    }
+
+    const roundedValue = Math.round((numericValue + Number.EPSILON) * 100) / 100;
+    if (roundedValue === 0) {
+      return '0';
+    }
+
+    return roundedValue.toLocaleString('fr-FR', {
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function getEcartNumericValue(field) {
+    const rawValue = field?.dataset.ecartValue ?? field?.value ?? 0;
+    return Number(rawValue);
+  }
+
+  function updateEcartFieldDisplay(field, value) {
+    if (!field) {
+      return;
+    }
+
+    field.dataset.ecartValue = Number.isFinite(value) ? String(value) : '0';
+    field.value = formatEcartDisplay(value);
+  }
+
   function formatReturnDate(dateValue) {
     const normalized = String(dateValue || '').trim();
     if (!normalized) {
@@ -6467,7 +6501,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
       const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
       const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
-      const ecart = Number(row.querySelector('[data-col-key="ecart"]')?.value ?? 0);
+      const ecart = getEcartNumericValue(row.querySelector('[data-col-key="ecart"]'));
       const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
       const isDone = (qtePosee > 0 && ecart === 0)
         || qteSortie === qteRebus
@@ -6521,7 +6555,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic date-retour-field" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="number" maxlength="120" value="${ecart}" readonly aria-label="Ecart" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="text" maxlength="120" value="${formatEcartDisplay(ecart)}" data-ecart-value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input data-col-key="observation" data-field="observation" type="text" maxlength="120" class="cell-input cell-input--compact-dynamic" value="${escapeHtml(detail.observation)}" /></td>
               <td>
                 <div class="detail-status-field detail-status-field--${isKoStatus ? 'ko' : 'ok'}">
@@ -6595,7 +6629,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                 ...currentDetail,
                 [fieldName]: nextValue,
               });
-              ecartField.value = Number.isFinite(nextEcart) ? String(nextEcart) : '0';
+              updateEcartFieldDisplay(ecartField, nextEcart);
               ecartField.classList.toggle('cell-input--ecart-alert', typeof nextEcart === 'number' && nextEcart !== 0);
             }
             applyDetailRowSemanticState(row);
@@ -6622,7 +6656,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   const ecart = qteSortie - qtePosee - qteRebus - qteRetour;
                   const ecartField = row.querySelector('[data-col-key="ecart"]');
                   if (ecartField) {
-                    ecartField.value = String(ecart);
+                    updateEcartFieldDisplay(ecartField, ecart);
                     ecartField.classList.toggle('cell-input--ecart-alert', ecart !== 0);
                   }
                 }
