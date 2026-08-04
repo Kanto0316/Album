@@ -741,9 +741,11 @@
         }
         const start = targetInput.selectionStart ?? targetInput.value.length;
         const end = targetInput.selectionEnd ?? start;
+        const nextCursorPosition = start + variable.length;
         targetInput.setRangeText(variable, start, end, 'end');
-        renderActiveAdminMessageVariableFieldHighlights(targetInput);
         targetInput.focus();
+        targetInput.setSelectionRange(nextCursorPosition, nextCursorPosition);
+        renderActiveAdminMessageVariableFieldHighlights(targetInput);
         persistAdminMessageDraft();
       }
 
