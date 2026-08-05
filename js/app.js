@@ -133,9 +133,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return username || 'Utilisateur';
   }
 
-  function resolveCreatorLockLabel(site, userMap) {
-    const creatorName = resolveActorLabel(site?.createdBy || site?.ownerId, userMap, site?.createdByName);
-    return creatorName === 'Utilisateur' ? 'Utilisateur inconnu' : creatorName;
+  function resolveSiteLockActorLabel(actorEmail, fallbackName, userMapByEmail) {
+    const directName = String(fallbackName || '').trim();
+    if (directName) {
+      return directName;
+    }
+    const emailKey = String(actorEmail || '').trim().toLowerCase();
+    if (emailKey && userMapByEmail?.[emailKey]) {
+      return userMapByEmail[emailKey];
+    }
+    return 'Utilisateur inconnu';
   }
 
   function buildDateAndTimeLabel(dateValue) {
@@ -1138,6 +1145,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let currentSites = [];
     let itemCountsBySite = {};
     let userNamesById = {};
+    let userNamesByEmail = {};
     let userEmailsById = {};
     let currentPermissions = permissions;
     let isAuthenticated = Boolean(authState?.isAuthenticated);
@@ -1729,6 +1737,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           }
           return accumulator;
         }, {});
+        userNamesByEmail = users.reduce((accumulator, user) => {
+          const email = String(user?.email || '').trim().toLowerCase();
+          const displayName = String(user?.displayName || user?.rawUsername || user?.name || '').trim();
+          if (email && displayName) {
+            accumulator[email] = displayName;
+          }
+          return accumulator;
+        }, {});
         userEmailsById = users.reduce((accumulator, user) => {
           const email = String(user?.email || '').trim();
           if (user?.id && email) {
@@ -1738,6 +1754,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }, {});
       } catch (_error) {
         userNamesById = {};
+        userNamesByEmail = {};
         userEmailsById = {};
       }
       renderSites();
@@ -2421,8 +2438,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
           const lockActorLabel = siteIsLocked
-            ? resolveCreatorLockLabel(site, userNamesById)
-            : String(site?.unlockedBy || '').trim();
+            ? resolveSiteLockActorLabel(site?.lockedBy, site?.lockedByName, userNamesByEmail)
+            : resolveSiteLockActorLabel(site?.unlockedBy, site?.unlockedByName, userNamesByEmail);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
           const lockLabelWithActor = lockActorLabel ? `${lockLabel} par` : lockLabel;
           const canShowSiteActions = isAuthenticated;

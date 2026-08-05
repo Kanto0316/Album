@@ -434,6 +434,9 @@ async function listUsers() {
       return {
         id: snap.id,
         username: normalizeUsername(data.username || data.displayName || data.name || fallbackName),
+        rawUsername: normalizeUsername(data.username),
+        displayName: normalizeUsername(data.displayName),
+        name: normalizeUsername(data.name),
         email,
         avatarUrl: normalizeAvatarUrl(data.photoURL || data.avatarUrl || data.avatar),
         role: normalizeRole(data.role),
@@ -1234,7 +1237,8 @@ async function setSiteLock(siteId, lockPayload) {
   }
 
   const timestamp = nowIso();
-  const lockerName = (await resolveCurrentUserName()) || 'Utilisateur';
+  const resolvedLockerName = await resolveCurrentUserName();
+  const lockerName = resolvedLockerName && resolvedLockerName !== 'Utilisateur' ? resolvedLockerName : 'Utilisateur inconnu';
   const lockerEmail = resolveCurrentUserEmail();
   const nextLockState = {
     isLocked: true,
@@ -1276,6 +1280,8 @@ async function clearSiteLock(siteId) {
   }
 
   const timestamp = nowIso();
+  const resolvedUnlockerName = await resolveCurrentUserName();
+  const unlockerName = resolvedUnlockerName && resolvedUnlockerName !== 'Utilisateur' ? resolvedUnlockerName : 'Utilisateur inconnu';
   const unlockerEmail = resolveCurrentUserEmail();
   const nextLockState = {
     isLocked: false,
@@ -1284,6 +1290,7 @@ async function clearSiteLock(siteId) {
     lockedByName: deleteField(),
     lockedBy: deleteField(),
     unlockedBy: unlockerEmail,
+    unlockedByName: unlockerName,
     unlockAttemptsRemaining: deleteField(),
     unlockBlockedUntil: deleteField(),
     dateModification: timestamp,
@@ -1303,6 +1310,7 @@ async function clearSiteLock(siteId) {
     lockedBy: '',
     lockedByName: '',
     unlockedBy: unlockerEmail,
+    unlockedByName: unlockerName,
     unlockAttemptsRemaining: null,
     unlockBlockedUntil: null,
     dateModification: timestamp,
