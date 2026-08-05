@@ -440,6 +440,97 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
   }
 
+  const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
+  const GOOGLE_WELCOME_MAX_AGE_MS = 5 * 60 * 1000;
+
+  function readGoogleWelcomePayload() {
+    try {
+      const rawPayload = window.sessionStorage.getItem(GOOGLE_WELCOME_KEY);
+      if (!rawPayload) {
+        return null;
+      }
+      const payload = JSON.parse(rawPayload);
+      const isFresh = Date.now() - Number(payload?.createdAt || 0) <= GOOGLE_WELCOME_MAX_AGE_MS;
+      if (payload?.source !== 'google' || !isFresh) {
+        window.sessionStorage.removeItem(GOOGLE_WELCOME_KEY);
+        return null;
+      }
+      return payload;
+    } catch (_error) {
+      window.sessionStorage.removeItem(GOOGLE_WELCOME_KEY);
+      return null;
+    }
+  }
+
+  function resolveWelcomeDisplayName(payload, authUser) {
+    const userData = normalizeAuthUserData(authUser);
+    const payloadName = String(payload?.displayName || '').trim();
+    const authName = String(userData?.displayName || userData?.name || '').trim();
+    const emailName = String(payload?.email || userData?.email || '')
+      .split('@')[0]
+      .replace(/[._-]+/g, ' ')
+      .trim();
+    return payloadName || authName || emailName || 'Utilisateur';
+  }
+
+  function showGoogleWelcomeOverlay(authUser) {
+    const payload = readGoogleWelcomePayload();
+    if (!payload) {
+      return;
+    }
+
+    const overlay = document.getElementById('googleWelcomeOverlay');
+    const icon = document.getElementById('googleWelcomeIcon');
+    const title = document.getElementById('googleWelcomeTitle');
+    const message = document.getElementById('googleWelcomeMessage');
+    const button = document.getElementById('googleWelcomeButton');
+    if (!overlay || !icon || !title || !message || !button) {
+      window.sessionStorage.removeItem(GOOGLE_WELCOME_KEY);
+      return;
+    }
+
+    const isNewUser = Boolean(payload.isNewUser);
+    const displayName = resolveWelcomeDisplayName(payload, authUser);
+    const strongName = document.createElement('strong');
+    strongName.textContent = displayName;
+    const strongAppName = document.createElement('strong');
+    strongAppName.textContent = 'Suivi Matériel';
+
+    icon.textContent = isNewUser ? '🎉' : '👋';
+    title.textContent = isNewUser ? '🎉 Bienvenue !' : '👋 Heureux de vous revoir !';
+    button.textContent = isNewUser ? 'Commencer' : 'OK';
+    message.replaceChildren();
+
+    if (isNewUser) {
+      const firstLine = document.createElement('p');
+      firstLine.append('Bienvenue ', strongName, ' dans ', strongAppName, '.');
+      const secondLine = document.createElement('p');
+      secondLine.textContent = 'Votre espace a été créé avec succès. Vous pouvez maintenant commencer à enregistrer et gérer vos sites en toute simplicité.';
+      message.append(firstLine, secondLine);
+    } else {
+      const greeting = document.createElement('p');
+      greeting.append('Bonjour ', strongName, ',');
+      const secondLine = document.createElement('p');
+      secondLine.textContent = 'Nous sommes ravis de vous retrouver. Votre espace Suivi Matériel est prêt';
+      message.append(greeting, secondLine);
+    }
+
+    const closeOverlay = () => {
+      overlay.classList.remove('is-visible');
+      window.sessionStorage.removeItem(GOOGLE_WELCOME_KEY);
+      window.setTimeout(() => {
+        overlay.hidden = true;
+      }, 180);
+    };
+
+    button.onclick = closeOverlay;
+    overlay.hidden = false;
+    window.requestAnimationFrame(() => {
+      overlay.classList.add('is-visible');
+      button.focus({ preventScroll: true });
+    });
+  }
+
   function renderHomeAccessControls({ authUser, onAvatarClick }) {
     const avatarButton = document.getElementById('userAvatarButton');
     const loginButton = document.getElementById('openLoginButton');
@@ -2894,6 +2985,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     mettreAJourHeaderUtilisateur(authState?.authUser || null);
     mettreAJourPermissionsUI(currentPermissions);
+    if (isAuthenticated) {
+      showGoogleWelcomeOverlay(authState?.authUser || firebaseAuth.currentUser);
+    }
     onAuthStateChanged(firebaseAuth, (user) => {
       isAuthenticated = Boolean(user);
       renderUserAvatar(user || null);
