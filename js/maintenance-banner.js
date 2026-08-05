@@ -1,6 +1,7 @@
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { arrayUnion, collection, doc, limit, onSnapshot, orderBy, query, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
+import { replaceVariables } from './message-variables.js';
 
 const MAINTENANCE_MODAL_ID = 'globalMaintenanceModal';
 const MAINTENANCE_STYLE_ID = 'globalMaintenanceModalStyles';
@@ -303,8 +304,15 @@ function renderUserMessageModal() {
   modal.hidden = !shouldShow;
 
   if (shouldShow) {
-    modal.querySelector('#globalUserMessageTitle').textContent = pendingUserMessage.title || 'Message';
-    modal.querySelector('#globalUserMessageBody').textContent = pendingUserMessage.body || '';
+    const recipient = {
+      ...(currentUserProfile || {}),
+      id: currentUser.uid,
+      uid: currentUser.uid,
+      email: currentUserProfile?.email || currentUser.email,
+      displayName: currentUserProfile?.displayName || currentUser.displayName,
+    };
+    modal.querySelector('#globalUserMessageTitle').textContent = replaceVariables(pendingUserMessage.title || 'Message', recipient);
+    modal.querySelector('#globalUserMessageBody').textContent = replaceVariables(pendingUserMessage.body || '', recipient);
     setPageBlocked(modal, true);
   } else {
     setPageBlocked(modal, false);
