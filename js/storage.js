@@ -738,6 +738,45 @@ function makePageItemsCollection(pageName) {
   return collection(state.db, 'pages', pageName, 'items');
 }
 
+function getOutDeletionLimitDateKey(referenceDate = new Date()) {
+  const year = referenceDate.getFullYear();
+  const month = String(referenceDate.getMonth() + 1).padStart(2, '0');
+  const day = String(referenceDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function outDeletionLimitDocRef(userId, dateKey = getOutDeletionLimitDateKey()) {
+  return doc(state.db, 'users', userId, 'outDeletionLimits', dateKey);
+}
+
+async function hasReachedOutDeletionLimit(userId, limit = 6) {
+  if (!userId) {
+    return true;
+  }
+  const limitSnap = await getDoc(outDeletionLimitDocRef(userId));
+  const currentCount = Number(limitSnap.exists() ? limitSnap.data()?.count : 0);
+  return currentCount >= limit;
+}
+
+async function recordOutDeletionLimitUsage(userId) {
+  if (!userId) {
+    return;
+  }
+  const dateKey = getOutDeletionLimitDateKey();
+  const limitRef = outDeletionLimitDocRef(userId, dateKey);
+  const limitSnap = await getDoc(limitRef);
+  const currentCount = Number(limitSnap.exists() ? limitSnap.data()?.count : 0);
+  await setDoc(
+    limitRef,
+    {
+      date: dateKey,
+      count: currentCount + 1,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
 function historyCollection() {
   return collection(state.db, 'historiques');
 }
@@ -1597,12 +1636,25 @@ async function removeItem(siteId, itemId) {
     return null;
   }
 
+  const itemToRemove = items[itemIndex];
+  const profile = await getCurrentUserProfile();
+  const currentUserId = String(state.userId || profile?.id || '').trim();
+  const creatorId = String(itemToRemove?.createdBy || itemToRemove?.ownerId || '').trim();
+  const isAdmin = normalizeRole(profile?.role) === 'admin' || isAdminEmail(profile?.email);
+  const shouldCountDeletion = !isAdmin && (!currentUserId || !creatorId || currentUserId !== creatorId);
+  if (shouldCountDeletion && await hasReachedOutDeletionLimit(currentUserId)) {
+    return { limitReached: true };
+  }
+
   await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId));
 
   const [item] = items.splice(itemIndex, 1);
   const detailsKey = `${siteId}:${itemId}`;
   const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
+  if (shouldCountDeletion) {
+    await recordOutDeletionLimitUsage(currentUserId);
+  }
 
   await appendHistoryEntry(`a supprimé ${item.numero}`, { siteId });
   persistOfflineState();
