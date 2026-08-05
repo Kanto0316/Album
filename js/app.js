@@ -7514,6 +7514,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     const tableBody = requireElement('usersTableBody');
+    const usersSearchInput = document.getElementById('usersSearchInput');
     const backButton = requireElement('usersBackButton');
     const maintenanceToggle = requireElement('maintenanceToggle');
     const maintenanceStatusText = requireElement('maintenanceStatusText');
@@ -7523,6 +7524,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function cleanText(value) {
       return String(value || '').trim();
+    }
+
+    function normalizeSearchText(value) {
+      return cleanText(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
     }
 
     function resolveDisplayName(user) {
@@ -7537,6 +7545,40 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     function resolveRole(user) {
       const role = cleanText(user?.role).toLowerCase();
       return role === 'standard' || role === 'adjoint' || role === 'adjoint admin' || role === 'admin' ? 'standard' : 'limite';
+    }
+
+    function splitFullName(value) {
+      return cleanText(value).replace(/\s+/g, ' ').split(' ').filter(Boolean);
+    }
+
+    function resolveFirstName(user) {
+      const explicitFirstName = cleanText(user?.firstName || user?.prenom || user?.['prénom']);
+      if (explicitFirstName) {
+        return explicitFirstName;
+      }
+      const nameParts = splitFullName(resolveDisplayName(user));
+      return nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || '';
+    }
+
+    function resolveLastName(user) {
+      const explicitLastName = cleanText(user?.lastName || user?.nom);
+      if (explicitLastName) {
+        return explicitLastName;
+      }
+      const nameParts = splitFullName(resolveDisplayName(user));
+      return nameParts.length > 1 ? nameParts[nameParts.length - 1] : resolveDisplayName(user);
+    }
+
+    function userMatchesSearch(user, query) {
+      if (!query) {
+        return true;
+      }
+      return [
+        resolveLastName(user),
+        resolveFirstName(user),
+        resolveDisplayName(user),
+        user?.email,
+      ].some((value) => normalizeSearchText(value).includes(query));
     }
 
     function resolveMaintenanceAuthorized(user) {
@@ -7634,7 +7676,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function renderUsers(users, pointsByUser = {}) {
-      tableBody.innerHTML = sortUsersByPointsAndName(users, pointsByUser)
+      const sortedUsers = sortUsersByPointsAndName(users, pointsByUser);
+      if (!sortedUsers.length) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="users-empty-cell">Aucun utilisateur trouvé.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = sortedUsers
         .map((user) => `
           <tr>
             <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)}</td>
@@ -7731,12 +7779,19 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     let currentUsers = [];
     let currentPointsByUser = {};
+    let currentUsersSearchQuery = '';
     let lastActivityRefreshId = null;
 
     function renderCurrentUsers() {
       updateUsersCardHeader(currentUsers);
-      renderUsers(currentUsers, currentPointsByUser);
+      const filteredUsers = currentUsers.filter((user) => userMatchesSearch(user, currentUsersSearchQuery));
+      renderUsers(filteredUsers, currentPointsByUser);
     }
+
+    usersSearchInput?.addEventListener('input', () => {
+      currentUsersSearchQuery = normalizeSearchText(usersSearchInput.value);
+      renderCurrentUsers();
+    });
 
     lastActivityRefreshId = window.setInterval(renderCurrentUsers, 60000);
     window.addEventListener('pagehide', () => {
