@@ -7415,3 +7415,28 @@ body[data-page="purchase-detail"] .purchase-detail-save-spinner {
 body[data-page="purchase-detail"] .purchase-detail-save-spinner.is-visible {
   display: block;
 }
+
+body[data-page="home"] .list-card__status[data-site-lock-status] {
+  cursor: pointer;
+  width: fit-content;
+}
+
+body[data-page="home"] .list-card__status[data-site-lock-status]:hover .list-card__status-main,
+body[data-page="home"] .list-card__status[data-site-lock-status]:focus-visible .list-card__status-main {
+  text-decoration: underline;
+}
+
+body[data-page="home"] .site-lock-status-message {
+  margin: 0.35rem 0 1.1rem;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+}
+
+body[data-page="home"] .site-lock-status-message--locked {
+  color: #dc2626;
+}
+
+body[data-page="home"] .site-lock-status-message--unlocked {
+  color: #16a34a;
+}

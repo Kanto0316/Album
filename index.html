@@ -237,6 +237,18 @@
         </form>
       </dialog>
 
+      <dialog id="siteLockStatusDialog" class="modal-card">
+        <div class="modal-content modal-content--site-lock-status">
+          <div class="modal-header">
+            <h2>Détail du statut</h2>
+          </div>
+          <p id="siteLockStatusMessage" class="site-lock-status-message" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split">
+            <button id="siteLockStatusCloseButton" type="button" class="btn" data-close-dialog>Fermer</button>
+          </div>
+        </div>
+      </dialog>
+
       <dialog id="siteUnlockDialog" class="modal-card">
         <form class="modal-content" id="siteUnlockForm">
           <div class="modal-header">
