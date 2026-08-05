@@ -1461,6 +1461,14 @@ async function recordSiteUnlockHistory(siteId) {
   await appendHistoryEntry('a déverrouillé le site', { siteId });
 }
 
+async function recordExcelExportHistory(siteId, siteName = '') {
+  const resolvedSiteName = resolveSiteNameForHistory(siteId, siteName);
+  const action = resolvedSiteName
+    ? `a exporté un fichier depuis le site « ${resolvedSiteName} ».`
+    : 'a exporté un fichier depuis le site.';
+  await appendHistoryEntry(action, { siteId, siteName: resolvedSiteName });
+}
+
 function getAuthenticatedUnlockProtectionUid() {
   return String(state.authUser?.uid || state.userId || firebaseAuth.currentUser?.uid || '').trim();
 }
@@ -2317,6 +2325,7 @@ window.StorageService = {
   updateDetail,
   removeDetail,
   recordSiteUnlockHistory,
+  recordExcelExportHistory,
   exportData,
   importData,
   ensureCurrentUser,
