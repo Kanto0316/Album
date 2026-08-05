@@ -4113,6 +4113,78 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    function ensureOutDeleteLimitDialog() {
+      let overlay = document.getElementById('outDeleteLimitOverlay');
+      if (overlay) {
+        return overlay;
+      }
+
+      overlay = document.createElement('div');
+      overlay.id = 'outDeleteLimitOverlay';
+      overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="outDeleteLimitTitle">
+          <h3 id="outDeleteLimitTitle">Limite de suppression atteinte</h3>
+          <p>Vous avez atteint la limite de <strong>6 suppressions de OUT par jour</strong></p>
+          <p>Veuillez réessayer demain.</p>
+          <div class="modal-actions item-delete-confirm-actions">
+            <button type="button" class="btn item-delete-confirm-button site-delete-forbidden-close-button" id="outDeleteLimitCloseButton">OK</button>
+          </div>
+        </article>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function showOutDeleteLimitDialog() {
+      const overlay = ensureOutDeleteLimitDialog();
+      const closeButton = overlay.querySelector('#outDeleteLimitCloseButton');
+      if (!closeButton) {
+        return;
+      }
+
+      const closeAnimationDurationMs = 170;
+      let closeAnimationTimer = null;
+      let isClosing = false;
+      const cleanup = () => {
+        if (closeAnimationTimer) {
+          window.clearTimeout(closeAnimationTimer);
+          closeAnimationTimer = null;
+        }
+        overlay.hidden = true;
+        overlay.classList.remove('is-open');
+        overlay.onclick = null;
+        closeButton.onclick = null;
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+      const close = () => {
+        if (isClosing) {
+          return;
+        }
+        isClosing = true;
+        overlay.classList.remove('is-open');
+        closeAnimationTimer = window.setTimeout(cleanup, closeAnimationDurationMs);
+      };
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape') {
+          close();
+        }
+      };
+
+      closeButton.onclick = close;
+      overlay.onclick = (event) => {
+        if (event.target === overlay) {
+          close();
+        }
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      overlay.hidden = false;
+      window.requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
+    }
+
     function closeActiveTransientLayer() {
       if (typeof itemActionState.closeConfirmation === 'function') {
         itemActionState.closeConfirmation();
@@ -4260,6 +4332,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
           const removedSnapshot = await StorageService.removeItem(siteId, itemId);
+          if (removedSnapshot?.limitReached) {
+            showOutDeleteLimitDialog();
+            return;
+          }
           if (!removedSnapshot) {
             UiService.showToast('Suppression impossible.');
             return;
