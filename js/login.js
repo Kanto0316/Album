@@ -1,6 +1,7 @@
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
+  getAdditionalUserInfo,
   fetchSignInMethodsForEmail,
   onAuthStateChanged,
   setPersistence,
@@ -12,6 +13,10 @@ import { firebaseAuth } from './firebase-core.js';
 const auth = firebaseAuth;
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
+
+const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
+const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
+let googleSignInPending = false;
 
 function isInAppBrowser() {
   return /FBAN|FBAV|Instagram|Messenger|WhatsApp/i.test(navigator.userAgent);
@@ -36,15 +41,15 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
           photoURL: user.photoURL || '',
         };
         localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
-        window.location.replace('index.html');
+        if (!googleSignInPending) {
+          window.location.replace('index.html');
+        }
       }
     });
   })
   .catch(() => {
     globalError.textContent = 'Une erreur est survenue lors de la préparation de la connexion. Veuillez réessayer.';
   });
-
-const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
 
 const form = document.getElementById('loginForm');
 const emailInput = document.getElementById('loginEmail');
@@ -110,11 +115,36 @@ function setLoading(isLoading, sourceButton = emailLoginButton) {
   }
 }
 
+function saveGoogleWelcomePayload(result) {
+  const user = result?.user;
+  if (!user) {
+    return;
+  }
+
+  const additionalUserInfo = getAdditionalUserInfo(result);
+  const payload = {
+    source: 'google',
+    uid: user.uid || '',
+    displayName: user.displayName || '',
+    email: user.email || '',
+    isNewUser: Boolean(additionalUserInfo?.isNewUser),
+    createdAt: Date.now(),
+  };
+  sessionStorage.setItem(GOOGLE_WELCOME_KEY, JSON.stringify(payload));
+}
+
 async function startGoogleSignIn() {
   await authReadyPromise;
   // signInWithRedirect est évité ici car le projet est hébergé sur GitHub Pages et non sur Firebase Hosting.
-  await signInWithPopup(auth, provider);
-  window.location.replace('index.html');
+  googleSignInPending = true;
+  try {
+    const result = await signInWithPopup(auth, provider);
+    saveGoogleWelcomePayload(result);
+    window.location.replace('index.html');
+  } catch (error) {
+    googleSignInPending = false;
+    throw error;
+  }
 }
 
 function encodeMemo(email, password) {
