@@ -1461,6 +1461,14 @@ async function recordSiteUnlockHistory(siteId) {
   await appendHistoryEntry('a déverrouillé le site', { siteId });
 }
 
+async function recordExcelExportHistory(siteId, siteName = '') {
+  const resolvedSiteName = resolveSiteNameForHistory(siteId, siteName);
+  const action = resolvedSiteName
+    ? `a exporté un fichier depuis le site « ${resolvedSiteName} ».`
+    : 'a exporté un fichier Excel.';
+  await appendHistoryEntry(action, { siteId, siteName: resolvedSiteName, actionType: 'export_excel' });
+}
+
 function getAuthenticatedUnlockProtectionUid() {
   return String(state.authUser?.uid || state.userId || firebaseAuth.currentUser?.uid || '').trim();
 }
@@ -2059,6 +2067,7 @@ function resolveSiteNameForHistory(siteId, fallbackName = '') {
 
 async function appendHistoryEntry(actionText, context = {}) {
   const action = sanitizeText(actionText, false);
+  const actionType = sanitizeText(context?.actionType, false);
   if (!action) {
     return;
   }
@@ -2071,6 +2080,7 @@ async function appendHistoryEntry(actionText, context = {}) {
       userId: profile?.id || state.userId || null,
       userName: username,
       action,
+      actionType: actionType || null,
       siteId: siteId || null,
       siteName: siteName || null,
       createdAt: serverTimestamp(),
@@ -2102,6 +2112,7 @@ async function listHistoriques() {
       userId: sanitizeText(data.userId, false),
       userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
       action: sanitizeText(data.action, false),
+      actionType: sanitizeText(data.actionType, false),
       siteId: sanitizeText(data.siteId, false),
       siteName: resolveSiteNameForHistory(data.siteId, data.siteName),
       createdAt: data.createdAt || null,
@@ -2317,6 +2328,7 @@ window.StorageService = {
   updateDetail,
   removeDetail,
   recordSiteUnlockHistory,
+  recordExcelExportHistory,
   exportData,
   importData,
   ensureCurrentUser,
