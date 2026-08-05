@@ -43,7 +43,7 @@ function normalizeRole(value) {
   if (role === 'admin') {
     return 'admin';
   }
-  if (role === 'adjoint' || role === 'full' || role === 'standard') {
+  if (role === 'adjoint' || role === 'adjoint admin' || role === 'full' || role === 'standard') {
     return 'standard';
   }
   if (role === 'lecture') {
@@ -61,7 +61,7 @@ function serializeRole(role) {
     return 'admin';
   }
   if (normalized === 'standard') {
-    return 'Standard';
+    return 'Adjoint Admin';
   }
   return 'Limité';
 }
@@ -1511,7 +1511,8 @@ async function removeSite(siteId) {
   const profile = await getCurrentUserProfile();
   const currentUserId = String(state.userId || profile?.id || '').trim();
   const creatorId = String(siteToRemove?.createdBy || siteToRemove?.ownerId || '').trim();
-  const isAdmin = normalizeRole(profile?.role) === 'admin' || isAdminEmail(profile?.email);
+  const normalizedRole = normalizeRole(profile?.role);
+  const isAdmin = normalizedRole === 'admin' || normalizedRole === 'standard' || isAdminEmail(profile?.email);
   if (!isAdmin && (!currentUserId || !creatorId || currentUserId !== creatorId)) {
     return null;
   }
@@ -1640,7 +1641,8 @@ async function removeItem(siteId, itemId) {
   const profile = await getCurrentUserProfile();
   const currentUserId = String(state.userId || profile?.id || '').trim();
   const creatorId = String(itemToRemove?.createdBy || itemToRemove?.ownerId || '').trim();
-  const isAdmin = normalizeRole(profile?.role) === 'admin' || isAdminEmail(profile?.email);
+  const normalizedRole = normalizeRole(profile?.role);
+  const isAdmin = normalizedRole === 'admin' || normalizedRole === 'standard' || isAdminEmail(profile?.email);
   const shouldCountDeletion = !isAdmin && (!currentUserId || !creatorId || currentUserId !== creatorId);
   if (shouldCountDeletion && await hasReachedOutDeletionLimit(currentUserId)) {
     return { limitReached: true };

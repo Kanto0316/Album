@@ -732,10 +732,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
   function buildPermissions(profile) {
     const username = String(profile?.username || '');
-    const role = String(profile?.role || 'limite').toLowerCase();
+    const role = String(profile?.role || 'limite').trim().toLowerCase();
     const userId = String(profile?.id || '').trim();
-    const isAdmin = username === 'Admin' || role === 'admin';
-    const isStandard = role === 'standard';
+    const isAdjointAdmin = role === 'standard' || role === 'adjoint' || role === 'adjoint admin';
+    const isAdmin = username === 'Admin' || role === 'admin' || isAdjointAdmin;
+    const isStandard = isAdjointAdmin;
     const isLecture = role === 'lecture';
     if (isAdmin) {
       return {
@@ -7518,7 +7519,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const maintenanceStatusText = requireElement('maintenanceStatusText');
     backButton?.addEventListener('click', () => UiService.navigate('index.html'));
 
-    const roleLabel = { standard: 'Standard', limite: 'Limité' };
+    const roleLabel = { standard: 'Adjoint Admin', limite: 'Limité' };
 
     function cleanText(value) {
       return String(value || '').trim();
@@ -7535,7 +7536,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function resolveRole(user) {
       const role = cleanText(user?.role).toLowerCase();
-      return role === 'standard' || role === 'adjoint' || role === 'admin' ? 'standard' : 'limite';
+      return role === 'standard' || role === 'adjoint' || role === 'adjoint admin' || role === 'admin' ? 'standard' : 'limite';
     }
 
     function resolveMaintenanceAuthorized(user) {
