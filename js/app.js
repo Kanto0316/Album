@@ -733,6 +733,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   function buildPermissions(profile) {
     const username = String(profile?.username || '');
     const role = String(profile?.role || 'limite').toLowerCase();
+    const userId = String(profile?.id || '').trim();
     const isAdmin = username === 'Admin' || role === 'admin';
     const isStandard = role === 'standard';
     const isLecture = role === 'lecture';
@@ -741,6 +742,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         canCreate: true,
         canEdit: true,
         canDelete: true,
+        userId,
+        username,
         isAdmin: true,
         isStandard: false,
         canManageUsers: true,
@@ -752,6 +755,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       canCreate: true,
       canEdit: true,
       canDelete: true,
+      userId,
+      username,
       isAdmin: false,
       isStandard,
       canManageUsers: isStandard,
@@ -1961,6 +1966,77 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return overlay;
     }
 
+    function getSiteCreatorName(site) {
+      return String(site?.createdByName || '').trim() || resolveActorLabel(site?.createdBy, userNamesById, 'Utilisateur');
+    }
+
+    function canCurrentUserDeleteSite(site) {
+      if (currentPermissions?.isAdmin) {
+        return true;
+      }
+      const currentUserId = String(currentPermissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
+      const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
+      return Boolean(currentUserId && creatorId && currentUserId === creatorId);
+    }
+
+    function showSiteDeleteForbiddenOverlay(site) {
+      let overlay = document.getElementById('siteDeleteForbiddenOverlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'siteDeleteForbiddenOverlay';
+        overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
+        overlay.hidden = true;
+        overlay.innerHTML = `
+          <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteForbiddenTitle">
+            <h3 id="siteDeleteForbiddenTitle">Suppression impossible.</h3>
+            <p>Seul le créateur du site peut supprimer ce site.</p>
+            <p id="siteDeleteForbiddenCreator"></p>
+            <div class="modal-actions item-delete-confirm-actions">
+              <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="siteDeleteForbiddenCloseButton">OK</button>
+            </div>
+          </article>
+        `;
+        document.body.appendChild(overlay);
+      }
+
+      const creator = overlay.querySelector('#siteDeleteForbiddenCreator');
+      const closeButton = overlay.querySelector('#siteDeleteForbiddenCloseButton');
+      if (creator) {
+        creator.textContent = `Créateur : ${getSiteCreatorName(site)}`;
+      }
+
+      const close = () => {
+        overlay.classList.remove('is-open');
+        window.setTimeout(() => {
+          overlay.hidden = true;
+          overlay.onclick = null;
+          if (closeButton) {
+            closeButton.onclick = null;
+          }
+          document.removeEventListener('keydown', handleKeyDown);
+        }, 170);
+      };
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape') {
+          close();
+        }
+      };
+
+      if (closeButton) {
+        closeButton.onclick = close;
+      }
+      overlay.onclick = (event) => {
+        if (event.target === overlay) {
+          close();
+        }
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      overlay.hidden = false;
+      window.requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
+    }
+
     function askSiteDeleteConfirmation(siteName) {
       const overlay = ensureSiteDeleteConfirmationDialog();
       const text = overlay.querySelector('#siteDeleteConfirmText');
@@ -2238,10 +2314,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           refreshSiteActionSheetContent();
           return;
         }
+        if (!canCurrentUserDeleteSite(latestSiteState)) {
+          await closeSheet();
+          showSiteDeleteForbiddenOverlay(latestSiteState);
+          return;
+        }
         deleteButton.disabled = true;
         try {
           await closeSheet();
-          const shouldDelete = await askSiteDeleteConfirmation(activeSite.nom || 'inconnu');
+          const shouldDelete = await askSiteDeleteConfirmation(latestSiteState.nom || 'inconnu');
           if (!shouldDelete) {
             return;
           }
