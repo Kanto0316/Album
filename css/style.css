@@ -5406,6 +5406,28 @@ body[data-page="site-detail"] .item-delete-confirm-button--danger {
   color: #fff;
 }
 
+body[data-page="site-detail"] .site-delete-forbidden-creator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0.25rem;
+}
+
+body[data-page="site-detail"] .site-delete-forbidden-creator strong {
+  color: var(--text);
+  font-weight: 800;
+}
+
+body[data-page="site-detail"] .site-delete-forbidden-creator span {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+body[data-page="site-detail"] .site-delete-forbidden-close-button {
+  background: var(--primary-color);
+  color: #fff;
+}
+
 body[data-page="site-detail"] .list-card__button:active {
   transform: scale(0.98);
   transition: transform 0.2s ease;
