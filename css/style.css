@@ -7441,6 +7441,41 @@ body[data-page="home"] .site-lock-status-message--unlocked {
   color: #16a34a;
 }
 
+
+body[data-page="home"] .list-card--pending-decision {
+  border-color: #f59e0b;
+  box-shadow: 0 10px 26px rgba(245, 158, 11, 0.18);
+}
+
+body[data-page="home"] .list-card__pending-decision-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  margin: -0.2rem 0 0.45rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+body[data-page="home"] .list-card__pending-decision-badge::before {
+  content: "!";
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
 body[data-page="home"] .inactive-site-card {
   width: min(92vw, 26rem);
 }

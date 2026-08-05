@@ -2553,11 +2553,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const siteIsLocked = isSiteLocked(site);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
           const canShowSiteActions = isAuthenticated;
+          const isPendingCreatorDecision = Boolean(StorageService.isSitePendingInactivityDecision?.(site));
+          const pendingDecisionBadge = isPendingCreatorDecision
+            ? '<span class="list-card__pending-decision-badge">En attente de votre décision</span>'
+            : '';
           return `
-            <article class="list-card">
+            <article class="list-card ${isPendingCreatorDecision ? 'list-card--pending-decision' : ''}">
               ${canShowSiteActions ? `<button class="list-card__menu-button" type="button" data-site-menu="${site.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
+                ${pendingDecisionBadge}
                 <div class="list-card__meta">
                   <span class="list-card__meta-item list-card__meta-item--outs">
                     <img src="Icon/OUT.png" alt="" aria-hidden="true" class="icon" />
