@@ -3521,7 +3521,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         showPurchaseFieldError(purchaseQty, purchaseQtyError, 'Quantité invalide');
         return;
       }
-      if (!['Pcs', 'm'].includes(unit)) {
+      if (!['Pcs', 'm', 'Paquet'].includes(unit)) {
         showPurchaseFieldError(purchaseUnit, purchaseUnitError, 'Unité invalide');
         return;
       }
@@ -5053,7 +5053,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     purchaseUnit?.addEventListener('change', () => {
       const unit = String(purchaseUnit.value || '').trim();
-      if (['Pcs', 'm'].includes(unit)) {
+      if (['Pcs', 'm', 'Paquet'].includes(unit)) {
         clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
       }
     });
