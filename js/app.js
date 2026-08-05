@@ -4144,6 +4144,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return;
       }
 
+      StorageService.recordExcelExportHistory(siteId, currentSite?.nom).catch(() => {});
+
       let rows = buildSiteExportRows();
       if (!rows.length) {
         try {
@@ -7033,6 +7035,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
         return;
       }
+
+      StorageService.recordExcelExportHistory(siteId, currentSite?.nom).catch(() => {});
 
       const filteredDetails = getFilteredDetails(currentDetails);
       if (!filteredDetails.length) {
