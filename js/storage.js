@@ -1467,6 +1467,16 @@ async function removeSite(siteId) {
   if (siteIndex === -1) {
     return null;
   }
+
+  const siteToRemove = state.sites[siteIndex];
+  const profile = await getCurrentUserProfile();
+  const currentUserId = String(state.userId || profile?.id || '').trim();
+  const creatorId = String(siteToRemove?.createdBy || siteToRemove?.ownerId || '').trim();
+  const isAdmin = normalizeRole(profile?.role) === 'admin' || isAdminEmail(profile?.email);
+  if (!isAdmin && (!currentUserId || !creatorId || currentUserId !== creatorId)) {
+    return null;
+  }
+
   await deleteDoc(doc(state.db, 'pages', 'page1', 'items', siteId));
 
   const [site] = state.sites.splice(siteIndex, 1);
