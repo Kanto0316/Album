@@ -133,6 +133,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return username || 'Utilisateur';
   }
 
+  function resolveCreatorLockLabel(site, userMap) {
+    const creatorName = resolveActorLabel(site?.createdBy || site?.ownerId, userMap, site?.createdByName);
+    return creatorName === 'Utilisateur' ? 'Utilisateur inconnu' : creatorName;
+  }
+
   function buildDateAndTimeLabel(dateValue) {
     if (!dateValue) {
       return '--';
@@ -1720,7 +1725,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const users = await StorageService.listUsers();
         userNamesById = users.reduce((accumulator, user) => {
           if (user?.id) {
-            accumulator[user.id] = user.username || 'Utilisateur';
+            accumulator[user.id] = user.username || user.displayName || user.name || 'Utilisateur';
           }
           return accumulator;
         }, {});
@@ -2414,11 +2419,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const createdDateTime = buildDateAndTimeLabel(site?.dateCreation);
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
-          const lockActorEmail = isSiteLocked(site)
-            ? String(site?.lockedBy || '').trim()
+          const siteIsLocked = isSiteLocked(site);
+          const lockActorLabel = siteIsLocked
+            ? resolveCreatorLockLabel(site, userNamesById)
             : String(site?.unlockedBy || '').trim();
-          const lockLabel = isSiteLocked(site) ? 'Verrouillé' : 'Déverrouillé';
-          const lockLabelWithActor = lockActorEmail ? `${lockLabel} par` : lockLabel;
+          const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
+          const lockLabelWithActor = lockActorLabel ? `${lockLabel} par` : lockLabel;
           const canShowSiteActions = isAuthenticated;
           return `
             <article class="list-card">
@@ -2440,11 +2446,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   </span>
                 </div>
                 <span class="list-card__divider" aria-hidden="true"></span>
-                <span class="list-card__status ${isSiteLocked(site) ? 'list-card__status--locked' : 'list-card__status--unlocked'}">
+                <span class="list-card__status ${siteIsLocked ? 'list-card__status--locked' : 'list-card__status--unlocked'}">
                   <img src="${lockIconSrc}" alt="" aria-hidden="true" class="list-card__status-icon" />
                   <span class="list-card__status-text">
                     <span class="list-card__status-main">${escapeHtml(lockLabelWithActor)}</span>
-                    ${lockActorEmail ? `<span class="list-card__status-actor">${escapeHtml(lockActorEmail)}</span>` : ''}
+                    ${lockActorLabel ? `<span class="list-card__status-actor">${escapeHtml(lockActorLabel)}</span>` : ''}
                   </span>
                 </span>
               </button>
