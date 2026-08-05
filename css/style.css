@@ -2296,6 +2296,35 @@ body[data-page="users-management"] .pending-user-card__actions {
   justify-content: flex-end;
 }
 
+
+body[data-page="users-management"] .users-search-field {
+  margin-bottom: 0.85rem;
+}
+
+body[data-page="users-management"] .users-search-field__control {
+  position: relative;
+  width: min(100%, 28rem);
+}
+
+body[data-page="users-management"] .users-search-field__icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  line-height: 1;
+}
+
+body[data-page="users-management"] .users-search-field input {
+  padding-left: 2.65rem;
+}
+
+body[data-page="users-management"] .users-empty-cell {
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: center;
+}
+
 body[data-page="users-management"] .table-wrapper--users {
   flex: 1 1 auto;
   min-height: 0;
