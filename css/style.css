@@ -7440,3 +7440,22 @@ body[data-page="home"] .site-lock-status-message--locked {
 body[data-page="home"] .site-lock-status-message--unlocked {
   color: #16a34a;
 }
+
+body[data-page="home"] .inactive-site-card {
+  width: min(92vw, 26rem);
+}
+
+body[data-page="home"] .inactive-site-card p strong {
+  color: #111827;
+  font-weight: 800;
+}
+
+body[data-page="home"] .inactive-site-restore {
+  background: #16a34a;
+  color: #fff;
+}
+
+body[data-page="home"] .inactive-site-delete {
+  background: #dc2626;
+  color: #fff;
+}
