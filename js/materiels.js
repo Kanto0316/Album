@@ -9,6 +9,7 @@ import { firebaseDb } from './firebase-core.js';
   let materialCart = [];
   let lastRequestMeta = null;
   let isRequestPngDownloading = false;
+  let displayedMaterials = [];
 
   function getCartItemKey(item = {}) {
     return String(item.code || item.manualKey || '');
@@ -258,6 +259,48 @@ import { firebaseDb } from './firebase-core.js';
       btn.disabled = isEmpty;
       btn.classList.toggle('is-disabled-soft', isEmpty);
     });
+  }
+
+  function canExportMaterials() {
+    return Boolean(window.AppPermissions?.canImportExport);
+  }
+
+  function syncMaterialsExportButtonVisibility() {
+    const exportButton = requireElement('materialsExportBtn');
+    if (!exportButton) {
+      return;
+    }
+    const canExport = canExportMaterials();
+    exportButton.hidden = !canExport;
+    exportButton.classList.toggle('hidden', !canExport);
+  }
+
+  function buildMaterialsExportRows(materials) {
+    return (Array.isArray(materials) ? materials : []).map((material) => ({
+      code: material.code,
+      designation: material.designation,
+    }));
+  }
+
+  function exportDisplayedMaterials() {
+    if (!canExportMaterials()) {
+      window.UiService?.showToast?.('Action non autorisée.');
+      return;
+    }
+    if (!displayedMaterials.length) {
+      window.UiService?.showToast?.('Aucun matériel à exporter.');
+      return;
+    }
+    const excelExport = window.AppExcelExport;
+    if (!excelExport?.buildMaterialsExcelContent || !excelExport?.downloadExcelFile) {
+      window.UiService?.showToast?.('Export Excel indisponible.');
+      return;
+    }
+    const rows = buildMaterialsExportRows(displayedMaterials);
+    const fileName = excelExport.buildPage2ExportFileName?.('demande-materiels', 'xlsx') || 'demande-materiels.xlsx';
+    const workbook = excelExport.buildMaterialsExcelContent('Demande matériels', rows, 'Demande matériels');
+    excelExport.downloadExcelFile(fileName, 'Export Excel', workbook);
+    excelExport.saveExportFileNameToHistory?.(fileName);
   }
 
   function renderMaterialCart() {
@@ -889,6 +932,7 @@ import { firebaseDb } from './firebase-core.js';
     }
 
     const safeMaterials = Array.isArray(materials) ? materials : [];
+    displayedMaterials = safeMaterials;
     const countNumber = document.querySelector('#materialsCount .count-number');
     const emptyState = requireElement('materialsEmptyState');
     const table = requireElement('materialsDataTable');
@@ -953,6 +997,7 @@ import { firebaseDb } from './firebase-core.js';
     const backButton = requireElement('materialsBackButton');
     const searchInput = requireElement('materialsSearchInput');
     const clearSearchBtn = requireElement('materialsClearSearchBtn');
+    const exportButton = requireElement('materialsExportBtn');
     let allMaterials = [];
 
     backButton?.addEventListener('click', () => {
@@ -993,6 +1038,9 @@ import { firebaseDb } from './firebase-core.js';
     });
 
     toggleClearButton();
+    syncMaterialsExportButtonVisibility();
+    window.addEventListener('app:permissions-ready', syncMaterialsExportButtonVisibility);
+    exportButton?.addEventListener('click', exportDisplayedMaterials);
 
     initMaterialsHint();
 

@@ -364,6 +364,20 @@
         pointer-events: none;
       }
 
+      .materials-page .page3-sub-info {
+        align-items: center;
+        display: flex;
+        gap: 0.65rem;
+      }
+
+      .materials-page .materials-export-btn {
+        min-height: 30px;
+        padding: 0.28rem 0.72rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        line-height: 1;
+      }
+
       @keyframes request-png-spin {
         to { transform: rotate(360deg); }
       }
@@ -398,6 +412,9 @@
               <span class="count-number page3-count-number">0</span>
               <span class="count-label page3-count-label">Matériels</span>
             </div>
+            <button id="materialsExportBtn" class="btn btn-export materials-export-btn hidden" type="button" hidden>
+              Exporter
+            </button>
           </div>
           <div id="materialsHint" class="materials-hint hidden">
             <span>👋 Astuce : appuyez sur un matériel pour l’ajouter à votre demande.</span>
@@ -518,6 +535,7 @@
     <script type="module" src="js/maintenance-banner.js"></script>
     <script type="module" src="js/storage.js"></script>
     <script src="js/ui.js"></script>
+    <script type="module" src="js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script type="module" src="js/materiels.js"></script>
   </body>
