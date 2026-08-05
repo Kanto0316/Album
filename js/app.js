@@ -1132,6 +1132,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let currentSites = [];
     let itemCountsBySite = {};
     let userNamesById = {};
+    let userEmailsById = {};
     let currentPermissions = permissions;
     let isAuthenticated = Boolean(authState?.isAuthenticated);
     let siteIdPendingLock = null;
@@ -1722,8 +1723,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           }
           return accumulator;
         }, {});
+        userEmailsById = users.reduce((accumulator, user) => {
+          const email = String(user?.email || '').trim();
+          if (user?.id && email) {
+            accumulator[user.id] = email;
+          }
+          return accumulator;
+        }, {});
       } catch (_error) {
         userNamesById = {};
+        userEmailsById = {};
       }
       renderSites();
     }
@@ -1970,6 +1979,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return String(site?.createdByName || '').trim() || resolveActorLabel(site?.createdBy, userNamesById, 'Utilisateur');
     }
 
+    function getSiteCreatorEmail(site) {
+      return String(site?.createdByEmail || '').trim() || userEmailsById?.[String(site?.createdBy || '')] || '';
+    }
+
     function canCurrentUserDeleteSite(site) {
       if (currentPermissions?.isAdmin) {
         return true;
@@ -1990,19 +2003,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteForbiddenTitle">
             <h3 id="siteDeleteForbiddenTitle">Suppression impossible.</h3>
             <p>Seul le créateur du site peut supprimer ce site.</p>
-            <p id="siteDeleteForbiddenCreator"></p>
+            <div class="site-delete-forbidden-creator" id="siteDeleteForbiddenCreator">
+              <strong id="siteDeleteForbiddenCreatorName"></strong>
+              <span id="siteDeleteForbiddenCreatorEmail"></span>
+            </div>
             <div class="modal-actions item-delete-confirm-actions">
-              <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="siteDeleteForbiddenCloseButton">OK</button>
+              <button type="button" class="btn item-delete-confirm-button site-delete-forbidden-close-button" id="siteDeleteForbiddenCloseButton">OK</button>
             </div>
           </article>
         `;
         document.body.appendChild(overlay);
       }
 
-      const creator = overlay.querySelector('#siteDeleteForbiddenCreator');
+      const creatorName = overlay.querySelector('#siteDeleteForbiddenCreatorName');
+      const creatorEmail = overlay.querySelector('#siteDeleteForbiddenCreatorEmail');
       const closeButton = overlay.querySelector('#siteDeleteForbiddenCloseButton');
-      if (creator) {
-        creator.textContent = `Créateur : ${getSiteCreatorName(site)}`;
+      if (creatorName) {
+        creatorName.textContent = getSiteCreatorName(site);
+      }
+      if (creatorEmail) {
+        creatorEmail.textContent = getSiteCreatorEmail(site);
       }
 
       const close = () => {
