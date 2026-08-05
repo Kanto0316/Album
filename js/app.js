@@ -831,6 +831,36 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
   }
 
+  function buildMaterialsExcelContent(title, rows, siteName) {
+    return async () => {
+      const ExcelJS = await getExcelJsModule();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(String(title || 'Export').slice(0, 31));
+      worksheet.columns = [
+        { header: 'Code', key: 'code', width: 24 },
+        { header: 'Désignation', key: 'designation', width: 56 },
+      ];
+      rows.forEach((row) => {
+        worksheet.addRow({
+          code: formatExcelCellValue(row.code),
+          designation: formatExcelCellValue(row.designation),
+        });
+      });
+      worksheet.spliceRows(1, 0, [], [], [], []);
+      applyExcelProfessionalHeader(worksheet, siteName);
+      applyProfessionalExcelStyling(worksheet, 5);
+      return workbook;
+    };
+  }
+
+  window.AppExcelExport = {
+    buildPage2ExportFileName,
+    buildMaterialsExcelContent,
+    buildSiteExcelContent,
+    downloadExcelFile,
+    saveExportFileNameToHistory,
+  };
+
 
 
   function buildPermissions(profile) {
@@ -8587,6 +8617,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     profile = resolveConnectedProfile(profile, isAuthenticated);
 
     const permissions = buildPermissions(profile);
+    window.AppPermissions = permissions;
+    window.dispatchEvent(new CustomEvent('app:permissions-ready', { detail: { permissions } }));
 
     initMaintenanceGate(permissions, profile);
 
