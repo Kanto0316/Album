@@ -4009,7 +4009,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     function openEditPurchaseModal(purchase) {
-      if (!purchase || !editPurchaseModal || !editPurchaseNameInput) return;
+      if (!purchase || !editPurchaseModal || !editPurchaseNameInput || !canCurrentUserEditPurchase(purchase)) return;
       selectedPurchaseId = purchase.id;
       selectedPurchaseData = purchase;
       editPurchaseNameInput.value = String(purchase.designation || '');
@@ -4047,6 +4047,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         showPurchaseFieldError(purchaseUnit, purchaseUnitError, 'Unité invalide');
         return;
       }
+      const currentUserId = String(permissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
       const currentUserName = String(
         permissions?.username
         || firebaseAuth.currentUser?.displayName
@@ -4066,7 +4067,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           remarque: remark,
           remark,
           createdAt: serverTimestamp(),
-          createdBy: currentUserName || 'Utilisateur',
+          createdBy: currentUserId || null,
+          createdByName: currentUserName || 'Utilisateur',
           createdByEmail: currentUserEmail || '',
           siteId,
           siteName: currentSite?.nom || '',
@@ -4494,6 +4496,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       title.textContent = isPurchaseActions
         ? (String(activeItem.designation || '').trim() || 'Achat matériel')
         : (String(activeItem.numero || '').trim() || 'Actions');
+      deleteButton.hidden = Boolean(isPurchaseActions && !permissions?.isAdmin);
       const closeTransitionDurationMs = 280;
 
       const clearCloseListeners = () => {
@@ -4558,7 +4561,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           return;
         }
         if (isPurchaseActions) {
-          openEditPurchaseModal(targetItem);
+          if (canCurrentUserEditPurchase(targetItem)) {
+            openEditPurchaseModal(targetItem);
+          }
           return;
         }
 
@@ -4583,6 +4588,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
           if (isPurchaseActions) {
+            if (!permissions?.isAdmin) {
+              UiService.showToast('Action non autorisée.');
+              return;
+            }
             try {
               await deleteDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId));
               await loadPurchasesForCurrentSite();
@@ -5136,6 +5145,46 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return buildDateAndTimeLabel(purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification);
     }
 
+    function getCurrentPurchaseActor() {
+      return {
+        id: String(permissions?.userId || firebaseAuth.currentUser?.uid || '').trim(),
+        name: String(
+          permissions?.username
+          || firebaseAuth.currentUser?.displayName
+          || firebaseAuth.currentUser?.email
+          || 'Utilisateur',
+        ).trim() || 'Utilisateur',
+      };
+    }
+
+    function canCurrentUserEditPurchase(purchase) {
+      if (permissions?.isAdmin) {
+        return true;
+      }
+      const actor = getCurrentPurchaseActor();
+      const creatorId = String(purchase?.createdBy || '').trim();
+      return Boolean(actor.id && creatorId && actor.id === creatorId);
+    }
+
+    function buildPurchaseUpdatePayload(purchase, nextValues) {
+      const updates = {};
+      Object.entries(nextValues).forEach(([fieldName, value]) => {
+        if (String(purchase?.[fieldName] ?? '').trim() !== String(value ?? '').trim()) {
+          updates[fieldName] = value;
+        }
+      });
+      if (!Object.keys(updates).length) {
+        return null;
+      }
+      const actor = getCurrentPurchaseActor();
+      return {
+        ...updates,
+        updatedAt: serverTimestamp(),
+        updatedBy: actor.id || null,
+        updatedByName: actor.name,
+      };
+    }
+
     function renderListSeparator(title) {
       return `
         <div class="list-separator" role="separator" aria-label="${escapeHtml(title)}">
@@ -5202,7 +5251,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         previousLabel = currentLabel;
         htmlParts.push(`
           <article class="list-card purchase-card" data-purchase-open="${escapeHtml(purchase.id)}" tabindex="0" role="button" aria-label="Voir le détail de ${escapeHtml(purchase?.designation || 'cet achat matériel')}">
-            ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
+            ${permissions.canDelete && !permissions.isLecture && canCurrentUserEditPurchase(purchase) ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
             <div class="list-card__button">
               <div class="purchase-card__content">
                 <div class="purchase-card__media" aria-hidden="true">
@@ -5771,10 +5820,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       clearPurchaseFieldError(editPurchaseRemarkInput, editPurchaseRemarkError);
       setEditPurchaseSubmitLoadingState(true);
       try {
-        await updateDoc(
-          doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId),
-          { designation: newName, remarque: newRemark, remark: newRemark },
-        );
+        if (!canCurrentUserEditPurchase(selectedPurchaseData)) {
+          showEditPurchaseFieldError('Action non autorisée.');
+          return;
+        }
+        const updates = buildPurchaseUpdatePayload(selectedPurchaseData, {
+          designation: newName,
+          remarque: newRemark,
+          remark: newRemark,
+        });
+        if (updates) {
+          await updateDoc(
+            doc(firebaseDb, 'sites', siteId, 'achatsMateriels', selectedPurchaseId),
+            updates,
+          );
+        }
         editPurchaseModal?.close();
         await loadPurchasesForCurrentSite();
         setActiveSiteTab('purchases');
@@ -6148,7 +6208,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const result = itemDialogMode === ITEM_DIALOG_MODE_EDIT
           ? await StorageService.updateItemName(siteId, editingItemId, value)
           : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
-            ? (await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', editingItemId), { designation: value }), { ok: true })
+            ? (() => {
+              const targetPurchase = currentPurchases.find((purchase) => purchase.id === editingItemId);
+              if (!canCurrentUserEditPurchase(targetPurchase)) {
+                return { ok: false, reason: 'forbidden' };
+              }
+              const updates = buildPurchaseUpdatePayload(targetPurchase, { designation: value });
+              return updates
+                ? updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', editingItemId), updates).then(() => ({ ok: true }))
+                : Promise.resolve({ ok: true, unchanged: true });
+            })()
             : await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
         if (!result?.ok) {
           showItemFormError(
@@ -8238,8 +8307,39 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const imageDialogImage = requireElement('purchaseImageDialogImage');
     const imageDialogClose = requireElement('purchaseImageDialogClose');
     const saveSpinner = requireElement('purchaseDetailSaveSpinner');
-    const canEditPurchase = Boolean(permissions?.isAdmin);
+    let canEditPurchase = Boolean(permissions?.isAdmin);
     let currentPurchase = null;
+
+    function getCurrentPurchaseActor() {
+      return {
+        id: String(permissions?.userId || firebaseAuth.currentUser?.uid || '').trim(),
+        name: String(
+          permissions?.username
+          || firebaseAuth.currentUser?.displayName
+          || firebaseAuth.currentUser?.email
+          || 'Utilisateur',
+        ).trim() || 'Utilisateur',
+      };
+    }
+
+    function canCurrentUserEditPurchase(purchase) {
+      if (permissions?.isAdmin) {
+        return true;
+      }
+      const actor = getCurrentPurchaseActor();
+      const creatorId = String(purchase?.createdBy || '').trim();
+      return Boolean(actor.id && creatorId && actor.id === creatorId);
+    }
+
+    function addPurchaseUpdateMetadata(updates) {
+      const actor = getCurrentPurchaseActor();
+      return {
+        ...updates,
+        updatedAt: serverTimestamp(),
+        updatedBy: actor.id || null,
+        updatedByName: actor.name,
+      };
+    }
     let isSavingPurchase = false;
 
     function setPurchaseSaving(isSaving) {
@@ -8277,10 +8377,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         if (!uploadedImage?.imageUrl) {
           throw new Error('Upload Cloudinary échoué');
         }
-        const updates = {
+        const updates = addPurchaseUpdateMetadata({
           imageUrl: uploadedImage.imageUrl,
           imagePublicId: uploadedImage.publicId,
-        };
+        });
         await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId), updates);
         currentPurchase = { ...currentPurchase, ...updates };
         renderPurchaseDetail(currentPurchase);
@@ -8342,6 +8442,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!updates) return;
       setPurchaseSaving(true);
       try {
+        updates = addPurchaseUpdateMetadata(updates);
         await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId), updates);
         currentPurchase = { ...currentPurchase, ...updates };
         renderPurchaseDetail(currentPurchase);
@@ -8385,6 +8486,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const purchaseStore = String(purchase?.store || purchase?.magasin || '').trim() || '-';
       const purchaseRemark = String(purchase?.remarque || purchase?.remark || '').trim();
 
+      canEditPurchase = canCurrentUserEditPurchase(purchase);
       currentPurchase = purchase;
       summaryName.value = String(purchase?.designation || 'Achat matériel');
       summaryCreatedAt.textContent = dateLabel;
@@ -8400,8 +8502,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         remark.value = '';
         remarkRow.hidden = !canEditPurchase;
       }
-      user.textContent = String(purchase?.createdBy || 'Utilisateur');
+      user.textContent = String(purchase?.createdByName || purchase?.createdBy || 'Utilisateur');
       fullDate.textContent = dateLabel;
+      [summaryName, qty, store, remark].forEach(setEditableState);
       resizeInlineTextarea(remark);
 
       if (imageUrl) {
