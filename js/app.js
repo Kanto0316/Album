@@ -3178,6 +3178,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const purchaseQty = requireElement('purchaseQty');
     const purchaseUnit = requireElement('purchaseUnit');
     const purchaseStore = requireElement('purchaseStore');
+    const purchaseStoreSuggestions = requireElement('purchaseStoreSuggestions');
     const purchaseRemark = requireElement('purchaseRemark');
     const purchasePhotoInput = requireElement('purchasePhotoInput');
     const purchasePhotoPreviewWrap = requireElement('purchasePhotoPreviewWrap');
@@ -3325,6 +3326,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       clearPurchaseFieldError(purchaseQty, purchaseQtyError);
       clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
       clearPurchaseFieldError(purchaseRemark, purchaseRemarkError);
+      hidePurchaseStoreSuggestions();
       selectedPurchasePhotoFile = null;
       if (selectedPurchasePhotoPreviewUrl) {
         URL.revokeObjectURL(selectedPurchasePhotoPreviewUrl);
@@ -3397,6 +3399,117 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (!savePurchaseBtn) return;
       savePurchaseBtn.disabled = isLoading;
       savePurchaseBtn.classList.toggle('is-loading', isLoading);
+    }
+
+
+    function getPurchaseStoreMatches(query) {
+      const normalizedQuery = String(query || '').trim().toLowerCase();
+      if (!normalizedQuery) {
+        return [];
+      }
+
+      return purchaseStoreSuggestionSource
+        .map((store) => {
+          const storeLower = store.toLowerCase();
+          const matchIndex = storeLower.indexOf(normalizedQuery);
+          return { store, matchIndex, startsWith: storeLower.startsWith(normalizedQuery) };
+        })
+        .filter((item) => item.matchIndex !== -1)
+        .sort((a, b) => {
+          if (a.startsWith !== b.startsWith) {
+            return a.startsWith ? -1 : 1;
+          }
+          if (a.matchIndex !== b.matchIndex) {
+            return a.matchIndex - b.matchIndex;
+          }
+          return a.store.localeCompare(b.store, 'fr', { sensitivity: 'base' });
+        })
+        .slice(0, 8)
+        .map((item) => item.store);
+    }
+
+    function buildPurchaseStoreHighlightedText(text, query) {
+      const safeText = String(text || '');
+      const normalizedQuery = String(query || '').trim();
+      if (!normalizedQuery) {
+        return escapeHtml(safeText);
+      }
+
+      const matcher = new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'ig');
+      return escapeHtml(safeText).replace(matcher, '<mark>$1</mark>');
+    }
+
+    function setActivePurchaseStoreSuggestion(index) {
+      activePurchaseStoreSuggestionIndex = index;
+      if (!purchaseStoreSuggestions) {
+        return;
+      }
+
+      purchaseStoreSuggestions.querySelectorAll('.typeahead__option').forEach((option, optionIndex) => {
+        const isActive = optionIndex === index;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        if (isActive) {
+          option.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    function hidePurchaseStoreSuggestions() {
+      visiblePurchaseStoreSuggestions = [];
+      activePurchaseStoreSuggestionIndex = -1;
+      if (!purchaseStoreSuggestions) {
+        return;
+      }
+      purchaseStoreSuggestions.hidden = true;
+      purchaseStoreSuggestions.style.display = 'none';
+      purchaseStoreSuggestions.innerHTML = '';
+    }
+
+    function applyPurchaseStoreSuggestion(store) {
+      if (!store || !purchaseStore) {
+        return;
+      }
+      purchaseStore.value = store;
+      hidePurchaseStoreSuggestions();
+    }
+
+    function renderPurchaseStoreSuggestions(query) {
+      if (!purchaseStoreSuggestions) {
+        return;
+      }
+
+      const normalizedQuery = String(query || '').trim();
+      if (!normalizedQuery) {
+        hidePurchaseStoreSuggestions();
+        return;
+      }
+
+      visiblePurchaseStoreSuggestions = getPurchaseStoreMatches(query);
+      activePurchaseStoreSuggestionIndex = -1;
+
+      if (!visiblePurchaseStoreSuggestions.length) {
+        hidePurchaseStoreSuggestions();
+        return;
+      }
+
+      purchaseStoreSuggestions.hidden = false;
+      purchaseStoreSuggestions.style.display = 'block';
+      purchaseStoreSuggestions.innerHTML = visiblePurchaseStoreSuggestions
+        .map(
+          (store, index) => `
+            <button
+              type="button"
+              class="typeahead__option"
+              role="option"
+              data-purchase-store-typeahead-index="${index}"
+              aria-selected="false"
+            >
+              <span class="typeahead__code">${buildPurchaseStoreHighlightedText(store, query)}</span>
+            </button>
+          `,
+        )
+        .join('');
     }
 
     function openCreatePurchaseModal() {
@@ -4404,6 +4517,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let hasBlockingItemNumberError = false;
     let itemStoreOtherHideTimer = null;
     const itemStoreOtherTransitionDurationMs = 200;
+    const purchaseStoreSuggestionSource = ['ABC', 'SANIFER', 'AQUAMAD', 'OCEAN TRADE', 'MASTER TRADE', 'BATIMAX', 'METAPRO'];
+    let visiblePurchaseStoreSuggestions = [];
+    let activePurchaseStoreSuggestionIndex = -1;
     const ITEM_DIALOG_MODE_CREATE = 'create';
     const ITEM_DIALOG_MODE_EDIT = 'edit';
     const ITEM_DIALOG_MODE_EDIT_PURCHASE = 'edit_purchase';
@@ -5057,6 +5173,69 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         clearPurchaseFieldError(purchaseUnit, purchaseUnitError);
       }
     });
+
+
+    if (purchaseStore && purchaseStoreSuggestions) {
+      purchaseStore.addEventListener('focus', () => {
+        if (!String(purchaseStore.value || '').trim()) {
+          hidePurchaseStoreSuggestions();
+          return;
+        }
+        renderPurchaseStoreSuggestions(purchaseStore.value);
+      });
+
+      purchaseStore.addEventListener('input', () => {
+        renderPurchaseStoreSuggestions(purchaseStore.value);
+      });
+
+      purchaseStore.addEventListener('keydown', (event) => {
+        if (!visiblePurchaseStoreSuggestions.length) {
+          return;
+        }
+
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          const nextIndex = activePurchaseStoreSuggestionIndex < visiblePurchaseStoreSuggestions.length - 1 ? activePurchaseStoreSuggestionIndex + 1 : 0;
+          setActivePurchaseStoreSuggestion(nextIndex);
+          return;
+        }
+
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          const nextIndex = activePurchaseStoreSuggestionIndex > 0 ? activePurchaseStoreSuggestionIndex - 1 : visiblePurchaseStoreSuggestions.length - 1;
+          setActivePurchaseStoreSuggestion(nextIndex);
+          return;
+        }
+
+        if (event.key === 'Enter' && activePurchaseStoreSuggestionIndex >= 0) {
+          event.preventDefault();
+          applyPurchaseStoreSuggestion(visiblePurchaseStoreSuggestions[activePurchaseStoreSuggestionIndex]);
+          return;
+        }
+
+        if (event.key === 'Escape') {
+          hidePurchaseStoreSuggestions();
+        }
+      });
+
+      purchaseStore.addEventListener('blur', () => {
+        window.setTimeout(hidePurchaseStoreSuggestions, 140);
+      });
+
+      purchaseStoreSuggestions.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
+
+      purchaseStoreSuggestions.addEventListener('click', (event) => {
+        const option = event.target.closest('[data-purchase-store-typeahead-index]');
+        if (!option) {
+          return;
+        }
+        const suggestion = visiblePurchaseStoreSuggestions[Number(option.dataset.purchaseStoreTypeaheadIndex)];
+        applyPurchaseStoreSuggestion(suggestion);
+      });
+    }
+
     purchasePhotoInput?.addEventListener('change', () => {
       const file = purchasePhotoInput.files?.[0] || null;
       selectedPurchasePhotoFile = file;
