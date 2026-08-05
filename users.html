@@ -151,7 +151,8 @@
       function isAdminUser(user) {
         const email = toLower(user?.email);
         const username = cleanString(user?.username || user?.name);
-        return email === 'andrainaaina@gmail.com' || username === 'Admin' || toLower(user?.role) === 'admin';
+        const role = toLower(user?.role);
+        return email === 'andrainaaina@gmail.com' || username === 'Admin' || role === 'admin' || role === 'standard' || role === 'adjoint' || role === 'adjoint admin';
       }
 
       function resolveRole(user) {
@@ -160,8 +161,8 @@
         if (normalized === 'admin') {
           return 'admin';
         }
-        if (normalized === 'standard' || normalized === 'adjoint') {
-          return 'Standard';
+        if (normalized === 'standard' || normalized === 'adjoint' || normalized === 'adjoint admin') {
+          return 'Adjoint Admin';
         }
         return 'Limité';
       }
@@ -310,7 +311,7 @@
                 <td>
                   ${isPrimaryAdmin ? 'admin' : `
                   <select class="users-role-select" data-user-role="${user.id}">
-                    <option value="Standard" ${role === 'Standard' ? 'selected' : ''}>Standard</option>
+                    <option value="Adjoint Admin" ${role === 'Adjoint Admin' ? 'selected' : ''}>Adjoint Admin</option>
                     <option value="Limité" ${role === 'Limité' ? 'selected' : ''}>Limité</option>
                   </select>`}
                 </td>
@@ -336,7 +337,7 @@
         tableBody.querySelectorAll('[data-user-role]').forEach((select) => {
           select.addEventListener('change', async () => {
             const userId = select.getAttribute('data-user-role');
-            const selected = toLower(select.value) === 'standard' ? 'Standard' : 'Limité';
+            const selected = toLower(select.value) === 'adjoint admin' ? 'Adjoint Admin' : 'Limité';
             try {
               await setDoc(
                 doc(firebaseDb, 'users', userId),

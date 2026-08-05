@@ -35,7 +35,7 @@ function isPrimaryAdminEmail(email) {
 function resolveIsAdmin(profile, authUser) {
   const username = String(profile?.username || profile?.name || '').trim();
   const role = normalizeRole(profile?.role);
-  return username === 'Admin' || role === 'admin' || isPrimaryAdminEmail(profile?.email || authUser?.email);
+  return username === 'Admin' || role === 'admin' || role === 'standard' || role === 'adjoint' || role === 'adjoint admin' || isPrimaryAdminEmail(profile?.email || authUser?.email);
 }
 
 function ensureMaintenanceStyles() {
