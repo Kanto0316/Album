@@ -15,9 +15,12 @@ import {
   updateDoc,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
+import { APP_CONFIG } from './config.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
+const SITE_INACTIVITY_THRESHOLD_DAYS = Number(APP_CONFIG?.siteInactivity?.thresholdDays) || 30;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const state = {
   initialized: false,
@@ -972,6 +975,111 @@ async function init() {
   }
 }
 
+
+function getSiteInactivityThresholdDays() {
+  return SITE_INACTIVITY_THRESHOLD_DAYS;
+}
+
+function getSiteOutCount(siteId) {
+  return (state.itemsBySite.get(String(siteId || '')) || []).length;
+}
+
+function isCurrentUserSiteCreator(site) {
+  const currentUserId = String(state.userId || '').trim();
+  const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
+  return Boolean(currentUserId && creatorId && currentUserId === creatorId);
+}
+
+function getInactiveSiteEligibleDate(site, referenceDate = new Date()) {
+  if (getSiteOutCount(site?.id) !== 0) {
+    return null;
+  }
+  const inactiveSince = parseFirestoreDate(site?.inactiveSince);
+  if (!inactiveSince) {
+    return null;
+  }
+  return new Date(inactiveSince.getTime() + SITE_INACTIVITY_THRESHOLD_DAYS * DAY_IN_MS);
+}
+
+function isSitePendingInactivityDecision(site, referenceDate = new Date()) {
+  if (!isCurrentUserSiteCreator(site)) {
+    return false;
+  }
+  const eligibleDate = getInactiveSiteEligibleDate(site, referenceDate);
+  return Boolean(eligibleDate && eligibleDate.getTime() <= referenceDate.getTime());
+}
+
+async function refreshSiteInactivityStates(referenceDate = new Date()) {
+  const updates = [];
+  const nowValue = referenceDate.toISOString();
+
+  for (const site of state.sites) {
+    const siteId = String(site?.id || '').trim();
+    if (!siteId) {
+      continue;
+    }
+    const outCount = getSiteOutCount(siteId);
+    const hasInactiveSince = Boolean(parseFirestoreDate(site?.inactiveSince));
+    if (outCount === 0 && !hasInactiveSince) {
+      const payload = {
+        inactiveSince: nowValue,
+        inactivityDecisionPending: false,
+        dateModification: site.dateModification || nowValue,
+      };
+      updates.push(setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true }));
+      Object.assign(site, payload);
+      continue;
+    }
+    if (outCount > 0 && (hasInactiveSince || site?.inactivityDecisionPending)) {
+      const payload = {
+        inactiveSince: deleteField(),
+        inactivityDecisionPending: deleteField(),
+        dateModification: site.dateModification || nowValue,
+      };
+      updates.push(setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true }));
+      delete site.inactiveSince;
+      delete site.inactivityDecisionPending;
+    }
+  }
+
+  if (updates.length) {
+    await Promise.all(updates);
+    persistOfflineState();
+    emitAll();
+  }
+  return listInactiveSitesForCurrentCreator(referenceDate);
+}
+
+function listInactiveSitesForCurrentCreator(referenceDate = new Date()) {
+  return clone(state.sites.filter((site) => isSitePendingInactivityDecision(site, referenceDate)));
+}
+
+async function restoreInactiveSite(siteId) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1 || !isCurrentUserSiteCreator(state.sites[siteIndex])) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+  const timestamp = nowIso();
+  await setDoc(
+    doc(state.db, 'pages', 'page1', 'items', siteId),
+    {
+      inactiveSince: deleteField(),
+      inactivityDecisionPending: deleteField(),
+      inactivityRestoredAt: timestamp,
+      dateModification: timestamp,
+    },
+    { merge: true },
+  );
+  delete state.sites[siteIndex].inactiveSince;
+  delete state.sites[siteIndex].inactivityDecisionPending;
+  state.sites[siteIndex].inactivityRestoredAt = timestamp;
+  state.sites[siteIndex].dateModification = timestamp;
+  await appendHistoryEntry(`a restauré le site inactif ${state.sites[siteIndex].nom}`, { siteId, siteName: state.sites[siteIndex].nom });
+  persistOfflineState();
+  emitAll();
+  return { ok: true };
+}
+
 function getSite(siteId) {
   return clone(state.sites.find((site) => site.id === siteId) || null);
 }
@@ -1525,7 +1633,18 @@ async function removeSite(siteId) {
     return null;
   }
 
-  await deleteDoc(doc(state.db, 'pages', 'page1', 'items', siteId));
+  const itemsToDelete = clone(state.itemsBySite.get(siteId) || []);
+  const detailDeletePromises = [];
+  Array.from(state.detailsByItem.entries()).forEach(([key, details]) => {
+    if (key.startsWith(`${siteId}:`)) {
+      details.forEach((detail) => detailDeletePromises.push(deleteDoc(doc(state.db, 'pages', 'page3', 'items', detail.id))));
+    }
+  });
+  await Promise.all([
+    ...detailDeletePromises,
+    ...itemsToDelete.map((item) => deleteDoc(doc(state.db, 'pages', 'page2', 'items', item.id))),
+    deleteDoc(doc(state.db, 'pages', 'page1', 'items', siteId)),
+  ]);
 
   const [site] = state.sites.splice(siteIndex, 1);
   const items = clone(state.itemsBySite.get(siteId) || []);
@@ -1570,6 +1689,14 @@ async function createItem(siteId, numberValue, options = {}) {
   };
   const created = await addDoc(makePageItemsCollection('page2'), itemPayload);
   const item = { id: created.id, ...itemPayload };
+
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex !== -1 && (state.sites[siteIndex].inactiveSince || state.sites[siteIndex].inactivityDecisionPending)) {
+    await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { inactiveSince: deleteField(), inactivityDecisionPending: deleteField(), dateModification: timestamp }, { merge: true });
+    delete state.sites[siteIndex].inactiveSince;
+    delete state.sites[siteIndex].inactivityDecisionPending;
+    state.sites[siteIndex].dateModification = timestamp;
+  }
 
   if (!state.itemsBySite.has(siteId)) {
     state.itemsBySite.set(siteId, []);
@@ -2129,6 +2256,10 @@ async function importData(payload) {
 window.StorageService = {
   init,
   getSites,
+  getSiteInactivityThresholdDays,
+  refreshSiteInactivityStates,
+  listInactiveSitesForCurrentCreator,
+  restoreInactiveSite,
   getSite,
   getItem,
   subscribeSites,

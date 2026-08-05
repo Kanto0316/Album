@@ -2083,6 +2083,117 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    function ensureInactiveSiteOverlay() {
+      let overlay = document.getElementById('inactiveSiteOverlay');
+      if (overlay) {
+        return overlay;
+      }
+      overlay = document.createElement('div');
+      overlay.id = 'inactiveSiteOverlay';
+      overlay.className = 'maintenance-overlay item-delete-confirm-overlay inactive-site-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `
+        <article class="maintenance-card item-delete-confirm-card inactive-site-card" role="alertdialog" aria-modal="true" aria-labelledby="inactiveSiteTitle">
+          <h3 id="inactiveSiteTitle">⚠️ Site inactif</h3>
+          <p id="inactiveSiteText"></p>
+          <div class="modal-actions item-delete-confirm-actions inactive-site-actions">
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel inactive-site-restore" id="inactiveSiteRestoreButton">🟢 Restaurer</button>
+            <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger inactive-site-delete" id="inactiveSiteDeleteButton">🔴 Supprimer</button>
+          </div>
+        </article>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function openInactiveSiteOverlay(site) {
+      const overlay = ensureInactiveSiteOverlay();
+      const text = overlay.querySelector('#inactiveSiteText');
+      const restoreButton = overlay.querySelector('#inactiveSiteRestoreButton');
+      const deleteButton = overlay.querySelector('#inactiveSiteDeleteButton');
+      if (!text || !restoreButton || !deleteButton) {
+        return Promise.resolve('skipped');
+      }
+      restoreButton.disabled = false;
+      deleteButton.disabled = false;
+      const siteName = String(site?.nom || '').trim() || 'ce site';
+      text.innerHTML = `Nous avons remarqué que votre site <strong>${escapeHtml(siteName)}</strong> est resté inactif pendant ${StorageService.getSiteInactivityThresholdDays?.() || 30} jours en conservant <strong>0 OUT</strong>.<br><br>Souhaitez-vous le restaurer ou le supprimer définitivement ?`;
+
+      return new Promise((resolve) => {
+        let isClosing = false;
+        const cleanup = () => {
+          overlay.hidden = true;
+          overlay.classList.remove('is-open');
+          restoreButton.onclick = null;
+          deleteButton.onclick = null;
+          document.removeEventListener('keydown', handleKeyDown);
+        };
+        const close = (value) => {
+          if (isClosing) {
+            return;
+          }
+          isClosing = true;
+          overlay.classList.remove('is-open');
+          window.setTimeout(() => {
+            cleanup();
+            resolve(value);
+          }, 170);
+        };
+        const handleKeyDown = (event) => {
+          if (event.key === 'Escape') {
+            close('deferred');
+          }
+        };
+        restoreButton.onclick = async () => {
+          restoreButton.disabled = true;
+          deleteButton.disabled = true;
+          const result = await StorageService.restoreInactiveSite(site.id);
+          UiService.showToast(result?.ok ? 'Site restauré.' : 'Restauration impossible.');
+          close(result?.ok ? 'restored' : 'deferred');
+        };
+        deleteButton.onclick = async () => {
+          overlay.classList.remove('is-open');
+          overlay.hidden = true;
+          const shouldDelete = await askSiteDeleteConfirmation(siteName);
+          if (!shouldDelete) {
+            overlay.hidden = false;
+            window.requestAnimationFrame(() => overlay.classList.add('is-open'));
+            return;
+          }
+          restoreButton.disabled = true;
+          deleteButton.disabled = true;
+          const removedSnapshot = await StorageService.removeSite(site.id);
+          UiService.showToast(removedSnapshot ? 'Site supprimé définitivement.' : 'Suppression impossible.');
+          close(removedSnapshot ? 'deleted' : 'deferred');
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        overlay.hidden = false;
+        window.requestAnimationFrame(() => overlay.classList.add('is-open'));
+      });
+    }
+
+    let inactiveSitePromptRunning = false;
+    async function promptInactiveSitesForCreator() {
+      if (!authState?.isAuthenticated || inactiveSitePromptRunning) {
+        return;
+      }
+      inactiveSitePromptRunning = true;
+      try {
+        const sites = await StorageService.refreshSiteInactivityStates?.();
+        const pendingSites = Array.isArray(sites) ? sites : StorageService.listInactiveSitesForCurrentCreator?.() || [];
+        for (const site of pendingSites) {
+          const result = await openInactiveSiteOverlay(site);
+          if (result === 'deferred') {
+            break;
+          }
+        }
+      } catch (_error) {
+        UiService.showToast('Vérification des sites inactifs indisponible.');
+      } finally {
+        inactiveSitePromptRunning = false;
+      }
+    }
+
     function askSiteDeleteConfirmation(siteName) {
       const overlay = ensureSiteDeleteConfirmationDialog();
       const text = overlay.querySelector('#siteDeleteConfirmText');
@@ -3274,6 +3385,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         if (siteActionState.activeSiteId && typeof siteActionState.refreshSheetContent === 'function') {
           siteActionState.refreshSheetContent();
         }
+        promptInactiveSitesForCreator();
       },
       () => {
         UiService.showToast('Synchronisation indisponible.');
