@@ -1123,6 +1123,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const siteLockConfirmPasswordError = requireElement('siteLockConfirmPasswordError');
     const siteLockStrengthIndicator = requireElement('siteLockStrengthIndicator');
     const siteLockStrengthLabel = requireElement('siteLockStrengthLabel');
+    const siteLockStatusDialog = requireElement('siteLockStatusDialog');
+    const siteLockStatusMessage = requireElement('siteLockStatusMessage');
+    const siteLockStatusCloseButton = requireElement('siteLockStatusCloseButton');
     const siteUnlockDialog = requireElement('siteUnlockDialog');
     const siteUnlockForm = requireElement('siteUnlockForm');
     const siteUnlockPasswordInput = requireElement('siteUnlockPasswordInput');
@@ -2437,11 +2440,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
-          const lockActorLabel = siteIsLocked
-            ? resolveSiteLockActorLabel(site?.lockedBy, site?.lockedByName, userNamesByEmail)
-            : resolveSiteLockActorLabel(site?.unlockedBy, site?.unlockedByName, userNamesByEmail);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
-          const lockLabelWithActor = lockActorLabel ? `${lockLabel} par` : lockLabel;
           const canShowSiteActions = isAuthenticated;
           return `
             <article class="list-card">
@@ -2463,11 +2462,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   </span>
                 </div>
                 <span class="list-card__divider" aria-hidden="true"></span>
-                <span class="list-card__status ${siteIsLocked ? 'list-card__status--locked' : 'list-card__status--unlocked'}">
+                <span class="list-card__status ${siteIsLocked ? 'list-card__status--locked' : 'list-card__status--unlocked'}" data-site-lock-status="${site.id}" aria-label="Voir l'auteur du statut ${escapeHtml(lockLabel)}">
                   <img src="${lockIconSrc}" alt="" aria-hidden="true" class="list-card__status-icon" />
                   <span class="list-card__status-text">
-                    <span class="list-card__status-main">${escapeHtml(lockLabelWithActor)}</span>
-                    ${lockActorLabel ? `<span class="list-card__status-actor">${escapeHtml(lockActorLabel)}</span>` : ''}
+                    <span class="list-card__status-main">${escapeHtml(lockLabel)}</span>
                   </span>
                 </span>
               </button>
@@ -2483,7 +2481,26 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           event.preventDefault();
         });
 
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
+          const statusTarget = event.target.closest('[data-site-lock-status]');
+          if (statusTarget) {
+            event.preventDefault();
+            event.stopPropagation();
+            const targetSite = getLatestSiteState(statusTarget.dataset.siteLockStatus);
+            const targetIsLocked = isSiteLocked(targetSite);
+            const actorLabel = targetIsLocked
+              ? resolveSiteLockActorLabel(targetSite?.lockedBy, targetSite?.lockedByName, userNamesByEmail)
+              : resolveSiteLockActorLabel(targetSite?.unlockedBy, targetSite?.unlockedByName, userNamesByEmail);
+            const icon = targetIsLocked ? '🔒' : '🔓';
+            const actionLabel = targetIsLocked ? 'verrouillé' : 'déverrouillé';
+            if (siteLockStatusMessage) {
+              siteLockStatusMessage.textContent = `${icon} Site ${actionLabel} par ${actorLabel || 'Utilisateur inconnu'}`;
+              siteLockStatusMessage.classList.toggle('site-lock-status-message--locked', targetIsLocked);
+              siteLockStatusMessage.classList.toggle('site-lock-status-message--unlocked', !targetIsLocked);
+            }
+            siteLockStatusDialog?.showModal();
+            return;
+          }
           const targetSite = getLatestSiteState(siteId);
           if (!isSiteLocked(targetSite)) {
             UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
@@ -3011,6 +3028,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     siteLockConfirmPasswordInput?.addEventListener('input', () => {
       clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
+    });
+
+
+    siteLockStatusCloseButton?.addEventListener('click', () => {
+      siteLockStatusDialog?.close();
+    });
+
+    siteLockStatusDialog?.addEventListener('click', (event) => {
+      if (event.target === siteLockStatusDialog) {
+        siteLockStatusDialog.close();
+      }
     });
 
     siteUnlockPasswordInput?.addEventListener('input', () => {
