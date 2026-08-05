@@ -643,9 +643,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       document.body.removeChild(link);
       window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
       UiService.showToast(`${title} lancé.`);
+      return true;
     } catch (error) {
       console.error('Erreur export Excel :', error);
       UiService.showToast('Impossible de générer le fichier Excel.');
+      return false;
     }
   }
 
@@ -4208,7 +4210,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const title = `SUIVI MATERIEL . ${currentSite.nom}`;
       const workbook = buildSiteExcelContent(title, sortedRows, currentSite?.nom);
       const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
-      downloadExcelFile(fileName, 'Export Excel', workbook);
+      const exported = await downloadExcelFile(fileName, 'Export Excel', workbook);
+      if (!exported) {
+        return;
+      }
+      await StorageService.recordExcelExportHistory(siteId, currentSite?.nom);
       saveExportFileNameToHistory(fileName);
     }
 
@@ -7028,7 +7034,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       countLabel.textContent = `${filteredCount > 1 ? 'Articles' : 'Article'} / ${totalCount}`;
     }
 
-    function exportDetails(fileNameOverride) {
+    async function exportDetails(fileNameOverride) {
       if (!currentItem || !currentSite) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
         return;
@@ -7042,7 +7048,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       const workbook = buildDetailExcelContent(`${currentSite.nom} · ${currentItem.numero}`, filteredDetails, currentSite?.nom);
       const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
-      downloadExcelFile(fileName, 'Export Excel', workbook);
+      const exported = await downloadExcelFile(fileName, 'Export Excel', workbook);
+      if (!exported) {
+        return;
+      }
+      await StorageService.recordExcelExportHistory(siteId, currentSite?.nom);
       saveExportFileNameToHistory(fileName);
     }
 
@@ -7756,7 +7766,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         detailExportSubmitButton.disabled = true;
         detailExportSubmitButton.classList.add('is-loading');
         try {
-          exportDetails(fileName);
+          await exportDetails(fileName);
           closeDetailExportDialog();
         } catch (_error) {
           detailExportSubmitButton.disabled = false;
