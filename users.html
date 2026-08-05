@@ -123,6 +123,7 @@
     <script type="module">
       import { addDoc, collection, onSnapshot, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
       import { firebaseDb } from './js/firebase-core.js';
+      import { MESSAGE_VARIABLES, replaceVariables } from './js/message-variables.js';
 
       function cleanString(value) {
         return String(value || '').trim();
@@ -496,7 +497,7 @@
       let isAdminMessageSending = false;
       let isRestoringAdminMessageDraft = false;
       let activeAdminMessageVariableField = adminMessageBodyInput;
-      const ADMIN_MESSAGE_VARIABLES = ['{Nom}', '{Prénom}', '{NomComplet}', '{Mail}', '{Role}', '{Point}'];
+      const ADMIN_MESSAGE_VARIABLES = MESSAGE_VARIABLES;
       const ADMIN_MESSAGE_VARIABLE_CLASS_BY_NAME = {
         '{Nom}': 'admin-message-variable-token--nom',
         '{Prénom}': 'admin-message-variable-token--prenom',
@@ -522,22 +523,6 @@
         }
         const selectedIds = new Set(selectedRecipientIds.map(String));
         return recipients.filter((user) => selectedIds.has(String(user.id)));
-      }
-
-      function buildAdminMessageVariables(user) {
-        return {
-          '{Nom}': resolveLastName(user),
-          '{Prénom}': resolveFirstName(user),
-          '{NomComplet}': resolveDisplayName(user),
-          '{Mail}': cleanString(user.email),
-          '{Role}': resolveRole(user),
-          '{Point}': String(Number(currentPointsByUser?.[user.id] || 0)),
-        };
-      }
-
-      function personalizeAdminMessageBody(body, user) {
-        const variables = buildAdminMessageVariables(user);
-        return ADMIN_MESSAGE_VARIABLES.reduce((message, variable) => message.split(variable).join(variables[variable] || ''), body);
       }
 
       function getAdminMessageEditorText(editor) {
@@ -1065,8 +1050,9 @@
             return;
           }
           await Promise.all(recipients.map((recipient) => addDoc(collection(firebaseDb, 'adminMessages'), {
-            title,
-            body: personalizeAdminMessageBody(body, recipient),
+            title: replaceVariables(title, recipient, currentPointsByUser),
+            body: replaceVariables(body, recipient, currentPointsByUser),
+            titleTemplate: title,
             bodyTemplate: body,
             recipientMode: 'selected',
             recipientIds: [recipient.id],
