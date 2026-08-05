@@ -253,7 +253,10 @@
           </div>
           <label class="input-group input-group--site-create">
             <span>Magasin</span>
-            <input id="purchaseStore" type="text" placeholder="Ex : Titan I" />
+            <div class="typeahead" id="purchaseStoreTypeahead">
+              <input id="purchaseStore" type="text" placeholder="Ex : ABC" autocomplete="off" />
+              <div id="purchaseStoreSuggestions" class="typeahead__menu" role="listbox" aria-label="Suggestions de magasin" hidden></div>
+            </div>
             <p class="form-error form-error--field" aria-hidden="true"></p>
           </label>
           <label class="input-group input-group--site-create">
