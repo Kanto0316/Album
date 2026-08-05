@@ -922,7 +922,7 @@ function emitForSite(siteId) {
 }
 
 function emitAll() {
-  state.listeners.sites.forEach((listener) => listener(clone(state.sites)));
+  state.listeners.sites.forEach((listener) => listener(filterSitesVisibleToCurrentUser()));
 
   const itemCounts = {};
   state.itemsBySite.forEach((items, siteId) => {
@@ -1002,11 +1002,22 @@ function getInactiveSiteEligibleDate(site, referenceDate = new Date()) {
 }
 
 function isSitePendingInactivityDecision(site, referenceDate = new Date()) {
-  if (!isCurrentUserSiteCreator(site)) {
+  if (!site) {
     return false;
+  }
+  if (site?.inactivityDecisionPending === true) {
+    return true;
   }
   const eligibleDate = getInactiveSiteEligibleDate(site, referenceDate);
   return Boolean(eligibleDate && eligibleDate.getTime() <= referenceDate.getTime());
+}
+
+function isSiteVisibleToCurrentUser(site, referenceDate = new Date()) {
+  return !isSitePendingInactivityDecision(site, referenceDate) || isCurrentUserSiteCreator(site);
+}
+
+function filterSitesVisibleToCurrentUser(sites = state.sites, referenceDate = new Date()) {
+  return clone((Array.isArray(sites) ? sites : []).filter((site) => isSiteVisibleToCurrentUser(site, referenceDate)));
 }
 
 async function refreshSiteInactivityStates(referenceDate = new Date()) {
@@ -1030,15 +1041,28 @@ async function refreshSiteInactivityStates(referenceDate = new Date()) {
       Object.assign(site, payload);
       continue;
     }
+    const pendingEligibleDate = getInactiveSiteEligibleDate(site, referenceDate);
+    if (outCount === 0 && pendingEligibleDate && pendingEligibleDate.getTime() <= referenceDate.getTime() && site?.inactivityDecisionPending !== true) {
+      const payload = {
+        inactivityDecisionPending: true,
+        inactivityDecisionPendingAt: nowValue,
+        dateModification: site.dateModification || nowValue,
+      };
+      updates.push(setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true }));
+      Object.assign(site, payload);
+      continue;
+    }
     if (outCount > 0 && (hasInactiveSince || site?.inactivityDecisionPending)) {
       const payload = {
         inactiveSince: deleteField(),
         inactivityDecisionPending: deleteField(),
+        inactivityDecisionPendingAt: deleteField(),
         dateModification: site.dateModification || nowValue,
       };
       updates.push(setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true }));
       delete site.inactiveSince;
       delete site.inactivityDecisionPending;
+      delete site.inactivityDecisionPendingAt;
     }
   }
 
@@ -1051,7 +1075,7 @@ async function refreshSiteInactivityStates(referenceDate = new Date()) {
 }
 
 function listInactiveSitesForCurrentCreator(referenceDate = new Date()) {
-  return clone(state.sites.filter((site) => isSitePendingInactivityDecision(site, referenceDate)));
+  return clone(state.sites.filter((site) => isCurrentUserSiteCreator(site) && isSitePendingInactivityDecision(site, referenceDate)));
 }
 
 async function restoreInactiveSite(siteId) {
@@ -1065,6 +1089,7 @@ async function restoreInactiveSite(siteId) {
     {
       inactiveSince: deleteField(),
       inactivityDecisionPending: deleteField(),
+      inactivityDecisionPendingAt: deleteField(),
       inactivityRestoredAt: timestamp,
       dateModification: timestamp,
     },
@@ -1072,6 +1097,7 @@ async function restoreInactiveSite(siteId) {
   );
   delete state.sites[siteIndex].inactiveSince;
   delete state.sites[siteIndex].inactivityDecisionPending;
+  delete state.sites[siteIndex].inactivityDecisionPendingAt;
   state.sites[siteIndex].inactivityRestoredAt = timestamp;
   state.sites[siteIndex].dateModification = timestamp;
   await appendHistoryEntry(`a restauré le site inactif ${state.sites[siteIndex].nom}`, { siteId, siteName: state.sites[siteIndex].nom });
@@ -1081,11 +1107,12 @@ async function restoreInactiveSite(siteId) {
 }
 
 function getSite(siteId) {
-  return clone(state.sites.find((site) => site.id === siteId) || null);
+  const site = state.sites.find((item) => item.id === siteId) || null;
+  return site && isSiteVisibleToCurrentUser(site) ? clone(site) : null;
 }
 
 function getSites() {
-  return clone(state.sites);
+  return filterSitesVisibleToCurrentUser();
 }
 
 function getItem(siteId, itemId) {
@@ -1105,7 +1132,7 @@ function subscribeFactory(registry, key, onChange) {
 function subscribeSites(onChange, onError) {
   try {
     state.listeners.sites.add(onChange);
-    onChange(clone(state.sites));
+    onChange(filterSitesVisibleToCurrentUser());
     return () => state.listeners.sites.delete(onChange);
   } catch (error) {
     if (typeof onError === 'function') {
@@ -1692,9 +1719,10 @@ async function createItem(siteId, numberValue, options = {}) {
 
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex !== -1 && (state.sites[siteIndex].inactiveSince || state.sites[siteIndex].inactivityDecisionPending)) {
-    await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { inactiveSince: deleteField(), inactivityDecisionPending: deleteField(), dateModification: timestamp }, { merge: true });
+    await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { inactiveSince: deleteField(), inactivityDecisionPending: deleteField(), inactivityDecisionPendingAt: deleteField(), dateModification: timestamp }, { merge: true });
     delete state.sites[siteIndex].inactiveSince;
     delete state.sites[siteIndex].inactivityDecisionPending;
+    delete state.sites[siteIndex].inactivityDecisionPendingAt;
     state.sites[siteIndex].dateModification = timestamp;
   }
 
@@ -2257,6 +2285,7 @@ window.StorageService = {
   init,
   getSites,
   getSiteInactivityThresholdDays,
+  isSitePendingInactivityDecision,
   refreshSiteInactivityStates,
   listInactiveSitesForCurrentCreator,
   restoreInactiveSite,
