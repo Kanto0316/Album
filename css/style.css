@@ -6914,11 +6914,14 @@ body.sidebar-open {
 .sidebar-footer {
   flex: 0 0 auto;
   margin-top: auto;
-  padding-top: 14px;
+  padding: 14px 12px;
+  border-top: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 16px;
   text-align: center;
   font-size: 12px;
   line-height: 1.25;
-  color: #8a94a6;
+  color: #475569;
+  background: linear-gradient(180deg, #eef5ff 0%, #e7f0ff 100%);
 }
 
 .sidebar-footer p {
