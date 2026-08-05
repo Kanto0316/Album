@@ -3402,10 +3402,55 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
 
+    function normalizePurchaseStoreSuggestionKey(store) {
+      return String(store || '').trim().toLowerCase();
+    }
+
+    function buildPurchaseStoreSuggestionList(extraSuggestions = []) {
+      const suggestionsByKey = new Map();
+      [...defaultPurchaseStoreSuggestions, ...extraSuggestions].forEach((store) => {
+        const cleanStore = String(store || '').trim();
+        const key = normalizePurchaseStoreSuggestionKey(cleanStore);
+        if (!key || suggestionsByKey.has(key)) {
+          return;
+        }
+        suggestionsByKey.set(key, cleanStore);
+      });
+      return Array.from(suggestionsByKey.values()).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+    }
+
+    function loadStoredPurchaseStoreSuggestions() {
+      try {
+        const storedValue = window.localStorage.getItem(purchaseStoreSuggestionsStorageKey);
+        const parsedValue = JSON.parse(storedValue || '[]');
+        return Array.isArray(parsedValue) ? parsedValue : [];
+      } catch (_error) {
+        return [];
+      }
+    }
+
+    function savePurchaseStoreSuggestions() {
+      try {
+        window.localStorage.setItem(purchaseStoreSuggestionsStorageKey, JSON.stringify(purchaseStoreSuggestionSource));
+      } catch (_error) {
+        // Ignore localStorage restrictions.
+      }
+    }
+
+    function addPurchaseStoreSuggestion(store) {
+      const cleanStore = String(store || '').trim();
+      const key = normalizePurchaseStoreSuggestionKey(cleanStore);
+      if (!key || purchaseStoreSuggestionSource.some((suggestion) => normalizePurchaseStoreSuggestionKey(suggestion) === key)) {
+        return;
+      }
+      purchaseStoreSuggestionSource = buildPurchaseStoreSuggestionList([cleanStore, ...purchaseStoreSuggestionSource]);
+      savePurchaseStoreSuggestions();
+    }
+
     function getPurchaseStoreMatches(query) {
       const normalizedQuery = String(query || '').trim().toLowerCase();
       if (!normalizedQuery) {
-        return [];
+        return purchaseStoreSuggestionSource.slice(0, 8);
       }
 
       return purchaseStoreSuggestionSource
@@ -3670,6 +3715,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
           purchasePayload,
         );
+        addPurchaseStoreSuggestion(store);
         purchaseModal?.close();
         resetPurchaseForm();
         await loadPurchasesForCurrentSite();
@@ -4517,7 +4563,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let hasBlockingItemNumberError = false;
     let itemStoreOtherHideTimer = null;
     const itemStoreOtherTransitionDurationMs = 200;
-    const purchaseStoreSuggestionSource = ['ABC', 'SANIFER', 'AQUAMAD', 'OCEAN TRADE', 'MASTER TRADE', 'BATIMAX', 'METAPRO'];
+    const defaultPurchaseStoreSuggestions = ['ABC', 'SANIFER', 'AQUAMAD', 'OCEAN TRADE', 'MASTER TRADE', 'BATIMAX', 'METAPRO'];
+    const purchaseStoreSuggestionsStorageKey = 'purchaseStoreSuggestions';
+    let purchaseStoreSuggestionSource = buildPurchaseStoreSuggestionList(loadStoredPurchaseStoreSuggestions());
     let visiblePurchaseStoreSuggestions = [];
     let activePurchaseStoreSuggestionIndex = -1;
     const ITEM_DIALOG_MODE_CREATE = 'create';
@@ -5177,10 +5225,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (purchaseStore && purchaseStoreSuggestions) {
       purchaseStore.addEventListener('focus', () => {
-        if (!String(purchaseStore.value || '').trim()) {
-          hidePurchaseStoreSuggestions();
-          return;
-        }
         renderPurchaseStoreSuggestions(purchaseStore.value);
       });
 
