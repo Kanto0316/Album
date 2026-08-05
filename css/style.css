@@ -6688,8 +6688,7 @@ body[data-page="home"] #homeMenuButton {
   transform: translateX(-105%);
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 1999;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .header-menu__drawer.is-open {
@@ -6759,6 +6758,10 @@ body.sidebar-open {
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-item {
@@ -6800,6 +6803,28 @@ body.sidebar-open {
 
 .sidebar-item.active {
   background: #eef5fb;
+}
+
+.sidebar-footer {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 14px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.25;
+  color: #8a94a6;
+}
+
+.sidebar-footer p {
+  margin: 0;
+}
+
+.sidebar-footer p + p {
+  margin-top: 3px;
+}
+
+.sidebar-footer__title {
+  font-weight: 600;
 }
 
 html,
