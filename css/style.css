@@ -7607,9 +7607,7 @@ body[data-page="home"] .inactive-site-delete {
 body[data-page="home"] .site-creator-edit {
   color: inherit;
   cursor: pointer;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 body[data-page="home"] .site-creator-edit:hover,
