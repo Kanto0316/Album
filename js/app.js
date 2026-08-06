@@ -1271,6 +1271,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     let userNamesById = {};
     let userNamesByEmail = {};
     let userEmailsById = {};
+    let activeUsers = [];
     let currentPermissions = permissions;
     let isAuthenticated = Boolean(authState?.isAuthenticated);
     let siteIdPendingLock = null;
@@ -1831,6 +1832,14 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return 'weak';
     }
 
+    function canCurrentUserChangeSiteCreator() {
+      return Boolean(currentPermissions?.isAdmin);
+    }
+
+    function getActiveCreatorUsers() {
+      return activeUsers.filter((user) => String(user?.id || '').trim() && String(user?.username || user?.displayName || user?.name || user?.email || '').trim());
+    }
+
     function updateSiteLockStrengthIndicator() {
       if (!siteLockStrengthIndicator || !siteLockStrengthLabel) {
         return;
@@ -1855,6 +1864,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     async function loadUserNames() {
       try {
         const users = await StorageService.listUsers();
+        activeUsers = users;
         userNamesById = users.reduce((accumulator, user) => {
           if (user?.id) {
             accumulator[user.id] = user.username || user.displayName || user.name || 'Utilisateur';
@@ -1880,6 +1890,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         userNamesById = {};
         userNamesByEmail = {};
         userEmailsById = {};
+        activeUsers = [];
       }
       renderSites();
     }
@@ -2666,6 +2677,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const outCount = itemCountsBySite[site.id] || 0;
           const createdDateTime = buildDateAndTimeLabel(site?.dateCreation);
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
+          const canChangeCreator = canCurrentUserChangeSiteCreator();
+          const creatorMarkup = canChangeCreator
+            ? `<span class="site-creator-edit" data-site-creator="${escapeHtml(site.id)}" role="button" tabindex="0" title="Modifier le créateur" aria-label="Modifier le créateur du site ${escapeHtml(site.nom)}">${escapeHtml(createdBy)}</span>`
+            : `<span>${escapeHtml(createdBy)}</span>`;
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
@@ -2691,7 +2706,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                   </span>
                   <span class="list-card__meta-item">
                     <img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" />
-                    <span>${escapeHtml(createdBy)}</span>
+                    ${creatorMarkup}
                   </span>
                 </div>
                 <span class="list-card__divider" aria-hidden="true"></span>
@@ -2706,6 +2721,66 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           `;
         })
         .join('');
+
+
+      siteList.querySelectorAll('[data-site-creator]').forEach((creatorElement) => {
+        const openCreatorSelect = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!canCurrentUserChangeSiteCreator()) {
+            return;
+          }
+          const siteId = creatorElement.dataset.siteCreator;
+          const site = getLatestSiteState(siteId);
+          const users = getActiveCreatorUsers();
+          if (!site || !users.length) {
+            UiService.showToast('Aucun utilisateur actif disponible.');
+            return;
+          }
+
+          const select = document.createElement('select');
+          select.className = 'site-creator-select';
+          select.setAttribute('aria-label', 'Choisir le créateur du site');
+          users
+            .slice()
+            .sort((userA, userB) => String(userA.username || userA.email || '').localeCompare(String(userB.username || userB.email || ''), 'fr', { sensitivity: 'base' }))
+            .forEach((user) => {
+              const option = document.createElement('option');
+              option.value = user.id;
+              option.textContent = user.username || user.displayName || user.name || user.email || 'Utilisateur';
+              option.selected = user.id === String(site.createdBy || site.ownerId || '');
+              select.appendChild(option);
+            });
+
+          creatorElement.replaceWith(select);
+          select.focus();
+          select.addEventListener('click', (selectEvent) => selectEvent.stopPropagation());
+          select.addEventListener('blur', () => renderSites(), { once: true });
+          select.addEventListener('change', async (changeEvent) => {
+            changeEvent.preventDefault();
+            changeEvent.stopPropagation();
+            const selectedUser = users.find((user) => user.id === select.value);
+            if (!selectedUser) {
+              renderSites();
+              return;
+            }
+            select.disabled = true;
+            const result = await StorageService.updateSiteCreator(siteId, selectedUser);
+            if (!result?.ok) {
+              UiService.showToast('Modification du créateur impossible.');
+              renderSites();
+              return;
+            }
+            UiService.showToast('Créateur du site mis à jour.');
+          });
+        };
+        creatorElement.addEventListener('click', openCreatorSelect);
+        creatorElement.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            openCreatorSelect(event);
+          }
+        });
+      });
 
       siteList.querySelectorAll('[data-site-open]').forEach((button) => {
         const siteId = button.dataset.siteOpen;

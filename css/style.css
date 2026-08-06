@@ -7603,3 +7603,27 @@ body[data-page="home"] .inactive-site-delete {
   background: #dc2626;
   color: #fff;
 }
+
+body[data-page="home"] .site-creator-edit {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+body[data-page="home"] .site-creator-edit:hover,
+body[data-page="home"] .site-creator-edit:focus-visible {
+  color: #2563eb;
+  outline: none;
+}
+
+body[data-page="home"] .site-creator-select {
+  max-width: 180px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  padding: 4px 8px;
+}
