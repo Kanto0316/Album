@@ -1498,6 +1498,22 @@ async function recordSiteUnlockHistory(siteId) {
   await appendHistoryEntry('a déverrouillé le site', { siteId });
 }
 
+function formatSiteUnlockFailureAttemptsMessage(attemptsRemaining) {
+  const count = Math.max(0, Number(attemptsRemaining) || 0);
+  if (count === 0) {
+    return 'Il ne reste plus aucun essai.';
+  }
+  return `Il reste ${count} ${count === 1 ? 'essai' : 'essais'}.`;
+}
+
+async function recordSiteUnlockFailureHistory(siteId, attemptsRemaining) {
+  const profile = await getCurrentUserProfile();
+  const username = normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu';
+  const siteName = resolveSiteNameForHistory(siteId);
+  const action = `${username} a essayé d'ouvrir le site « ${siteName || 'Site inconnu'} » avec un mot de passe incorrect. ${formatSiteUnlockFailureAttemptsMessage(attemptsRemaining)}`;
+  await appendHistoryEntry(action, { siteId, siteName });
+}
+
 async function recordExcelExportHistory(siteId, siteName = '') {
   const resolvedSiteName = resolveSiteNameForHistory(siteId, siteName);
   const action = resolvedSiteName
@@ -2363,6 +2379,7 @@ window.StorageService = {
   updateDetail,
   removeDetail,
   recordSiteUnlockHistory,
+  recordSiteUnlockFailureHistory,
   recordExcelExportHistory,
   exportData,
   importData,
