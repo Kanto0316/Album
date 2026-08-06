@@ -7642,3 +7642,15 @@ body[data-page="home"] .site-creator-select {
   font: inherit;
   padding: 4px 8px;
 }
+
+/* Page "Tableau des données" : keep the main card nearly edge-to-edge. */
+body[data-page="item-detail"] .app-shell.app-shell--wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-inline: 0 !important;
+}
+
+body[data-page="item-detail"] .page-content.page-content--wide.main-content {
+  padding-left: clamp(5px, 1.8vw, 9px) !important;
+  padding-right: clamp(5px, 1.8vw, 9px) !important;
+}
