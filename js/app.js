@@ -22,6 +22,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
+  const DEFAULT_PURCHASE_IMAGE_SRC = 'Icon/Image.png';
+
   const EXPORT_FILE_NAME_HISTORY_KEY = 'suiviMateriel.exportFileNames.v1';
   const EXPORT_FILE_NAME_HISTORY_LIMIT = 24;
 
@@ -5360,7 +5362,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                 <div class="purchase-card__media" aria-hidden="true">
                   ${String(purchase?.imageUrl || '').trim()
                     ? `<img src="${escapeHtml(purchase.imageUrl)}" alt="Photo achat matériel" />`
-                    : '🖼️'}
+                    : `<img src="${escapeHtml(DEFAULT_PURCHASE_IMAGE_SRC)}" alt="" aria-hidden="true" />`}
                 </div>
                 <div class="purchase-card__body">
                   <h3 class="list-card__title">${escapeHtml(purchase?.designation || '-')}</h3>
@@ -8597,7 +8599,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       summaryCreatedAt.textContent = dateLabel;
       summaryMedia.innerHTML = imageUrl
         ? `<img src="${escapeHtml(imageUrl)}" alt="Photo achat matériel" />`
-        : '<span>🖼️</span>';
+        : `<img src="${escapeHtml(DEFAULT_PURCHASE_IMAGE_SRC)}" alt="" aria-hidden="true" />`;
       qty.value = `${Number(purchase?.qty || 0)} ${String(purchase?.unit || 'Pcs')}`;
       store.value = purchaseStore;
       if (purchaseRemark) {
