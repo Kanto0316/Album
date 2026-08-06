@@ -1093,8 +1093,7 @@ body[data-page="history"] .list-grid {
   flex: 1 1 auto;
   min-height: 0;
   background: rgba(255, 255, 255, 0.88);
-  border-block: 1px solid rgba(182, 206, 232, 0.8);
-  border-inline: 0;
+  border: 0;
   border-radius: 0;
   box-shadow: var(--shadow);
   overflow-y: auto;
