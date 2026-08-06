@@ -3412,6 +3412,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         const passwordHash = await hashPassword(passwordValue);
         if (passwordHash !== targetSite.passwordHash) {
           const failure = await StorageService.registerSiteUnlockFailure(siteIdPendingUnlock);
+          await StorageService.recordSiteUnlockFailureHistory(siteIdPendingUnlock, failure?.attemptsRemaining);
           clearSiteUnlockAttemptsInfo();
           if (failure?.isBlocked) {
             setSiteUnlockBlockedState(true);
@@ -8291,7 +8292,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     if (!action || !siteName) {
       return action;
     }
-    if (/\bsite\s+«[^»]+»[.!?]?$/i.test(action) || /\bdans le site\s+«[^»]+»[.!?]?$/i.test(action) || /\bdu site\s+«[^»]+»[.!?]?$/i.test(action)) {
+    if (/\bsite\s+«[^»]+»/i.test(action) || /\bdans le site\s+«[^»]+»[.!?]?$/i.test(action) || /\bdu site\s+«[^»]+»[.!?]?$/i.test(action)) {
       return action;
     }
     const suffix = `site « ${siteName} »`;
