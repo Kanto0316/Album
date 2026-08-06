@@ -7610,6 +7610,12 @@ body[data-page="home"] .site-creator-edit {
   text-decoration: none;
 }
 
+body[data-page="home"] .site-creator-name {
+  border-bottom: 0;
+  background-image: none;
+  text-decoration: none;
+}
+
 body[data-page="home"] .site-creator-edit:hover,
 body[data-page="home"] .site-creator-edit:focus-visible {
   color: #2563eb;

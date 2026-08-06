@@ -2679,8 +2679,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const canChangeCreator = canCurrentUserChangeSiteCreator();
           const creatorMarkup = canChangeCreator
-            ? `<span class="site-creator-edit" data-site-creator="${escapeHtml(site.id)}" role="button" tabindex="0" title="Modifier le créateur" aria-label="Modifier le créateur du site ${escapeHtml(site.nom)}">${escapeHtml(createdBy)}</span>`
-            : `<span>${escapeHtml(createdBy)}</span>`;
+            ? `<span class="site-creator-name site-creator-edit" data-site-creator="${escapeHtml(site.id)}" role="button" tabindex="0" title="Modifier le créateur" aria-label="Modifier le créateur du site ${escapeHtml(site.nom)}">${escapeHtml(createdBy)}</span>`
+            : `<span class="site-creator-name">${escapeHtml(createdBy)}</span>`;
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
