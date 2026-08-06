@@ -6887,9 +6887,12 @@ body.sidebar-open {
 
 .sidebar-item__icon {
   width: 20px;
+  height: 20px;
   color: #2563eb;
   font-size: 18px;
   text-align: center;
+  object-fit: contain;
+  flex: 0 0 20px;
 }
 
 .sidebar-item:hover {
