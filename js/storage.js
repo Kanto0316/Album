@@ -1365,6 +1365,43 @@ async function updateSiteName(siteId, name) {
   return { ok: true };
 }
 
+async function updateSiteCreator(siteId, user) {
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+
+  const userId = String(user?.id || user?.uid || '').trim();
+  if (!userId) {
+    return { ok: false, reason: 'invalid_user' };
+  }
+
+  const userName = normalizeUsername(user?.username || user?.displayName || user?.name || user?.email || 'Utilisateur') || 'Utilisateur';
+  const userEmail = String(user?.email || '').trim();
+  const timestamp = nowIso();
+  const creatorPayload = {
+    ownerId: userId,
+    createdBy: userId,
+    createdByName: userName,
+    createdByEmail: userEmail,
+    dateModification: timestamp,
+  };
+
+  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), creatorPayload, { merge: true });
+
+  state.sites[siteIndex] = {
+    ...state.sites[siteIndex],
+    ...creatorPayload,
+  };
+  await appendHistoryEntry(`a changé le créateur du site ${state.sites[siteIndex].nom} en ${userName}`, {
+    siteId,
+    siteName: state.sites[siteIndex].nom,
+  });
+  persistOfflineState();
+  emitAll();
+  return { ok: true };
+}
+
 async function setSiteLock(siteId, lockPayload) {
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
@@ -2310,6 +2347,7 @@ window.StorageService = {
   getAllDetails,
   createSite,
   updateSiteName,
+  updateSiteCreator,
   setSiteLock,
   clearSiteLock,
   getSiteUnlockProtectionState,
