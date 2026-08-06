@@ -2111,7 +2111,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       overlay.innerHTML = `
         <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteConfirmTitle">
           <h3 id="siteDeleteConfirmTitle">Supprimer ce site ?</h3>
-          <p id="siteDeleteConfirmText">Cette action est irréversible.</p>
           <div class="modal-actions item-delete-confirm-actions">
             <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="siteDeleteCancelButton">Annuler</button>
             <button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger" id="siteDeleteConfirmButton">Supprimer</button>
@@ -2317,10 +2316,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     function askSiteDeleteConfirmation(siteName) {
       const overlay = ensureSiteDeleteConfirmationDialog();
-      const text = overlay.querySelector('#siteDeleteConfirmText');
       const cancelButton = overlay.querySelector('#siteDeleteCancelButton');
       const confirmButton = overlay.querySelector('#siteDeleteConfirmButton');
-      if (!text || !cancelButton || !confirmButton) {
+      if (!cancelButton || !confirmButton) {
         return Promise.resolve(false);
       }
 
@@ -2329,8 +2327,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (title) {
         title.textContent = `Supprimer ce site ${normalizedSiteName} ?`;
       }
-      text.textContent = 'Cette action est irréversible.';
-
       return new Promise((resolve) => {
         const closeAnimationDurationMs = 170;
         let closeAnimationTimer = null;
