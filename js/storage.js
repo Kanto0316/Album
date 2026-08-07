@@ -2154,20 +2154,48 @@ async function pruneHistoryEntries() {
   await Promise.all(docsToDelete.map((historyDoc) => deleteDoc(historyDoc.ref)));
 }
 
+function normalizeHistoryDocument(snap) {
+  const data = snap.data() || {};
+  return {
+    id: snap.id,
+    userId: sanitizeText(data.userId, false),
+    userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
+    action: sanitizeText(data.action, false),
+    siteId: sanitizeText(data.siteId, false),
+    siteName: resolveSiteNameForHistory(data.siteId, data.siteName),
+    createdAt: data.createdAt || null,
+  };
+}
+
+async function recordSearchHistory(searchText, context = {}) {
+  const queryText = sanitizeText(searchText, false);
+  if (!queryText) {
+    return;
+  }
+  await appendHistoryEntry(`a recherché « ${queryText} »`, context);
+}
+
+async function recordFilterHistory(filterName, context = {}) {
+  const label = sanitizeText(filterName, false);
+  if (!label) {
+    return;
+  }
+  await appendHistoryEntry(`a appliqué le filtre « ${label} »`, context);
+}
+
 async function listHistoriques() {
   const snapshot = await getDocs(query(historyCollection(), orderBy('createdAt', 'desc')));
-  return snapshot.docs.map((snap) => {
-    const data = snap.data() || {};
-    return {
-      id: snap.id,
-      userId: sanitizeText(data.userId, false),
-      userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
-      action: sanitizeText(data.action, false),
-      siteId: sanitizeText(data.siteId, false),
-      siteName: resolveSiteNameForHistory(data.siteId, data.siteName),
-      createdAt: data.createdAt || null,
-    };
-  });
+  return snapshot.docs.map(normalizeHistoryDocument);
+}
+
+function subscribeHistoriques(onChange, onError) {
+  return onSnapshot(
+    query(historyCollection(), orderBy('createdAt', 'desc')),
+    (snapshot) => {
+      onChange(snapshot.docs.map(normalizeHistoryDocument));
+    },
+    onError,
+  );
 }
 
 function exportData() {
@@ -2401,6 +2429,9 @@ window.StorageService = {
   subscribeMaintenanceState,
   subscribeCurrentUserProfile,
   computeNextNameChangeDate,
+  recordSearchHistory,
+  recordFilterHistory,
   listHistoriques,
+  subscribeHistoriques,
   getAuthUser: () => clone(state.authUser),
 };
