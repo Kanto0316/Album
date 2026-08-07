@@ -7777,7 +7777,7 @@ body[data-page="item-detail"] .page-content.page-content--wide.main-content {
   min-height: 0;
   height: calc(100dvh - var(--header-height));
   padding-top: 8px !important;
-  padding-bottom: 11px !important;
+  padding-bottom: 20px !important;
   overflow: hidden;
 }
 
