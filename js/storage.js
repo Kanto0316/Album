@@ -2125,6 +2125,10 @@ async function appendHistoryEntry(actionText, context = {}) {
   }
   try {
     const profile = await getCurrentUserProfile();
+    if (normalizeRole(profile?.role) === 'admin') {
+      return;
+    }
+
     const username = normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu';
     const siteId = sanitizeText(context?.siteId, false);
     const siteName = resolveSiteNameForHistory(siteId, context?.siteName);
