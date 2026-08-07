@@ -7767,8 +7767,7 @@ body[data-page="item-detail"] .table-container--card {
 }
 
 body[data-page="item-detail"] .search-panel--inline {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  padding: 0 !important;
 }
 
 body[data-page="item-detail"] .auth-required-card--embedded {
