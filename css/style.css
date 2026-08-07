@@ -7854,6 +7854,118 @@ body[data-page="item-detail"] .table-wrapper--shared {
   padding-bottom: 70px !important;
 }
 
+/* Demande matériels: mirror the compact, edge-to-edge data table layout. */
+body[data-page="all-materials"] {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+}
+
+body[data-page="all-materials"] .app-shell.app-shell--wide {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin-inline: 0 !important;
+}
+
+body[data-page="all-materials"] .app-header.app-header--detail,
+body[data-page="all-materials"] .page-content.page-content--wide.main-content,
+body[data-page="all-materials"] .table-card,
+body[data-page="all-materials"] .table-container--card,
+body[data-page="all-materials"] .table-wrapper--shared,
+body[data-page="all-materials"] .data-table {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body[data-page="all-materials"] .page-content.page-content--wide.main-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100dvh - var(--header-height));
+  padding: 8px 0 20px !important;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+body[data-page="all-materials"] .main-content > .table-card {
+  --page3-content-gutter: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 8px var(--page3-content-gutter) 0 !important;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+}
+
+body[data-page="all-materials"] .section-heading--table,
+body[data-page="all-materials"] .page3-sub-info,
+body[data-page="all-materials"] .search-panel--inline,
+body[data-page="all-materials"] .table-container--card {
+  box-sizing: border-box;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+body[data-page="all-materials"] .section-heading--table,
+body[data-page="all-materials"] .page3-sub-info,
+body[data-page="all-materials"] .search-panel--inline {
+  flex: 0 0 auto;
+}
+
+body[data-page="all-materials"] .page3-sub-info {
+  padding-top: 8px !important;
+}
+
+body[data-page="all-materials"] .search-panel--inline {
+  padding: 0 !important;
+}
+
+body[data-page="all-materials"] .search-panel .input-group {
+  width: 100%;
+  max-width: none;
+}
+
+body[data-page="all-materials"] .table-container--card {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+body[data-page="all-materials"] .table-wrapper--shared {
+  height: 100%;
+  min-width: 100%;
+  padding-bottom: 70px !important;
+}
+
+@media (max-width: 480px) {
+  body[data-page="all-materials"] .main-content > .table-card {
+    --page3-content-gutter: 8px;
+  }
+}
+
 /* Gestion Admin: keep the admin page aligned with the app's compact mobile gutters. */
 body[data-page="users-management"] .app-shell.app-shell--wide {
   width: 100%;
