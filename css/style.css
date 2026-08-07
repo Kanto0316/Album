@@ -7205,6 +7205,7 @@ body[data-page="item-detail"] .search-highlight {
   }
 }
 
+
 /* =========================================================
    RESPONSIVE UI SCALING
    Premium scaling for tablet / desktop / Chrome desktop mode
@@ -7653,4 +7654,36 @@ body[data-page="item-detail"] .app-shell.app-shell--wide {
 body[data-page="item-detail"] .page-content.page-content--wide.main-content {
   padding-left: clamp(5px, 1.8vw, 9px) !important;
   padding-right: clamp(5px, 1.8vw, 9px) !important;
+}
+
+/* Final history layout override: keep the page flush with the viewport edges. */
+body[data-page="history"] .app-shell {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+}
+
+body[data-page="history"] .app-header,
+body[data-page="history"] .app-header--detail,
+body[data-page="history"] .page-content--history,
+body[data-page="history"] .main-content,
+body[data-page="history"] .history-list,
+body[data-page="history"] .history-list__items {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body[data-page="history"] .page-content--history {
+  padding-inline: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  gap: 0 !important;
+}
+
+body[data-page="history"] .history-list {
+  box-shadow: none !important;
+}
+
+body[data-page="history"] .history-list__item {
+  padding: 0.75rem 0.75rem;
 }
