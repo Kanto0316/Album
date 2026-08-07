@@ -362,7 +362,7 @@
                 <td>${avatarMarkup}</td>
                 <td>${escapeHtml(displayName)}</td>
                 <td class="users-last-activity-cell">${formatLastActivity(user.lastActivity)}</td>
-                <td class="users-email-cell">${escapeHtml(email) || '-'}</td>
+                <td class="users-email-cell" title="${escapeHtml(email) || '-'}">${escapeHtml(email) || '-'}</td>
                 <td>
                   ${isPrimaryAdmin ? 'admin' : `
                   <select class="users-role-select" data-user-role="${user.id}">
