@@ -109,6 +109,56 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return escapeHtml(safeText).replace(matcher, '<mark>$1</mark>');
   }
 
+
+  function normalizeLoggedSearchText(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function createSearchAndFilterHistoryLogger(siteId, siteNameResolver) {
+    let searchTimer = null;
+    let lastRecordedSearch = '';
+
+    const getContext = () => ({
+      siteId,
+      siteName: typeof siteNameResolver === 'function' ? siteNameResolver() : siteNameResolver,
+    });
+
+    const recordSearch = (searchText) => {
+      const normalizedSearch = normalizeLoggedSearchText(searchText);
+      if (!normalizedSearch || normalizedSearch === lastRecordedSearch) {
+        return;
+      }
+      lastRecordedSearch = normalizedSearch;
+      StorageService.recordSearchHistory?.(normalizedSearch, getContext()).catch(() => {});
+    };
+
+    return {
+      scheduleSearch(searchText) {
+        if (searchTimer) {
+          window.clearTimeout(searchTimer);
+        }
+        searchTimer = window.setTimeout(() => {
+          searchTimer = null;
+          recordSearch(searchText);
+        }, 500);
+      },
+      flushSearch(searchText) {
+        if (searchTimer) {
+          window.clearTimeout(searchTimer);
+          searchTimer = null;
+        }
+        recordSearch(searchText);
+      },
+      recordFilter(filterName) {
+        const normalizedFilter = normalizeLoggedSearchText(filterName);
+        if (!normalizedFilter) {
+          return;
+        }
+        StorageService.recordFilterHistory?.(normalizedFilter, getContext()).catch(() => {});
+      },
+    };
+  }
+
   function setCountText(element, count, singular, plural) {
     element.textContent = `${count} ${count === 1 ? singular : plural}`;
   }
@@ -3706,6 +3756,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const itemNumberLabelText = itemDialog?.querySelector('.item-number-label-text');
 
     let currentSite = StorageService.getSite(siteId);
+    const siteDetailHistoryLogger = createSearchAndFilterHistoryLogger(siteId, () => currentSite?.nom || siteTitle?.textContent || '');
     let currentItems = [];
     let currentPurchases = [];
     let detailCountsByItem = {};
@@ -5106,7 +5157,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (targetOption?.classList.contains('is-disabled')) {
         return;
       }
+      const previousFilter = activeStatusFilter;
       activeStatusFilter = nextFilter;
+      if (nextFilter !== previousFilter) {
+        siteDetailHistoryLogger.recordFilter(targetOption?.querySelector('.page2-filter-option__label')?.textContent || statusFilterLabelByKey[nextFilter] || 'Tous');
+      }
       try {
         window.localStorage.setItem(cursorFilterActiveStorageKey, statusFilterLabelByKey[activeStatusFilter] || 'Tous');
       } catch (_error) {
@@ -6196,9 +6251,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           clearSearchReadIdsStorage();
         }
       }
+      siteDetailHistoryLogger.scheduleSearch(itemSearchInput.value);
       renderActiveTabContent({
         flashSearchMatches: isOutSearchInput,
       });
+    });
+
+    itemSearchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        siteDetailHistoryLogger.flushSearch(itemSearchInput.value);
+      }
     });
 
     if (itemStatusFilterButton && itemStatusFilterMenu && itemStatusFilterOptions.length) {
@@ -6247,6 +6309,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             return;
           }
           selectedDateFilter = nextFilter;
+          siteDetailHistoryLogger.recordFilter(chip.textContent || 'Tous');
           itemDateFilter.value = selectedDateFilter;
           window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
           updateFilterChipsState();
@@ -6492,6 +6555,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     setupZoomableDetailTable();
 
     let currentSite = StorageService.getSite(siteId);
+    const detailHistoryLogger = createSearchAndFilterHistoryLogger(siteId, () => currentSite?.nom || '');
     let currentItem = StorageService.getItem(siteId, itemId);
     let currentDetails = [];
     let hasResolvedInitialDetails = false;
@@ -7112,7 +7176,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       if (targetOption?.classList.contains('is-disabled')) {
         return;
       }
+      const previousFilter = activeDetailFilter;
       activeDetailFilter = filterKey;
+      if (filterKey !== previousFilter) {
+        detailHistoryLogger.recordFilter(targetOption?.dataset.filterLabel || detailFilterLabelByKey[filterKey] || 'Tous');
+      }
       try {
         window.localStorage.setItem(cursorFilterActiveStorageKey, detailFilterLabelByKey[activeDetailFilter] || 'Tous');
       } catch (_error) {
@@ -7792,7 +7860,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', () => {
+        detailHistoryLogger.scheduleSearch(detailSearchInput.value);
         renderTable();
+      });
+      detailSearchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          detailHistoryLogger.flushSearch(detailSearchInput.value);
+        }
       });
       const toggleClearButton = () => {
         if (!detailSearchInput || !clearSearchBtn) {
@@ -8321,6 +8395,9 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return action;
     }
     const suffix = `site « ${siteName} »`;
+    if (/^a (?:recherché|appliqué le filtre)\b/i.test(action)) {
+      return `${action} dans le site « ${siteName} ».`;
+    }
     if (/^a déverrouillé le site\b/i.test(action)) {
       return `${action} « ${siteName} ».`;
     }
@@ -8336,8 +8413,11 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return;
     }
 
-    try {
-      const users = await StorageService.listUsers();
+    const renderHistoriques = (historiques, users = []) => {
+      if (!historiques.length) {
+        UiService.renderEmptyState(historyList, 'Aucun historique enregistré pour le moment.');
+        return;
+      }
       const usersById = users.reduce((accumulator, user) => {
         if (user?.id) {
           accumulator[user.id] = user;
@@ -8351,11 +8431,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         }
         return accumulator;
       }, {});
-      const historiques = await StorageService.listHistoriques();
-      if (!historiques.length) {
-        UiService.renderEmptyState(historyList, 'Aucun historique enregistré pour le moment.');
-        return;
-      }
 
       historyList.innerHTML = `
         <ul class="history-list__items">
@@ -8385,6 +8460,20 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             .join('')}
         </ul>
       `;
+    };
+
+    try {
+      const users = await StorageService.listUsers();
+      const initialHistoriques = await StorageService.listHistoriques();
+      renderHistoriques(initialHistoriques, users);
+      if (typeof StorageService.subscribeHistoriques === 'function') {
+        StorageService.subscribeHistoriques(
+          (historiques) => renderHistoriques(historiques, users),
+          () => {
+            UiService.renderEmptyState(historyList, "Impossible de charger l'historique.");
+          },
+        );
+      }
     } catch (_error) {
       UiService.renderEmptyState(historyList, "Impossible de charger l'historique.");
     }
