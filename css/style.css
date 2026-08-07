@@ -8196,3 +8196,151 @@ body[data-page="home"] #siteLockStatusCloseButton:focus-visible {
     width: 100%;
   }
 }
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay {
+  transition: opacity 150ms ease;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-card {
+  width: min(100%, 420px);
+  max-width: 420px;
+  padding: 24px;
+  border: 0;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.18), 0 8px 18px rgba(15, 23, 42, 0.08);
+  text-align: center;
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms ease;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay.is-open .site-delete-forbidden-card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) .site-delete-forbidden-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: #ffedd5;
+  color: #f97316;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) .site-delete-forbidden-icon .material-icons-round {
+  font-size: 36px;
+  line-height: 1;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-card h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenDescription {
+  max-width: 340px;
+  margin: 12px auto 20px;
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: center;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-creator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+  text-align: left;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) .site-delete-forbidden-creator__icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: var(--primary-color);
+  font-size: 23px;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) .site-delete-forbidden-creator__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) .site-delete-forbidden-creator__label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-creator strong {
+  color: #1f2937;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-creator span[id="siteDeleteForbiddenCreatorEmail"] {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-actions {
+  margin-top: 24px;
+  justify-content: center;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-close-button {
+  width: 180px;
+  height: 48px;
+  min-height: 48px;
+  flex: 0 0 180px;
+  border-radius: 9999px;
+  background: var(--primary-color);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(46, 108, 229, 0.28);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-close-button:hover {
+  background: #245bd0;
+  box-shadow: 0 12px 26px rgba(46, 108, 229, 0.34);
+}
+
+body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-close-button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay,
+  body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverlay .site-delete-forbidden-card {
+    transition-duration: 1ms;
+  }
+}
