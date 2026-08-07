@@ -2806,9 +2806,23 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               ? resolveSiteLockActorLabel(targetSite?.lockedBy, targetSite?.lockedByName, userNamesByEmail)
               : resolveSiteLockActorLabel(targetSite?.unlockedBy, targetSite?.unlockedByName, userNamesByEmail);
             const icon = targetIsLocked ? '🔒' : '🔓';
-            const actionLabel = targetIsLocked ? 'verrouillé' : 'déverrouillé';
+            const statusTitle = targetIsLocked ? 'Site verrouillé' : 'Site déverrouillé';
+            const statusDescription = targetIsLocked
+              ? 'Ce site est actuellement verrouillé.'
+              : 'Ce site est actuellement déverrouillé.';
+            const actorHeading = targetIsLocked ? 'Verrouillé par' : 'Dernier déverrouillage effectué par';
+            const actorName = actorLabel || 'Utilisateur inconnu';
             if (siteLockStatusMessage) {
-              siteLockStatusMessage.textContent = `${icon} Site ${actionLabel} par ${actorLabel || 'Utilisateur inconnu'}`;
+              siteLockStatusMessage.innerHTML = `
+                <article class="site-lock-status-card">
+                  <h3 class="site-lock-status-card__title"><span aria-hidden="true">${icon}</span>${escapeHtml(statusTitle)}</h3>
+                  <p class="site-lock-status-card__description">${escapeHtml(statusDescription)}</p>
+                  <div class="site-lock-status-card__actor">
+                    <span class="site-lock-status-card__actor-label">${escapeHtml(actorHeading)}</span>
+                    <strong class="site-lock-status-card__actor-name">${escapeHtml(actorName)}</strong>
+                  </div>
+                </article>
+              `;
               siteLockStatusMessage.classList.toggle('site-lock-status-message--locked', targetIsLocked);
               siteLockStatusMessage.classList.toggle('site-lock-status-message--unlocked', !targetIsLocked);
             }
