@@ -2159,14 +2159,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
         overlay.hidden = true;
         overlay.innerHTML = `
-          <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteForbiddenTitle">
-            <h3 id="siteDeleteForbiddenTitle">Suppression impossible.</h3>
-            <p>Seul le créateur du site peut supprimer ce site.</p>
-            <div class="site-delete-forbidden-creator" id="siteDeleteForbiddenCreator">
-              <strong id="siteDeleteForbiddenCreatorName"></strong>
-              <span id="siteDeleteForbiddenCreatorEmail"></span>
+          <article class="maintenance-card item-delete-confirm-card site-delete-forbidden-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteForbiddenTitle" aria-describedby="siteDeleteForbiddenDescription">
+            <div class="site-delete-forbidden-icon" aria-hidden="true">
+              <span class="material-icons-round">warning_amber</span>
             </div>
-            <div class="modal-actions item-delete-confirm-actions">
+            <h3 id="siteDeleteForbiddenTitle">Suppression impossible</h3>
+            <p id="siteDeleteForbiddenDescription">Seul le créateur de ce site est autorisé à supprimer ce site.</p>
+            <div class="site-delete-forbidden-creator" id="siteDeleteForbiddenCreator">
+              <span class="site-delete-forbidden-creator__icon material-icons-round" aria-hidden="true">person</span>
+              <span class="site-delete-forbidden-creator__content">
+                <span class="site-delete-forbidden-creator__label">Créateur du site</span>
+                <strong id="siteDeleteForbiddenCreatorName"></strong>
+                <span id="siteDeleteForbiddenCreatorEmail"></span>
+              </span>
+            </div>
+            <div class="modal-actions item-delete-confirm-actions site-delete-forbidden-actions">
               <button type="button" class="btn item-delete-confirm-button site-delete-forbidden-close-button" id="siteDeleteForbiddenCloseButton">OK</button>
             </div>
           </article>
