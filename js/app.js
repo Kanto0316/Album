@@ -39,6 +39,18 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return sanitizeExportFileName(value, fallbackName).replace(/\.xls$/i, '').trim() || fallbackName;
   }
 
+  function sanitizePage2ExportBaseName(value, fallbackName = 'SUIVI_MATERIEL') {
+    const cleaned = String(value || '')
+      .replace(/\.xlsx?$/i, '')
+      .replace(/[\\/:*?"<>|]+/g, '')
+      .replace(/[^\p{L}\p{N}\s._-]+/gu, '')
+      .replace(/[.]+/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return cleaned || fallbackName;
+  }
+
   function readExportFileNameHistory() {
     try {
       const rawValue = window.localStorage.getItem(EXPORT_FILE_NAME_HISTORY_KEY);
@@ -89,14 +101,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
+    return `${year}-${month}-${day}_${hours}-${minutes}`;
   }
 
-  function buildPage2ExportFileName(siteName, extension = 'xlsx') {
-    const safeSiteName = toFileSlug(siteName);
+  function buildPage2ExportFileName(baseName, extension = 'xlsx') {
+    const safeSiteName = sanitizePage2ExportBaseName(baseName);
     const timestamp = buildExportTimestamp();
-    return `suivi-materiel-${safeSiteName}-${timestamp}.${extension}`;
+    return `${safeSiteName}_${timestamp}.${String(extension || 'xlsx').replace(/^\.+/, '')}`;
   }
 
   function highlightMatchText(text, query) {
@@ -4375,7 +4386,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
       const title = `SUIVI MATERIEL . ${currentSite.nom}`;
       const workbook = buildSiteExcelContent(title, sortedRows, currentSite?.nom);
-      const fileName = buildPage2ExportFileName(currentSite?.nom, 'xlsx');
+      const defaultFileName = currentSite?.nom ? `SUIVI MATERIEL ${currentSite.nom}` : 'SUIVI MATERIEL';
+      const fileName = buildPage2ExportFileName(fileNameOverride || defaultFileName, 'xlsx');
       downloadExcelFile(fileName, 'Export Excel', workbook);
       saveExportFileNameToHistory(fileName);
     }
@@ -4407,7 +4419,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         exportItems();
         return;
       }
-      const defaultName = currentSite?.nom ? `SUIVI MATERIEL . ${currentSite.nom}` : 'export-materiel';
+      const defaultName = currentSite?.nom ? `SUIVI MATERIEL ${currentSite.nom}` : 'SUIVI MATERIEL';
       siteExportFileNameInput.value = sanitizeExportFileName(defaultName);
       if (siteExportLineFilterSelect) {
         siteExportLineFilterSelect.value = 'all';
@@ -6190,7 +6202,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         if (!siteExportSubmitButton || siteExportSubmitButton.disabled) {
           return;
         }
-        const fileName = sanitizeExportFileName(siteExportFileNameInput?.value || '');
+        const fileName = String(siteExportFileNameInput?.value || '').trim();
         if (!fileName) {
           updateSiteExportSubmitState();
           return;
