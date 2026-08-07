@@ -2187,6 +2187,10 @@ async function recordFilterHistory(filterName, context = {}) {
   await appendHistoryEntry(`a appliqué le filtre « ${label} »`, context);
 }
 
+async function recordMaterialsPageOpenHistory() {
+  await appendHistoryEntry('a cliqué sur « Demande matériels ».');
+}
+
 async function listHistoriques() {
   const snapshot = await getDocs(query(historyCollection(), orderBy('createdAt', 'desc')));
   return snapshot.docs.map(normalizeHistoryDocument);
@@ -2435,6 +2439,7 @@ window.StorageService = {
   computeNextNameChangeDate,
   recordSearchHistory,
   recordFilterHistory,
+  recordMaterialsPageOpenHistory,
   listHistoriques,
   subscribeHistoriques,
   getAuthUser: () => clone(state.authUser),

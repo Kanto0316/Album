@@ -10,6 +10,33 @@ import { firebaseDb } from './firebase-core.js';
   let lastRequestMeta = null;
   let isRequestPngDownloading = false;
   let displayedMaterials = [];
+  let hasRecordedMaterialsPageOpen = false;
+
+
+  function waitForAppPermissionsReady() {
+    if (window.AppPermissions) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      window.addEventListener('app:permissions-ready', () => resolve(), { once: true });
+    });
+  }
+
+  async function recordMaterialsPageOpenHistoryOnce() {
+    if (hasRecordedMaterialsPageOpen) {
+      return;
+    }
+
+    hasRecordedMaterialsPageOpen = true;
+
+    try {
+      await waitForAppPermissionsReady();
+      await window.StorageService?.recordMaterialsPageOpenHistory?.();
+    } catch (_error) {
+      // L'historique ne doit pas bloquer l'ouverture de la page.
+    }
+  }
 
   function getCartItemKey(item = {}) {
     return String(item.code || item.manualKey || '');
@@ -1172,6 +1199,7 @@ import { firebaseDb } from './firebase-core.js';
     try {
       allMaterials = await loadAllMaterials();
       renderMaterials(allMaterials);
+      recordMaterialsPageOpenHistoryOnce();
     } catch (error) {
       console.error('Erreur chargement tous matériels :', error);
       renderMaterials([]);
