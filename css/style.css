@@ -7870,7 +7870,7 @@ body[data-page="item-detail"] .table-container--card {
 body[data-page="item-detail"] .table-wrapper--shared {
   height: auto;
   max-height: none !important;
-  padding-bottom: 70 !important;
+  padding-bottom: 70px !important;
 }
 
 /* Demande matériels: mirror the compact, edge-to-edge data table layout. */
