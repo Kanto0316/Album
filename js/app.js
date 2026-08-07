@@ -8132,7 +8132,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
             </td>
             <td>${escapeHtml(resolveDisplayName(user))}</td>
             <td class="users-last-activity-cell">${escapeHtml(formatLastActivity(user.lastActivity))}</td>
-            <td class="users-email-cell">${escapeHtml(cleanText(user.email) || '-')}</td>
+            <td class="users-email-cell" title="${escapeHtml(cleanText(user.email) || '-')}">${escapeHtml(cleanText(user.email) || '-')}</td>
             <td>
               ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com' ? 'admin' : `
               <select data-user-role="${user.id}">

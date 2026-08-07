@@ -2447,9 +2447,18 @@ body[data-page="users-management"] .table-wrapper--users {
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table {
-  min-width: 52rem;
+  min-width: 68rem;
   table-layout: fixed;
 }
+
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(1) { width: 5rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(2) { width: 5rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(3) { width: 13rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(4) { width: 12rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(5) { width: 18rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(6) { width: 10rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(7) { width: 12rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(8) { width: 5rem; }
 
 body[data-page="users-management"] .table-wrapper--users .data-table th,
 body[data-page="users-management"] .table-wrapper--users .data-table td {
@@ -2459,6 +2468,13 @@ body[data-page="users-management"] .table-wrapper--users .data-table td {
   vertical-align: middle;
 }
 
+body[data-page="users-management"] .table-wrapper--users .data-table td {
+  height: 3.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 body[data-page="users-management"] .table-wrapper--users .data-table th {
   font-size: 0.84rem;
   letter-spacing: 0.02em;
@@ -2466,15 +2482,19 @@ body[data-page="users-management"] .table-wrapper--users .data-table th {
   color: #3b4a5f;
 }
 
-body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(3) {
+body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(3),
+body[data-page="users-management"] .users-email-cell {
   min-width: 0;
-  max-width: 15rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(5) select {
+body[data-page="users-management"] .users-email-cell {
+  max-width: 18rem;
+}
+
+body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(6) select {
   max-width: 100%;
 }
 
@@ -7099,7 +7119,7 @@ body[data-page="item-detail"] .search-highlight {
   }
 
   body[data-page="users-management"] .table-wrapper--users .data-table {
-    min-width: 64rem;
+    min-width: 76rem;
   }
 
   body[data-page="item-detail"] .data-table {
