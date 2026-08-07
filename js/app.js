@@ -115,7 +115,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
   }
 
   function createSearchAndFilterHistoryLogger(siteId, siteNameResolver) {
-    let searchTimer = null;
     let lastRecordedSearch = '';
 
     const getContext = () => ({
@@ -133,20 +132,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     };
 
     return {
-      scheduleSearch(searchText) {
-        if (searchTimer) {
-          window.clearTimeout(searchTimer);
-        }
-        searchTimer = window.setTimeout(() => {
-          searchTimer = null;
-          recordSearch(searchText);
-        }, 500);
-      },
-      flushSearch(searchText) {
-        if (searchTimer) {
-          window.clearTimeout(searchTimer);
-          searchTimer = null;
-        }
+      recordSearchOnBlur(searchText) {
         recordSearch(searchText);
       },
       recordFilter(filterName) {
@@ -6251,16 +6237,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
           clearSearchReadIdsStorage();
         }
       }
-      siteDetailHistoryLogger.scheduleSearch(itemSearchInput.value);
       renderActiveTabContent({
         flashSearchMatches: isOutSearchInput,
       });
     });
 
-    itemSearchInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        siteDetailHistoryLogger.flushSearch(itemSearchInput.value);
-      }
+    itemSearchInput.addEventListener('blur', () => {
+      siteDetailHistoryLogger.recordSearchOnBlur(itemSearchInput.value);
     });
 
     if (itemStatusFilterButton && itemStatusFilterMenu && itemStatusFilterOptions.length) {
@@ -7860,13 +7843,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
     if (detailSearchInput) {
       detailSearchInput.addEventListener('input', () => {
-        detailHistoryLogger.scheduleSearch(detailSearchInput.value);
         renderTable();
       });
-      detailSearchInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          detailHistoryLogger.flushSearch(detailSearchInput.value);
-        }
+      detailSearchInput.addEventListener('blur', () => {
+        detailHistoryLogger.recordSearchOnBlur(detailSearchInput.value);
       });
       const toggleClearButton = () => {
         if (!detailSearchInput || !clearSearchBtn) {
