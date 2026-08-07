@@ -7687,3 +7687,70 @@ body[data-page="history"] .history-list {
 body[data-page="history"] .history-list__item {
   padding: 0.75rem 0.75rem;
 }
+
+/* Final page 3 width fix: make the data table page flush with Android viewport edges. */
+body[data-page="item-detail"] {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+body[data-page="item-detail"] .app-shell.app-shell--wide {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body[data-page="item-detail"] .app-header.app-header--detail,
+body[data-page="item-detail"] .page-content.page-content--wide.main-content,
+body[data-page="item-detail"] .table-card,
+body[data-page="item-detail"] .table-container--card,
+body[data-page="item-detail"] .table-wrapper--shared,
+body[data-page="item-detail"] .data-table {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body[data-page="item-detail"] .page-content.page-content--wide.main-content {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  gap: 0.5rem;
+}
+
+body[data-page="item-detail"] .table-card {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  padding: 10px !important;
+}
+
+body[data-page="item-detail"] .section-heading--table,
+body[data-page="item-detail"] .page3-sub-info,
+body[data-page="item-detail"] .search-panel--inline,
+body[data-page="item-detail"] .auth-required-card--embedded,
+body[data-page="item-detail"] .table-container--card {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body[data-page="item-detail"] .search-panel--inline,
+body[data-page="item-detail"] .auth-required-card--embedded {
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+@media (max-width: 480px) {
+  body[data-page="item-detail"] .table-card {
+    padding: 8px !important;
+  }
+
+  body[data-page="item-detail"] .search-panel--inline,
+  body[data-page="item-detail"] .auth-required-card--embedded {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
