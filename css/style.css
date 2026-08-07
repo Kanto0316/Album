@@ -7800,7 +7800,7 @@ body[data-page="item-detail"] .auth-required-card--embedded {
   }
 }
 
-/* Final page 3 height fix: remove vertical dead space and stretch the table. */
+/* Final page 3 height behavior: let short tables shrink while preserving scroll for long tables. */
 body[data-page="item-detail"] {
   height: 100vh;
   height: 100dvh;
@@ -7857,9 +7857,10 @@ body[data-page="item-detail"] .page3-info-row + .search-panel {
 }
 
 body[data-page="item-detail"] .table-container--card {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
-  height: 100%;
+  height: auto;
+  max-height: calc(100dvh - var(--header-height) - 12rem);
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0;
@@ -7867,9 +7868,9 @@ body[data-page="item-detail"] .table-container--card {
 }
 
 body[data-page="item-detail"] .table-wrapper--shared {
-  height: 100%;
+  height: auto;
   max-height: none !important;
-  padding-bottom: 70px !important;
+  padding-bottom: 0 !important;
 }
 
 /* Demande matériels: mirror the compact, edge-to-edge data table layout. */
