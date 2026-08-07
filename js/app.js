@@ -2664,6 +2664,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const sites = currentSites
         .filter((site) => String(site.nom || '').toUpperCase().includes(query))
         .sort(compareSitesByName);
+      const siteCountLabel = document.getElementById('siteCountLabel');
+      if (siteCountLabel) {
+        siteCountLabel.textContent = sites.length === 1 ? 'Nombre total de site :' : 'Nombre total des sites :';
+      }
       siteCount.textContent = String(sites.length);
 
       if (!sites.length) {
