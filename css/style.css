@@ -7833,3 +7833,54 @@ body[data-page="item-detail"] .table-wrapper--shared {
   max-height: none !important;
   padding-bottom: 0 !important;
 }
+
+/* Gestion Admin: keep the admin page aligned with the app's compact mobile gutters. */
+body[data-page="users-management"] .app-shell.app-shell--wide {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+body[data-page="users-management"] .page-content.page-content--wide.main-content {
+  width: 100%;
+  max-width: 100%;
+  padding-inline: 10px;
+  box-sizing: border-box;
+}
+
+body[data-page="users-management"] .main-content > .surface-card {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+body[data-page="users-management"] .users-search-field,
+body[data-page="users-management"] .users-search-field__control,
+body[data-page="users-management"] .table-wrapper--users,
+body[data-page="users-management"] .table-wrapper--users .data-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 380px) {
+  body[data-page="users-management"] .page-content.page-content--wide.main-content {
+    padding-inline: 8px;
+  }
+
+  body[data-page="users-management"] .main-content > .surface-card {
+    padding: 8px;
+  }
+}
+
+@media (min-width: 768px) {
+  body[data-page="users-management"] .app-shell.app-shell--wide {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+  }
+
+  body[data-page="users-management"] .page-content.page-content--wide.main-content {
+    padding-inline: 12px !important;
+  }
+}
