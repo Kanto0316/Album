@@ -87,7 +87,7 @@
           </section>
         </div>
         <section class="surface-card table-card">
-          <h2 class="section-title" id="usersCardHeader">Tous les utilisateurs : <span class="users-card-stat users-card-stat--total">0</span><br />En ligne : <span class="users-card-stat users-card-stat--online">0</span></h2>
+          <h2 class="section-title" id="usersCardHeader">Tous les utilisateurs : <span class="users-card-stat users-card-stat--total">0</span><br /><span class="users-card-online-label">En ligne</span> : <span class="users-card-stat users-card-stat--online">0</span></h2>
           <div class="users-search-field input-group">
             <label class="visually-hidden" for="usersSearchInput">Rechercher un utilisateur</label>
             <div class="users-search-field__control">
@@ -249,7 +249,7 @@
         }
         const referenceDate = new Date();
         const onlineCount = users.filter((user) => isUserOnline(user, referenceDate)).length;
-        usersCardHeader.innerHTML = `Tous les utilisateurs : <span class="users-card-stat users-card-stat--total">${users.length}</span><br />En ligne : <span class="users-card-stat users-card-stat--online">${onlineCount}</span>`;
+        usersCardHeader.innerHTML = `Tous les utilisateurs : <span class="users-card-stat users-card-stat--total">${users.length}</span><br /><span class="users-card-online-label">En ligne</span> : <span class="users-card-stat users-card-stat--online">${onlineCount}</span>`;
       }
 
       function formatLastActivity(value, referenceDate = new Date()) {
