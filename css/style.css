@@ -7862,7 +7862,7 @@ body[data-page="item-detail"] .table-container--card {
   height: auto;
   max-height: calc(100dvh - var(--header-height) - 12rem);
   overflow-x: auto;
-  overflow-y: auto;
+  overflow-y: hidden;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0;
@@ -7871,9 +7871,11 @@ body[data-page="item-detail"] .table-container--card {
 
 body[data-page="item-detail"] .table-wrapper--shared {
   height: auto;
-  max-height: none !important;
-  overflow: visible;
+  max-height: calc(100dvh - var(--header-height) - 12rem) !important;
+  overflow-x: visible;
+  overflow-y: auto;
   padding-bottom: 63px !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 body[data-page="item-detail"] .data-table th {
