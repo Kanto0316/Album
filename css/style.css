@@ -3272,6 +3272,11 @@ body[data-page="item-detail"] .header-top,
   gap: 12px;
 }
 
+body[data-page="all-materials"] .page3-summary-header {
+  align-items: center;
+  gap: clamp(10px, 3vw, 16px);
+}
+
 body[data-page="item-detail"] .title-block,
 .page3 .page3-title-block {
   min-width: 0;
@@ -3286,14 +3291,28 @@ body[data-page="item-detail"] .title-block .section-title,
 }
 
 
-.page3 .page3-title-block #openManualMaterialBtn {
-  display: block;
-  margin-top: 16px;
-  margin-bottom: 20px;
-  padding: 0.72rem 1.05rem;
-  font-weight: 600;
-  min-width: 205px;
+.page3 #openManualMaterialBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin: 0;
+  min-width: 168px;
+  min-height: 36px;
   width: fit-content;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  .page3 #openManualMaterialBtn {
+    min-width: 0;
+    padding-inline: 0.75rem;
+    font-size: 0.86rem;
+  }
 }
 
 .page3-sub-info {
