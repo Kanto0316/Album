@@ -7755,3 +7755,75 @@ body[data-page="item-detail"] .auth-required-card--embedded {
     --page3-content-gutter: 8px;
   }
 }
+
+/* Final page 3 height fix: remove vertical dead space and stretch the table. */
+body[data-page="item-detail"] {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+body[data-page="item-detail"] .app-shell.app-shell--wide {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body[data-page="item-detail"] .page-content.page-content--wide.main-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100dvh - var(--header-height));
+  padding-top: 8px !important;
+  padding-bottom: 0 !important;
+  overflow: hidden;
+}
+
+body[data-page="item-detail"] .main-content > .table-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px !important;
+  padding-bottom: 0 !important;
+}
+
+body[data-page="item-detail"] .section-heading--table,
+body[data-page="item-detail"] .page3-sub-info,
+body[data-page="item-detail"] .search-panel--inline,
+body[data-page="item-detail"] .auth-required-card--embedded {
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+body[data-page="item-detail"] .page3-sub-info {
+  padding-top: 8px !important;
+}
+
+body[data-page="item-detail"] .page3 .page3-info-row + .search-panel,
+body[data-page="item-detail"] .page3-info-row + .search-panel {
+  margin-top: 0 !important;
+}
+
+body[data-page="item-detail"] .table-container--card {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+body[data-page="item-detail"] .table-wrapper--shared {
+  height: 100%;
+  max-height: none !important;
+  padding-bottom: 0 !important;
+}
