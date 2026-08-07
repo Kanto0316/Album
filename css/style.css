@@ -7851,7 +7851,7 @@ body[data-page="item-detail"] .table-container--card {
 body[data-page="item-detail"] .table-wrapper--shared {
   height: 100%;
   max-height: none !important;
-  padding-bottom: 0 !important;
+  padding-bottom: 100px !important;
 }
 
 /* Gestion Admin: keep the admin page aligned with the app's compact mobile gutters. */
