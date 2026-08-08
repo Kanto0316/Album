@@ -755,7 +755,7 @@ function outDeletionLimitDocRef(userId, dateKey = getOutDeletionLimitDateKey()) 
   return doc(state.db, 'users', userId, 'outDeletionLimits', dateKey);
 }
 
-async function hasReachedOutDeletionLimit(userId, limit = 6) {
+async function hasReachedOutDeletionLimit(userId, limit = 2) {
   if (!userId) {
     return true;
   }
