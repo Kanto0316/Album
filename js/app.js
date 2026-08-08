@@ -4571,7 +4571,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       overlay.innerHTML = `
         <article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="outDeleteLimitTitle">
           <h3 id="outDeleteLimitTitle">Limite de suppression atteinte</h3>
-          <p>Vous avez atteint la limite de <strong>6 suppressions de OUT par jour</strong></p>
+          <p>Vous avez atteint la limite de <strong>2 suppressions de OUT par jour</strong>.</p>
           <p>Veuillez réessayer demain.</p>
           <div class="modal-actions item-delete-confirm-actions">
             <button type="button" class="btn item-delete-confirm-button site-delete-forbidden-close-button" id="outDeleteLimitCloseButton">OK</button>
