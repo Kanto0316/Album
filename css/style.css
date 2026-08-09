@@ -8369,7 +8369,7 @@ body[data-page="site-detail"] .page2-header {
   row-gap: 0.75rem;
   align-items: start;
   padding-top: 0.9rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.7rem;
 }
 
 body[data-page="site-detail"] .page2-header > .page2-search-filter-bar {
