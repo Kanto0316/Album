@@ -8359,3 +8359,78 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverl
     transition-duration: 1ms;
   }
 }
+
+/* Page 2: search and status filter integrated into the blue header */
+body[data-page="site-detail"] .page2-header {
+  min-height: 8.6rem;
+  height: auto;
+  grid-template-rows: auto auto;
+  row-gap: 0.75rem;
+  align-items: start;
+  padding-top: 0.9rem;
+  padding-bottom: 1rem;
+}
+
+body[data-page="site-detail"] .page2-header > .page2-search-filter-bar {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  max-width: min(100%, 42rem);
+  justify-self: center;
+  padding-inline: clamp(0.15rem, 1.6vw, 0.6rem);
+}
+
+body[data-page="site-detail"] .page2-header .page2-search-filter-bar .input-group {
+  margin: 0;
+}
+
+body[data-page="site-detail"] .page2-header #itemSearchInput {
+  min-height: 2.9rem;
+  border-color: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+body[data-page="site-detail"] .page2-header .page2-filter-button {
+  width: 2.9rem;
+  height: 2.9rem;
+  min-height: 2.9rem;
+  border-color: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+body[data-page="site-detail"] .page2-header .page2-filter-menu {
+  z-index: 60;
+}
+
+@media (max-width: 420px) {
+  body[data-page="site-detail"] .page2-header {
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    row-gap: 0.65rem;
+    padding-inline: 0.65rem;
+  }
+
+  body[data-page="site-detail"] .page2-header .app-header__side {
+    width: 48px;
+  }
+
+  body[data-page="site-detail"] .page2-header > .page2-search-filter-bar {
+    gap: 8px;
+    padding-inline: 0;
+  }
+
+  body[data-page="site-detail"] .page2-header #itemSearchInput {
+    min-height: 2.75rem;
+    padding-left: 2.35rem;
+    font-size: 0.86rem;
+  }
+
+  body[data-page="site-detail"] .page2-header .site-search-icon-wrap {
+    left: 0.82rem;
+  }
+
+  body[data-page="site-detail"] .page2-header .page2-filter-button {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
