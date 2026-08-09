@@ -8392,8 +8392,8 @@ body[data-page="site-detail"] .page2-header #itemSearchInput {
 }
 
 body[data-page="site-detail"] .page2-header #itemSearchInput:focus {
-  border-color: #f97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
+  border-color: var(--detail-primary);
+  box-shadow: 0 0 0 3px var(--detail-primary-focus);
 }
 
 body[data-page="site-detail"] .page2-header .page2-filter-button {
