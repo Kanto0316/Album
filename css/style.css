@@ -4616,6 +4616,7 @@ body[data-page="site-detail"] .page2-search-filter-bar {
 body[data-page="site-detail"] .page2-search-filter-bar .input-group {
   flex: 1;
   min-width: 0;
+  position: relative;
 }
 
 body[data-page="site-detail"] .page2-filter-menu-wrap {
