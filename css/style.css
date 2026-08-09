@@ -8363,7 +8363,7 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverl
 
 /* Page 2: search and status filter integrated into the blue header */
 body[data-page="site-detail"] .page2-header {
-  min-height: 8.6rem;
+  min-height: 8.34rem;
   height: auto;
   grid-template-rows: auto auto;
   row-gap: 0.75rem;
