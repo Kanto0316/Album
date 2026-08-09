@@ -8391,6 +8391,11 @@ body[data-page="site-detail"] .page2-header #itemSearchInput {
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
 }
 
+body[data-page="site-detail"] .page2-header #itemSearchInput:focus {
+  border: 1px solid var(--detail-primary);
+  box-shadow: 0 0 0 3px var(--detail-primary-focus);
+}
+
 body[data-page="site-detail"] .page2-header .page2-filter-button {
   width: 2.9rem;
   height: 2.9rem;
