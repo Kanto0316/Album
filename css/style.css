@@ -6324,12 +6324,23 @@ body[data-page="site-detail"] .site-detail-subtitle {
 
 body[data-page="site-detail"] .page-content {
   padding-inline: clamp(0.75rem, 2.4vw, 1.25rem);
+  padding-top: clamp(0.7rem, 2.2vw, 0.9rem);
   padding-bottom: calc(8.8rem + env(safe-area-inset-bottom, 0px));
 }
 
 body[data-page="site-detail"] .search-panel--site {
   width: min(100%, var(--content-max-width));
-  margin-inline: auto;
+  margin: 0 auto;
+}
+
+body[data-page="site-detail"] .page2-search-filter-bar {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+body[data-page="site-detail"] .page2-filter-button {
+  width: 3rem;
+  min-width: 3rem;
 }
 
 body[data-page="site-detail"] #itemSearchInput {
