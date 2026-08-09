@@ -14,19 +14,11 @@
           <button class="back-button back-btn" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
         <div class="app-header__center page2-header-center">
-          <h1 id="siteTitle" class="page2-title">Chargement...</h1>
-          <div id="itemCount" class="site-detail-subtitle outs-count page2-header-subtitle"><span class="outs-number">0</span><span class="outs-label">OUTS</span></div>
-        </div>
-        <div class="app-header__side app-header__side--right">
-          <button class="btn-export-header" type="button" id="headerExportBtn" aria-label="Exporter">
-            <img src="Icon/Exel.png" alt="" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
-
-      <main class="page-content main-content">
-          <section class="search-panel search-panel--site surface-card section">
-          <div class="page2-search-filter-bar">
+          <div class="page2-header-title-block">
+            <h1 id="siteTitle" class="page2-title">Chargement...</h1>
+            <div id="itemCount" class="site-detail-subtitle outs-count page2-header-subtitle"><span class="outs-number">0</span><span class="outs-label">OUTS</span></div>
+          </div>
+          <div class="page2-search-filter-bar page2-search-filter-bar--header">
             <label class="input-group">
               <span class="sr-only">Rechercher (OUT ou article)</span>
               <span class="site-search-icon-wrap" aria-hidden="true"><img src="Icon/Recherche.png" alt="" class="site-search-icon" /></span>
@@ -51,6 +43,16 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="app-header__side app-header__side--right">
+          <button class="btn-export-header" type="button" id="headerExportBtn" aria-label="Exporter">
+            <img src="Icon/Exel.png" alt="" aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content main-content">
+          <section class="search-panel search-panel--site surface-card section">
           <section class="auth-required-card auth-required-card--embedded section" data-auth-required-card hidden>
             <span class="auth-required-card__icon" aria-hidden="true">i</span>
             <p class="auth-required-card__message">Vous devez vous connecter pour modifier les données.</p>
