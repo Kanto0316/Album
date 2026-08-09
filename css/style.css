@@ -4801,7 +4801,7 @@ body[data-page="site-detail"] #itemSearchInput {
 
 body[data-page="site-detail"] #itemSearchInput:focus {
   outline: none;
-  border: 2px solid var(--detail-primary);
+  border-color: var(--detail-primary);
   box-shadow: 0 0 0 4px rgba(39, 141, 218, 0.12);
 }
 
@@ -8392,7 +8392,7 @@ body[data-page="site-detail"] .page2-header #itemSearchInput {
 }
 
 body[data-page="site-detail"] .page2-header #itemSearchInput:focus {
-  border: 1px solid var(--detail-primary);
+  border-color: var(--detail-primary);
   box-shadow: 0 0 0 3px var(--detail-primary-focus);
 }
 
