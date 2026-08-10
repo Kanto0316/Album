@@ -4316,6 +4316,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     }
 
     async function exportItems(fileNameOverride, lineFilterOverride) {
+      if (!isSiteExportAllowed()) {
+        updateSiteExportButtonState();
+        return;
+      }
       if (!currentSite) {
         UiService.navigate('index.html');
         return;
@@ -4392,12 +4396,29 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       saveExportFileNameToHistory(fileName);
     }
 
+    function isSiteExportAllowed() {
+      return isFirebaseUserAuthenticated(firebaseAuth.currentUser);
+    }
+
+    function updateSiteExportButtonState(user = firebaseAuth.currentUser) {
+      const isAuthenticated = isFirebaseUserAuthenticated(user);
+      if (openExportItems) {
+        openExportItems.disabled = !isAuthenticated;
+        openExportItems.setAttribute('aria-disabled', isAuthenticated ? 'false' : 'true');
+      }
+      if (!isAuthenticated) {
+        closeSiteExportDialog();
+      }
+      updateSiteExportSubmitState();
+    }
+
     function updateSiteExportSubmitState() {
       if (!siteExportSubmitButton || !siteExportFileNameInput) {
         return;
       }
       const hasValue = Boolean(String(siteExportFileNameInput.value || '').trim());
-      siteExportSubmitButton.disabled = !hasValue;
+      const isAuthenticated = isSiteExportAllowed();
+      siteExportSubmitButton.disabled = !isAuthenticated || !hasValue;
       if (siteExportFileNameError) {
         siteExportFileNameError.textContent = hasValue ? '' : 'Veuillez entrer un nom de fichier.';
       }
@@ -4408,13 +4429,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         siteExportFileNameError.textContent = '';
       }
       if (siteExportSubmitButton) {
-        siteExportSubmitButton.disabled = false;
+        siteExportSubmitButton.disabled = !isSiteExportAllowed();
         siteExportSubmitButton.classList.remove('is-loading');
       }
       siteExportDialog?.close();
     }
 
     function openSiteExportDialog() {
+      if (!isSiteExportAllowed()) {
+        updateSiteExportButtonState();
+        return;
+      }
       if (!siteExportDialog || !siteExportFileNameInput) {
         exportItems();
         return;
@@ -5838,6 +5863,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     });
     onAuthStateChanged(firebaseAuth, (user) => {
       updateCreateItemButtonVisibility(user || null);
+      updateSiteExportButtonState(user || null);
       updateTabsByRole();
     });
 
@@ -6170,6 +6196,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       editingItemId = null;
     });
 
+    updateSiteExportButtonState(firebaseAuth.currentUser);
+
     if (openExportItems) {
       openExportItems.addEventListener('click', openSiteExportDialog);
     }
@@ -6199,6 +6227,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     if (siteExportForm) {
       siteExportForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!isSiteExportAllowed()) {
+          updateSiteExportButtonState();
+          return;
+        }
         if (!siteExportSubmitButton || siteExportSubmitButton.disabled) {
           return;
         }
@@ -7010,6 +7042,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     updateDetailCreateButtonVisibility(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => {
       updateDetailCreateButtonVisibility(user || null);
+      updateDetailExportButtonState(user || null);
     });
 
     function renderTitle() {
@@ -7222,7 +7255,15 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       countLabel.textContent = `${filteredCount > 1 ? 'Articles' : 'Article'} / ${totalCount}`;
     }
 
+    function isDetailExportAllowed() {
+      return isFirebaseUserAuthenticated(firebaseAuth.currentUser);
+    }
+
     function exportDetails(fileNameOverride) {
+      if (!isDetailExportAllowed()) {
+        updateDetailExportButtonState();
+        return;
+      }
       if (!currentItem || !currentSite) {
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
         return;
@@ -7242,12 +7283,25 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       saveExportFileNameToHistory(fileName);
     }
 
+    function updateDetailExportButtonState(user = firebaseAuth.currentUser) {
+      const isAuthenticated = isFirebaseUserAuthenticated(user);
+      if (exportButton) {
+        exportButton.disabled = !isAuthenticated;
+        exportButton.setAttribute('aria-disabled', isAuthenticated ? 'false' : 'true');
+      }
+      if (!isAuthenticated) {
+        closeDetailExportDialog();
+      }
+      updateDetailExportSubmitState();
+    }
+
     function updateDetailExportSubmitState() {
       if (!detailExportSubmitButton || !detailExportFileNameInput) {
         return;
       }
       const hasValue = Boolean(String(detailExportFileNameInput.value || '').trim());
-      detailExportSubmitButton.disabled = !hasValue;
+      const isAuthenticated = isDetailExportAllowed();
+      detailExportSubmitButton.disabled = !isAuthenticated || !hasValue;
       if (detailExportFileNameError) {
         detailExportFileNameError.textContent = hasValue ? '' : 'Veuillez entrer un nom de fichier.';
       }
@@ -7258,13 +7312,17 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         detailExportFileNameError.textContent = '';
       }
       if (detailExportSubmitButton) {
-        detailExportSubmitButton.disabled = false;
+        detailExportSubmitButton.disabled = !isDetailExportAllowed();
         detailExportSubmitButton.classList.remove('is-loading');
       }
       detailExportDialog?.close();
     }
 
     function openDetailExportDialog() {
+      if (!isDetailExportAllowed()) {
+        updateDetailExportButtonState();
+        return;
+      }
       if (!detailExportDialog || !detailExportFileNameInput) {
         exportDetails();
         return;
@@ -7915,6 +7973,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       });
     }
 
+    updateDetailExportButtonState(firebaseAuth.currentUser);
+
     if (exportButton) {
       exportButton.addEventListener('click', openDetailExportDialog);
     }
@@ -7944,6 +8004,10 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     if (detailExportForm) {
       detailExportForm.addEventListener('submit', (event) => {
         event.preventDefault();
+        if (!isDetailExportAllowed()) {
+          updateDetailExportButtonState();
+          return;
+        }
         if (!detailExportSubmitButton || detailExportSubmitButton.disabled) {
           return;
         }
