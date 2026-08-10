@@ -9,18 +9,33 @@
   --ring: rgba(37, 99, 235, 0.25);
 }
 * { box-sizing: border-box; }
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   font-family: Roboto, Arial, sans-serif;
   background: radial-gradient(circle at top left, #38bdf8 0%, var(--bg-1) 35%, var(--bg-2) 100%);
   color: var(--text);
+  display: flex;
+  flex-direction: column;
+  overscroll-behavior: none;
 }
+
 .login-page {
-  min-height: 100vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  overflow: hidden;
+  padding: max(.75rem, env(safe-area-inset-top)) 1rem .75rem;
 }
 .login-card {
   width: min(100%, 23.5rem);
@@ -138,18 +153,9 @@ body {
   100% { transform: translateX(0); }
 }
 
-html,
-body {
-  height: 100%;
-}
-
-body {
-  display: flex;
-  flex-direction: column;
-}
-
 .main-content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .app-footer {
@@ -157,8 +163,9 @@ body {
   text-align: center;
   font-size: 13px;
   color: rgba(226, 232, 240, 0.92);
-  padding: 16px 10px;
-  margin-top: 40px;
+  flex: 0 0 auto;
+  padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  margin-top: 0;
   opacity: 0.8;
   transition: opacity 0.3s ease;
 }
@@ -168,7 +175,7 @@ body {
   display: block;
   width: 90%;
   height: 1px;
-  margin: 0 auto 12px;
+  margin: 0 auto 8px;
   background: rgba(255,255,255,0.22);
 }
 
@@ -176,10 +183,59 @@ body {
   opacity: 1;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 420px), (max-height: 640px) {
+  .login-page {
+    padding: max(.5rem, env(safe-area-inset-top)) .8rem .5rem;
+  }
+
   .login-card {
     width: min(100%, 22.25rem);
-    padding: .95rem .85rem;
+    padding: .85rem .8rem;
     border-radius: .95rem;
+  }
+
+  .login-card__header h1 {
+    font-size: clamp(1.15rem, 7vw, 1.35rem);
+  }
+
+  .login-card__header p {
+    margin-bottom: .5rem;
+  }
+
+  .login-form--google-only {
+    margin-top: .55rem;
+  }
+
+  .app-footer {
+    font-size: 12px;
+    padding-top: 8px;
+  }
+
+  .app-footer::before {
+    margin-bottom: 6px;
+  }
+}
+
+@media (max-height: 520px) {
+  .login-page {
+    padding-top: .35rem;
+    padding-bottom: .35rem;
+  }
+
+  .login-card {
+    padding-top: .7rem;
+    padding-bottom: .7rem;
+  }
+
+  .login-card__header p,
+  .login-form--google-only .btn-google,
+  .global-error {
+    margin-top: .35rem;
+    margin-bottom: .35rem;
+  }
+
+  .app-footer {
+    padding-top: 6px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
   }
 }
