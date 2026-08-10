@@ -516,8 +516,8 @@ body[data-page="home"] .header-menu__panel.is-closing {
 }
 
 .back-button .btn-retour {
-  width: 2rem;
-  height: 2rem;
+  width: 1.55rem;
+  height: 1.55rem;
   object-fit: contain;
   display: block;
 }
