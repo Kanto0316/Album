@@ -8460,7 +8460,7 @@ body[data-page="home"] .page1-header .app-header__center {
 
 body[data-page="home"] .page1-header .header-title h1 {
   position: static;
-  transform: translateY(4px);
+  transform: translateY(-3px);
   width: 100%;
 }
 
