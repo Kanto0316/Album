@@ -1,6 +1,7 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
+import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual } from './detail-status.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -296,25 +297,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
     return null;
   }
 
-  function computeEcart(detail) {
-    const qteSortie = Number(detail?.qteSortie) || 0;
-    const qtePosee = Number(detail?.qtePosee) || 0;
-    const qteRetour = Number(detail?.qteRetour) || 0;
-    const qteRebus = Number(detail?.qteRebus) || 0;
-
-    if (qtePosee === 0 && qteRetour === 0 && qteRebus === 0) {
-      return '';
-    }
-
-    return qteSortie - (qtePosee + qteRetour + qteRebus);
-  }
-
   function formatEcartDisplay(value) {
     if (value === '') {
       return '';
     }
 
-    const numericValue = Number(value);
+    const numericValue = normalizeQuantity(value);
     if (!Number.isFinite(numericValue)) {
       return '0';
     }
@@ -331,7 +319,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 
   function getEcartNumericValue(field) {
     const rawValue = field?.dataset.ecartValue ?? field?.value ?? 0;
-    return Number(rawValue);
+    return normalizeQuantity(rawValue);
   }
 
   function updateEcartFieldDisplay(field, value) {
@@ -4976,13 +4964,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         return filterKey === 'all';
       }
       const ecart = computeEcart(detail);
-      const qteSortie = Number(detail?.qteSortie) || 0;
-      const qtePosee = Number(detail?.qtePosee) || 0;
-      const qteRetour = Number(detail?.qteRetour) || 0;
-      const qteRebus = Number(detail?.qteRebus) || 0;
-      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
-      const isDone = ecart === 0 && (qteRebus <= qteSortie || qteRetour <= qteSortie);
-      const isAttention = hasActivity && ecart !== 0;
+      const qtePosee = normalizeQuantity(detail?.qtePosee);
+      const qteRetour = normalizeQuantity(detail?.qteRetour);
+      const qteRebus = normalizeQuantity(detail?.qteRebus);
+      const hasActivity = !quantitiesAreEqual(qtePosee, 0) || !quantitiesAreEqual(qteRetour, 0) || !quantitiesAreEqual(qteRebus, 0);
+      const isDone = isDetailCompleted(detail);
+      const isAttention = hasActivity && !quantitiesAreEqual(ecart, 0);
       if (filterKey === 'done') {
         return isDone;
       }
@@ -7119,18 +7106,6 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       return escapeHtml(rawValue).replace(pattern, '<span class="search-highlight">$1</span>');
     }
 
-    function isDetailCompleted(detail) {
-      const qteSortie = Number(detail?.qteSortie) || 0;
-      const qtePosee = Number(detail?.qtePosee) || 0;
-      const qteRetour = Number(detail?.qteRetour) || 0;
-      const qteRebus = Number(detail?.qteRebus) || 0;
-      const ecart = computeEcart(detail);
-
-      return (qtePosee > 0 && ecart === 0)
-        || qteSortie === qteRebus
-        || qteSortie === qteRetour;
-    }
-
     function matchesDetailFilter(detail, filterKey) {
       const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
       if (filterKey === 'ko') {
@@ -7141,12 +7116,12 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const ecart = computeEcart(detail);
-      const qtePosee = Number(detail?.qtePosee) || 0;
-      const qteRetour = Number(detail?.qteRetour) || 0;
-      const qteRebus = Number(detail?.qteRebus) || 0;
-      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
+      const qtePosee = normalizeQuantity(detail?.qtePosee);
+      const qteRetour = normalizeQuantity(detail?.qteRetour);
+      const qteRebus = normalizeQuantity(detail?.qteRebus);
+      const hasActivity = !quantitiesAreEqual(qtePosee, 0) || !quantitiesAreEqual(qteRetour, 0) || !quantitiesAreEqual(qteRebus, 0);
       const isDone = isDetailCompleted(detail);
-      const isAttention = hasActivity && ecart !== 0;
+      const isAttention = hasActivity && !quantitiesAreEqual(ecart, 0);
 
       if (filterKey === 'done') {
         return isDone;
@@ -7483,18 +7458,21 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       }
 
       const isKoStatus = normalizeDetailStatut(row.querySelector('[data-field="statut"]')?.value) === 'K.O';
-      const qteSortie = Number(row.querySelector('[data-field="qteSortie"]')?.value ?? 0);
-      const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
-      const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
-      const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
+      const detail = {
+        qteSortie: row.querySelector('[data-field="qteSortie"]')?.value,
+        qtePosee: row.querySelector('[data-field="qtePosee"]')?.value,
+        qteRetour: row.querySelector('[data-field="qteRetour"]')?.value,
+        qteRebus: row.querySelector('[data-field="qteRebus"]')?.value,
+      };
+      const qtePosee = normalizeQuantity(detail.qtePosee);
+      const qteRetour = normalizeQuantity(detail.qteRetour);
+      const qteRebus = normalizeQuantity(detail.qteRebus);
       const ecart = getEcartNumericValue(row.querySelector('[data-col-key="ecart"]'));
-      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
-      const isDone = (qtePosee > 0 && ecart === 0)
-        || qteSortie === qteRebus
-        || qteSortie === qteRetour;
+      const hasActivity = !quantitiesAreEqual(qtePosee, 0) || !quantitiesAreEqual(qteRetour, 0) || !quantitiesAreEqual(qteRebus, 0);
+      const isDone = isDetailCompleted(detail);
 
       row.classList.toggle('detail-row--done', !isKoStatus && isDone);
-      row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && ecart !== 0);
+      row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && !quantitiesAreEqual(ecart, 0));
     }
 
     function renderTable() {
@@ -7523,7 +7501,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
         .map(
           (detail, index) => {
             const ecart = computeEcart(detail);
-            const ecartClassName = typeof ecart === 'number' && ecart !== 0 ? ' cell-input--ecart-alert' : '';
+            const ecartClassName = typeof ecart === 'number' && !quantitiesAreEqual(ecart, 0) ? ' cell-input--ecart-alert' : '';
             const enterAnimationStyle = animateNextTableRender ? ` style="--detail-row-enter-delay:${Math.min(index, 5) * 40}ms"` : '';
             const isKoStatus = normalizeDetailStatut(detail.statut) === 'K.O';
             const rowClasses = [
@@ -7616,7 +7594,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
                 [fieldName]: nextValue,
               });
               updateEcartFieldDisplay(ecartField, nextEcart);
-              ecartField.classList.toggle('cell-input--ecart-alert', typeof nextEcart === 'number' && nextEcart !== 0);
+              ecartField.classList.toggle('cell-input--ecart-alert', typeof nextEcart === 'number' && !quantitiesAreEqual(nextEcart, 0));
             }
             applyDetailRowSemanticState(row);
           }
@@ -7635,15 +7613,16 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
               const row = field.closest('tr');
               if (row) {
                 if (field.dataset.field !== 'statut') {
-                  const qteSortie = Number(row.querySelector('[data-field="qteSortie"]')?.value ?? 0);
-                  const qtePosee = Number(row.querySelector('[data-field="qtePosee"]')?.value ?? 0);
-                  const qteRebus = Number(row.querySelector('[data-field="qteRebus"]')?.value ?? 0);
-                  const qteRetour = Number(row.querySelector('[data-field="qteRetour"]')?.value ?? 0);
-                  const ecart = qteSortie - qtePosee - qteRebus - qteRetour;
+                  const ecart = computeEcart({
+                    qteSortie: row.querySelector('[data-field="qteSortie"]')?.value,
+                    qtePosee: row.querySelector('[data-field="qtePosee"]')?.value,
+                    qteRebus: row.querySelector('[data-field="qteRebus"]')?.value,
+                    qteRetour: row.querySelector('[data-field="qteRetour"]')?.value,
+                  });
                   const ecartField = row.querySelector('[data-col-key="ecart"]');
                   if (ecartField) {
                     updateEcartFieldDisplay(ecartField, ecart);
-                    ecartField.classList.toggle('cell-input--ecart-alert', ecart !== 0);
+                    ecartField.classList.toggle('cell-input--ecart-alert', !quantitiesAreEqual(ecart, 0));
                   }
                 }
                 applyDetailRowSemanticState(row);
