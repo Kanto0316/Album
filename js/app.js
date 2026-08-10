@@ -7125,10 +7125,13 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const qteRetour = Number(detail?.qteRetour) || 0;
       const qteRebus = Number(detail?.qteRebus) || 0;
       const ecart = computeEcart(detail);
+      const normalizedEcart = ecart === '' ? 0 : Number(ecart);
+      const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
 
-      return (qtePosee > 0 && ecart === 0)
+      return (qtePosee > 0 && normalizedEcart === 0)
         || qteSortie === qteRebus
-        || qteSortie === qteRetour;
+        || qteSortie === qteRetour
+        || (hasActivity && normalizedEcart === 0);
     }
 
     function matchesDetailFilter(detail, filterKey) {
@@ -7491,7 +7494,8 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
       const hasActivity = qtePosee !== 0 || qteRetour !== 0 || qteRebus !== 0;
       const isDone = (qtePosee > 0 && ecart === 0)
         || qteSortie === qteRebus
-        || qteSortie === qteRetour;
+        || qteSortie === qteRetour
+        || (hasActivity && ecart === 0);
 
       row.classList.toggle('detail-row--done', !isKoStatus && isDone);
       row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && ecart !== 0);
