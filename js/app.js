@@ -297,9 +297,23 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
     return null;
   }
 
+  function isEmptyQuantityValue(value) {
+    return value === null || value === undefined || String(value).trim() === '';
+  }
+
+  function formatEditableQuantityValue(value) {
+    return isEmptyQuantityValue(value) ? '0' : String(value);
+  }
+
+  function normalizeEmptyQuantityInputValue(field) {
+    if (field && isEmptyQuantityValue(field.value)) {
+      field.value = '0';
+    }
+  }
+
   function formatEcartDisplay(value) {
     if (value === '') {
-      return '';
+      return '0';
     }
 
     const numericValue = normalizeQuantity(value);
@@ -7513,11 +7527,11 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
               <td><span class="field-badge">${getHighlightedHtml(detail.champ, searchQuery)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
               <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="number" min="0" step="1" maxlength="120" value="${escapeHtml(detail.qteSortie)}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteSortie" data-field="qteSortie" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qteSortie))}" /></td>
               <td><span class="meta-value">${getHighlightedHtml(detail.unite, searchQuery)}</span></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="number" min="0" step="1" maxlength="120" value="${detail.qtePosee}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="number" min="0" step="1" maxlength="120" value="${detail.qteRebus ?? 0}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="number" min="0" step="1" maxlength="120" value="${detail.qteRetour}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qtePosee))}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qteRebus))}" /></td>
+              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qteRetour))}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic date-retour-field" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="text" maxlength="120" value="${formatEcartDisplay(ecart)}" data-ecart-value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input data-col-key="observation" data-field="observation" type="text" maxlength="120" class="cell-input cell-input--compact-dynamic" value="${escapeHtml(detail.observation)}" /></td>
@@ -7550,7 +7564,15 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
         applyDetailRowSemanticState(row);
       });
 
+      const editableQuantityFields = new Set(['qteSortie', 'qtePosee', 'qteRebus', 'qteRetour']);
+
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
+        if (editableQuantityFields.has(field.dataset.field)) {
+          field.addEventListener('blur', () => {
+            normalizeEmptyQuantityInputValue(field);
+          });
+        }
+
         field.addEventListener('change', async (event) => {
           const row = event.target.closest('tr');
           const fieldName = event.target.dataset.field;
@@ -7565,7 +7587,14 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
             return;
           }
 
-          const nextValue = fieldName === 'statut' ? normalizeDetailStatut(event.target.value) : event.target.value;
+          const nextValue = fieldName === 'statut'
+            ? normalizeDetailStatut(event.target.value)
+            : editableQuantityFields.has(fieldName) && isEmptyQuantityValue(event.target.value)
+              ? 0
+              : event.target.value;
+          if (editableQuantityFields.has(fieldName) && isEmptyQuantityValue(event.target.value)) {
+            event.target.value = '0';
+          }
           if (String(currentDetail[fieldName] ?? '') === String(nextValue ?? '')) {
             return;
           }
