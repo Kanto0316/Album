@@ -24,6 +24,8 @@ const LENGTH_KEYWORDS = [
   'tube',
   'tuyau',
   'conducteur',
+  'membrane',
+  'tpc',
 ];
 
 function normalizeAutomaticUnitDesignation(designation) {
