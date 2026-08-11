@@ -1771,24 +1771,24 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
 
     function formatSiteUnlockCountdown(blockedUntil) {
-      const unblockAt = new Date(blockedUntil || '').getTime();
+      const unblockDate = new Date(blockedUntil || '');
+      const unblockAt = unblockDate.getTime();
       const remainingMs = unblockAt - Date.now();
       if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
         return '';
       }
-      const totalMinutes = Math.ceil(remainingMs / (60 * 1000));
-      if (totalMinutes <= 1) {
-        return "Réessayez dans moins d'une minute";
-      }
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      if (hours <= 0) {
-        return `Réessayez dans ${minutes} min`;
-      }
-      if (minutes <= 0) {
-        return `Réessayez dans ${hours} h`;
-      }
-      return `Réessayez dans ${hours} h ${minutes} min`;
+      const weekday = unblockDate.toLocaleDateString('fr-FR', { weekday: 'long' });
+      const date = unblockDate.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+      const time = unblockDate.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).replace(':', ' h ');
+      return `Vous pourrez réessayer ${weekday} ${date} à ${time}.`;
     }
 
     function updateSiteUnlockCountdownMessage(siteId, blockedUntil) {
