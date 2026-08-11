@@ -2,6 +2,7 @@ import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual } from './detail-status.js';
+import { getAutomaticUnit } from './automatic-unit.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -6651,7 +6652,7 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
         return;
       }
       detailForm.reset();
-      requireElement('uniteInput').value = 'm';
+      requireElement('uniteInput').value = getAutomaticUnit('');
       requireElement('statutInput').value = 'OK';
       setDetailFormSavingState(false);
       clearDetailFormError();
@@ -6959,6 +6960,7 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
       codeInput.value = entry.code;
       designationInput.value = entry.designation || '';
       updateDetailInputCounters();
+      requireElement('uniteInput').value = getAutomaticUnit(designationInput.value);
       hideCodeSuggestions();
     }
 
@@ -7792,7 +7794,7 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
           return;
         }
         detailForm.reset();
-        requireElement('uniteInput').value = 'm';
+        requireElement('uniteInput').value = getAutomaticUnit('');
         requireElement('statutInput').value = 'OK';
         updateDetailInputCounters();
         hideCodeSuggestions();
@@ -7907,6 +7909,7 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
         clearDetailFormError();
         clearDetailFieldErrorState('designation');
         updateInputCharCounter(designationInput, designationInputCounter);
+        requireElement('uniteInput').value = getAutomaticUnit(designationInput.value);
       });
       designationInput.addEventListener('beforeinput', (event) => {
         enforceMaxLengthOnBeforeInput(event, designationInput);
