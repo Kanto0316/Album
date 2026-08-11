@@ -16,6 +16,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
+import { getAutomaticUnit } from './automatic-unit.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -2000,7 +2001,7 @@ async function createDetail(siteId, itemId, payload) {
     code: sanitizeText(payload.code, true),
     designation,
     qteSortie: payload.qteSortie === '' ? '' : sanitizeNumber(payload.qteSortie),
-    unite: sanitizeText(payload.unite || 'm', false) || 'm',
+    unite: sanitizeText(payload.unite || getAutomaticUnit(designation), false) || getAutomaticUnit(designation),
     qteHorsBtrs: '',
     qteRetour: 0,
     dateRetour: '',
