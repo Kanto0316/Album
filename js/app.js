@@ -1788,7 +1788,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         minute: '2-digit',
         hour12: false,
       }).replace(':', ' h ');
-      return `Vous pourrez réessayer le << ${weekday}  ${date}  à  ${time} >>.`;
+      return `Vous pourrez réessayer demain << ${weekday}  ${date}  à  ${time} >>.`;
     }
 
     function updateSiteUnlockCountdownMessage(siteId, blockedUntil) {
