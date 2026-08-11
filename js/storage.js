@@ -706,7 +706,8 @@ function sanitizeNumber(value) {
   if (value === '' || value === null || value === undefined) {
     return '';
   }
-  const parsed = Number(value);
+  const normalizedValue = typeof value === 'string' ? value.trim().replace(',', '.') : value;
+  const parsed = Number(normalizedValue);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
