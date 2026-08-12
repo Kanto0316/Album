@@ -1500,19 +1500,11 @@ async function recordSiteUnlockHistory(siteId) {
   await appendHistoryEntry('a déverrouillé le site', { siteId });
 }
 
-function formatSiteUnlockFailureAttemptsMessage(attemptsRemaining) {
-  const count = Math.max(0, Number(attemptsRemaining) || 0);
-  if (count === 0) {
-    return 'Il ne reste plus aucun essai.';
-  }
-  return `Il reste ${count} ${count === 1 ? 'essai' : 'essais'}.`;
-}
-
-async function recordSiteUnlockFailureHistory(siteId, attemptsRemaining) {
+async function recordSiteUnlockFailureHistory(siteId) {
   const profile = await getCurrentUserProfile();
   const username = normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu';
   const siteName = resolveSiteNameForHistory(siteId);
-  const action = `${username} a essayé d'ouvrir le site « ${siteName || 'Site inconnu'} » avec un mot de passe incorrect. ${formatSiteUnlockFailureAttemptsMessage(attemptsRemaining)}`;
+  const action = `${username} a essayé d'ouvrir le site « ${siteName || 'Site inconnu'} » avec un mot de passe incorrect.`;
   await appendHistoryEntry(action, { siteId, siteName });
 }
 
@@ -1524,131 +1516,12 @@ async function recordExcelExportHistory(siteId, siteName = '') {
   await appendHistoryEntry(action, { siteId, siteName: resolvedSiteName });
 }
 
-function getAuthenticatedUnlockProtectionUid() {
-  return String(state.authUser?.uid || state.userId || firebaseAuth.currentUser?.uid || '').trim();
-}
-
-function buildSiteUnlockProtectionKey(siteId) {
-  const uid = getAuthenticatedUnlockProtectionUid();
-  const normalizedSiteId = String(siteId || '').trim();
-  return uid && normalizedSiteId ? `${normalizedSiteId}_${uid}` : '';
-}
-
-function isLocalUnlockProtectionEnabled() {
-  return !getAuthenticatedUnlockProtectionUid() && typeof window !== 'undefined' && window.localStorage;
-}
-
-function buildLocalSiteUnlockProtectionKey(siteId) {
-  const normalizedSiteId = String(siteId || '').trim();
-  return normalizedSiteId ? `security_attempts_${normalizedSiteId}` : '';
-}
-
-function readLocalSiteUnlockProtection(siteId) {
-  if (!isLocalUnlockProtectionEnabled()) {
-    return {};
-  }
-  const storageKey = buildLocalSiteUnlockProtectionKey(siteId);
-  if (!storageKey) {
-    return {};
-  }
-  try {
-    const rawValue = window.localStorage.getItem(storageKey);
-    const parsedValue = rawValue ? JSON.parse(rawValue) : null;
-    return parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
-  } catch (_error) {
-    return {};
-  }
-}
-
-function writeLocalSiteUnlockProtection(siteId, protection) {
-  if (!isLocalUnlockProtectionEnabled()) {
-    return false;
-  }
-  const storageKey = buildLocalSiteUnlockProtectionKey(siteId);
-  if (!storageKey) {
-    return false;
-  }
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify({
-      attemptsRemaining: protection.attemptsRemaining,
-      blockedUntil: protection.blockedUntil || null,
-      hasAttempted: Boolean(protection.hasAttempted),
-    }));
-    return true;
-  } catch (_error) {
-    return false;
-  }
-}
-
-function readSiteUnlockProtection(site, siteId) {
-  const normalizedSiteId = String(siteId || site?.id || '').trim();
-  if (isLocalUnlockProtectionEnabled()) {
-    return readLocalSiteUnlockProtection(normalizedSiteId);
-  }
-  const protectionKey = buildSiteUnlockProtectionKey(normalizedSiteId);
-  const protections = site?.unlockProtections && typeof site.unlockProtections === 'object' ? site.unlockProtections : {};
-  const scopedProtection = protectionKey ? protections[protectionKey] : null;
-  return scopedProtection && typeof scopedProtection === 'object' ? scopedProtection : {};
-}
-
-function normalizeUnlockProtection(site, siteId) {
-  const scopedProtection = readSiteUnlockProtection(site, siteId);
-  const blockedUntilRaw = scopedProtection?.blockedUntil || null;
-  const blockedUntilDate = blockedUntilRaw ? new Date(blockedUntilRaw) : null;
-  const blockedUntilMs = blockedUntilDate && !Number.isNaN(blockedUntilDate.getTime()) ? blockedUntilDate.getTime() : 0;
-  if (blockedUntilMs > Date.now()) {
-    return {
-      attemptsRemaining: 0,
-      blockedUntil: new Date(blockedUntilMs).toISOString(),
-      hasAttempted: true,
-      isBlocked: true,
-    };
-  }
-  const attempts = Number(scopedProtection?.attemptsRemaining);
-  const hasAttempted = Boolean(scopedProtection?.hasAttempted);
-  return {
-    attemptsRemaining: Number.isInteger(attempts) && attempts >= 0 && attempts <= 3 ? attempts : 3,
-    blockedUntil: null,
-    hasAttempted,
-    isBlocked: false,
-  };
-}
-
 async function resetSiteUnlockProtection(siteId) {
-  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
-  if (siteIndex === -1) {
+  const site = state.sites.find((item) => item.id === siteId);
+  if (!site) {
     return { ok: false, reason: 'site_not_found' };
   }
-  if (isLocalUnlockProtectionEnabled()) {
-    writeLocalSiteUnlockProtection(siteId, {
-      attemptsRemaining: 3,
-      blockedUntil: null,
-      hasAttempted: false,
-    });
-    return { ok: true, ...normalizeUnlockProtection(state.sites[siteIndex], siteId) };
-  }
-  const protectionKey = buildSiteUnlockProtectionKey(siteId);
-  if (!protectionKey) {
-    return { ok: false, reason: 'auth_required' };
-  }
-  const unlockProtections = {
-    ...(state.sites[siteIndex].unlockProtections && typeof state.sites[siteIndex].unlockProtections === 'object'
-      ? state.sites[siteIndex].unlockProtections
-      : {}),
-    [protectionKey]: {
-      attemptsRemaining: 3,
-      blockedUntil: null,
-    },
-  };
-  const payload = { unlockProtections };
-  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true });
-  state.sites[siteIndex] = {
-    ...state.sites[siteIndex],
-    unlockProtections,
-  };
-  persistOfflineState();
-  emitAll();
-  return { ok: true, ...normalizeUnlockProtection(state.sites[siteIndex], siteId) };
+  return { ok: true, isBlocked: false };
 }
 
 async function getSiteUnlockProtectionState(siteId) {
@@ -1656,55 +1529,15 @@ async function getSiteUnlockProtectionState(siteId) {
   if (!site) {
     return { ok: false, reason: 'site_not_found' };
   }
-  const protection = normalizeUnlockProtection(site, siteId);
-  const scopedProtection = readSiteUnlockProtection(site, siteId);
-  if (!protection.isBlocked && scopedProtection.blockedUntil) {
-    return resetSiteUnlockProtection(siteId);
-  }
-  return { ok: true, ...protection };
+  return { ok: true, isBlocked: false };
 }
 
 async function registerSiteUnlockFailure(siteId) {
-  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
-  if (siteIndex === -1) {
+  const site = state.sites.find((item) => item.id === siteId);
+  if (!site) {
     return { ok: false, reason: 'site_not_found' };
   }
-  const current = normalizeUnlockProtection(state.sites[siteIndex], siteId);
-  if (current.isBlocked) {
-    return { ok: true, ...current };
-  }
-  const attemptsRemaining = Math.max(0, current.attemptsRemaining - 1);
-  const blockedUntil = attemptsRemaining === 0 ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
-  if (isLocalUnlockProtectionEnabled()) {
-    writeLocalSiteUnlockProtection(siteId, {
-      attemptsRemaining,
-      blockedUntil,
-      hasAttempted: true,
-    });
-    return { ok: true, attemptsRemaining, blockedUntil, hasAttempted: true, isBlocked: Boolean(blockedUntil) };
-  }
-  const protectionKey = buildSiteUnlockProtectionKey(siteId);
-  if (!protectionKey) {
-    return { ok: false, reason: 'auth_required' };
-  }
-  const unlockProtections = {
-    ...(state.sites[siteIndex].unlockProtections && typeof state.sites[siteIndex].unlockProtections === 'object'
-      ? state.sites[siteIndex].unlockProtections
-      : {}),
-    [protectionKey]: {
-      attemptsRemaining,
-      blockedUntil,
-    },
-  };
-  const payload = { unlockProtections };
-  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), payload, { merge: true });
-  state.sites[siteIndex] = {
-    ...state.sites[siteIndex],
-    unlockProtections,
-  };
-  persistOfflineState();
-  emitAll();
-  return { ok: true, attemptsRemaining, blockedUntil, isBlocked: Boolean(blockedUntil) };
+  return { ok: true, isBlocked: false };
 }
 
 async function removeSite(siteId) {
