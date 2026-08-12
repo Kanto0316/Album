@@ -1680,38 +1680,15 @@ import { getAutomaticUnit } from './automatic-unit.js';
       }
     }
 
-    function scheduleSiteLockManageUnblock(siteId, blockedUntil) {
+    function scheduleSiteLockManageUnblock() {
       clearSiteLockManageBlockTimer();
-      const unblockAt = new Date(blockedUntil || '').getTime();
-      const delayMs = unblockAt - Date.now();
-      if (!Number.isFinite(delayMs) || delayMs <= 0) {
-        return;
-      }
-      updateSiteLockManageCountdownMessage(siteId, blockedUntil);
-      siteLockManageCountdownTimer = window.setInterval(() => {
-        updateSiteLockManageCountdownMessage(siteId, blockedUntil);
-      }, 60 * 1000);
-      siteLockManageBlockTimer = window.setTimeout(() => {
-        if (siteIdPendingLockManage === siteId && siteLockManageDialog?.open) {
-          refreshSiteLockManageProtectionState(siteId);
-        }
-      }, Math.min(delayMs, 24 * 60 * 60 * 1000));
     }
 
-    async function refreshSiteLockManageProtectionState(siteId) {
-      const protection = await StorageService.getSiteUnlockProtectionState(siteId);
-      if (!protection?.ok) {
-        return null;
-      }
+    async function refreshSiteLockManageProtectionState() {
       clearSiteLockManageAttemptsInfo();
-      setSiteLockManageBlockedState(protection.isBlocked);
-      if (protection.isBlocked) {
-        clearSiteLockManageFieldErrorState(siteLockCurrentPasswordInput, siteLockCurrentPasswordError);
-        scheduleSiteLockManageUnblock(siteId, protection.blockedUntil);
-      } else {
-        clearSiteLockManageBlockTimer();
-      }
-      return protection;
+      setSiteLockManageBlockedState(false);
+      clearSiteLockManageBlockTimer();
+      return { ok: true, isBlocked: false };
     }
 
     function clearSiteUnlockFieldErrorState() {
@@ -1743,11 +1720,6 @@ import { getAutomaticUnit } from './automatic-unit.js';
       siteLockFieldStateTimers.set(siteUnlockPasswordInput, timer);
     }
 
-    function formatAttemptsRemainingMessage(attemptsRemaining) {
-      const count = Math.max(0, Number(attemptsRemaining) || 0);
-      return `Il vous reste ${count} ${count === 1 ? 'tentative' : 'tentatives'}.`;
-    }
-
     function setSiteUnlockBlockedState(isBlocked) {
       if (siteUnlockPasswordInput) {
         siteUnlockPasswordInput.disabled = Boolean(isBlocked);
@@ -1770,25 +1742,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
       siteUnlockAttemptsInfo.classList.remove('form-info--blocked');
     }
 
-    function formatSiteUnlockCountdown(blockedUntil) {
-      const unblockDate = new Date(blockedUntil || '');
-      const unblockAt = unblockDate.getTime();
-      const remainingMs = unblockAt - Date.now();
-      if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-        return '';
-      }
-      const weekday = unblockDate.toLocaleDateString('fr-FR', { weekday: 'long' });
-      const date = unblockDate.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-      const time = unblockDate.toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).replace(':', ' h ');
-      return `Vous pourrez réessayer demain << ${weekday}  ${date}  à  ${time} >>.`;
+    function formatSiteUnlockCountdown() {
+      return '';
     }
 
     function updateSiteUnlockCountdownMessage(siteId, blockedUntil) {
@@ -1819,38 +1774,15 @@ import { getAutomaticUnit } from './automatic-unit.js';
       }
     }
 
-    function scheduleSiteUnlockUnblock(siteId, blockedUntil) {
+    function scheduleSiteUnlockUnblock() {
       clearSiteUnlockBlockTimer();
-      const unblockAt = new Date(blockedUntil || '').getTime();
-      const delayMs = unblockAt - Date.now();
-      if (!Number.isFinite(delayMs) || delayMs <= 0) {
-        return;
-      }
-      updateSiteUnlockCountdownMessage(siteId, blockedUntil);
-      siteUnlockCountdownTimer = window.setInterval(() => {
-        updateSiteUnlockCountdownMessage(siteId, blockedUntil);
-      }, 60 * 1000);
-      siteUnlockBlockTimer = window.setTimeout(() => {
-        if (siteIdPendingUnlock === siteId && siteUnlockDialog?.open) {
-          refreshSiteUnlockProtectionState(siteId);
-        }
-      }, Math.min(delayMs, 24 * 60 * 60 * 1000));
     }
 
-    async function refreshSiteUnlockProtectionState(siteId) {
-      const protection = await StorageService.getSiteUnlockProtectionState(siteId);
-      if (!protection?.ok) {
-        return null;
-      }
+    async function refreshSiteUnlockProtectionState() {
       clearSiteUnlockAttemptsInfo();
-      setSiteUnlockBlockedState(protection.isBlocked);
-      if (protection.isBlocked) {
-        clearSiteUnlockFieldErrorState();
-        scheduleSiteUnlockUnblock(siteId, protection.blockedUntil);
-      } else {
-        clearSiteUnlockBlockTimer();
-      }
-      return protection;
+      setSiteUnlockBlockedState(false);
+      clearSiteUnlockBlockTimer();
+      return { ok: true, isBlocked: false };
     }
 
     function setPasswordVisibility(inputElement, toggleButton, isVisible) {
@@ -2491,11 +2423,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSiteLockManageBlockedState(false);
         clearSiteLockManageAttemptsInfo();
         siteLockManageDialog.showModal();
-        refreshSiteLockManageProtectionState(siteId).then((protection) => {
-          if (!protection?.isBlocked) {
-            siteLockCurrentPasswordInput.focus();
-          }
-        });
+        siteLockCurrentPasswordInput.focus();
         return;
       }
 
@@ -2901,11 +2829,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
           setSiteUnlockLoadingState(false);
           setSiteUnlockBlockedState(false);
           siteUnlockDialog.showModal();
-          refreshSiteUnlockProtectionState(siteId).then((protection) => {
-            if (!protection?.isBlocked) {
-              siteUnlockPasswordInput.focus();
-            }
-          });
+          siteUnlockPasswordInput.focus();
         });
       });
 
@@ -3462,10 +3386,6 @@ import { getAutomaticUnit } from './automatic-unit.js';
         return;
       }
       clearSiteUnlockFieldErrorState();
-      const protection = await refreshSiteUnlockProtectionState(siteIdPendingUnlock);
-      if (protection?.isBlocked) {
-        return;
-      }
       const passwordValue = siteUnlockPasswordInput?.value || '';
       if (!passwordValue.trim()) {
         showSiteUnlockFieldError('Veuillez entrer le mot de passe.');
@@ -3486,20 +3406,12 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSiteUnlockLoadingState(true);
         const passwordHash = await hashPassword(passwordValue);
         if (passwordHash !== targetSite.passwordHash) {
-          const failure = await StorageService.registerSiteUnlockFailure(siteIdPendingUnlock);
-          await StorageService.recordSiteUnlockFailureHistory(siteIdPendingUnlock, failure?.attemptsRemaining);
+          await StorageService.recordSiteUnlockFailureHistory(siteIdPendingUnlock);
           clearSiteUnlockAttemptsInfo();
-          if (failure?.isBlocked) {
-            setSiteUnlockBlockedState(true);
-            clearSiteUnlockFieldErrorState();
-            scheduleSiteUnlockUnblock(siteIdPendingUnlock, failure.blockedUntil);
-          } else {
-            showSiteUnlockFieldError(`Mot de passe incorrect. ${formatAttemptsRemainingMessage(failure?.attemptsRemaining)}`);
-          }
+          showSiteUnlockFieldError('Mot de passe incorrect.');
           setSiteUnlockLoadingState(false);
           return;
         }
-        await StorageService.resetSiteUnlockProtection(siteIdPendingUnlock);
         await StorageService.recordSiteUnlockHistory(siteIdPendingUnlock);
         const openSiteId = siteIdPendingUnlock;
         siteUnlockDialog?.close();
@@ -3526,11 +3438,6 @@ import { getAutomaticUnit } from './automatic-unit.js';
       }
 
       clearSiteLockManageErrors();
-      const protection = await refreshSiteLockManageProtectionState(siteIdPendingLockManage);
-      if (protection?.isBlocked) {
-        return;
-      }
-
       const currentPasswordValue = siteLockCurrentPasswordInput?.value || '';
       const newPasswordValue = siteLockNewPasswordInput?.value || '';
       const targetSite = getLatestSiteState(siteIdPendingLockManage);
@@ -3559,24 +3466,15 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSiteLockManageActionLoadingState(submittedAction, true);
         const currentPasswordHash = await hashPassword(currentPasswordValue);
         if (currentPasswordHash !== targetSite.passwordHash) {
-          const failure = await StorageService.registerSiteUnlockFailure(siteIdPendingLockManage);
           clearSiteLockManageAttemptsInfo();
-          if (failure?.isBlocked) {
-            setSiteLockManageBlockedState(true);
-            clearSiteLockManageFieldErrorState(siteLockCurrentPasswordInput, siteLockCurrentPasswordError);
-            scheduleSiteLockManageUnblock(siteIdPendingLockManage, failure.blockedUntil);
-          } else {
-            showSiteLockManageFieldError(
-              siteLockCurrentPasswordInput,
-              siteLockCurrentPasswordError,
-              `Mot de passe actuel incorrect. ${formatAttemptsRemainingMessage(failure?.attemptsRemaining)}`,
-            );
-          }
+          showSiteLockManageFieldError(
+            siteLockCurrentPasswordInput,
+            siteLockCurrentPasswordError,
+            'Mot de passe actuel incorrect.',
+          );
           setSiteLockManageActionLoadingState(submittedAction, false);
           return;
         }
-
-        await StorageService.resetSiteUnlockProtection(siteIdPendingLockManage);
 
         if (submittedAction === 'unlock') {
           const result = await StorageService.clearSiteLock(siteIdPendingLockManage);
