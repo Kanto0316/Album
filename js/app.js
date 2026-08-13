@@ -3016,9 +3016,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       trashSidebarBtn.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        runSidebarAction(() => {
-          window.location.assign('corbeille.html');
-        });
+        window.location.assign(trashSidebarBtn.dataset.link || 'corbeille.html');
       });
     }
 
