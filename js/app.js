@@ -1303,6 +1303,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     const historySidebarBtn = homeMenuPanel?.querySelector('#sidebarHistoryBtn') || null;
     const allMaterialsSidebarBtn = homeMenuPanel?.querySelector('#sidebarAllMaterialsBtn') || null;
     const indemnitiesSidebarBtn = homeMenuPanel?.querySelector('#sidebarIndemnitiesBtn') || null;
+    const settingsSidebarBtn = homeMenuPanel?.querySelector('#sidebarSettingsBtn') || null;
     const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
@@ -3002,6 +3003,15 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
 
 
+    if (settingsSidebarBtn) {
+      settingsSidebarBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.assign('parametres.html');
+      });
+    }
+
+
     if (allMaterialsSidebarBtn) {
       allMaterialsSidebarBtn.addEventListener('click', (event) => {
         event.preventDefault();
@@ -3066,6 +3076,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSidebarItemVisible('#sidebarImportBtn', false);
         setSidebarItemVisible('#sidebarExportBtn', false);
         setSidebarItemVisible('#sidebarUsersBtn', false);
+        setSidebarItemVisible('#sidebarSettingsBtn', false);
         return;
       }
 
@@ -3073,6 +3084,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSidebarItemVisible('#sidebarImportBtn', true);
         setSidebarItemVisible('#sidebarExportBtn', true);
         setSidebarItemVisible('#sidebarUsersBtn', false);
+        setSidebarItemVisible('#sidebarSettingsBtn', false);
         return;
       }
 
@@ -3080,12 +3092,14 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSidebarItemVisible('#sidebarImportBtn', true);
         setSidebarItemVisible('#sidebarExportBtn', true);
         setSidebarItemVisible('#sidebarUsersBtn', true);
+        setSidebarItemVisible('#sidebarSettingsBtn', true);
         return;
       }
 
       setSidebarItemVisible('#sidebarImportBtn', false);
       setSidebarItemVisible('#sidebarExportBtn', false);
       setSidebarItemVisible('#sidebarUsersBtn', false);
+      setSidebarItemVisible('#sidebarSettingsBtn', false);
     }
 
     function mettreAJourPermissionsUI(nextPermissions) {
@@ -8768,6 +8782,14 @@ import { getAutomaticUnit } from './automatic-unit.js';
       });
   }
 
+
+  function initSettingsPage(permissions) {
+    if (!permissions.isAdmin) {
+      UiService.navigate('index.html');
+      return;
+    }
+  }
+
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
@@ -8806,6 +8828,9 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
     if (page === 'users-management') {
       await initUsersPage(permissions);
+    }
+    if (page === 'settings') {
+      initSettingsPage(permissions);
     }
     if (page === 'history') {
       await initHistoryPage();
