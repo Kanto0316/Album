@@ -156,6 +156,14 @@ function maintenanceDocRef() {
   return doc(state.db, 'appSettings', 'maintenance');
 }
 
+function trashSettingsDocRef() {
+  return doc(state.db, 'appSettings', 'trash');
+}
+
+function trashCollection() {
+  return collection(state.db, 'trash');
+}
+
 function parseFirestoreDate(value) {
   if (!value) {
     return null;
@@ -549,6 +557,10 @@ async function deleteUser(userId) {
   const targetId = String(userId || '').trim();
   if (!targetId) {
     return false;
+  }
+  const snap = await getDoc(userDocRef(targetId));
+  if (await isTrashEnabled() && snap.exists()) {
+    await addTrashEntry('user', targetId, { user: { id: targetId, ...(snap.data() || {}) } });
   }
   await deleteDoc(userDocRef(targetId));
   await recordCurrentUserActivity();
@@ -1540,6 +1552,92 @@ async function registerSiteUnlockFailure(siteId) {
   return { ok: true, isBlocked: false };
 }
 
+
+async function isTrashEnabled() {
+  const snapshot = await getDoc(trashSettingsDocRef());
+  return Boolean(snapshot.exists() && snapshot.data()?.enabled);
+}
+
+function normalizeTrashEntry(snapshot) {
+  const data = snapshot.data() || {};
+  const deletedAtIso = typeof data.deletedAtIso === 'string' ? data.deletedAtIso : parseFirestoreDate(data.deletedAt)?.toISOString?.() || '';
+  return { id: snapshot.id, ...data, deletedAtIso };
+}
+
+async function purgeExpiredTrashEntries() {
+  const entries = await getDocs(trashCollection());
+  const now = Date.now();
+  const expired = entries.docs.filter((entry) => {
+    const deletedAt = Date.parse(normalizeTrashEntry(entry).deletedAtIso || '');
+    return Number.isFinite(deletedAt) && now - deletedAt >= DAY_IN_MS;
+  });
+  await Promise.all(expired.map((entry) => deleteDoc(entry.ref)));
+}
+
+async function addTrashEntry(type, originalId, payload) {
+  const profile = await getCurrentUserProfile();
+  const deletedBy = {
+    id: profile?.id || state.userId || null,
+    name: normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu',
+    email: resolveCurrentUserEmail(),
+  };
+  const deletedAtIso = nowIso();
+  await addDoc(trashCollection(), {
+    type,
+    originalId: sanitizeText(originalId, false),
+    payload: clone(payload),
+    deletedAt: serverTimestamp(),
+    deletedAtIso,
+    deletedBy,
+  });
+}
+
+async function setTrashEnabled(enabled) {
+  await setDoc(trashSettingsDocRef(), { enabled: Boolean(enabled), updatedAt: serverTimestamp() }, { merge: true });
+  return Boolean(enabled);
+}
+
+function subscribeTrashSettings(onChange, onError) {
+  return onSnapshot(trashSettingsDocRef(), (snapshot) => onChange({ enabled: Boolean(snapshot.exists() && snapshot.data()?.enabled) }), onError);
+}
+
+function subscribeTrashEntries(onChange, onError) {
+  purgeExpiredTrashEntries().catch(() => {});
+  return onSnapshot(query(trashCollection(), orderBy('deletedAtIso', 'desc')), (snapshot) => {
+    const now = Date.now();
+    onChange(snapshot.docs.map(normalizeTrashEntry).filter((entry) => {
+      const deletedAt = Date.parse(entry.deletedAtIso || '');
+      return !Number.isFinite(deletedAt) || now - deletedAt < DAY_IN_MS;
+    }));
+  }, onError);
+}
+
+async function restoreTrashEntry(entryId) {
+  const ref = doc(state.db, 'trash', String(entryId || '').trim());
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) {
+    return false;
+  }
+  const entry = normalizeTrashEntry(snapshot);
+  const deletedAt = Date.parse(entry.deletedAtIso || '');
+  if (Number.isFinite(deletedAt) && Date.now() - deletedAt >= DAY_IN_MS) {
+    await deleteDoc(ref);
+    return false;
+  }
+  let restored = false;
+  if (entry.type === 'site') restored = await restoreSite(entry.payload);
+  if (entry.type === 'item') restored = await restoreItem(entry.payload);
+  if (entry.type === 'detail') restored = await restoreDetail(entry.payload);
+  if (entry.type === 'user' && entry.payload?.user?.id) {
+    await setDoc(userDocRef(entry.payload.user.id), withoutId(entry.payload.user));
+    restored = true;
+  }
+  if (restored) {
+    await deleteDoc(ref);
+  }
+  return restored;
+}
+
 async function removeSite(siteId) {
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
@@ -1557,6 +1655,15 @@ async function removeSite(siteId) {
   }
 
   const itemsToDelete = clone(state.itemsBySite.get(siteId) || []);
+  const detailsSnapshot = [];
+  Array.from(state.detailsByItem.entries()).forEach(([key, details]) => {
+    if (key.startsWith(`${siteId}:`)) {
+      detailsSnapshot.push(...clone(details));
+    }
+  });
+  if (await isTrashEnabled()) {
+    await addTrashEntry('site', siteId, { site: clone(siteToRemove), items: itemsToDelete, details: detailsSnapshot });
+  }
   const detailDeletePromises = [];
   Array.from(state.detailsByItem.entries()).forEach(([key, details]) => {
     if (key.startsWith(`${siteId}:`)) {
@@ -1707,6 +1814,10 @@ async function removeItem(siteId, itemId) {
     return { limitReached: true };
   }
 
+  if (await isTrashEnabled()) {
+    await addTrashEntry('item', itemId, { item: clone(itemToRemove), details: clone(state.detailsByItem.get(`${siteId}:${itemId}`) || []) });
+  }
+
   await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId));
 
   const [item] = items.splice(itemIndex, 1);
@@ -1810,6 +1921,22 @@ async function restoreItem(snapshot) {
     return false;
   }
 
+  persistOfflineState();
+  emitAll();
+  return true;
+}
+
+async function restoreDetail(snapshot) {
+  const detail = snapshot?.detail;
+  if (!detail?.id || !detail.siteId || !detail.itemId) return false;
+  try {
+    const detailPayload = withoutId(detail);
+    const createdDetail = await addDoc(makePageItemsCollection('page3'), detailPayload);
+    const nextDetail = { ...detailPayload, id: createdDetail.id };
+    const key = `${nextDetail.siteId}:${nextDetail.itemId}`;
+    if (!state.detailsByItem.has(key)) state.detailsByItem.set(key, []);
+    state.detailsByItem.get(key).push(nextDetail);
+  } catch (_error) { return false; }
   persistOfflineState();
   emitAll();
   return true;
@@ -1930,6 +2057,10 @@ async function removeDetail(siteId, itemId, detailId) {
   const detailIndex = details.findIndex((detail) => detail.id === detailId);
   if (detailIndex === -1) {
     return false;
+  }
+
+  if (await isTrashEnabled()) {
+    await addTrashEntry('detail', detailId, { detail: clone(details[detailIndex]) });
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
@@ -2240,6 +2371,10 @@ window.StorageService = {
   getSiteUnlockProtectionState,
   registerSiteUnlockFailure,
   resetSiteUnlockProtection,
+  setTrashEnabled,
+  subscribeTrashSettings,
+  subscribeTrashEntries,
+  restoreTrashEntry,
   removeSite,
   restoreSite,
   createItem,

@@ -8544,3 +8544,41 @@ body[data-page="home"] .page1-header #searchInput:focus {
     left: 0.82rem;
   }
 }
+
+body[data-page="trash"] .trash-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+body[data-page="trash"] .trash-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+body[data-page="trash"] .trash-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+body[data-page="trash"] .trash-entry__content {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--text-muted);
+}
+
+body[data-page="trash"] .trash-entry__content strong {
+  color: var(--text);
+}
+
+@media (max-width: 560px) {
+  body[data-page="trash"] .trash-card-header,
+  body[data-page="trash"] .trash-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
