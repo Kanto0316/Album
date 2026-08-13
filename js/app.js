@@ -1304,6 +1304,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     const allMaterialsSidebarBtn = homeMenuPanel?.querySelector('#sidebarAllMaterialsBtn') || null;
     const indemnitiesSidebarBtn = homeMenuPanel?.querySelector('#sidebarIndemnitiesBtn') || null;
     const settingsSidebarBtn = homeMenuPanel?.querySelector('#sidebarSettingsBtn') || null;
+    const trashSidebarBtn = homeMenuPanel?.querySelector('#sidebarTrashBtn') || null;
     const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
@@ -3077,6 +3078,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSidebarItemVisible('#sidebarExportBtn', false);
         setSidebarItemVisible('#sidebarUsersBtn', false);
         setSidebarItemVisible('#sidebarSettingsBtn', false);
+        setSidebarItemVisible('#sidebarTrashBtn', false);
         return;
       }
 
@@ -3085,6 +3087,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSidebarItemVisible('#sidebarExportBtn', true);
         setSidebarItemVisible('#sidebarUsersBtn', false);
         setSidebarItemVisible('#sidebarSettingsBtn', false);
+        setSidebarItemVisible('#sidebarTrashBtn', false);
         return;
       }
 
@@ -3093,6 +3096,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         setSidebarItemVisible('#sidebarExportBtn', true);
         setSidebarItemVisible('#sidebarUsersBtn', true);
         setSidebarItemVisible('#sidebarSettingsBtn', true);
+        setSidebarItemVisible('#sidebarTrashBtn', true);
         return;
       }
 
@@ -3100,6 +3104,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       setSidebarItemVisible('#sidebarExportBtn', false);
       setSidebarItemVisible('#sidebarUsersBtn', false);
       setSidebarItemVisible('#sidebarSettingsBtn', false);
+      setSidebarItemVisible('#sidebarTrashBtn', false);
     }
 
     function mettreAJourPermissionsUI(nextPermissions) {
@@ -8790,6 +8795,77 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
   }
 
+
+  async function initTrashPage(permissions) {
+    if (!permissions?.isAdmin) {
+      window.location.replace('index.html');
+      return;
+    }
+    const trashToggle = document.getElementById('trashToggle');
+    const trashStatusText = document.getElementById('trashStatusText');
+    const trashList = document.getElementById('trashList');
+    let ignoreToggleEvent = false;
+
+    const formatDateTime = (value) => {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('fr-FR');
+    };
+    const getRemainingText = (value) => {
+      const deletedAt = Date.parse(value || '');
+      if (!Number.isFinite(deletedAt)) return '-';
+      const remaining = Math.max(0, (24 * 60 * 60 * 1000) - (Date.now() - deletedAt));
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const minutes = Math.ceil((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      return remaining <= 0 ? 'Expiré' : `${hours} h ${minutes} min`;
+    };
+    const getEntryTitle = (entry) => {
+      const payload = entry?.payload || {};
+      if (entry.type === 'site') return payload.site?.nom || entry.originalId;
+      if (entry.type === 'item') return payload.item?.numero || entry.originalId;
+      if (entry.type === 'detail') return payload.detail?.designation || entry.originalId;
+      if (entry.type === 'user') return payload.user?.username || payload.user?.email || entry.originalId;
+      return entry.originalId || '-';
+    };
+    const renderEntries = (entries = []) => {
+      if (!trashList) return;
+      trashList.innerHTML = entries.length ? entries.map((entry) => `
+        <article class="trash-entry surface-card">
+          <div class="trash-entry__content">
+            <strong>${escapeHtml(entry.type || '-')} — ${escapeHtml(getEntryTitle(entry))}</strong>
+            <span>Identifiant : ${escapeHtml(entry.originalId || '-')}</span>
+            <span>Supprimé le : ${escapeHtml(formatDateTime(entry.deletedAtIso))}</span>
+            <span>Utilisateur : ${escapeHtml(entry.deletedBy?.name || entry.deletedBy?.email || 'Utilisateur inconnu')}</span>
+            <span>Temps restant : ${escapeHtml(getRemainingText(entry.deletedAtIso))}</span>
+          </div>
+          <button type="button" class="btn btn-success" data-trash-restore="${escapeHtml(entry.id)}">Restaurer</button>
+        </article>`).join('') : '<p class="users-empty-cell">Aucun élément dans la corbeille.</p>';
+      trashList.querySelectorAll('[data-trash-restore]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          const restored = await StorageService.restoreTrashEntry(button.dataset.trashRestore);
+          UiService.showToast(restored ? 'Élément restauré.' : 'Restauration impossible.');
+        });
+      });
+    };
+
+    StorageService.subscribeTrashSettings((settings) => {
+      ignoreToggleEvent = true;
+      if (trashToggle) {
+        trashToggle.checked = Boolean(settings.enabled);
+      }
+      if (trashStatusText) {
+        trashStatusText.textContent = settings.enabled ? 'ON' : 'OFF';
+      }
+      ignoreToggleEvent = false;
+    }, () => UiService.showToast('Impossible de lire l’état de la corbeille.'));
+    StorageService.subscribeTrashEntries(renderEntries, () => UiService.showToast('Impossible de charger la corbeille.'));
+    trashToggle?.addEventListener('change', async () => {
+      if (ignoreToggleEvent) return;
+      await StorageService.setTrashEnabled(trashToggle.checked);
+      UiService.showToast(trashToggle.checked ? 'Corbeille activée.' : 'Corbeille désactivée.');
+    });
+  }
+
   async function bootstrap() {
     UiService.bindDialogCloser();
     setupBackButtons();
@@ -8831,6 +8907,9 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
     if (page === 'settings') {
       initSettingsPage(permissions);
+    }
+    if (page === 'trash') {
+      await initTrashPage(permissions);
     }
     if (page === 'history') {
       await initHistoryPage();

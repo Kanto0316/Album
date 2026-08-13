@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Corbeille - Suivi Matériel</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body data-page="trash">
+    <div class="app-shell app-shell--wide">
+      <header class="app-header app-header--detail">
+        <div class="app-header__side app-header__side--left">
+          <button class="back-button" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+        </div>
+        <div class="app-header__center">
+          <div class="header-title"><h1>Corbeille</h1></div>
+        </div>
+        <div class="app-header__side app-header__side--right" aria-hidden="true"></div>
+      </header>
+
+      <main class="page-content page-content--wide main-content">
+        <section class="surface-card details-card">
+          <div class="maintenance-card-header trash-card-header">
+            <h2 class="section-title">Corbeille</h2>
+            <div class="maintenance-toggle-row">
+              <label class="switch" for="trashToggle">
+                <input id="trashToggle" type="checkbox" role="switch" aria-label="Activer ou désactiver la corbeille" />
+                <span class="slider"></span>
+              </label>
+              <span id="trashStatusText" class="maintenance-toggle-row__status">OFF</span>
+            </div>
+          </div>
+        </section>
+        <section class="surface-card table-card trash-list-card">
+          <h2 class="section-title">Éléments supprimés</h2>
+          <div id="trashList" class="trash-list" aria-live="polite"></div>
+        </section>
+      </main>
+
+      <div id="toast" class="toast" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="js/maintenance-banner.js"></script>
+    <script type="module" src="js/storage.js"></script>
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
