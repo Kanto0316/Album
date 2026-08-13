@@ -1639,7 +1639,7 @@ body[data-page="home"] #siteLockManageDialog .form-info--attempts {
 
 body[data-page="home"] #siteUnlockDialog .form-info--attempts:empty,
 body[data-page="home"] #siteUnlockDialog .form-error--field:empty {
-  min-height: 0;
+  min-height: 0.75rem;
   margin-top: 0;
 }
 
