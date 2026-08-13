@@ -24,6 +24,22 @@ import { getAutomaticUnit } from './automatic-unit.js';
     return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
+  function maskEmailForDisplay(email) {
+    const normalizedEmail = String(email || '').trim();
+    const atIndex = normalizedEmail.indexOf('@');
+    if (atIndex <= 0) {
+      return normalizedEmail;
+    }
+
+    const localPart = normalizedEmail.slice(0, atIndex);
+    const domainPart = normalizedEmail.slice(atIndex);
+    const firstLetter = localPart.charAt(0);
+    const finalLocalPart = localPart.length > 2 ? localPart.slice(-2) : localPart.slice(1);
+    const hiddenLength = Math.max(localPart.length - firstLetter.length - finalLocalPart.length, 12);
+
+    return `${firstLetter}${'*'.repeat(hiddenLength)}${finalLocalPart}${domainPart}`;
+  }
+
   const DEFAULT_PURCHASE_IMAGE_SRC = 'Icon/Image.png';
 
   const EXPORT_FILE_NAME_HISTORY_KEY = 'suiviMateriel.exportFileNames.v1';
@@ -2170,7 +2186,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         creatorName.textContent = getSiteCreatorName(site);
       }
       if (creatorEmail) {
-        creatorEmail.textContent = getSiteCreatorEmail(site);
+        creatorEmail.textContent = maskEmailForDisplay(getSiteCreatorEmail(site));
       }
 
       const close = () => {
