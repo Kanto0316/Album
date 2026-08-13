@@ -3012,6 +3012,16 @@ import { getAutomaticUnit } from './automatic-unit.js';
       });
     }
 
+    if (trashSidebarBtn) {
+      trashSidebarBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        runSidebarAction(() => {
+          window.location.assign('corbeille.html');
+        });
+      });
+    }
+
 
     if (allMaterialsSidebarBtn) {
       allMaterialsSidebarBtn.addEventListener('click', (event) => {
