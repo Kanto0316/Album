@@ -3021,20 +3021,23 @@ body[data-page="users-management"] #adminMessageSendButton.is-loading .btn-label
   display: inline-flex;
 }
 
-body[data-page="users-management"] .maintenance-card-header {
+body[data-page="users-management"] .maintenance-card-header,
+body[data-page="trash"] .maintenance-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
 }
 
-body[data-page="users-management"] .maintenance-card-header .section-title {
+body[data-page="users-management"] .maintenance-card-header .section-title,
+body[data-page="trash"] .maintenance-card-header .section-title {
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-body[data-page="users-management"] .maintenance-toggle-row {
+body[data-page="users-management"] .maintenance-toggle-row,
+body[data-page="trash"] .maintenance-toggle-row {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -3044,15 +3047,18 @@ body[data-page="users-management"] .maintenance-toggle-row {
 }
 
 @media (max-width: 420px) {
-  body[data-page="users-management"] .maintenance-card-header {
+  body[data-page="users-management"] .maintenance-card-header,
+  body[data-page="trash"] .maintenance-card-header {
     gap: 0.75rem;
   }
 
-  body[data-page="users-management"] .maintenance-card-header .section-title {
+  body[data-page="users-management"] .maintenance-card-header .section-title,
+  body[data-page="trash"] .maintenance-card-header .section-title {
     font-size: 1rem;
   }
 
-  body[data-page="users-management"] .maintenance-toggle-row {
+  body[data-page="users-management"] .maintenance-toggle-row,
+  body[data-page="trash"] .maintenance-toggle-row {
     gap: 0.55rem;
   }
 }
@@ -8040,21 +8046,24 @@ body[data-page="all-materials"] .table-wrapper--shared {
   }
 }
 
-/* Gestion Admin: keep the admin page aligned with the app's compact mobile gutters. */
-body[data-page="users-management"] .app-shell.app-shell--wide {
+/* Gestion Admin and Corbeille: keep utility pages aligned with the app's compact mobile gutters. */
+body[data-page="users-management"] .app-shell.app-shell--wide,
+body[data-page="trash"] .app-shell.app-shell--wide {
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
 }
 
-body[data-page="users-management"] .page-content.page-content--wide.main-content {
+body[data-page="users-management"] .page-content.page-content--wide.main-content,
+body[data-page="trash"] .page-content.page-content--wide.main-content {
   width: 100%;
   max-width: 100%;
   padding-inline: 10px;
   box-sizing: border-box;
 }
 
-body[data-page="users-management"] .main-content > .surface-card {
+body[data-page="users-management"] .main-content > .surface-card,
+body[data-page="trash"] .main-content > .surface-card {
   width: 100%;
   max-width: 100%;
   padding: 10px;
@@ -8070,23 +8079,27 @@ body[data-page="users-management"] .table-wrapper--users .data-table {
 }
 
 @media (max-width: 380px) {
-  body[data-page="users-management"] .page-content.page-content--wide.main-content {
+  body[data-page="users-management"] .page-content.page-content--wide.main-content,
+  body[data-page="trash"] .page-content.page-content--wide.main-content {
     padding-inline: 8px;
   }
 
-  body[data-page="users-management"] .main-content > .surface-card {
+  body[data-page="users-management"] .main-content > .surface-card,
+  body[data-page="trash"] .main-content > .surface-card {
     padding: 8px;
   }
 }
 
 @media (min-width: 768px) {
-  body[data-page="users-management"] .app-shell.app-shell--wide {
+  body[data-page="users-management"] .app-shell.app-shell--wide,
+  body[data-page="trash"] .app-shell.app-shell--wide {
     width: 100% !important;
     max-width: 100% !important;
     margin-inline: 0 !important;
   }
 
-  body[data-page="users-management"] .page-content.page-content--wide.main-content {
+  body[data-page="users-management"] .page-content.page-content--wide.main-content,
+  body[data-page="trash"] .page-content.page-content--wide.main-content {
     padding-inline: 12px !important;
   }
 }
@@ -8576,7 +8589,6 @@ body[data-page="trash"] .trash-entry__content strong {
 }
 
 @media (max-width: 560px) {
-  body[data-page="trash"] .trash-card-header,
   body[data-page="trash"] .trash-entry {
     align-items: stretch;
     flex-direction: column;
