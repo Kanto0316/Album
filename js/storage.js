@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -17,11 +18,99 @@ import {
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
 import { getAutomaticUnit } from './automatic-unit.js';
+import { isDetailCompleted } from './detail-status.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
 const SITE_INACTIVITY_THRESHOLD_DAYS = Number(APP_CONFIG?.siteInactivity?.thresholdDays) || 30;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const POINT_ACTIONS = Object.freeze({
+  OUT_CREATED: 'out_created',
+  ARTICLE_ADDED: 'article_added',
+  ARTICLE_MODIFIED: 'article_modified',
+  ARTICLE_COMPLETED: 'article_completed',
+  MATERIAL_REQUEST_CREATED: 'material_request_created',
+  MATERIAL_REQUEST_PROCESSED: 'material_request_processed',
+  DAILY_LOGIN: 'daily_login',
+  SITE_UNLOCKED: 'site_unlocked',
+  OTHER_USER_OUT_DELETED: 'other_user_out_deleted',
+  OTHER_USER_ARTICLE_DELETED: 'other_user_article_deleted',
+  ABUSIVE_MATERIAL_REQUEST_DELETED: 'abusive_material_request_deleted',
+});
+
+const POINT_VALUES = Object.freeze({
+  [POINT_ACTIONS.OUT_CREATED]: 10,
+  [POINT_ACTIONS.ARTICLE_ADDED]: 2,
+  [POINT_ACTIONS.ARTICLE_MODIFIED]: 1,
+  [POINT_ACTIONS.ARTICLE_COMPLETED]: 3,
+  [POINT_ACTIONS.MATERIAL_REQUEST_CREATED]: 3,
+  [POINT_ACTIONS.MATERIAL_REQUEST_PROCESSED]: 3,
+  [POINT_ACTIONS.DAILY_LOGIN]: 1,
+  [POINT_ACTIONS.SITE_UNLOCKED]: 1,
+  [POINT_ACTIONS.OTHER_USER_OUT_DELETED]: -5,
+  [POINT_ACTIONS.OTHER_USER_ARTICLE_DELETED]: -2,
+  [POINT_ACTIONS.ABUSIVE_MATERIAL_REQUEST_DELETED]: -3,
+});
+
+function pointMovementsCollection() {
+  return collection(state.db, 'userPointMovements');
+}
+
+function buildPointMovementId(userId, action, targetId = '') {
+  return [userId, action, sanitizeText(targetId, false)].filter(Boolean).join(':').replace(/[^A-Za-z0-9:_-]/g, '_');
+}
+
+async function recordPointMovement(action, targetId = '', options = {}) {
+  const userId = String(options.userId || state.userId || '').trim();
+  const points = Number(POINT_VALUES[action] || 0);
+  if (!userId || !points) {
+    return false;
+  }
+  const movementId = sanitizeText(options.movementId, false) || buildPointMovementId(userId, action, targetId || nowIso());
+  const movementRef = doc(state.db, 'userPointMovements', movementId);
+  const existingMovement = await getDoc(movementRef);
+  if (existingMovement.exists()) {
+    return false;
+  }
+  await setDoc(movementRef, {
+    userId,
+    action,
+    points,
+    targetId: sanitizeText(targetId, false) || null,
+    createdAt: serverTimestamp(),
+    createdAtIso: nowIso(),
+  });
+  await setDoc(userDocRef(userId), { score: increment(points), updatedAt: serverTimestamp() }, { merge: true });
+  return true;
+}
+
+function normalizePointMovementsSnapshot(snapshot) {
+  return snapshot.docs.reduce((pointsByUser, snap) => {
+    const data = snap.data() || {};
+    const userId = String(data.userId || '').trim();
+    const points = Number(data.points || 0);
+    if (userId && Number.isFinite(points)) {
+      pointsByUser[userId] = (pointsByUser[userId] || 0) + points;
+    }
+    return pointsByUser;
+  }, {});
+}
+
+async function listUserScores() {
+  const snapshot = await getDocs(pointMovementsCollection());
+  return normalizePointMovementsSnapshot(snapshot);
+}
+
+function subscribeUserScores(onChange, onError) {
+  try {
+    return onSnapshot(pointMovementsCollection(), (snapshot) => onChange(normalizePointMovementsSnapshot(snapshot)), onError);
+  } catch (error) {
+    if (typeof onError === 'function') onError(error);
+    return () => {};
+  }
+}
+
 
 const state = {
   initialized: false,
@@ -247,6 +336,9 @@ async function ensureCurrentUser() {
       },
       { merge: true },
     );
+    await recordPointMovement(POINT_ACTIONS.DAILY_LOGIN, new Date().toISOString().slice(0, 10), {
+      movementId: buildPointMovementId(state.userId, POINT_ACTIONS.DAILY_LOGIN, new Date().toISOString().slice(0, 10)),
+    });
     return {
       id: state.userId,
       username: authDisplayName,
@@ -283,6 +375,9 @@ async function ensureCurrentUser() {
   }
 
   await setDoc(ref, updates, { merge: true });
+  await recordPointMovement(POINT_ACTIONS.DAILY_LOGIN, new Date().toISOString().slice(0, 10), {
+    movementId: buildPointMovementId(state.userId, POINT_ACTIONS.DAILY_LOGIN, new Date().toISOString().slice(0, 10)),
+  });
 
   if ('status' in data || 'approved' in data || 'pending' in data) {
     await setDoc(
@@ -484,44 +579,6 @@ async function cleanupInactiveUsers(options = {}) {
   return { deletedCount: deletedUserIds.length, deletedUserIds, cutoffDate };
 }
 
-
-function normalizeOutCreationPointsSnapshot(snapshot) {
-  return snapshot.docs.reduce((pointsByUser, snap) => {
-    const data = snap.data() || {};
-    const creatorId = String(data.createdBy || data.ownerId || '').trim();
-    if (!creatorId) {
-      return pointsByUser;
-    }
-    pointsByUser[creatorId] = (pointsByUser[creatorId] || 0) + 1;
-    return pointsByUser;
-  }, {});
-}
-
-async function listOutCreationPoints() {
-  const snapshot = await getDocs(makePageItemsCollection('page2'));
-  return normalizeOutCreationPointsSnapshot(snapshot);
-}
-
-function subscribeOutCreationPoints(onChange, onError) {
-  try {
-    return onSnapshot(
-      makePageItemsCollection('page2'),
-      (snapshot) => {
-        onChange(normalizeOutCreationPointsSnapshot(snapshot));
-      },
-      (error) => {
-        if (typeof onError === 'function') {
-          onError(error);
-        }
-      },
-    );
-  } catch (error) {
-    if (typeof onError === 'function') {
-      onError(error);
-    }
-    return () => {};
-  }
-}
 
 async function updateUserRole(userId, role) {
   const nextRole = normalizeRole(role);
@@ -1503,6 +1560,7 @@ async function clearSiteLock(siteId) {
   };
   sortState();
   await appendHistoryEntry('a retiré le mot de passe du site', { siteId });
+  await recordPointMovement(POINT_ACTIONS.SITE_UNLOCKED, siteId);
   persistOfflineState();
   emitAll();
   return { ok: true };
@@ -1510,6 +1568,7 @@ async function clearSiteLock(siteId) {
 
 async function recordSiteUnlockHistory(siteId) {
   await appendHistoryEntry('a déverrouillé le site', { siteId });
+  await recordPointMovement(POINT_ACTIONS.SITE_UNLOCKED, siteId);
 }
 
 async function recordSiteUnlockFailureHistory(siteId) {
@@ -1735,6 +1794,7 @@ async function createItem(siteId, numberValue, options = {}) {
   state.itemsBySite.get(siteId).unshift(item);
 
   await appendHistoryEntry(`a créé ${item.numero}`, { siteId });
+  await recordPointMovement(POINT_ACTIONS.OUT_CREATED, item.id);
   persistOfflineState();
   emitAll();
   return { ok: true, id: item.id };
@@ -1809,7 +1869,9 @@ async function removeItem(siteId, itemId) {
   const creatorId = String(itemToRemove?.createdBy || itemToRemove?.ownerId || '').trim();
   const normalizedRole = normalizeRole(profile?.role);
   const isAdmin = normalizedRole === 'admin' || normalizedRole === 'standard' || isAdminEmail(profile?.email);
+  const isSystemAdmin = normalizedRole === 'admin' || isAdminEmail(profile?.email);
   const shouldCountDeletion = !isAdmin && (!currentUserId || !creatorId || currentUserId !== creatorId);
+  const shouldPenalizeOtherUserDeletion = !isSystemAdmin && currentUserId && creatorId && currentUserId !== creatorId;
   if (shouldCountDeletion && await hasReachedOutDeletionLimit(currentUserId)) {
     return { limitReached: true };
   }
@@ -1826,6 +1888,9 @@ async function removeItem(siteId, itemId) {
   state.detailsByItem.delete(detailsKey);
   if (shouldCountDeletion) {
     await recordOutDeletionLimitUsage(currentUserId);
+  }
+  if (shouldPenalizeOtherUserDeletion) {
+    await recordPointMovement(POINT_ACTIONS.OTHER_USER_OUT_DELETED, item.id);
   }
 
   await appendHistoryEntry(`a supprimé ${item.numero}`, { siteId });
@@ -1984,6 +2049,10 @@ async function createDetail(siteId, itemId, payload) {
 
   const item = getItem(siteId, itemId);
   await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await recordPointMovement(POINT_ACTIONS.ARTICLE_ADDED, detail.id);
+  if (isDetailCompleted(detail)) {
+    await recordPointMovement(POINT_ACTIONS.ARTICLE_COMPLETED, detail.id);
+  }
   persistOfflineState();
   emitAll();
   return { ok: true, id: detail.id };
@@ -2042,10 +2111,15 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   nextValues.dateModification = nowIso();
   syncedChanges.dateModification = nextValues.dateModification;
 
+  const wasCompleted = isDetailCompleted(target);
   await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), syncedChanges);
   Object.assign(target, nextValues);
   const item = getItem(siteId, itemId);
   await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await recordPointMovement(POINT_ACTIONS.ARTICLE_MODIFIED, `${detailId}:${nextValues.dateModification}`);
+  if (!wasCompleted && isDetailCompleted(target)) {
+    await recordPointMovement(POINT_ACTIONS.ARTICLE_COMPLETED, detailId);
+  }
   persistOfflineState();
   emitAll();
   return true;
@@ -2059,12 +2133,22 @@ async function removeDetail(siteId, itemId, detailId) {
     return false;
   }
 
+  const detailToRemove = details[detailIndex];
+  const profile = await getCurrentUserProfile();
+  const currentUserId = String(state.userId || profile?.id || '').trim();
+  const creatorId = String(detailToRemove?.createdBy || detailToRemove?.ownerId || '').trim();
+  const isAdmin = normalizeRole(profile?.role) === 'admin' || isAdminEmail(profile?.email);
+  const shouldPenalize = !isAdmin && currentUserId && creatorId && currentUserId !== creatorId;
+
   if (await isTrashEnabled()) {
-    await addTrashEntry('detail', detailId, { detail: clone(details[detailIndex]) });
+    await addTrashEntry('detail', detailId, { detail: clone(detailToRemove) });
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
   details.splice(detailIndex, 1);
+  if (shouldPenalize) {
+    await recordPointMovement(POINT_ACTIONS.OTHER_USER_ARTICLE_DELETED, detailId);
+  }
   const item = getItem(siteId, itemId);
   await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
   persistOfflineState();
@@ -2396,8 +2480,8 @@ window.StorageService = {
   updateAvatarUrl,
   listUsers,
   subscribeUsers,
-  listOutCreationPoints,
-  subscribeOutCreationPoints,
+  listUserScores,
+  subscribeUserScores,
   updateUserRole,
   updateUserMaintenanceAccess,
   deleteUser,
@@ -2410,6 +2494,9 @@ window.StorageService = {
   recordSearchHistory,
   recordFilterHistory,
   recordMaterialsPageOpenHistory,
+  recordMaterialRequestCreated: (requestId) => recordPointMovement(POINT_ACTIONS.MATERIAL_REQUEST_CREATED, requestId),
+  recordMaterialRequestProcessed: (requestId) => recordPointMovement(POINT_ACTIONS.MATERIAL_REQUEST_PROCESSED, requestId),
+  recordAbusiveMaterialRequestDeleted: (requestId) => recordPointMovement(POINT_ACTIONS.ABUSIVE_MATERIAL_REQUEST_DELETED, requestId),
   listHistoriques,
   subscribeHistoriques,
   getAuthUser: () => clone(state.authUser),

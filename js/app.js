@@ -8231,7 +8231,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       tableBody.innerHTML = sortedUsers
         .map((user) => `
           <tr>
-            <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)}</td>
+            <td class="users-point-cell">${Number(pointsByUser?.[user.id] || 0)} points</td>
             <td>
               ${cleanText(user.avatarUrl)
       ? `<img class="table-avatar" src="${escapeHtml(user.avatarUrl)}" alt="Avatar de ${escapeHtml(resolveDisplayName(user))}" />`
@@ -8354,7 +8354,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
       const [initialUsers, initialPointsByUser] = await Promise.all([
         StorageService.listUsers(),
-        StorageService.listOutCreationPoints(),
+        StorageService.listUserScores(),
       ]);
       currentUsers = initialUsers;
       currentPointsByUser = initialPointsByUser;
@@ -8382,7 +8382,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       },
     );
 
-    StorageService.subscribeOutCreationPoints(
+    StorageService.subscribeUserScores(
       (pointsByUser) => {
         currentPointsByUser = pointsByUser;
         renderCurrentUsers();
