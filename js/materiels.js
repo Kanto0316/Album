@@ -80,11 +80,12 @@ import { firebaseDb } from './firebase-core.js';
       unit: item.unit || 'Pcs',
     }));
 
-    await addDoc(collection(firebaseDb, 'materialRequests'), {
+    const created = await addDoc(collection(firebaseDb, 'materialRequests'), {
       requestTitle: cleanedTitle,
       createdAt: serverTimestamp(),
       items,
     });
+    await window.StorageService?.recordMaterialRequestCreated?.(created.id);
 
     return {
       requestTitle: cleanedTitle,
