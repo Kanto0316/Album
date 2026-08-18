@@ -3644,6 +3644,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     const itemStoreError = requireElement('itemStoreError');
     const itemStoreOtherGroup = requireElement('itemStoreOtherGroup');
     const itemStoreOtherInput = requireElement('itemStoreOtherInput');
+    const itemStoreOtherCounter = requireElement('itemStoreOtherCounter');
     const itemNumberCounter = requireElement('itemNumberCounter');
     const itemFormError = requireElement('itemFormError');
     const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
@@ -5558,6 +5559,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
       return digitsOnly.slice(0, maxLength);
     }
 
+    function updateItemStoreOtherCounter() {
+      updateInputCharCounter(itemStoreOtherInput, itemStoreOtherCounter);
+    }
+
     function updateItemStoreOtherVisibility(options = {}) {
       if (!itemStoreSelect || !itemStoreOtherGroup) {
         return;
@@ -5572,6 +5577,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (shouldShowOtherField) {
         itemStoreOtherGroup.hidden = false;
         itemStoreOtherGroup.classList.remove('is-hiding');
+        updateItemStoreOtherCounter();
         window.requestAnimationFrame(() => {
           itemStoreOtherGroup.classList.add('is-visible');
         });
@@ -5581,6 +5587,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (itemStoreOtherInput) {
         itemStoreOtherInput.value = '';
       }
+      updateItemStoreOtherCounter();
 
       if (immediate || itemStoreOtherGroup.hidden) {
         itemStoreOtherGroup.classList.remove('is-visible', 'is-hiding');
@@ -5828,6 +5835,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
+      updateItemStoreOtherCounter();
       updateItemStoreOtherVisibility({ immediate: true });
       itemDialog.showModal();
       itemNumberInput.focus();
@@ -6055,8 +6063,17 @@ import { getAutomaticUnit } from './automatic-unit.js';
       setItemCreateButtonState();
     });
 
+    itemStoreOtherInput?.addEventListener('beforeinput', (event) => {
+      enforceMaxLengthOnBeforeInput(event, itemStoreOtherInput);
+    });
+
+    itemStoreOtherInput?.addEventListener('paste', (event) => {
+      enforceMaxLengthOnPaste(event, itemStoreOtherInput, itemStoreOtherCounter);
+    });
+
     itemStoreOtherInput?.addEventListener('input', () => {
       clearItemStoreErrorState();
+      updateItemStoreOtherCounter();
       setItemCreateButtonState();
     });
 
@@ -6121,6 +6138,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       }, 200);
     });
     updateItemNumberCounter();
+    updateItemStoreOtherCounter();
 
     itemDialog.addEventListener('close', () => {
       clearItemFormError();
@@ -6134,6 +6152,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       itemCreateSubmitButton.classList.remove('is-loading');
       itemCreateSubmitButton.disabled = false;
       updateItemNumberCounter();
+      updateItemStoreOtherCounter();
       updateItemStoreOtherVisibility({ immediate: true });
       setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
       editingItemId = null;
