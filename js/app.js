@@ -3644,6 +3644,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     const itemStoreError = requireElement('itemStoreError');
     const itemStoreOtherGroup = requireElement('itemStoreOtherGroup');
     const itemStoreOtherInput = requireElement('itemStoreOtherInput');
+    const itemStoreOtherCounter = requireElement('itemStoreOtherCounter');
     const itemNumberCounter = requireElement('itemNumberCounter');
     const itemFormError = requireElement('itemFormError');
     const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
@@ -5548,6 +5549,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
       return itemNumberInput.maxLength > 0 ? itemNumberInput.maxLength : null;
     }
 
+    function getInputMaxLength(input) {
+      return input?.maxLength > 0 ? input.maxLength : null;
+    }
+
     function normalizeItemNumberInput(rawValue) {
       const normalizedRawValue = String(rawValue || '').trim().replace(/^out-/i, '');
       const digitsOnly = normalizedRawValue.replace(/\D/g, '');
@@ -5572,6 +5577,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (shouldShowOtherField) {
         itemStoreOtherGroup.hidden = false;
         itemStoreOtherGroup.classList.remove('is-hiding');
+        updateItemStoreOtherCounter();
         window.requestAnimationFrame(() => {
           itemStoreOtherGroup.classList.add('is-visible');
         });
@@ -5580,6 +5586,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
       if (itemStoreOtherInput) {
         itemStoreOtherInput.value = '';
+        updateItemStoreOtherCounter();
       }
 
       if (immediate || itemStoreOtherGroup.hidden) {
@@ -5609,22 +5616,32 @@ import { getAutomaticUnit } from './automatic-unit.js';
       return selectedValue;
     }
 
-    function updateItemNumberCounter() {
-      const maxLength = getItemNumberMaxLength();
-      const currentLength = itemNumberInput.value.length;
-      itemNumberCounter.textContent = `${currentLength} / ${maxLength ?? currentLength}`;
+    function updateItemTextCounter(input, counter, maxLength = getInputMaxLength(input)) {
+      if (!input || !counter) {
+        return;
+      }
+      const currentLength = input.value.length;
+      counter.textContent = `${currentLength} / ${maxLength ?? currentLength}`;
 
-      itemNumberCounter.classList.remove('is-warning', 'is-limit');
+      counter.classList.remove('is-warning', 'is-limit');
       if (!maxLength || maxLength <= 0) {
         return;
       }
 
       const ratio = currentLength / maxLength;
       if (ratio >= 1) {
-        itemNumberCounter.classList.add('is-limit');
+        counter.classList.add('is-limit');
       } else if (ratio >= 0.8) {
-        itemNumberCounter.classList.add('is-warning');
+        counter.classList.add('is-warning');
       }
+    }
+
+    function updateItemNumberCounter() {
+      updateItemTextCounter(itemNumberInput, itemNumberCounter, getItemNumberMaxLength());
+    }
+
+    function updateItemStoreOtherCounter() {
+      updateItemTextCounter(itemStoreOtherInput, itemStoreOtherCounter);
     }
 
     function clearItemFormError() {
@@ -5828,6 +5845,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       itemCreateSubmitButton.disabled = false;
       itemCreateSubmitButton.classList.remove('is-loading');
       updateItemNumberCounter();
+      updateItemStoreOtherCounter();
       updateItemStoreOtherVisibility({ immediate: true });
       itemDialog.showModal();
       itemNumberInput.focus();
@@ -6056,6 +6074,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     });
 
     itemStoreOtherInput?.addEventListener('input', () => {
+      updateItemStoreOtherCounter();
       clearItemStoreErrorState();
       setItemCreateButtonState();
     });
@@ -6121,6 +6140,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       }, 200);
     });
     updateItemNumberCounter();
+    updateItemStoreOtherCounter();
 
     itemDialog.addEventListener('close', () => {
       clearItemFormError();
@@ -6134,6 +6154,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       itemCreateSubmitButton.classList.remove('is-loading');
       itemCreateSubmitButton.disabled = false;
       updateItemNumberCounter();
+      updateItemStoreOtherCounter();
       updateItemStoreOtherVisibility({ immediate: true });
       setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
       editingItemId = null;
