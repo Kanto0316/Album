@@ -9,6 +9,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  where,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -31,6 +32,9 @@ const state = {
   sites: [],
   itemsBySite: new Map(),
   detailsByItem: new Map(),
+  materialCodes: [],
+  loadedDetailSites: new Set(),
+  loadedDetailPairs: new Set(),
   listeners: {
     sites: new Set(),
     itemCounts: new Set(),
@@ -818,6 +822,7 @@ function persistOfflineState() {
       page2: items,
       page3: details,
     },
+    materialCodes: state.materialCodes,
   };
   localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(payload));
 }
@@ -832,11 +837,12 @@ function parseOfflineState() {
     const page1 = Array.isArray(parsed?.pages?.page1) ? parsed.pages.page1 : [];
     const page2 = Array.isArray(parsed?.pages?.page2) ? parsed.pages.page2 : [];
     const page3 = Array.isArray(parsed?.pages?.page3) ? parsed.pages.page3 : [];
+    const materialCodes = Array.isArray(parsed?.materialCodes) ? parsed.materialCodes : [];
     const savedAt = typeof parsed?.savedAt === 'string' ? parsed.savedAt : null;
     const savedAtTime = savedAt ? new Date(savedAt).getTime() : NaN;
     const isFresh = Number.isFinite(savedAtTime) && Date.now() - savedAtTime < OFFLINE_CACHE_TTL_MS;
     return {
-      snapshot: { page1, page2, page3 },
+      snapshot: { page1, page2, page3, materialCodes },
       savedAt,
       isFresh,
     };
@@ -851,13 +857,59 @@ async function readPageItems(pageName) {
   return snapshot.docs.map(normalizeDocData);
 }
 
+function materialCodesCollection() {
+  return collection(state.db, 'materialCodes');
+}
+
+function normalizeMaterialCodeKey(code) {
+  return sanitizeText(code, false).toLowerCase();
+}
+
+function materialCodeDocId(code) {
+  return encodeURIComponent(normalizeMaterialCodeKey(code)).replace(/\./g, '%2E');
+}
+
+function normalizeMaterialCodeEntry(entry) {
+  const code = sanitizeText(entry?.code, true);
+  if (!code) return null;
+  return { id: entry?.id || materialCodeDocId(code), code, designation: sanitizeText(entry?.designation, false) };
+}
+
+async function readMaterialCodes() {
+  const snapshot = await getDocs(materialCodesCollection());
+  return snapshot.docs.map(normalizeDocData).map(normalizeMaterialCodeEntry).filter(Boolean);
+}
+
+async function bootstrapMaterialCodesFromDetails() {
+  const details = await readPageItems('page3');
+  const suggestionsByCode = new Map();
+  details.forEach((detail) => {
+    const code = sanitizeText(detail?.code, true);
+    if (!code) return;
+    const key = normalizeMaterialCodeKey(code);
+    const designation = sanitizeText(detail?.designation, false);
+    if (!suggestionsByCode.has(key)) {
+      suggestionsByCode.set(key, { id: materialCodeDocId(code), code, designation });
+      return;
+    }
+    const existing = suggestionsByCode.get(key);
+    if (!existing.designation && designation) existing.designation = designation;
+  });
+  const entries = Array.from(suggestionsByCode.values());
+  await Promise.all(entries.map((entry) => setDoc(doc(state.db, 'materialCodes', entry.id), { code: entry.code, designation: entry.designation }, { merge: true })));
+  return entries;
+}
+
 async function loadRemoteSnapshot() {
-  const [page1, page2, page3] = await Promise.all([
+  let [page1, page2, materialCodes] = await Promise.all([
     readPageItems('page1'),
     readPageItems('page2'),
-    readPageItems('page3'),
+    readMaterialCodes(),
   ]);
-  return { page1, page2, page3 };
+  if (!materialCodes.length) {
+    materialCodes = await bootstrapMaterialCodesFromDetails();
+  }
+  return { page1, page2, page3: [], materialCodes };
 }
 
 function applySnapshot(snapshot) {
@@ -889,6 +941,10 @@ function applySnapshot(snapshot) {
     state.detailsByItem.get(key).push(detail);
   });
 
+  if (Array.isArray(snapshot.materialCodes)) {
+    state.materialCodes = snapshot.materialCodes.map(normalizeMaterialCodeEntry).filter(Boolean);
+  }
+
   sortState();
 }
 
@@ -900,6 +956,7 @@ function sortState() {
   state.detailsByItem.forEach((details) => {
     details.sort((a, b) => Number(a.champ) - Number(b.champ));
   });
+  state.materialCodes.sort((a, b) => a.code.localeCompare(b.code, 'fr', { sensitivity: 'base' }));
 }
 
 function emitForSite(siteId) {
@@ -1191,6 +1248,13 @@ function subscribeDetails(siteId, itemId, onChange, onError) {
     const key = `${siteId}:${itemId}`;
     const unsubscribe = subscribeFactory(state.listeners.detailsByPair, key, onChange);
     onChange(clone(state.detailsByItem.get(key) || []));
+    ensurePairDetailsLoaded(siteId, itemId)
+      .then(() => {
+        onChange(clone(state.detailsByItem.get(key) || []));
+      })
+      .catch((error) => {
+        if (typeof onError === 'function') onError(error);
+      });
     return unsubscribe;
   } catch (error) {
     if (typeof onError === 'function') {
@@ -1198,19 +1262,28 @@ function subscribeDetails(siteId, itemId, onChange, onError) {
     }
     return () => {};
   }
+}
+
+function buildDetailCountsForSite(siteId) {
+  const counts = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId === siteId) {
+      counts[itemId] = details.length;
+    }
+  });
+  return counts;
 }
 
 function subscribeDetailCounts(siteId, onChange, onError) {
   try {
     const unsubscribe = subscribeFactory(state.listeners.detailCountsBySite, siteId, onChange);
-    const counts = {};
-    state.detailsByItem.forEach((details, key) => {
-      const [kSiteId, itemId] = key.split(':');
-      if (kSiteId === siteId) {
-        counts[itemId] = details.length;
-      }
-    });
-    onChange(clone(counts));
+    onChange(clone(buildDetailCountsForSite(siteId)));
+    ensureSiteDetailsLoaded(siteId)
+      .then(() => onChange(clone(buildDetailCountsForSite(siteId))))
+      .catch((error) => {
+        if (typeof onError === 'function') onError(error);
+      });
     return unsubscribe;
   } catch (error) {
     if (typeof onError === 'function') {
@@ -1218,19 +1291,28 @@ function subscribeDetailCounts(siteId, onChange, onError) {
     }
     return () => {};
   }
+}
+
+function buildDetailDesignationsForSite(siteId) {
+  const designationsByItem = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId === siteId) {
+      designationsByItem[itemId] = details.map((detail) => sanitizeText(detail.designation, true)).filter(Boolean);
+    }
+  });
+  return designationsByItem;
 }
 
 function subscribeDetailDesignations(siteId, onChange, onError) {
   try {
     const unsubscribe = subscribeFactory(state.listeners.detailDesignationsBySite, siteId, onChange);
-    const designationsByItem = {};
-    state.detailsByItem.forEach((details, key) => {
-      const [kSiteId, itemId] = key.split(':');
-      if (kSiteId === siteId) {
-        designationsByItem[itemId] = details.map((detail) => sanitizeText(detail.designation, true)).filter(Boolean);
-      }
-    });
-    onChange(clone(designationsByItem));
+    onChange(clone(buildDetailDesignationsForSite(siteId)));
+    ensureSiteDetailsLoaded(siteId)
+      .then(() => onChange(clone(buildDetailDesignationsForSite(siteId))))
+      .catch((error) => {
+        if (typeof onError === 'function') onError(error);
+      });
     return unsubscribe;
   } catch (error) {
     if (typeof onError === 'function') {
@@ -1240,17 +1322,26 @@ function subscribeDetailDesignations(siteId, onChange, onError) {
   }
 }
 
+function buildDetailRowsForSite(siteId) {
+  const rowsByItem = {};
+  state.detailsByItem.forEach((details, key) => {
+    const [kSiteId, itemId] = key.split(':');
+    if (kSiteId === siteId) {
+      rowsByItem[itemId] = clone(details).sort((a, b) => Number(a.champ) - Number(b.champ));
+    }
+  });
+  return rowsByItem;
+}
+
 function subscribeDetailRows(siteId, onChange, onError) {
   try {
     const unsubscribe = subscribeFactory(state.listeners.detailRowsBySite, siteId, onChange);
-    const rowsByItem = {};
-    state.detailsByItem.forEach((details, key) => {
-      const [kSiteId, itemId] = key.split(':');
-      if (kSiteId === siteId) {
-        rowsByItem[itemId] = clone(details).sort((a, b) => Number(a.champ) - Number(b.champ));
-      }
-    });
-    onChange(clone(rowsByItem));
+    onChange(clone(buildDetailRowsForSite(siteId)));
+    ensureSiteDetailsLoaded(siteId)
+      .then(() => onChange(clone(buildDetailRowsForSite(siteId))))
+      .catch((error) => {
+        if (typeof onError === 'function') onError(error);
+      });
     return unsubscribe;
   } catch (error) {
     if (typeof onError === 'function') {
@@ -1261,14 +1352,8 @@ function subscribeDetailRows(siteId, onChange, onError) {
 }
 
 async function getDetailRowsBySite(siteId) {
-  const rowsByItem = {};
-  state.detailsByItem.forEach((details, key) => {
-    const [kSiteId, itemId] = key.split(':');
-    if (kSiteId === siteId) {
-      rowsByItem[itemId] = clone(details).sort((a, b) => Number(a.champ) - Number(b.champ));
-    }
-  });
-  return clone(rowsByItem);
+  await ensureSiteDetailsLoaded(siteId);
+  return clone(buildDetailRowsForSite(siteId));
 }
 
 async function getAllDetails() {
@@ -1277,6 +1362,84 @@ async function getAllDetails() {
     details.push(...itemDetails);
   });
   return clone(details);
+}
+
+async function getMaterialCodes() {
+  if (!state.materialCodes.length) {
+    try {
+      state.materialCodes = await readMaterialCodes();
+      if (!state.materialCodes.length) {
+        state.materialCodes = await bootstrapMaterialCodesFromDetails();
+      }
+      sortState();
+      persistOfflineState();
+    } catch (_error) {
+      // Keep cached catalogue when Firestore is unavailable.
+    }
+  }
+  return clone(state.materialCodes);
+}
+
+async function ensureMaterialCode(code, designation) {
+  const normalizedCode = sanitizeText(code, true);
+  if (!normalizedCode) return;
+  const normalizedDesignation = sanitizeText(designation, false);
+  const key = normalizeMaterialCodeKey(normalizedCode);
+  const existing = state.materialCodes.find((entry) => normalizeMaterialCodeKey(entry.code) === key);
+  if (existing) {
+    if (!existing.designation && normalizedDesignation) {
+      existing.designation = normalizedDesignation;
+      await setDoc(doc(state.db, 'materialCodes', existing.id || materialCodeDocId(normalizedCode)), { code: existing.code, designation: existing.designation }, { merge: true });
+    }
+    return;
+  }
+  const entry = { id: materialCodeDocId(normalizedCode), code: normalizedCode, designation: normalizedDesignation };
+  await setDoc(doc(state.db, 'materialCodes', entry.id), { code: entry.code, designation: entry.designation }, { merge: true });
+  state.materialCodes.push(entry);
+  sortState();
+}
+
+async function readDetailsByQuery(...constraints) {
+  const snapshot = await getDocs(query(makePageItemsCollection('page3'), ...constraints));
+  return snapshot.docs.map(normalizeDocData);
+}
+
+function mergeDetails(details) {
+  details.forEach((detail) => {
+    const siteId = String(detail.siteId || '');
+    const itemId = String(detail.itemId || '');
+    if (!siteId || !itemId) return;
+    const key = `${siteId}:${itemId}`;
+    if (!state.detailsByItem.has(key)) state.detailsByItem.set(key, []);
+    const bucket = state.detailsByItem.get(key);
+    const index = bucket.findIndex((item) => item.id === detail.id);
+    if (index === -1) bucket.push(detail);
+    else bucket[index] = detail;
+  });
+  sortState();
+}
+
+async function ensureSiteDetailsLoaded(siteId) {
+  const normalizedSiteId = String(siteId || '');
+  if (!normalizedSiteId || state.loadedDetailSites.has(normalizedSiteId)) return;
+  const details = await readDetailsByQuery(where('siteId', '==', normalizedSiteId));
+  mergeDetails(details);
+  state.loadedDetailSites.add(normalizedSiteId);
+  details.forEach((detail) => state.loadedDetailPairs.add(`${detail.siteId}:${detail.itemId}`));
+  persistOfflineState();
+  emitForSite(normalizedSiteId);
+}
+
+async function ensurePairDetailsLoaded(siteId, itemId) {
+  const key = `${siteId}:${itemId}`;
+  if (!siteId || !itemId || state.loadedDetailPairs.has(key) || state.loadedDetailSites.has(String(siteId))) return;
+  const details = await readDetailsByQuery(where('siteId', '==', String(siteId)), where('itemId', '==', String(itemId)));
+  state.detailsByItem.set(key, []);
+  mergeDetails(details);
+  state.loadedDetailPairs.add(key);
+  persistOfflineState();
+  emitForSite(String(siteId));
+  (state.listeners.detailsByPair.get(key) || new Set()).forEach((listener) => listener(clone(state.detailsByItem.get(key) || [])));
 }
 
 function isDuplicateSiteName(name) {
@@ -1981,6 +2144,7 @@ async function createDetail(siteId, itemId, payload) {
     state.detailsByItem.set(detailsKey, []);
   }
   state.detailsByItem.get(detailsKey).push(detail);
+  await ensureMaterialCode(detail.code, detail.designation);
 
   const item = getItem(siteId, itemId);
   await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`, { siteId });
@@ -2044,6 +2208,9 @@ async function updateDetail(siteId, itemId, detailId, changes) {
 
   await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), syncedChanges);
   Object.assign(target, nextValues);
+  if ('code' in syncedChanges || 'designation' in syncedChanges) {
+    await ensureMaterialCode(target.code, target.designation);
+  }
   const item = getItem(siteId, itemId);
   await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
   persistOfflineState();
@@ -2363,6 +2530,7 @@ window.StorageService = {
   subscribeDetailRows,
   getDetailRowsBySite,
   getAllDetails,
+  getMaterialCodes,
   createSite,
   updateSiteName,
   updateSiteCreator,

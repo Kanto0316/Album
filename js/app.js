@@ -6966,8 +6966,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
 
     async function refreshCodeSuggestionSource() {
-      const details = await StorageService.getAllDetails();
-      codeSuggestionSource = buildCodeSuggestionSource(details);
+      const materialCodes = typeof StorageService.getMaterialCodes === 'function'
+        ? await StorageService.getMaterialCodes()
+        : await StorageService.getAllDetails();
+      codeSuggestionSource = buildCodeSuggestionSource(materialCodes);
       if (document.activeElement === codeInput && String(codeInput.value || '').trim()) {
         renderCodeSuggestions(codeInput.value);
       }
@@ -8034,7 +8036,6 @@ import { getAutomaticUnit } from './automatic-unit.js';
     StorageService.subscribeSites((sites) => {
       currentSite = sites.find((site) => site.id === siteId) || currentSite;
       renderTitle();
-      refreshCodeSuggestionSource();
     });
 
     StorageService.subscribeItems(siteId, (items) => {
