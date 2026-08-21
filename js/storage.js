@@ -35,6 +35,7 @@ const state = {
   itemsBySite: new Map(),
   detailsByItem: new Map(),
   materialCodes: [],
+  loadedItemSites: new Set(),
   loadedDetailSites: new Set(),
   loadedDetailPairs: new Set(),
   listeners: {
@@ -959,6 +960,15 @@ async function readPageItems(pageName) {
   return snapshot.docs.map(normalizeDocData);
 }
 
+async function readPage2ItemsBySite(siteId) {
+  const normalizedSiteId = String(siteId || '').trim();
+  if (!normalizedSiteId) {
+    return [];
+  }
+  const snapshot = await getDocs(query(makePageItemsCollection('page2'), where('siteId', '==', normalizedSiteId)));
+  return snapshot.docs.map(normalizeDocData);
+}
+
 function materialCodesCollection() {
   return collection(state.db, 'materialCodes');
 }
@@ -1003,36 +1013,39 @@ async function bootstrapMaterialCodesFromDetails() {
 }
 
 async function loadRemoteSnapshot() {
-  let [page1, page2, materialCodes] = await Promise.all([
+  let [page1, materialCodes] = await Promise.all([
     readPageItems('page1'),
-    readPageItems('page2'),
     readMaterialCodes(),
   ]);
   if (!materialCodes.length) {
     materialCodes = await bootstrapMaterialCodesFromDetails();
   }
-  return { page1, page2, page3: [], materialCodes };
+  return { page1, page3: [], materialCodes };
 }
 
 function applySnapshot(snapshot) {
   state.sites = Array.isArray(snapshot.page1) ? clone(snapshot.page1) : [];
 
-  state.itemsBySite = new Map();
-  (Array.isArray(snapshot.page2) ? snapshot.page2 : []).forEach((item) => {
-    const siteId = String(item.siteId || '');
-    if (!siteId) {
-      return;
-    }
-    if (!state.itemsBySite.has(siteId)) {
-      state.itemsBySite.set(siteId, []);
-    }
-    state.itemsBySite.get(siteId).push(item);
-  });
+  if (Object.prototype.hasOwnProperty.call(snapshot, 'page2')) {
+    state.itemsBySite = new Map();
+    state.loadedItemSites = new Set();
+    (Array.isArray(snapshot.page2) ? snapshot.page2 : []).forEach((item) => {
+      const siteId = String(item.siteId || '');
+      if (!siteId) {
+        return;
+      }
+      if (!state.itemsBySite.has(siteId)) {
+        state.itemsBySite.set(siteId, []);
+      }
+      state.itemsBySite.get(siteId).push(item);
+      state.loadedItemSites.add(siteId);
+    });
+  }
 
   state.sites.forEach((site) => {
     if (!Object.prototype.hasOwnProperty.call(site, 'outCount')) {
       Object.defineProperty(site, '__outCountWasMissing', { value: true, configurable: true });
-      site.outCount = getActualOutCountForSite(site.id);
+      site.outCount = 0;
     } else {
       site.outCount = normalizeOutCount(site.outCount);
     }
@@ -1107,8 +1120,8 @@ function emitAll() {
   state.listeners.sites.forEach((listener) => listener(filterSitesVisibleToCurrentUser()));
 
   const itemCounts = {};
-  state.itemsBySite.forEach((items, siteId) => {
-    itemCounts[siteId] = items.length;
+  state.sites.forEach((site) => {
+    itemCounts[site.id] = normalizeOutCount(site.outCount);
   });
   state.listeners.itemCounts.forEach((listener) => listener(clone(itemCounts)));
 
@@ -1139,7 +1152,6 @@ async function init() {
     try {
       const remote = await loadRemoteSnapshot();
       applySnapshot(remote);
-      await reconcileSiteOutCounts(null, { logReport: true });
       persistOfflineState();
     } catch (_error) {
       if (!offlineState?.snapshot) {
@@ -1151,7 +1163,6 @@ async function init() {
     try {
       const remote = await loadRemoteSnapshot();
       applySnapshot(remote);
-      await reconcileSiteOutCounts(null, { logReport: true });
       persistOfflineState();
     } catch (_error) {
       applySnapshot({ page1: [], page2: [], page3: [] });
@@ -1329,8 +1340,14 @@ function subscribeSites(onChange, onError) {
 
 function subscribeItems(siteId, onChange, onError) {
   try {
-    const unsubscribe = subscribeFactory(state.listeners.itemsBySite, siteId, onChange);
-    onChange(clone(state.itemsBySite.get(siteId) || []));
+    const normalizedSiteId = String(siteId || '').trim();
+    const unsubscribe = subscribeFactory(state.listeners.itemsBySite, normalizedSiteId, onChange);
+    onChange(state.loadedItemSites.has(normalizedSiteId) ? clone(state.itemsBySite.get(normalizedSiteId) || []) : []);
+    ensureSiteItemsLoaded(normalizedSiteId)
+      .then(() => onChange(clone(state.itemsBySite.get(normalizedSiteId) || [])))
+      .catch((error) => {
+        if (typeof onError === 'function') onError(error);
+      });
     return unsubscribe;
   } catch (error) {
     if (typeof onError === 'function') {
@@ -1344,8 +1361,8 @@ function subscribeItemCounts(onChange, onError) {
   try {
     state.listeners.itemCounts.add(onChange);
     const counts = {};
-    state.itemsBySite.forEach((items, siteId) => {
-      counts[siteId] = items.length;
+    state.sites.forEach((site) => {
+      counts[site.id] = normalizeOutCount(site.outCount);
     });
     onChange(clone(counts));
     return () => state.listeners.itemCounts.delete(onChange);
@@ -1554,6 +1571,26 @@ async function ensurePairDetailsLoaded(siteId, itemId) {
   persistOfflineState();
   emitForSite(String(siteId));
   (state.listeners.detailsByPair.get(key) || new Set()).forEach((listener) => listener(clone(state.detailsByItem.get(key) || [])));
+}
+
+
+function mergeSiteItems(siteId, items) {
+  const normalizedSiteId = String(siteId || '').trim();
+  if (!normalizedSiteId) return;
+  state.itemsBySite.set(normalizedSiteId, (Array.isArray(items) ? items : []).filter((item) => String(item.siteId || '') === normalizedSiteId));
+  state.loadedItemSites.add(normalizedSiteId);
+  sortState();
+}
+
+async function ensureSiteItemsLoaded(siteId) {
+  const normalizedSiteId = String(siteId || '').trim();
+  if (!normalizedSiteId || state.loadedItemSites.has(normalizedSiteId)) return;
+  state.itemsBySite.set(normalizedSiteId, []);
+  emitForSite(normalizedSiteId);
+  const items = await readPage2ItemsBySite(normalizedSiteId);
+  mergeSiteItems(normalizedSiteId, items);
+  persistOfflineState();
+  emitAll();
 }
 
 function isDuplicateSiteName(name) {
@@ -1917,6 +1954,8 @@ async function restoreTrashEntry(entryId) {
 }
 
 async function removeSite(siteId) {
+  await ensureSiteItemsLoaded(siteId);
+  await ensureSiteDetailsLoaded(siteId);
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return null;
@@ -1974,6 +2013,7 @@ async function removeSite(siteId) {
 }
 
 async function createItem(siteId, numberValue, options = {}) {
+  await ensureSiteItemsLoaded(siteId);
   const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ''));
   if (cleanNumber.length < 4) {
     return { ok: false, reason: 'invalid_out' };
@@ -2076,6 +2116,7 @@ async function updateItemName(siteId, itemId, nextValue) {
 }
 
 async function removeItem(siteId, itemId) {
+  await ensureSiteItemsLoaded(siteId);
   const items = state.itemsBySite.get(siteId) || [];
   const itemIndex = items.findIndex((item) => item.id === itemId);
   if (itemIndex === -1) {
