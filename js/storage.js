@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -14,6 +15,7 @@ import {
   setDoc,
   Timestamp,
   updateDoc,
+  runTransaction,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
@@ -810,6 +812,106 @@ function normalizeDocData(docSnapshot) {
   return { id: docSnapshot.id, ...data };
 }
 
+function normalizeOutCount(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.trunc(numeric) : 0;
+}
+
+function getActualOutCountForSite(siteId) {
+  return (state.itemsBySite.get(String(siteId || '')) || []).length;
+}
+
+function applySiteOutCount(siteId, outCount) {
+  const site = state.sites.find((item) => item.id === siteId);
+  if (site) {
+    site.outCount = normalizeOutCount(outCount);
+  }
+}
+
+function siteDocRef(siteId) {
+  return doc(state.db, 'pages', 'page1', 'items', siteId);
+}
+
+async function setSiteOutCount(siteId, outCount) {
+  const normalizedSiteId = sanitizeText(siteId, false);
+  if (!normalizedSiteId) {
+    return false;
+  }
+  const normalizedCount = normalizeOutCount(outCount);
+  await setDoc(siteDocRef(normalizedSiteId), { outCount: normalizedCount }, { merge: true });
+  applySiteOutCount(normalizedSiteId, normalizedCount);
+  return true;
+}
+
+async function incrementSiteOutCount(siteId, delta) {
+  const normalizedSiteId = sanitizeText(siteId, false);
+  const numericDelta = Number(delta);
+  if (!normalizedSiteId || !Number.isFinite(numericDelta) || numericDelta === 0) {
+    return false;
+  }
+  if (numericDelta > 0) {
+    await updateDoc(siteDocRef(normalizedSiteId), { outCount: increment(Math.trunc(numericDelta)) });
+    const currentSite = state.sites.find((site) => site.id === normalizedSiteId);
+    applySiteOutCount(normalizedSiteId, normalizeOutCount(currentSite?.outCount) + Math.trunc(numericDelta));
+    return true;
+  }
+
+  await runTransaction(state.db, async (transaction) => {
+    const ref = siteDocRef(normalizedSiteId);
+    const snap = await transaction.get(ref);
+    const currentCount = normalizeOutCount(snap.exists() ? snap.data()?.outCount : 0);
+    transaction.set(ref, { outCount: Math.max(0, currentCount + Math.trunc(numericDelta)) }, { merge: true });
+  });
+  const currentSite = state.sites.find((site) => site.id === normalizedSiteId);
+  applySiteOutCount(normalizedSiteId, Math.max(0, normalizeOutCount(currentSite?.outCount) + Math.trunc(numericDelta)));
+  return true;
+}
+
+function buildOutCountMigrationRows(siteIds = null) {
+  const limitedSiteIds = siteIds ? new Set(Array.from(siteIds).map((siteId) => String(siteId || '')).filter(Boolean)) : null;
+  return state.sites
+    .filter((site) => !limitedSiteIds || limitedSiteIds.has(site.id))
+    .map((site) => {
+      const actualOutCount = getActualOutCountForSite(site.id);
+      const currentOutCount = site.__outCountWasMissing === true ? null : (Object.prototype.hasOwnProperty.call(site, 'outCount') ? normalizeOutCount(site.outCount) : null);
+      return {
+        siteName: sanitizeText(site.nom, false),
+        siteId: site.id,
+        actualOutCount,
+        currentOutCount,
+        needsUpdate: currentOutCount !== actualOutCount,
+        missing: currentOutCount === null,
+      };
+    });
+}
+
+async function reconcileSiteOutCounts(siteIds = null, { logReport = false } = {}) {
+  const rows = buildOutCountMigrationRows(siteIds);
+  if (logReport && rows.length) {
+    console.table(rows.map((row) => ({
+      Site: row.siteName,
+      siteId: row.siteId,
+      'Nombre réel d\'OUT': row.actualOutCount,
+      'outCount actuel': row.currentOutCount === null ? 'absent' : row.currentOutCount,
+    })));
+  }
+  await Promise.all(rows.filter((row) => row.needsUpdate).map((row) => setSiteOutCount(row.siteId, row.actualOutCount)));
+  rows.forEach((row) => {
+    const site = state.sites.find((item) => item.id === row.siteId);
+    if (site && Object.prototype.hasOwnProperty.call(site, '__outCountWasMissing')) {
+      delete site.__outCountWasMissing;
+    }
+  });
+  return {
+    rows,
+    sitesProcessed: rows.length,
+    outsAnalyzed: rows.reduce((total, row) => total + row.actualOutCount, 0),
+    created: rows.filter((row) => row.missing).length,
+    corrected: rows.filter((row) => !row.missing && row.needsUpdate).length,
+    anomalies: 0,
+  };
+}
+
 function persistOfflineState() {
   const items = [];
   state.itemsBySite.forEach((value) => items.push(...value));
@@ -927,6 +1029,15 @@ function applySnapshot(snapshot) {
     state.itemsBySite.get(siteId).push(item);
   });
 
+  state.sites.forEach((site) => {
+    if (!Object.prototype.hasOwnProperty.call(site, 'outCount')) {
+      Object.defineProperty(site, '__outCountWasMissing', { value: true, configurable: true });
+      site.outCount = getActualOutCountForSite(site.id);
+    } else {
+      site.outCount = normalizeOutCount(site.outCount);
+    }
+  });
+
   state.detailsByItem = new Map();
   (Array.isArray(snapshot.page3) ? snapshot.page3 : []).forEach((detail) => {
     const siteId = String(detail.siteId || '');
@@ -1028,6 +1139,7 @@ async function init() {
     try {
       const remote = await loadRemoteSnapshot();
       applySnapshot(remote);
+      await reconcileSiteOutCounts(null, { logReport: true });
       persistOfflineState();
     } catch (_error) {
       if (!offlineState?.snapshot) {
@@ -1039,6 +1151,7 @@ async function init() {
     try {
       const remote = await loadRemoteSnapshot();
       applySnapshot(remote);
+      await reconcileSiteOutCounts(null, { logReport: true });
       persistOfflineState();
     } catch (_error) {
       applySnapshot({ page1: [], page2: [], page3: [] });
@@ -1052,7 +1165,8 @@ function getSiteInactivityThresholdDays() {
 }
 
 function getSiteOutCount(siteId) {
-  return (state.itemsBySite.get(String(siteId || '')) || []).length;
+  const site = state.sites.find((item) => item.id === String(siteId || ''));
+  return normalizeOutCount(site?.outCount ?? getActualOutCountForSite(siteId));
 }
 
 function isCurrentUserSiteCreator(site) {
@@ -1488,6 +1602,7 @@ async function createSite(name) {
   const creatorName = await resolveCurrentUserName();
   const sitePayload = {
     nom: siteName,
+    outCount: 0,
     ownerId: state.userId,
     createdBy: state.userId,
     createdByName: creatorName,
@@ -1881,6 +1996,7 @@ async function createItem(siteId, numberValue, options = {}) {
     dateModification: timestamp,
   };
   const created = await addDoc(makePageItemsCollection('page2'), itemPayload);
+  await incrementSiteOutCount(siteId, 1);
   const item = { id: created.id, ...itemPayload };
 
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
@@ -1982,6 +2098,7 @@ async function removeItem(siteId, itemId) {
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId));
+  await incrementSiteOutCount(siteId, -1);
 
   const [item] = items.splice(itemIndex, 1);
   const detailsKey = `${siteId}:${itemId}`;
@@ -2004,8 +2121,9 @@ async function restoreSite(snapshot) {
   }
 
   try {
-    const createdSite = await addDoc(makePageItemsCollection('page1'), withoutId(site));
-    const nextSite = { ...clone(site), id: createdSite.id };
+    const restoredSitePayload = { ...withoutId(site), outCount: Array.isArray(snapshot.items) ? snapshot.items.length : 0 };
+    const createdSite = await addDoc(makePageItemsCollection('page1'), restoredSitePayload);
+    const nextSite = { ...clone(site), ...restoredSitePayload, id: createdSite.id };
     const itemIdMap = new Map();
     const restoredItems = [];
 
@@ -2060,6 +2178,7 @@ async function restoreItem(snapshot) {
   try {
     const itemPayload = { ...withoutId(item) };
     const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
+    await incrementSiteOutCount(itemPayload.siteId, 1);
     const nextItem = { ...itemPayload, id: createdItem.id };
     if (!state.itemsBySite.has(nextItem.siteId)) {
       state.itemsBySite.set(nextItem.siteId, []);
@@ -2453,6 +2572,7 @@ async function importData(payload) {
     const localId = sanitizeText(site.id || uid(), false) || uid();
     const sitePayload = { ...site };
     delete sitePayload.id;
+    sitePayload.outCount = 0;
     const createdSite = await addDoc(makePageItemsCollection('page1'), sitePayload);
     const nextSite = { id: createdSite.id, ...sitePayload };
     siteIdMap.set(localId, nextSite.id);
@@ -2505,6 +2625,7 @@ async function importData(payload) {
     state.detailsByItem.get(detailsKey).push(detail);
   });
 
+  await reconcileSiteOutCounts(new Set([...addedSites.map((site) => site.id), ...addedItems.map((item) => item.siteId)]));
   sortState();
   persistOfflineState();
   emitAll();
@@ -2524,6 +2645,7 @@ window.StorageService = {
   subscribeSites,
   subscribeItems,
   subscribeItemCounts,
+  reconcileSiteOutCounts,
   subscribeDetails,
   subscribeDetailCounts,
   subscribeDetailDesignations,
