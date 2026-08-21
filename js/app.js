@@ -2683,7 +2683,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
       siteList.innerHTML = sites
         .map((site) => {
-          const outCount = itemCountsBySite[site.id] || 0;
+          const outCount = Number.isFinite(Number(site.outCount)) ? Math.max(0, Math.trunc(Number(site.outCount))) : 0;
           const createdDateTime = buildDateAndTimeLabel(site?.dateCreation);
           const createdBy = resolveActorLabel(site?.createdBy, userNamesById, site?.createdByName);
           const canChangeCreator = canCurrentUserChangeSiteCreator();
