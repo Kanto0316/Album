@@ -1691,7 +1691,7 @@ async function ensurePairDetailsLoaded(siteId, itemId) {
 
 function normalizePage2ItemForState(item) {
   if (!Object.prototype.hasOwnProperty.call(item, 'articleCount')) {
-    Object.defineProperty(item, '__articleCountWasMissing', { value: true, configurable: true });
+    Object.defineProperty(item, '__articleCountWasMissing', { value: true, configurable: true, enumerable: true });
     item.articleCount = 0;
   } else {
     item.articleCount = normalizeArticleCount(item.articleCount);
