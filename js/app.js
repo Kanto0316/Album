@@ -4840,7 +4840,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
         previousLabel = currentLabel;
         const createdBy = resolveActorLabel(item?.createdBy, userNamesById, item?.createdByName);
         const createdLabel = buildDateAndTimeLabel(item?.dateCreation || item?.dateModification);
-        const detailCountForCard = getOutDetailCountForActiveFilter(item.id, query);
+        const hasArticleCount = Object.prototype.hasOwnProperty.call(item, 'articleCount') && item.__articleCountWasMissing !== true;
+        const detailCountForCard = activeStatusFilter === 'all' && !query && hasArticleCount
+          ? Number(item.articleCount || 0)
+          : getOutDetailCountForActiveFilter(item.id, query);
         const isCursorFilterActive = activeStatusFilter !== 'all' && !query;
         const isSearchUnread = query && !readSearchResults.has(String(item.id));
         const isCursorFilterUnread = isCursorFilterActive && !readCursorFilterOuts.has(String(item.id));
