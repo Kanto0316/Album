@@ -818,8 +818,69 @@ function normalizeOutCount(value) {
   return Number.isFinite(numeric) && numeric > 0 ? Math.trunc(numeric) : 0;
 }
 
+function normalizeArticleCount(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.trunc(numeric) : 0;
+}
+
 function getActualOutCountForSite(siteId) {
   return (state.itemsBySite.get(String(siteId || '')) || []).length;
+}
+
+function getActualArticleCountForItem(siteId, itemId) {
+  return (state.detailsByItem.get(`${String(siteId || '')}:${String(itemId || '')}`) || []).length;
+}
+
+function applyItemArticleCount(siteId, itemId, articleCount) {
+  const items = state.itemsBySite.get(String(siteId || '')) || [];
+  const item = items.find((entry) => entry.id === String(itemId || ''));
+  if (item) {
+    item.articleCount = normalizeArticleCount(articleCount);
+  }
+}
+
+function itemDocRef(itemId) {
+  return doc(state.db, 'pages', 'page2', 'items', itemId);
+}
+
+async function setItemArticleCount(siteId, itemId, articleCount) {
+  const normalizedSiteId = sanitizeText(siteId, false);
+  const normalizedItemId = sanitizeText(itemId, false);
+  if (!normalizedSiteId || !normalizedItemId) {
+    return false;
+  }
+  const normalizedCount = normalizeArticleCount(articleCount);
+  await setDoc(itemDocRef(normalizedItemId), { articleCount: normalizedCount }, { merge: true });
+  applyItemArticleCount(normalizedSiteId, normalizedItemId, normalizedCount);
+  return true;
+}
+
+async function incrementItemArticleCount(siteId, itemId, delta) {
+  const normalizedSiteId = sanitizeText(siteId, false);
+  const normalizedItemId = sanitizeText(itemId, false);
+  const numericDelta = Number(delta);
+  if (!normalizedSiteId || !normalizedItemId || !Number.isFinite(numericDelta) || numericDelta === 0) {
+    return false;
+  }
+  const roundedDelta = Math.trunc(numericDelta);
+  if (roundedDelta > 0) {
+    await updateDoc(itemDocRef(normalizedItemId), { articleCount: increment(roundedDelta) });
+    const items = state.itemsBySite.get(normalizedSiteId) || [];
+    const currentItem = items.find((item) => item.id === normalizedItemId);
+    applyItemArticleCount(normalizedSiteId, normalizedItemId, normalizeArticleCount(currentItem?.articleCount) + roundedDelta);
+    return true;
+  }
+
+  await runTransaction(state.db, async (transaction) => {
+    const ref = itemDocRef(normalizedItemId);
+    const snap = await transaction.get(ref);
+    const currentCount = normalizeArticleCount(snap.exists() ? snap.data()?.articleCount : 0);
+    transaction.set(ref, { articleCount: Math.max(0, currentCount + roundedDelta) }, { merge: true });
+  });
+  const items = state.itemsBySite.get(normalizedSiteId) || [];
+  const currentItem = items.find((item) => item.id === normalizedItemId);
+  applyItemArticleCount(normalizedSiteId, normalizedItemId, Math.max(0, normalizeArticleCount(currentItem?.articleCount) + roundedDelta));
+  return true;
 }
 
 function applySiteOutCount(siteId, outCount) {
@@ -866,6 +927,58 @@ async function incrementSiteOutCount(siteId, delta) {
   const currentSite = state.sites.find((site) => site.id === normalizedSiteId);
   applySiteOutCount(normalizedSiteId, Math.max(0, normalizeOutCount(currentSite?.outCount) + Math.trunc(numericDelta)));
   return true;
+}
+
+function buildArticleCountMigrationRows(siteIds = null) {
+  const limitedSiteIds = siteIds ? new Set(Array.from(siteIds).map((siteId) => String(siteId || '')).filter(Boolean)) : null;
+  const rows = [];
+  state.itemsBySite.forEach((items, siteId) => {
+    if (limitedSiteIds && !limitedSiteIds.has(siteId)) return;
+    items.forEach((item) => {
+      const actualArticleCount = getActualArticleCountForItem(siteId, item.id);
+      const currentArticleCount = item.__articleCountWasMissing === true ? null : (Object.prototype.hasOwnProperty.call(item, 'articleCount') ? normalizeArticleCount(item.articleCount) : null);
+      rows.push({
+        out: sanitizeText(item.numero, false),
+        itemId: item.id,
+        siteId,
+        actualArticleCount,
+        currentArticleCount,
+        difference: currentArticleCount === null ? actualArticleCount : currentArticleCount - actualArticleCount,
+        needsUpdate: currentArticleCount !== actualArticleCount,
+        missing: currentArticleCount === null,
+      });
+    });
+  });
+  return rows;
+}
+
+async function reconcileItemArticleCounts(siteIds = null, { logReport = false } = {}) {
+  const rows = buildArticleCountMigrationRows(siteIds);
+  if (logReport && rows.length) {
+    console.table(rows.map((row) => ({
+      OUT: row.out,
+      itemId: row.itemId,
+      'Nombre réel Page 3': row.actualArticleCount,
+      articleCount: row.currentArticleCount === null ? 'absent' : row.currentArticleCount,
+      Écart: row.difference,
+    })));
+  }
+  await Promise.all(rows.filter((row) => row.needsUpdate).map((row) => setItemArticleCount(row.siteId, row.itemId, row.actualArticleCount)));
+  rows.forEach((row) => {
+    const items = state.itemsBySite.get(row.siteId) || [];
+    const item = items.find((entry) => entry.id === row.itemId);
+    if (item && Object.prototype.hasOwnProperty.call(item, '__articleCountWasMissing')) {
+      delete item.__articleCountWasMissing;
+    }
+  });
+  return {
+    rows,
+    outsProcessed: rows.length,
+    articlesAnalyzed: rows.reduce((total, row) => total + row.actualArticleCount, 0),
+    created: rows.filter((row) => row.missing).length,
+    corrected: rows.filter((row) => !row.missing && row.needsUpdate).length,
+    anomalies: 0,
+  };
 }
 
 function buildOutCountMigrationRows(siteIds = null) {
@@ -1037,7 +1150,7 @@ function applySnapshot(snapshot) {
       if (!state.itemsBySite.has(siteId)) {
         state.itemsBySite.set(siteId, []);
       }
-      state.itemsBySite.get(siteId).push(item);
+      state.itemsBySite.get(siteId).push(normalizePage2ItemForState(item));
       state.loadedItemSites.add(siteId);
     });
   }
@@ -1555,6 +1668,8 @@ async function ensureSiteDetailsLoaded(siteId) {
   if (!normalizedSiteId || state.loadedDetailSites.has(normalizedSiteId)) return;
   const details = await readDetailsByQuery(where('siteId', '==', normalizedSiteId));
   mergeDetails(details);
+  await ensureSiteItemsLoaded(normalizedSiteId);
+  await reconcileItemArticleCounts(new Set([normalizedSiteId]));
   state.loadedDetailSites.add(normalizedSiteId);
   details.forEach((detail) => state.loadedDetailPairs.add(`${detail.siteId}:${detail.itemId}`));
   persistOfflineState();
@@ -1574,10 +1689,25 @@ async function ensurePairDetailsLoaded(siteId, itemId) {
 }
 
 
+function normalizePage2ItemForState(item) {
+  if (!Object.prototype.hasOwnProperty.call(item, 'articleCount')) {
+    Object.defineProperty(item, '__articleCountWasMissing', { value: true, configurable: true });
+    item.articleCount = 0;
+  } else {
+    item.articleCount = normalizeArticleCount(item.articleCount);
+  }
+  return item;
+}
+
 function mergeSiteItems(siteId, items) {
   const normalizedSiteId = String(siteId || '').trim();
   if (!normalizedSiteId) return;
-  state.itemsBySite.set(normalizedSiteId, (Array.isArray(items) ? items : []).filter((item) => String(item.siteId || '') === normalizedSiteId));
+  state.itemsBySite.set(
+    normalizedSiteId,
+    (Array.isArray(items) ? items : [])
+      .filter((item) => String(item.siteId || '') === normalizedSiteId)
+      .map(normalizePage2ItemForState),
+  );
   state.loadedItemSites.add(normalizedSiteId);
   sortState();
 }
@@ -2028,6 +2158,7 @@ async function createItem(siteId, numberValue, options = {}) {
   const itemPayload = {
     siteId,
     numero,
+    articleCount: 0,
     magasin: sanitizeText(options?.magasin || 'None', true) || 'None',
     ownerId: state.userId,
     createdBy: state.userId,
@@ -2169,7 +2300,8 @@ async function restoreSite(snapshot) {
     const restoredItems = [];
 
     for (const item of Array.isArray(snapshot.items) ? snapshot.items : []) {
-      const itemPayload = { ...withoutId(item), siteId: nextSite.id };
+      const restoredDetailCount = (Array.isArray(snapshot.details) ? snapshot.details : []).filter((detail) => detail.itemId === item.id).length;
+      const itemPayload = { ...withoutId(item), siteId: nextSite.id, articleCount: restoredDetailCount };
       const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
       const nextItem = { ...itemPayload, id: createdItem.id };
       itemIdMap.set(item.id, nextItem.id);
@@ -2217,7 +2349,7 @@ async function restoreItem(snapshot) {
   }
 
   try {
-    const itemPayload = { ...withoutId(item) };
+    const itemPayload = { ...withoutId(item), articleCount: Array.isArray(snapshot.details) ? snapshot.details.length : 0 };
     const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
     await incrementSiteOutCount(itemPayload.siteId, 1);
     const nextItem = { ...itemPayload, id: createdItem.id };
@@ -2255,6 +2387,7 @@ async function restoreDetail(snapshot) {
   try {
     const detailPayload = withoutId(detail);
     const createdDetail = await addDoc(makePageItemsCollection('page3'), detailPayload);
+    await incrementItemArticleCount(detailPayload.siteId, detailPayload.itemId, 1);
     const nextDetail = { ...detailPayload, id: createdDetail.id };
     const key = `${nextDetail.siteId}:${nextDetail.itemId}`;
     if (!state.detailsByItem.has(key)) state.detailsByItem.set(key, []);
@@ -2298,6 +2431,7 @@ async function createDetail(siteId, itemId, payload) {
     dateModification: timestamp,
   };
   const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
+  await incrementItemArticleCount(siteId, itemId, 1);
   const detail = { id: created.id, ...detailPayload };
 
   if (!state.detailsByItem.has(detailsKey)) {
@@ -2391,6 +2525,7 @@ async function removeDetail(siteId, itemId, detailId) {
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
+  await incrementItemArticleCount(siteId, itemId, -1);
   details.splice(detailIndex, 1);
   const item = getItem(siteId, itemId);
   await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
@@ -2627,7 +2762,8 @@ async function importData(payload) {
     if (!mappedSiteId) {
       continue;
     }
-    const itemPayload = { ...item, siteId: mappedSiteId };
+    const detailCount = normalized.page3.filter((detail) => (siteIdMap.get(sanitizeText(detail.siteId || '', false)) || sanitizeText(detail.siteId || '', false)) === mappedSiteId && sanitizeText(detail.itemId || '', false) === localId).length;
+    const itemPayload = { ...item, siteId: mappedSiteId, articleCount: detailCount };
     delete itemPayload.id;
     const createdItem = await addDoc(makePageItemsCollection('page2'), itemPayload);
     const nextItem = { id: createdItem.id, ...itemPayload };
@@ -2667,6 +2803,7 @@ async function importData(payload) {
   });
 
   await reconcileSiteOutCounts(new Set([...addedSites.map((site) => site.id), ...addedItems.map((item) => item.siteId)]));
+  await reconcileItemArticleCounts(new Set([...addedSites.map((site) => site.id), ...addedItems.map((item) => item.siteId)]));
   sortState();
   persistOfflineState();
   emitAll();
@@ -2687,6 +2824,7 @@ window.StorageService = {
   subscribeItems,
   subscribeItemCounts,
   reconcileSiteOutCounts,
+  reconcileItemArticleCounts,
   subscribeDetails,
   subscribeDetailCounts,
   subscribeDetailDesignations,
