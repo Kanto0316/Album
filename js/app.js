@@ -7537,7 +7537,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       returnHistoryTotal.textContent = `Total retourné : ${formatEditableQuantityValue(getTotalReturnQuantity(detail))}`;
     }
 
-    function askReturnDeleteConfirmation(returnId) {
+    function askReturnDeleteConfirmation(detailId, returnId, returnLabel) {
       const overlay = ensureDetailDeleteConfirmationDialog();
       const title = overlay.querySelector('#detailDeleteConfirmTitle');
       const text = overlay.querySelector('#detailDeleteConfirmText');
@@ -7546,7 +7546,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (!cancelButton || !confirmButton) return;
 
       if (title) title.textContent = 'Supprimer ce retour ?';
-      if (text) text.textContent = 'Cette action est définitive.';
+      if (text) text.textContent = `Vous demandez la suppression du retour sélectionné${returnLabel ? ` : ${returnLabel}` : ''}. Cette action est définitive.`;
 
       const closeAnimationDurationMs = 170;
       let closeAnimationTimer = null;
@@ -7586,7 +7586,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       };
       confirmButton.onclick = async () => {
         if (isDeleting) return;
-        const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
+        const detail = currentDetails.find((entry) => entry.id === detailId);
         if (!detail) return;
         isDeleting = true;
         setLoadingState(true);
@@ -7970,7 +7970,14 @@ import { getAutomaticUnit } from './automatic-unit.js';
     returnHistoryList?.addEventListener('click', (event) => {
       const deleteButton = event.target.closest('[data-return-delete]');
       if (!deleteButton || isSavingReturn || !permissions.canEdit || permissions.isLecture) return;
-      askReturnDeleteConfirmation(deleteButton.dataset.returnDelete);
+      const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
+      const returnId = deleteButton.dataset.returnDelete;
+      const selectedReturn = getDetailReturns(detail).find((entry) => entry.id === returnId);
+      if (!detail || !selectedReturn) return;
+
+      const returnLabel = `${formatReturnDate(selectedReturn.date)} — ${formatEditableQuantityValue(selectedReturn.quantity)} unité(s)`;
+      closeReturnModal();
+      askReturnDeleteConfirmation(detail.id, returnId, returnLabel);
     });
     returnForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
