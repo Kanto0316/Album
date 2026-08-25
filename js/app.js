@@ -7994,8 +7994,14 @@ import { getAutomaticUnit } from './automatic-unit.js';
           returnFormError.textContent = result?.reason === 'quantity_exceeds_available' ? `Quantité supérieure au retour encore disponible (${formatEditableQuantityValue(result.available)}).` : 'Retour impossible. Vérifiez les informations saisies.';
           return;
         }
+        // closeReturnModal intentionally refuses to close while a save is in progress.
+        // Mark the confirmed save as complete before closing the existing modal.
+        setReturnSavingState(false);
         closeReturnModal();
         UiService.showToast('Retour ajouté.');
+      } catch (_error) {
+        // Keep the modal and its entered values available for a retry.
+        returnFormError.textContent = 'Retour impossible. Vérifiez les informations saisies.';
       } finally {
         setReturnSavingState(false);
       }
