@@ -8647,6 +8647,17 @@ body[data-page="item-detail"] .return-history__item {
   padding-bottom: 0.55rem;
 }
 
+body[data-page="item-detail"] .return-history__item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+body[data-page="item-detail"] .return-history__delete-button {
+  flex: 0 0 auto;
+}
+
 body[data-page="item-detail"] .return-history__empty {
   margin: 0;
   color: #64748b;
