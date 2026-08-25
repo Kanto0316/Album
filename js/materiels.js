@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseDb } from './firebase-core.js';
 
 (function () {
@@ -71,26 +71,6 @@ import { firebaseDb } from './firebase-core.js';
     return cleaned ? `Demande matériel — ${cleaned}` : 'Demande matériel';
   }
 
-  async function createMaterialRequestRecord(requestTitle = '') {
-    const cleanedTitle = String(requestTitle || '').trim();
-    const items = materialCart.map((item) => ({
-      code: String(item.code || ''),
-      designation: String(item.designation || ''),
-      qty: sanitizeQty(item.qty),
-      unit: item.unit || 'Pcs',
-    }));
-
-    await addDoc(collection(firebaseDb, 'materialRequests'), {
-      requestTitle: cleanedTitle,
-      createdAt: serverTimestamp(),
-      items,
-    });
-
-    return {
-      requestTitle: cleanedTitle,
-      createdAtLabel: formatRequestDateTime(new Date()),
-    };
-  }
 
   function normalizeMaterialRow(data) {
     const code = String(data?.code || data?.ref || data?.reference || data?.Code || '').trim();
@@ -801,7 +781,10 @@ import { firebaseDb } from './firebase-core.js';
     let exportArea = null;
 
     try {
-      const requestMeta = await createMaterialRequestRecord(customTitle);
+      const requestMeta = {
+        requestTitle: String(customTitle || '').trim(),
+        createdAtLabel: formatRequestDateTime(new Date()),
+      };
       lastRequestMeta = requestMeta;
       exportArea = buildRequestExportArea(requestMeta);
       const canvas = await window.html2canvas(exportArea, {
