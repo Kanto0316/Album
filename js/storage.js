@@ -1126,14 +1126,8 @@ async function bootstrapMaterialCodesFromDetails() {
 }
 
 async function loadRemoteSnapshot() {
-  let [page1, materialCodes] = await Promise.all([
-    readPageItems('page1'),
-    readMaterialCodes(),
-  ]);
-  if (!materialCodes.length) {
-    materialCodes = await bootstrapMaterialCodesFromDetails();
-  }
-  return { page1, page3: [], materialCodes };
+  const page1 = await readPageItems('page1');
+  return { page1, page3: [] };
 }
 
 function applySnapshot(snapshot) {
