@@ -2611,6 +2611,48 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
   return { ok: true, return: clone(returnEntry), qteRetour: nextTotal };
 }
 
+async function removeDetailReturn(siteId, itemId, detailId, returnId) {
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = state.detailsByItem.get(detailsKey) || [];
+  const target = details.find((detail) => detail.id === detailId);
+  const normalizedReturnId = sanitizeText(returnId, false);
+  if (!target || !normalizedReturnId) return { ok: false, reason: 'not_found' };
+
+  const detailRef = doc(state.db, 'pages', 'page3', 'items', detailId);
+  const result = await runTransaction(state.db, async (transaction) => {
+    const snapshot = await transaction.get(detailRef);
+    if (!snapshot.exists()) return { ok: false, reason: 'not_found' };
+
+    const detail = normalizeDetailForState({ id: snapshot.id, ...snapshot.data() });
+    const returns = getDetailReturns(detail);
+    const returnIndex = returns.findIndex((entry) => entry.id === normalizedReturnId);
+    if (returnIndex === -1) return { ok: false, reason: 'return_not_found' };
+
+    const nextReturns = returns.filter((_entry, index) => index !== returnIndex);
+    const nextTotal = nextReturns.reduce((total, entry) => total + sanitizeNumber(entry.quantity), 0);
+    const dateModification = nowIso();
+    transaction.update(detailRef, {
+      returns: nextReturns,
+      qteRetour: nextTotal,
+      dateRetour: nextReturns.map((entry) => entry.date).filter(Boolean).join('\n'),
+      dateModification,
+    });
+    return { ok: true, returns: nextReturns, qteRetour: nextTotal, dateModification };
+  });
+
+  if (!result.ok) return result;
+
+  target.returns = result.returns;
+  target.qteRetour = result.qteRetour;
+  target.dateRetour = result.returns.map((entry) => entry.date).filter(Boolean).join('\n');
+  target.dateModification = result.dateModification;
+  const item = getItem(siteId, itemId);
+  await appendHistoryEntry(`a supprimé un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  persistOfflineState();
+  emitAll();
+  return { ok: true, qteRetour: result.qteRetour };
+}
+
 async function removeDetail(siteId, itemId, detailId) {
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
@@ -2952,6 +2994,7 @@ window.StorageService = {
   createDetail,
   updateDetail,
   addDetailReturn,
+  removeDetailReturn,
   removeDetail,
   recordSiteUnlockHistory,
   recordSiteUnlockFailureHistory,

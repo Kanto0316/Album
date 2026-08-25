@@ -7382,11 +7382,16 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
     function askDetailDeleteConfirmation(detailId) {
       const overlay = ensureDetailDeleteConfirmationDialog();
+      const title = overlay.querySelector('#detailDeleteConfirmTitle');
+      const text = overlay.querySelector('#detailDeleteConfirmText');
       const cancelButton = overlay.querySelector('#detailDeleteCancelButton');
       const confirmButton = overlay.querySelector('#detailDeleteConfirmButton');
       if (!cancelButton || !confirmButton) {
         return Promise.resolve();
       }
+
+      if (title) title.textContent = 'Supprimer cette donnée ?';
+      if (text) text.textContent = 'Cette action est définitive.';
 
       return new Promise((resolve) => {
         const closeAnimationDurationMs = 170;
@@ -7527,9 +7532,86 @@ import { getAutomaticUnit } from './automatic-unit.js';
     function renderReturnHistory(detail) {
       const returns = getSortedDetailReturns(detail);
       returnHistoryList.innerHTML = returns.length
-        ? returns.map((entry) => `<article class="return-history__item"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><span>${escapeHtml(formatEditableQuantityValue(entry.quantity))} unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
+        ? returns.map((entry) => `<article class="return-history__item"><div class="return-history__item-header"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><button class="table-delete-icon-button return-history__delete-button" type="button" data-return-delete="${escapeHtml(entry.id)}" aria-label="Supprimer ce retour" title="Supprimer ce retour"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button></div><span>${escapeHtml(formatEditableQuantityValue(entry.quantity))} unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
         : '<p class="return-history__empty">Aucun retour enregistré.</p>';
       returnHistoryTotal.textContent = `Total retourné : ${formatEditableQuantityValue(getTotalReturnQuantity(detail))}`;
+    }
+
+    function askReturnDeleteConfirmation(returnId) {
+      const overlay = ensureDetailDeleteConfirmationDialog();
+      const title = overlay.querySelector('#detailDeleteConfirmTitle');
+      const text = overlay.querySelector('#detailDeleteConfirmText');
+      const cancelButton = overlay.querySelector('#detailDeleteCancelButton');
+      const confirmButton = overlay.querySelector('#detailDeleteConfirmButton');
+      if (!cancelButton || !confirmButton) return;
+
+      if (title) title.textContent = 'Supprimer ce retour ?';
+      if (text) text.textContent = 'Cette action est définitive.';
+
+      const closeAnimationDurationMs = 170;
+      let closeAnimationTimer = null;
+      let isClosing = false;
+      let isDeleting = false;
+
+      const setLoadingState = (isLoading) => {
+        confirmButton.disabled = isLoading;
+        confirmButton.classList.toggle('is-loading', isLoading);
+        cancelButton.disabled = isLoading;
+      };
+
+      const cleanup = () => {
+        if (closeAnimationTimer) window.clearTimeout(closeAnimationTimer);
+        setLoadingState(false);
+        overlay.hidden = true;
+        overlay.classList.remove('is-open');
+        overlay.onclick = null;
+        cancelButton.onclick = null;
+        confirmButton.onclick = null;
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+
+      const close = () => {
+        if (isClosing) return;
+        isClosing = true;
+        overlay.classList.remove('is-open');
+        closeAnimationTimer = window.setTimeout(cleanup, closeAnimationDurationMs);
+      };
+
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape' && !isDeleting) close();
+      };
+
+      cancelButton.onclick = () => {
+        if (!isDeleting) close();
+      };
+      confirmButton.onclick = async () => {
+        if (isDeleting) return;
+        const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
+        if (!detail) return;
+        isDeleting = true;
+        setLoadingState(true);
+        try {
+          const result = await StorageService.removeDetailReturn(siteId, itemId, detail.id, returnId);
+          if (!result?.ok) {
+            returnFormError.textContent = 'Suppression du retour impossible.';
+            isDeleting = false;
+            setLoadingState(false);
+            return;
+          }
+          close();
+          UiService.showToast('Retour supprimé.');
+        } catch (_error) {
+          returnFormError.textContent = 'Suppression du retour impossible.';
+          isDeleting = false;
+          setLoadingState(false);
+        }
+      };
+      overlay.onclick = (event) => {
+        if (event.target === overlay && !isDeleting) close();
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      overlay.hidden = false;
+      window.requestAnimationFrame(() => overlay.classList.add('is-open'));
     }
 
     function openReturnModal(detailId) {
@@ -7885,6 +7967,11 @@ import { getAutomaticUnit } from './automatic-unit.js';
     returnFormModal?.addEventListener('cancel', (event) => { event.preventDefault(); closeReturnModal(); });
     returnFormModal?.addEventListener('click', (event) => { if (event.target === returnFormModal) closeReturnModal(); });
     returnFormModal?.addEventListener('close', () => setDetailModalOpenState(false));
+    returnHistoryList?.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('[data-return-delete]');
+      if (!deleteButton || isSavingReturn || !permissions.canEdit || permissions.isLecture) return;
+      askReturnDeleteConfirmation(deleteButton.dataset.returnDelete);
+    });
     returnForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (isSavingReturn) return;
@@ -8190,6 +8277,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
         hideDetailTableSkeleton();
         currentDetails = details;
         renderTable();
+        const activeReturnDetail = currentDetails.find((detail) => detail.id === activeReturnDetailId);
+        if (activeReturnDetail && returnFormModal?.open) {
+          renderReturnHistory(activeReturnDetail);
+        }
       },
       () => {
         UiService.showToast('Synchronisation  indisponible.');
