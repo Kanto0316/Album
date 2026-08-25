@@ -167,6 +167,46 @@
         </div>
       </dialog>
 
+      <dialog id="returnFormModal" class="modal-card detail-form-modal return-form-modal">
+        <div class="modal-content detail-form-modal__content return-form-modal__content">
+          <div class="modal-header">
+            <h2>Ajouter un retour</h2>
+          </div>
+          <section class="surface-card form-card section detail-form-modal__section">
+            <form id="returnForm" class="responsive-form" novalidate>
+              <label class="input-group">
+                <span>Quantité retournée <span class="required-asterisk" aria-hidden="true">*</span></span>
+                <input id="returnQuantityInput" name="returnQuantity" type="number" inputmode="numeric" min="1" step="1" required />
+              </label>
+              <label class="input-group">
+                <span>Date de retour <span class="required-asterisk" aria-hidden="true">*</span></span>
+                <input id="returnDateInput" name="returnDate" type="date" required />
+              </label>
+              <label class="input-group input-group--wide input-group--site-create">
+                <span>Remarque</span>
+                <input id="returnNoteInput" name="returnNote" type="text" maxlength="120" />
+              </label>
+              <section class="return-history" aria-labelledby="returnHistoryTitle">
+                <h3 id="returnHistoryTitle">Historique des retours</h3>
+                <div id="returnHistoryList" class="return-history__list"></div>
+                <p id="returnHistoryTotal" class="return-history__total">Total retourné : 0</p>
+              </section>
+              <div class="form-footer">
+                <p id="returnFormError" class="form-error" aria-live="polite"></p>
+                <div class="detail-form-actions">
+                  <button type="button" class="btn" id="cancelReturnFormButton">Annuler</button>
+                  <button type="submit" class="btn btn-success" id="returnCreateSubmitButton">
+                    <span class="btn-label-default">Enregistrer</span>
+                    <span class="btn-loading-spinner" aria-hidden="true"></span>
+                    <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </section>
+        </div>
+      </dialog>
+
       <dialog id="detailExportDialog" class="modal-card">
         <form method="dialog" class="modal-content modal-content--site-create" id="detailExportForm">
           <div class="modal-header">

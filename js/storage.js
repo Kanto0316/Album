@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   increment,
+  arrayUnion,
   onSnapshot,
   orderBy,
   query,
@@ -808,9 +809,68 @@ function historyCollection() {
   return collection(state.db, 'historiques');
 }
 
+
+function normalizeReturnEntry(entry) {
+  const quantity = sanitizeNumber(entry?.quantity);
+  const date = sanitizeReturnDate(entry?.date);
+  if (!quantity || !date) {
+    return null;
+  }
+  return {
+    id: sanitizeText(entry?.id || uid(), false) || uid(),
+    quantity,
+    date,
+    note: sanitizeText(entry?.note, false),
+    createdAt: entry?.createdAt || null,
+    createdBy: sanitizeText(entry?.createdBy, false) || null,
+  };
+}
+
+function getDetailReturns(detail) {
+  const explicitReturns = Array.isArray(detail?.returns)
+    ? detail.returns.map(normalizeReturnEntry).filter(Boolean)
+    : [];
+  if (explicitReturns.length) {
+    return explicitReturns;
+  }
+  const legacyQuantity = sanitizeNumber(detail?.qteRetour);
+  const legacyDate = sanitizeReturnDate(detail?.dateRetour);
+  if (legacyQuantity > 0 && legacyDate) {
+    return [{
+      id: 'legacy-return',
+      quantity: legacyQuantity,
+      date: legacyDate,
+      note: '',
+      createdAt: detail?.dateModification || detail?.dateCreation || null,
+      createdBy: sanitizeText(detail?.createdBy || detail?.ownerId, false) || null,
+      legacy: true,
+    }];
+  }
+  return [];
+}
+
+function getTotalReturnQuantity(detail) {
+  const returns = getDetailReturns(detail);
+  if (returns.length) {
+    return returns.reduce((total, entry) => total + sanitizeNumber(entry.quantity), 0);
+  }
+  return sanitizeNumber(detail?.qteRetour);
+}
+
+function normalizeDetailForState(detail) {
+  const normalized = { ...detail };
+  normalized.returns = getDetailReturns(normalized);
+  normalized.qteRetour = getTotalReturnQuantity(normalized);
+  normalized.dateRetour = normalized.returns.length
+    ? normalized.returns.map((entry) => entry.date).filter(Boolean).join('\n')
+    : sanitizeReturnDate(normalized.dateRetour);
+  return normalized;
+}
+
 function normalizeDocData(docSnapshot) {
   const data = docSnapshot.data() || {};
-  return { id: docSnapshot.id, ...data };
+  const item = { id: docSnapshot.id, ...data };
+  return docSnapshot.ref?.parent?.parent?.id === 'page3' ? normalizeDetailForState(item) : item;
 }
 
 function normalizeOutCount(value) {
@@ -2415,6 +2475,7 @@ async function createDetail(siteId, itemId, payload) {
     qteHorsBtrs: '',
     qteRetour: 0,
     dateRetour: '',
+    returns: [],
     qtePosee: 0,
     qteRebus: 0,
     observation: '',
@@ -2504,6 +2565,50 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   persistOfflineState();
   emitAll();
   return true;
+}
+
+
+async function addDetailReturn(siteId, itemId, detailId, payload) {
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = state.detailsByItem.get(detailsKey) || [];
+  const target = details.find((detail) => detail.id === detailId);
+  if (!target) return { ok: false, reason: 'not_found' };
+
+  const quantity = sanitizeNumber(payload?.quantity);
+  if (!Number.isInteger(quantity) || quantity < 1) return { ok: false, reason: 'invalid_quantity' };
+  const date = sanitizeReturnDate(payload?.date);
+  if (!date) return { ok: false, reason: 'invalid_date' };
+  const existingTotal = getTotalReturnQuantity(target);
+  const available = sanitizeNumber(target.qteSortie) - sanitizeNumber(target.qtePosee) - sanitizeNumber(target.qteRebus) - existingTotal;
+  if (sanitizeNumber(target.qteSortie) > 0 && quantity - available > 0.000001) {
+    return { ok: false, reason: 'quantity_exceeds_available', available: Math.max(0, available) };
+  }
+
+  const returnEntry = {
+    id: uid(),
+    quantity,
+    date,
+    note: sanitizeText(payload?.note, false),
+    createdAt: nowIso(),
+    createdBy: state.userId || null,
+  };
+  const nextTotal = existingTotal + quantity;
+  const dateModification = nowIso();
+  await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), {
+    returns: arrayUnion(returnEntry),
+    qteRetour: nextTotal,
+    dateRetour: date,
+    dateModification,
+  });
+  target.returns = [...getDetailReturns(target), returnEntry];
+  target.qteRetour = nextTotal;
+  target.dateRetour = target.returns.map((entry) => entry.date).filter(Boolean).join('\n');
+  target.dateModification = dateModification;
+  const item = getItem(siteId, itemId);
+  await appendHistoryEntry(`a ajouté un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  persistOfflineState();
+  emitAll();
+  return { ok: true, return: clone(returnEntry), qteRetour: nextTotal };
 }
 
 async function removeDetail(siteId, itemId, detailId) {
@@ -2846,6 +2951,7 @@ window.StorageService = {
   restoreItem,
   createDetail,
   updateDetail,
+  addDetailReturn,
   removeDetail,
   recordSiteUnlockHistory,
   recordSiteUnlockFailureHistory,

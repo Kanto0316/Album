@@ -364,14 +364,50 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
   function formatReturnDate(dateValue) {
     const normalized = String(dateValue || '').trim();
-    if (!normalized) {
-      return '';
-    }
+    if (!normalized) return '';
     const [year, month, day] = normalized.split('-');
-    if (!year || !month || !day) {
-      return '';
-    }
+    if (!year || !month || !day) return '';
     return `${day}/${month}/${year}`;
+  }
+
+  function getDetailReturns(detail) {
+    const explicitReturns = Array.isArray(detail?.returns) ? detail.returns : [];
+    if (explicitReturns.length) {
+      return explicitReturns
+        .map((entry) => ({
+          id: String(entry?.id || '').trim(),
+          quantity: normalizeQuantity(entry?.quantity),
+          date: String(entry?.date || '').trim(),
+          note: String(entry?.note || '').trim(),
+        }))
+        .filter((entry) => entry.quantity > 0 && /^\d{4}-\d{2}-\d{2}$/.test(entry.date));
+    }
+    const legacyQuantity = normalizeQuantity(detail?.qteRetour);
+    const legacyDate = String(detail?.dateRetour || '').trim();
+    if (legacyQuantity > 0 && /^\d{4}-\d{2}-\d{2}$/.test(legacyDate)) {
+      return [{ id: 'legacy-return', quantity: legacyQuantity, date: legacyDate, note: '' }];
+    }
+    return [];
+  }
+
+  function getTotalReturnQuantity(detail) {
+    const returns = getDetailReturns(detail);
+    return returns.length ? returns.reduce((total, entry) => total + normalizeQuantity(entry.quantity), 0) : normalizeQuantity(detail?.qteRetour);
+  }
+
+  function getSortedDetailReturns(detail) {
+    return getDetailReturns(detail).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function formatReturnHistoryCell(detail) {
+    const returns = getSortedDetailReturns(detail);
+    if (!returns.length) return '-';
+    return returns.map((entry) => `${formatReturnDate(entry.date)} → ${formatEditableQuantityValue(entry.quantity)}${entry.note ? ` — ${entry.note}` : ''}`).join('\n');
+  }
+
+  function formatReturnDatesCompact(detail) {
+    const returns = getSortedDetailReturns(detail);
+    return returns.length ? returns.map((entry) => formatReturnDate(entry.date)).join('\n') : '-';
   }
 
   function normalizeDetailStatut(value) {
@@ -756,7 +792,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
   function applyProfessionalExcelStyling(worksheet, tableStartRow = 1) {
     const centeredColumns = [4, 5, 6, 7, 8, 9, 10, 11, 12];
-    const wrappedColumns = [3];
+    const wrappedColumns = [3, 9];
     const statusColumnNumber = 12;
     const koRowFill = {
       type: 'pattern',
@@ -829,7 +865,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         { header: 'Qté posée', key: 'qtePosee', width: 14 },
         { header: 'Qté Rebus', key: 'qteRebus', width: 14 },
         { header: 'Qté Retour', key: 'qteRetour', width: 14 },
-        { header: 'Date de retour', key: 'dateRetour', width: 14 },
+        { header: 'Date de retour', key: 'dateRetour', width: 28 },
         { header: 'Ecart', key: 'ecart', width: 14 },
         { header: 'Remarque', key: 'observation', width: 16 },
         { header: 'Statut', key: 'statut', width: 14 },
@@ -843,8 +879,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
           unite: formatExcelCellValue(detail.unite),
           qtePosee: formatExcelCellValue(detail.qtePosee),
           qteRebus: formatExcelCellValue(detail.qteRebus),
-          qteRetour: formatExcelCellValue(detail.qteRetour),
-          dateRetour: formatExcelCellValue(formatReturnDate(detail.dateRetour)),
+          qteRetour: formatExcelCellValue(getTotalReturnQuantity(detail)),
+          dateRetour: formatExcelCellValue(formatReturnHistoryCell(detail)),
           ecart: formatExcelCellValue(computeEcart(detail)),
           observation: formatExcelCellValue(detail.observation),
           statut: formatExcelCellValue(normalizeDetailStatut(detail.statut)),
@@ -871,7 +907,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         { header: 'Qté posée', key: 'qtePosee', width: 14 },
         { header: 'Qté Rebus', key: 'qteRebus', width: 14 },
         { header: 'Qté Retour', key: 'qteRetour', width: 14 },
-        { header: 'Date de retour', key: 'dateRetour', width: 14 },
+        { header: 'Date de retour', key: 'dateRetour', width: 28 },
         { header: 'Ecart', key: 'ecart', width: 14 },
         { header: 'Remarque', key: 'observation', width: 16 },
         { header: 'Statut', key: 'statut', width: 14 },
@@ -885,8 +921,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
           unite: formatExcelCellValue(row.unite),
           qtePosee: formatExcelCellValue(row.qtePosee),
           qteRebus: formatExcelCellValue(row.qteRebus),
-          qteRetour: formatExcelCellValue(row.qteRetour),
-          dateRetour: formatExcelCellValue(formatReturnDate(row.dateRetour)),
+          qteRetour: formatExcelCellValue(getTotalReturnQuantity(row)),
+          dateRetour: formatExcelCellValue(formatReturnHistoryCell(row)),
           ecart: formatExcelCellValue(computeEcart(row)),
           observation: formatExcelCellValue(row.observation),
           statut: formatExcelCellValue(normalizeDetailStatut(row.statut)),
@@ -4252,8 +4288,9 @@ import { getAutomaticUnit } from './automatic-unit.js';
           unite: formatSiteExportUnit(detail.unite),
           qtePosee: detail.qtePosee,
           qteRebus: detail.qteRebus,
-          qteRetour: detail.qteRetour,
+          qteRetour: getTotalReturnQuantity(detail),
           dateRetour: detail.dateRetour || '',
+          returns: Array.isArray(detail.returns) ? detail.returns : [],
           observation: detail.observation,
           statut: normalizeDetailStatut(detail.statut),
         })),
@@ -4925,7 +4962,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       }
       const ecart = computeEcart(detail);
       const qtePosee = normalizeQuantity(detail?.qtePosee);
-      const qteRetour = normalizeQuantity(detail?.qteRetour);
+      const qteRetour = getTotalReturnQuantity(detail);
       const qteRebus = normalizeQuantity(detail?.qteRebus);
       const hasActivity = !quantitiesAreEqual(qtePosee, 0) || !quantitiesAreEqual(qteRetour, 0) || !quantitiesAreEqual(qteRebus, 0);
       const isDone = isDetailCompleted(detail);
@@ -6513,6 +6550,16 @@ import { getAutomaticUnit } from './automatic-unit.js';
     const detailFormSection = requireElement('detailFormSection');
     const detailFormError = requireElement('detailFormError');
     const detailFormModal = requireElement('detailFormModal');
+    const returnFormModal = requireElement('returnFormModal');
+    const returnForm = requireElement('returnForm');
+    const returnFormError = requireElement('returnFormError');
+    const returnQuantityInput = requireElement('returnQuantityInput');
+    const returnDateInput = requireElement('returnDateInput');
+    const returnNoteInput = requireElement('returnNoteInput');
+    const returnHistoryList = requireElement('returnHistoryList');
+    const returnHistoryTotal = requireElement('returnHistoryTotal');
+    const cancelReturnFormButton = requireElement('cancelReturnFormButton');
+    const returnCreateSubmitButton = requireElement('returnCreateSubmitButton');
     const openDetailFormButton = requireElement('openDetailFormButton');
     const itemDetailFabLabel = document.querySelector('body[data-page="item-detail"] #itemDetailFabLabel');
     const itemDetailFabRow = openDetailFormButton?.closest('[data-fab-row="create"]');
@@ -6580,6 +6627,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
       ko: 'K.O',
     };
     let activeDetailFilter = 'all';
+    let activeReturnDetailId = null;
+    let isSavingReturn = false;
     const page2SearchStorageKey = 'page2_search_value';
     let page2SearchValue = '';
     let page2CursorFilterLabel = 'Tous';
@@ -7100,7 +7149,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
       const ecart = computeEcart(detail);
       const qtePosee = normalizeQuantity(detail?.qtePosee);
-      const qteRetour = normalizeQuantity(detail?.qteRetour);
+      const qteRetour = getTotalReturnQuantity(detail);
       const qteRebus = normalizeQuantity(detail?.qteRebus);
       const hasActivity = !quantitiesAreEqual(qtePosee, 0) || !quantitiesAreEqual(qteRetour, 0) || !quantitiesAreEqual(qteRebus, 0);
       const isDone = isDetailCompleted(detail);
@@ -7444,7 +7493,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       const detail = {
         qteSortie: row.querySelector('[data-field="qteSortie"]')?.value,
         qtePosee: row.querySelector('[data-field="qtePosee"]')?.value,
-        qteRetour: row.querySelector('[data-field="qteRetour"]')?.value,
+        qteRetour: row.dataset.qteRetour || 0,
         qteRebus: row.querySelector('[data-field="qteRebus"]')?.value,
       };
       const qtePosee = normalizeQuantity(detail.qtePosee);
@@ -7456,6 +7505,45 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
       row.classList.toggle('detail-row--done', !isKoStatus && isDone);
       row.classList.toggle('detail-row--attention', !isKoStatus && hasActivity && !quantitiesAreEqual(ecart, 0));
+    }
+
+
+    function setReturnSavingState(isSaving) {
+      isSavingReturn = isSaving;
+      if (returnCreateSubmitButton) {
+        returnCreateSubmitButton.disabled = isSaving;
+        returnCreateSubmitButton.classList.toggle('is-loading', isSaving);
+      }
+    }
+
+    function renderReturnHistory(detail) {
+      const returns = getSortedDetailReturns(detail);
+      returnHistoryList.innerHTML = returns.length
+        ? returns.map((entry) => `<article class="return-history__item"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><span>${escapeHtml(formatEditableQuantityValue(entry.quantity))} unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
+        : '<p class="return-history__empty">Aucun retour enregistré.</p>';
+      returnHistoryTotal.textContent = `Total retourné : ${formatEditableQuantityValue(getTotalReturnQuantity(detail))}`;
+    }
+
+    function openReturnModal(detailId) {
+      const detail = currentDetails.find((entry) => entry.id === detailId);
+      if (!detail || !returnFormModal || permissions.isLecture || !permissions.canEdit) return;
+      activeReturnDetailId = detailId;
+      returnForm.reset();
+      returnDateInput.value = new Date().toISOString().slice(0, 10);
+      returnFormError.textContent = '';
+      renderReturnHistory(detail);
+      setReturnSavingState(false);
+      returnFormModal.showModal();
+      setDetailModalOpenState(true);
+      window.setTimeout(() => returnQuantityInput?.focus(), 60);
+    }
+
+    function closeReturnModal() {
+      if (isSavingReturn) return;
+      activeReturnDetailId = null;
+      returnFormError.textContent = '';
+      returnFormModal?.close();
+      setDetailModalOpenState(false);
     }
 
     function renderTable() {
@@ -7492,7 +7580,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
               isKoStatus ? 'detail-row--ko' : '',
             ].filter(Boolean).join(' ');
             return `
-            <tr data-detail-id="${detail.id}" class="${rowClasses}"${enterAnimationStyle}>
+            <tr data-detail-id="${detail.id}" data-qte-retour="${getTotalReturnQuantity(detail)}" class="${rowClasses}"${enterAnimationStyle}>
               <td><span class="field-badge">${getHighlightedHtml(detail.champ, searchQuery)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
               <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
@@ -7500,8 +7588,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
               <td><span class="meta-value">${getHighlightedHtml(detail.unite, searchQuery)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qtePosee" data-field="qtePosee" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qtePosee))}" /></td>
               <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRebus" data-field="qteRebus" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qteRebus))}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic" data-col-key="qteRetour" data-field="qteRetour" type="text" inputmode="decimal" maxlength="120" value="${escapeHtml(formatEditableQuantityValue(detail.qteRetour))}" /></td>
-              <td><input class="cell-input cell-input--compact-dynamic date-retour-field" data-col-key="dateRetour" data-field="dateRetour" type="date" value="${escapeHtml(detail.dateRetour || '')}" /></td>
+              <td><button class="return-summary-button" type="button" data-return-open="${detail.id}" title="Voir / ajouter un retour">${escapeHtml(formatEditableQuantityValue(getTotalReturnQuantity(detail)))}</button></td>
+              <td><button class="return-dates-button" type="button" data-return-open="${detail.id}" title="Voir / ajouter un retour">${escapeHtml(formatReturnDatesCompact(detail))}</button></td>
               <td><input class="cell-input cell-input--compact-dynamic${ecartClassName}" data-col-key="ecart" type="text" maxlength="120" value="${formatEcartDisplay(ecart)}" data-ecart-value="${ecart}" readonly aria-label="Ecart" /></td>
               <td><input data-col-key="observation" data-field="observation" type="text" maxlength="120" class="cell-input cell-input--compact-dynamic" value="${escapeHtml(detail.observation)}" /></td>
               <td>
@@ -7533,7 +7621,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
         applyDetailRowSemanticState(row);
       });
 
-      const editableQuantityFields = new Set(['qteSortie', 'qtePosee', 'qteRebus', 'qteRetour']);
+      const editableQuantityFields = new Set(['qteSortie', 'qtePosee', 'qteRebus']);
 
       detailTableBody.querySelectorAll('[data-field]').forEach((field) => {
         if (editableQuantityFields.has(field.dataset.field)) {
@@ -7584,7 +7672,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
               applyDetailRowSemanticState(row);
             }
           }
-          if (fieldName === 'qtePosee' || fieldName === 'qteSortie' || fieldName === 'qteRebus' || fieldName === 'qteRetour') {
+          if (fieldName === 'qtePosee' || fieldName === 'qteSortie' || fieldName === 'qteRebus') {
             const ecartField = row.querySelector('[data-col-key="ecart"]');
             if (ecartField) {
               const nextEcart = computeEcart({
@@ -7607,7 +7695,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
             if (field.value.length > 120) {
               field.value = field.value.slice(0, 120);
             }
-            if (field.dataset.field === 'qtePosee' || field.dataset.field === 'qteSortie' || field.dataset.field === 'qteRebus' || field.dataset.field === 'qteRetour' || field.dataset.field === 'statut') {
+            if (field.dataset.field === 'qtePosee' || field.dataset.field === 'qteSortie' || field.dataset.field === 'qteRebus' || field.dataset.field === 'statut') {
               const row = field.closest('tr');
               if (row) {
                 if (field.dataset.field !== 'statut') {
@@ -7615,7 +7703,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
                     qteSortie: row.querySelector('[data-field="qteSortie"]')?.value,
                     qtePosee: row.querySelector('[data-field="qtePosee"]')?.value,
                     qteRebus: row.querySelector('[data-field="qteRebus"]')?.value,
-                    qteRetour: row.querySelector('[data-field="qteRetour"]')?.value,
+                    qteRetour: row.dataset.qteRetour || 0,
                   });
                   const ecartField = row.querySelector('[data-col-key="ecart"]');
                   if (ecartField) {
@@ -7639,6 +7727,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
           });
           adjustDesignationFieldHeight(field);
         }
+      });
+
+      detailTableBody.querySelectorAll('[data-return-open]').forEach((button) => {
+        button.addEventListener('click', () => openReturnModal(button.dataset.returnOpen));
       });
 
       detailTableBody.querySelectorAll('[data-detail-delete]').forEach((button) => {
@@ -7780,6 +7872,32 @@ import { getAutomaticUnit } from './automatic-unit.js';
     if (cancelDetailFormButton) {
       cancelDetailFormButton.addEventListener('click', closeDetailModal);
     }
+
+    cancelReturnFormButton?.addEventListener('click', closeReturnModal);
+    returnFormModal?.addEventListener('cancel', (event) => { event.preventDefault(); closeReturnModal(); });
+    returnFormModal?.addEventListener('click', (event) => { if (event.target === returnFormModal) closeReturnModal(); });
+    returnFormModal?.addEventListener('close', () => setDetailModalOpenState(false));
+    returnForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (isSavingReturn) return;
+      const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
+      if (!detail) return;
+      const quantity = Number(returnQuantityInput.value);
+      if (!Number.isInteger(quantity) || quantity < 1) { returnFormError.textContent = 'La quantité doit être un entier positif supérieur ou égal à 1.'; return; }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(returnDateInput.value || '')) { returnFormError.textContent = 'La date de retour est obligatoire et doit être valide.'; return; }
+      setReturnSavingState(true);
+      try {
+        const result = await StorageService.addDetailReturn(siteId, itemId, detail.id, { quantity, date: returnDateInput.value, note: returnNoteInput.value });
+        if (!result?.ok) {
+          returnFormError.textContent = result?.reason === 'quantity_exceeds_available' ? `Quantité supérieure au retour encore disponible (${formatEditableQuantityValue(result.available)}).` : 'Retour impossible. Vérifiez les informations saisies.';
+          return;
+        }
+        closeReturnModal();
+        UiService.showToast('Retour ajouté.');
+      } finally {
+        setReturnSavingState(false);
+      }
+    });
 
     if (detailFormModal) {
       detailFormModal.addEventListener('cancel', (event) => {
