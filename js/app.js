@@ -7513,6 +7513,14 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (returnCreateSubmitButton) {
         returnCreateSubmitButton.disabled = isSaving;
         returnCreateSubmitButton.classList.toggle('is-loading', isSaving);
+        const defaultLabel = returnCreateSubmitButton.querySelector('.btn-label-default');
+        const loadingLabel = returnCreateSubmitButton.querySelector('.btn-label-loading');
+        if (defaultLabel) {
+          defaultLabel.hidden = isSaving;
+        }
+        if (loadingLabel) {
+          loadingLabel.hidden = !isSaving;
+        }
       }
     }
 

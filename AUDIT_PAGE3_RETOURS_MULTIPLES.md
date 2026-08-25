@@ -178,6 +178,14 @@ Point à surveiller : une écriture concurrente très rapide peut mettre `qteRet
 - Aucune migration automatique massive.
 - Les anciens champs `qteRetour` et `dateRetour` sont conservés.
 - Les anciennes données restent lisibles.
+
+## Correction UI du modal
+- Problème constaté : le bouton du modal pouvait afficher simultanément `Enregistrer` et `Enregistrement...`. Les champs du modal de retour devaient également réutiliser explicitement les classes de champs déjà employées dans le formulaire Page 3.
+- Fichiers modifiés : `page3.html`, `css/style.css`, `js/app.js` et ce fichier d'audit.
+- Correction des styles : les champs quantité et date du retour utilisent la classe existante `detail-form-field` en complément de `input-group`. Ils conservent donc le style partagé Page 3 (`.input-group input`) : fond, bordure, rayon, taille, padding, focus et règles responsive, sans ajout de contour spécifique au modal.
+- Correction du bouton : le bouton possède maintenant deux libellés distincts. Le libellé de chargement est initialement masqué avec l'attribut `hidden`, tandis que les règles existantes de bouton Page 3 sont réutilisées pour le spinner et l'état `is-loading`.
+- Gestion des états : `setReturnSavingState()` rend les libellés mutuellement exclusifs, désactive le bouton pendant la sauvegarde et le restaure après succès ou erreur. Le garde-fou `isSavingReturn` continue d'empêcher un double enregistrement.
+- Résultat des tests : vérification statique des états normal, chargement et restauration ; la validation JavaScript confirme que la modification ne change pas la logique de retour ni les appels Firestore.
 - La source de vérité du nouveau système est `returns[]` lorsqu'il existe.
 
 ## 15. Verdict final

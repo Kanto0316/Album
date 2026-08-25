@@ -3769,11 +3769,13 @@ body[data-page="item-detail"] .export-details-button__icon {
   flex-shrink: 0;
 }
 
-body[data-page="item-detail"] #detailCreateSubmitButton .btn-label-loading {
+body[data-page="item-detail"] #detailCreateSubmitButton .btn-label-loading,
+body[data-page="item-detail"] #returnCreateSubmitButton .btn-label-loading {
   display: none;
 }
 
-body[data-page="item-detail"] #detailCreateSubmitButton .btn-loading-spinner {
+body[data-page="item-detail"] #detailCreateSubmitButton .btn-loading-spinner,
+body[data-page="item-detail"] #returnCreateSubmitButton .btn-loading-spinner {
   width: 0.95rem;
   height: 0.95rem;
   border-radius: 50%;
@@ -3783,21 +3785,30 @@ body[data-page="item-detail"] #detailCreateSubmitButton .btn-loading-spinner {
   animation: btn-spinner-rotate 0.7s linear infinite;
 }
 
-body[data-page="item-detail"] #detailCreateSubmitButton.is-loading {
+body[data-page="item-detail"] #detailCreateSubmitButton.is-loading,
+body[data-page="item-detail"] #returnCreateSubmitButton.is-loading {
   filter: saturate(0.95);
   gap: 0.45rem;
 }
 
-body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-default {
+body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-default,
+body[data-page="item-detail"] #returnCreateSubmitButton.is-loading .btn-label-default {
   display: none;
 }
 
-body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-loading-spinner {
+body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-loading-spinner,
+body[data-page="item-detail"] #returnCreateSubmitButton.is-loading .btn-loading-spinner {
   display: inline-flex;
 }
 
-body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-loading {
+body[data-page="item-detail"] #detailCreateSubmitButton.is-loading .btn-label-loading,
+body[data-page="item-detail"] #returnCreateSubmitButton.is-loading .btn-label-loading {
   display: inline-flex;
+}
+
+body[data-page="item-detail"] #returnCreateSubmitButton .btn-label-default[hidden],
+body[data-page="item-detail"] #returnCreateSubmitButton .btn-label-loading[hidden] {
+  display: none !important;
 }
 
 body[data-page="item-detail"] .detail-delete-confirm-overlay {

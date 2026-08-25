@@ -174,11 +174,11 @@
           </div>
           <section class="surface-card form-card section detail-form-modal__section">
             <form id="returnForm" class="responsive-form" novalidate>
-              <label class="input-group">
+              <label class="input-group detail-form-field">
                 <span>Quantité retournée <span class="required-asterisk" aria-hidden="true">*</span></span>
                 <input id="returnQuantityInput" name="returnQuantity" type="number" inputmode="numeric" min="1" step="1" required />
               </label>
-              <label class="input-group">
+              <label class="input-group detail-form-field">
                 <span>Date de retour <span class="required-asterisk" aria-hidden="true">*</span></span>
                 <input id="returnDateInput" name="returnDate" type="date" required />
               </label>
@@ -198,7 +198,7 @@
                   <button type="submit" class="btn btn-success" id="returnCreateSubmitButton">
                     <span class="btn-label-default">Enregistrer</span>
                     <span class="btn-loading-spinner" aria-hidden="true"></span>
-                    <span class="btn-label-loading" aria-hidden="true">Enregistrement...</span>
+                    <span class="btn-label-loading" hidden>Enregistrement...</span>
                   </button>
                 </div>
               </div>
