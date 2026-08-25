@@ -8904,7 +8904,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
     setupBackButtons();
 
     const authUser = await waitForAuthState();
-    await StorageService.init();
+    const page = document.body.dataset.page;
+    await StorageService.init({ page });
 
     const isAuthenticated = Boolean(authUser);
     let profile = await StorageService.getCurrentUserProfile();
@@ -8921,8 +8922,6 @@ import { getAutomaticUnit } from './automatic-unit.js';
     window.dispatchEvent(new CustomEvent('app:permissions-ready', { detail: { permissions } }));
 
     initMaintenanceGate(permissions, profile);
-
-    const page = document.body.dataset.page;
     if (page === 'home') {
       initHomePage(permissions, { isAuthenticated, authUser });
     }
