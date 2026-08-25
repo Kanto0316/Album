@@ -8606,7 +8606,6 @@ body[data-page="trash"] .trash-entry__content strong {
   }
 }
 
-body[data-page="item-detail"] .return-summary-button,
 body[data-page="item-detail"] .return-dates-button {
   border: 0;
   border-radius: 0.75rem;
