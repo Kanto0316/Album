@@ -8670,6 +8670,11 @@ body[data-page="item-detail"] .return-history__total {
 
 body[data-page="item-detail"] .return-history__quantity {
   cursor: text;
+  color: var(--text);
+}
+
+body[data-page="item-detail"] .return-history__total-value {
+  color: var(--text);
 }
 
 body[data-page="item-detail"] .return-history__quantity:focus-visible {
@@ -8686,6 +8691,6 @@ body[data-page="item-detail"] .return-history__quantity-input {
   border: 1px solid rgba(148, 163, 184, 0.7);
   border-radius: 0.25rem;
   background: transparent;
-  color: inherit;
+  color: var(--text);
   font: inherit;
 }
