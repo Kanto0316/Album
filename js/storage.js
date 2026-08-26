@@ -2575,14 +2575,11 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
   if (!target) return { ok: false, reason: 'not_found' };
 
   const quantity = sanitizeNumber(payload?.quantity);
-  if (!Number.isInteger(quantity) || quantity < 1) return { ok: false, reason: 'invalid_quantity' };
+  const quantityValidation = validateDetailReturnQuantity(target, quantity);
+  if (!quantityValidation.ok) return quantityValidation;
   const date = sanitizeReturnDate(payload?.date);
   if (!date) return { ok: false, reason: 'invalid_date' };
   const existingTotal = getTotalReturnQuantity(target);
-  const available = sanitizeNumber(target.qteSortie) - sanitizeNumber(target.qtePosee) - sanitizeNumber(target.qteRebus) - existingTotal;
-  if (sanitizeNumber(target.qteSortie) > 0 && quantity - available > 0.000001) {
-    return { ok: false, reason: 'quantity_exceeds_available', available: Math.max(0, available) };
-  }
 
   const returnEntry = {
     id: uid(),
@@ -2609,6 +2606,83 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
   persistOfflineState();
   emitAll();
   return { ok: true, return: clone(returnEntry), qteRetour: nextTotal };
+}
+
+// This is deliberately shared by creation and inline editing so both actions
+// enforce the same integer and available-return rules.
+function validateDetailReturnQuantity(detail, quantity, replacedQuantity = 0) {
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    return { ok: false, reason: 'invalid_quantity' };
+  }
+  const existingTotal = getTotalReturnQuantity(detail);
+  const available = sanitizeNumber(detail.qteSortie)
+    - sanitizeNumber(detail.qtePosee)
+    - sanitizeNumber(detail.qteRebus)
+    - (existingTotal - sanitizeNumber(replacedQuantity));
+  if (sanitizeNumber(detail.qteSortie) > 0 && quantity - available > 0.000001) {
+    return { ok: false, reason: 'quantity_exceeds_available', available: Math.max(0, available) };
+  }
+  return { ok: true };
+}
+
+async function updateDetailReturnQuantity(siteId, itemId, detailId, returnId, quantityValue) {
+  const detailsKey = `${siteId}:${itemId}`;
+  const details = state.detailsByItem.get(detailsKey) || [];
+  const target = details.find((detail) => detail.id === detailId);
+  const normalizedReturnId = sanitizeText(returnId, false);
+  const quantity = sanitizeNumber(quantityValue);
+  if (!target || !normalizedReturnId) return { ok: false, reason: 'not_found' };
+
+  const detailRef = doc(state.db, 'pages', 'page3', 'items', detailId);
+  const result = await runTransaction(state.db, async (transaction) => {
+    const snapshot = await transaction.get(detailRef);
+    if (!snapshot.exists()) return { ok: false, reason: 'not_found' };
+
+    const detail = normalizeDetailForState({ id: snapshot.id, ...snapshot.data() });
+    const returns = getDetailReturns(detail);
+    const returnIndex = returns.findIndex((entry) => entry.id === normalizedReturnId);
+    if (returnIndex === -1) return { ok: false, reason: 'return_not_found' };
+
+    const selectedReturn = returns[returnIndex];
+    const quantityValidation = validateDetailReturnQuantity(detail, quantity, selectedReturn.quantity);
+    if (!quantityValidation.ok) return quantityValidation;
+
+    const nextReturns = returns.map((entry, index) => (index === returnIndex ? { ...entry, quantity } : entry));
+    const nextTotal = nextReturns.reduce((total, entry) => total + sanitizeNumber(entry.quantity), 0);
+    const dateModification = nowIso();
+    const updates = {
+      qteRetour: nextTotal,
+      dateRetour: nextReturns.map((entry) => entry.date).filter(Boolean).join('\n'),
+      dateModification,
+    };
+
+    if (selectedReturn.legacy) {
+      // Legacy records have no returns[] entry to edit; retain that storage shape.
+      updates.qteRetour = quantity;
+      updates.dateRetour = selectedReturn.date;
+    } else {
+      const storedReturns = Array.isArray(snapshot.data()?.returns) ? snapshot.data().returns : [];
+      // Keep every original property (date, note, IDs and any future metadata)
+      // and replace only the quantity of the selected entry.
+      updates.returns = storedReturns.map((entry) => (
+        sanitizeText(entry?.id, false) === normalizedReturnId ? { ...entry, quantity } : entry
+      ));
+    }
+    transaction.update(detailRef, updates);
+    return { ok: true, returns: nextReturns, qteRetour: updates.qteRetour, dateRetour: updates.dateRetour, dateModification };
+  });
+
+  if (!result.ok) return result;
+
+  target.returns = result.returns;
+  target.qteRetour = result.qteRetour;
+  target.dateRetour = result.dateRetour;
+  target.dateModification = result.dateModification;
+  const item = getItem(siteId, itemId);
+  await appendHistoryEntry(`a modifié un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  persistOfflineState();
+  emitAll();
+  return { ok: true, qteRetour: result.qteRetour };
 }
 
 async function removeDetailReturn(siteId, itemId, detailId, returnId) {
@@ -2994,6 +3068,7 @@ window.StorageService = {
   createDetail,
   updateDetail,
   addDetailReturn,
+  updateDetailReturnQuantity,
   removeDetailReturn,
   removeDetail,
   recordSiteUnlockHistory,
