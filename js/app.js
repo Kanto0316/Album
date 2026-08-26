@@ -984,9 +984,36 @@ import { getAutomaticUnit } from './automatic-unit.js';
     };
   }
 
+  function buildPurchasesExcelContent(title, purchases) {
+    return async () => {
+      const ExcelJS = await getExcelJsModule();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(String(title || 'Achats PDD').slice(0, 31));
+      worksheet.columns = [
+        { header: 'N°', key: 'number', width: 8 },
+        { header: 'Désignation', key: 'designation', width: 56 },
+        { header: 'Quantité', key: 'quantity', width: 14 },
+        { header: 'Magasin', key: 'store', width: 28 },
+        { header: 'Remarque', key: 'remark', width: 42 },
+      ];
+      purchases.forEach((purchase, index) => {
+        worksheet.addRow({
+          number: index + 1,
+          designation: formatExcelCellValue(purchase?.designation),
+          quantity: formatExcelCellValue(purchase?.qty),
+          store: formatExcelCellValue(purchase?.store ?? purchase?.magasin),
+          remark: formatExcelCellValue(purchase?.remarque ?? purchase?.remark),
+        });
+      });
+      applyProfessionalExcelStyling(worksheet);
+      return workbook;
+    };
+  }
+
   window.AppExcelExport = {
     buildPage2ExportFileName,
     buildMaterialsExcelContent,
+    buildPurchasesExcelContent,
     buildSiteExcelContent,
     downloadExcelFile,
     saveExportFileNameToHistory,
@@ -4303,6 +4330,42 @@ import { getAutomaticUnit } from './automatic-unit.js';
       return normalizedUnit || 'm';
     }
 
+    function getDisplayedPurchases() {
+      const query = itemSearchInput.value.trim().toUpperCase();
+      return currentPurchases.filter((purchase) => {
+        if (!itemMatchesDateFilter({ dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
+          return false;
+        }
+        if (!query) {
+          return true;
+        }
+        return [purchase?.designation, purchase?.store, purchase?.magasin]
+          .some((value) => String(value || '').toUpperCase().includes(query));
+      });
+    }
+
+    function exportPurchases() {
+      if (!isSiteExportAllowed()) {
+        updateSiteExportButtonState();
+        return;
+      }
+      if (!currentSite) {
+        UiService.navigate('index.html');
+        return;
+      }
+
+      const purchases = getDisplayedPurchases();
+      if (!purchases.length) {
+        UiService.showToast('Aucun achat matériel à exporter.');
+        return;
+      }
+
+      StorageService.recordExcelExportHistory(siteId, currentSite?.nom).catch(() => {});
+      const fileName = buildPage2ExportFileName(`Achats_PDD_${currentSite?.nom || 'site'}`, 'xlsx');
+      downloadExcelFile(fileName, 'Export Excel', buildPurchasesExcelContent(`Achats PDD ${currentSite?.nom || ''}`, purchases));
+      saveExportFileNameToHistory(fileName);
+    }
+
     function buildSiteExportRows() {
       const itemsWithLines = currentItems.filter((item) => Number(detailCountsByItem[item.id] || 0) > 0);
       return itemsWithLines.flatMap((item) =>
@@ -5430,17 +5493,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     }
 
     function renderPurchases() {
-      const query = itemSearchInput.value.trim().toUpperCase();
-      const purchases = currentPurchases.filter((purchase) => {
-        if (!itemMatchesDateFilter({ dateCreation: purchase?.createdAt || purchase?.dateAchat || purchase?.date || purchase?.dateCreation || purchase?.dateModification }, selectedDateFilter)) {
-          return false;
-        }
-        if (!query) {
-          return true;
-        }
-        return [purchase?.designation, purchase?.store, purchase?.magasin]
-          .some((value) => String(value || '').toUpperCase().includes(query));
-      });
+      const purchases = getDisplayedPurchases();
 
       if (activeSiteTab === 'purchases') {
         itemCount.innerHTML = `<span class="outs-number">${purchases.length}</span><span class="outs-label">${purchases.length > 1 ? 'Achats' : 'Achat'}</span>`;
@@ -5571,7 +5624,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (!exportBtn) {
         return;
       }
-      exportBtn.classList.toggle('hidden', tabName === 'purchases');
+      exportBtn.classList.remove('hidden');
     }
 
     function setActiveSiteTab(tabName) {
@@ -6230,7 +6283,13 @@ import { getAutomaticUnit } from './automatic-unit.js';
     updateSiteExportButtonState(firebaseAuth.currentUser);
 
     if (openExportItems) {
-      openExportItems.addEventListener('click', openSiteExportDialog);
+      openExportItems.addEventListener('click', () => {
+        if (activeSiteTab === 'purchases') {
+          exportPurchases();
+          return;
+        }
+        openSiteExportDialog();
+      });
     }
 
     if (siteExportCancelButton) {
