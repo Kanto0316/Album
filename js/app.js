@@ -793,9 +793,9 @@ import { getAutomaticUnit } from './automatic-unit.js';
     return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
-  function applyExcelProfessionalHeader(worksheet, siteName) {
+  function applyExcelProfessionalHeader(worksheet, siteName, documentTitle = 'SUIVI MATERIEL') {
     const titleCell = worksheet.getCell('A1');
-    titleCell.value = 'SUIVI MATERIEL';
+    titleCell.value = documentTitle;
     titleCell.font = { bold: true, size: 12, color: { argb: 'FF374151' } };
     titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
@@ -815,10 +815,12 @@ import { getAutomaticUnit } from './automatic-unit.js';
     worksheet.getRow(4).height = 12;
   }
 
-  function applyProfessionalExcelStyling(worksheet, tableStartRow = 1) {
-    const centeredColumns = [4, 5, 6, 7, 8, 9, 10, 11, 12];
-    const wrappedColumns = [3, 9];
-    const statusColumnNumber = 12;
+  function applyProfessionalExcelStyling(worksheet, tableStartRow = 1, options = {}) {
+    const {
+      centeredColumns = [4, 5, 6, 7, 8, 9, 10, 11, 12],
+      wrappedColumns = [3, 9],
+      statusColumnNumber = 12,
+    } = options;
     const koRowFill = {
       type: 'pattern',
       pattern: 'solid',
@@ -854,7 +856,9 @@ import { getAutomaticUnit } from './automatic-unit.js';
       });
 
       if (rowNumber > tableStartRow) {
-        const statusValue = String(row.getCell(statusColumnNumber).value || '').trim().toUpperCase();
+        const statusValue = statusColumnNumber
+          ? String(row.getCell(statusColumnNumber).value || '').trim().toUpperCase()
+          : '';
         if (statusValue === 'K.O') {
           row.eachCell({ includeEmpty: true }, (cell) => {
             cell.fill = koRowFill;
@@ -984,7 +988,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
     };
   }
 
-  function buildPurchasesExcelContent(title, purchases) {
+  function buildPurchasesExcelContent(title, purchases, siteName) {
     return async () => {
       const ExcelJS = await getExcelJsModule();
       const workbook = new ExcelJS.Workbook();
@@ -1005,7 +1009,13 @@ import { getAutomaticUnit } from './automatic-unit.js';
           remark: formatExcelCellValue(purchase?.remarque ?? purchase?.remark),
         });
       });
-      applyProfessionalExcelStyling(worksheet);
+      worksheet.spliceRows(1, 0, [], [], [], []);
+      applyExcelProfessionalHeader(worksheet, siteName, 'ACHATS PDD');
+      applyProfessionalExcelStyling(worksheet, 5, {
+        centeredColumns: [1, 3],
+        wrappedColumns: [2, 5],
+        statusColumnNumber: null,
+      });
       return workbook;
     };
   }
@@ -4362,7 +4372,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
       StorageService.recordExcelExportHistory(siteId, currentSite?.nom).catch(() => {});
       const fileName = buildPage2ExportFileName(`Achats_PDD_${currentSite?.nom || 'site'}`, 'xlsx');
-      downloadExcelFile(fileName, 'Export Excel', buildPurchasesExcelContent(`Achats PDD ${currentSite?.nom || ''}`, purchases));
+      downloadExcelFile(fileName, 'Export Excel', buildPurchasesExcelContent(`Achats PDD ${currentSite?.nom || ''}`, purchases, currentSite?.nom));
       saveExportFileNameToHistory(fileName);
     }
 
