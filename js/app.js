@@ -7559,9 +7559,82 @@ import { getAutomaticUnit } from './automatic-unit.js';
     function renderReturnHistory(detail) {
       const returns = getSortedDetailReturns(detail);
       returnHistoryList.innerHTML = returns.length
-        ? returns.map((entry) => `<article class="return-history__item"><div class="return-history__item-header"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><button class="table-delete-icon-button return-history__delete-button" type="button" data-return-delete="${escapeHtml(entry.id)}" aria-label="Supprimer ce retour" title="Supprimer ce retour"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button></div><span>${escapeHtml(formatEditableQuantityValue(entry.quantity))} unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
+        ? returns.map((entry) => `<article class="return-history__item"><div class="return-history__item-header"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><button class="table-delete-icon-button return-history__delete-button" type="button" data-return-delete="${escapeHtml(entry.id)}" aria-label="Supprimer ce retour" title="Supprimer ce retour"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button></div><span><span class="return-history__quantity" data-return-edit="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-label="Modifier la quantité retournée">${escapeHtml(formatEditableQuantityValue(entry.quantity))}</span> unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
         : '<p class="return-history__empty">Aucun retour enregistré.</p>';
       returnHistoryTotal.textContent = `Total retourné : ${formatEditableQuantityValue(getTotalReturnQuantity(detail))}`;
+    }
+
+    function getReturnQuantityError(result) {
+      return result?.reason === 'invalid_quantity'
+        ? 'La quantité doit être un entier positif supérieur ou égal à 1.'
+        : result?.reason === 'quantity_exceeds_available'
+          ? `Quantité supérieure au retour encore disponible (${formatEditableQuantityValue(result.available)}).`
+          : 'Retour impossible. Vérifiez les informations saisies.';
+    }
+
+    function beginInlineReturnQuantityEdit(quantityElement) {
+      if (isSavingReturn || !permissions.canEdit || permissions.isLecture || quantityElement.querySelector('input')) return;
+      const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
+      const selectedReturn = getDetailReturns(detail).find((entry) => entry.id === quantityElement.dataset.returnEdit);
+      if (!detail || !selectedReturn) return;
+
+      const previousQuantity = String(selectedReturn.quantity);
+      const input = document.createElement('input');
+      input.className = 'return-history__quantity-input';
+      input.type = 'number';
+      input.inputMode = 'numeric';
+      input.min = '1';
+      input.step = '1';
+      input.value = previousQuantity;
+      input.setAttribute('aria-label', 'Quantité retournée');
+      quantityElement.replaceWith(input);
+      input.focus();
+      input.select();
+
+      let finished = false;
+      const restore = () => {
+        if (finished) return;
+        finished = true;
+        input.replaceWith(quantityElement);
+      };
+      const save = async () => {
+        if (finished) return;
+        const quantity = Number(input.value);
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          returnFormError.textContent = getReturnQuantityError({ reason: 'invalid_quantity' });
+          restore();
+          return;
+        }
+        finished = true;
+        isSavingReturn = true;
+        input.disabled = true;
+        try {
+          const result = await StorageService.updateDetailReturnQuantity(siteId, itemId, detail.id, selectedReturn.id, quantity);
+          if (!result?.ok) {
+            returnFormError.textContent = getReturnQuantityError(result);
+            input.replaceWith(quantityElement);
+            return;
+          }
+          returnFormError.textContent = '';
+          renderReturnHistory(currentDetails.find((entry) => entry.id === detail.id) || detail);
+          UiService.showToast('Retour modifié.');
+        } catch (_error) {
+          returnFormError.textContent = 'Retour impossible. Vérifiez les informations saisies.';
+          input.replaceWith(quantityElement);
+        } finally {
+          isSavingReturn = false;
+        }
+      };
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          save();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          restore();
+        }
+      });
+      input.addEventListener('blur', save);
     }
 
     function askReturnDeleteConfirmation(detailId, returnId, returnLabel) {
@@ -7996,7 +8069,12 @@ import { getAutomaticUnit } from './automatic-unit.js';
     returnFormModal?.addEventListener('close', () => setDetailModalOpenState(false));
     returnHistoryList?.addEventListener('click', (event) => {
       const deleteButton = event.target.closest('[data-return-delete]');
-      if (!deleteButton || isSavingReturn || !permissions.canEdit || permissions.isLecture) return;
+      if (!deleteButton) {
+        const quantityElement = event.target.closest('[data-return-edit]');
+        if (quantityElement) beginInlineReturnQuantityEdit(quantityElement);
+        return;
+      }
+      if (isSavingReturn || !permissions.canEdit || permissions.isLecture) return;
       const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
       const returnId = deleteButton.dataset.returnDelete;
       const selectedReturn = getDetailReturns(detail).find((entry) => entry.id === returnId);
@@ -8005,6 +8083,13 @@ import { getAutomaticUnit } from './automatic-unit.js';
       const returnLabel = `${formatReturnDate(selectedReturn.date)} — ${formatEditableQuantityValue(selectedReturn.quantity)} unité(s)`;
       closeReturnModal();
       askReturnDeleteConfirmation(detail.id, returnId, returnLabel);
+    });
+    returnHistoryList?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const quantityElement = event.target.closest('[data-return-edit]');
+      if (!quantityElement) return;
+      event.preventDefault();
+      beginInlineReturnQuantityEdit(quantityElement);
     });
     returnForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -8018,7 +8103,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       try {
         const result = await StorageService.addDetailReturn(siteId, itemId, detail.id, { quantity, date: returnDateInput.value, note: returnNoteInput.value });
         if (!result?.ok) {
-          returnFormError.textContent = result?.reason === 'quantity_exceeds_available' ? `Quantité supérieure au retour encore disponible (${formatEditableQuantityValue(result.available)}).` : 'Retour impossible. Vérifiez les informations saisies.';
+          returnFormError.textContent = getReturnQuantityError(result);
           return;
         }
         // closeReturnModal intentionally refuses to close while a save is in progress.

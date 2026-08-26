@@ -8667,3 +8667,25 @@ body[data-page="item-detail"] .return-history__total {
   margin: 0.75rem 0 0;
   font-weight: 700;
 }
+
+body[data-page="item-detail"] .return-history__quantity {
+  cursor: text;
+}
+
+body[data-page="item-detail"] .return-history__quantity:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+}
+
+body[data-page="item-detail"] .return-history__quantity-input {
+  box-sizing: border-box;
+  width: 3.25rem;
+  min-height: 1.25rem;
+  margin: 0;
+  padding: 0 0.2rem;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
