@@ -8671,6 +8671,7 @@ body[data-page="item-detail"] .return-history__total {
 body[data-page="item-detail"] .return-history__quantity {
   cursor: text;
   color: var(--success);
+  font-weight: 700;
 }
 
 body[data-page="item-detail"] .return-history__total-value {
