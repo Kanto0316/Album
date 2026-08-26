@@ -7561,7 +7561,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
       returnHistoryList.innerHTML = returns.length
         ? returns.map((entry) => `<article class="return-history__item"><div class="return-history__item-header"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><button class="table-delete-icon-button return-history__delete-button" type="button" data-return-delete="${escapeHtml(entry.id)}" aria-label="Supprimer ce retour" title="Supprimer ce retour"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button></div><span><span class="return-history__quantity" data-return-edit="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-label="Modifier la quantité retournée">${escapeHtml(formatEditableQuantityValue(entry.quantity))}</span> unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
         : '<p class="return-history__empty">Aucun retour enregistré.</p>';
-      returnHistoryTotal.textContent = `Total retourné : ${formatEditableQuantityValue(getTotalReturnQuantity(detail))}`;
+      returnHistoryTotal.innerHTML = `Total retourné : <span class="return-history__total-value">${escapeHtml(formatEditableQuantityValue(getTotalReturnQuantity(detail)))}</span>`;
     }
 
     function getReturnQuantityError(result) {
