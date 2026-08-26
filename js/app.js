@@ -5624,6 +5624,10 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (!exportBtn) {
         return;
       }
+      // The OUT and Achat PDD tabs share this header action.  Reset both ways
+      // a native button can be hidden when switching to purchases so the XLS
+      // icon keeps the exact same header position on every viewport.
+      exportBtn.hidden = false;
       exportBtn.classList.remove('hidden');
     }
 
