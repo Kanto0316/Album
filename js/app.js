@@ -717,19 +717,44 @@ import { getAutomaticUnit } from './automatic-unit.js';
     return excelJsModulePromise;
   }
 
-  function computeWrappedRowHeightFromValues(values) {
+  function getExcelCellDisplayValue(cell) {
+    if (cell.text) {
+      return cell.text;
+    }
+    const value = cell.value;
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value);
+  }
+
+  function countExcelWrappedLines(value, columnWidth) {
+    const text = String(value || '').replace(/\r\n/g, '\n');
+    if (!text) {
+      return 1;
+    }
+
+    // Excel column widths are approximately measured in characters. Reserve a
+    // little space for cell padding so the calculated height never clips text.
+    const charactersPerLine = Math.max(1, Math.floor(Number(columnWidth) - 2));
+    return text.split('\n').reduce((total, line) => (
+      total + Math.max(1, Math.ceil(line.length / charactersPerLine))
+    ), 0);
+  }
+
+  function computeWrappedRowHeight(row, worksheet) {
     const baseHeight = 20;
     const lineHeight = 15;
-    const maxLines = values.reduce((max, value) => {
-      const raw = String(value || '');
-      if (!raw.trim()) {
-        return max;
-      }
-      const manualBreaks = raw.split('\n').length;
-      const wrappedLines = Math.ceil(raw.length / 42);
-      return Math.max(max, manualBreaks, wrappedLines);
-    }, 1);
-    return Math.min(120, baseHeight + ((maxLines - 1) * lineHeight));
+    let requiredLines = 1;
+    for (let columnNumber = 1; columnNumber <= worksheet.columnCount; columnNumber += 1) {
+      const cell = row.getCell(columnNumber);
+      const columnWidth = worksheet.getColumn(columnNumber).width || 8;
+      requiredLines = Math.max(
+        requiredLines,
+        countExcelWrappedLines(getExcelCellDisplayValue(cell), columnWidth),
+      );
+    }
+    return baseHeight + ((requiredLines - 1) * lineHeight);
   }
 
   async function downloadExcelFile(fileName, title, workbookFactory) {
@@ -816,7 +841,9 @@ import { getAutomaticUnit } from './automatic-unit.js';
         cell.alignment = {
           vertical: 'middle',
           horizontal: isCentered ? 'center' : 'left',
-          wrapText: wrappedColumns.includes(colNumber),
+          // Every cell may require a taller row; wrapping is enabled so the
+          // row height calculated below can display its complete contents.
+          wrapText: rowNumber > tableStartRow || wrappedColumns.includes(colNumber),
         };
         cell.border = {
           top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
@@ -833,7 +860,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
             cell.fill = koRowFill;
           });
         }
-        row.height = computeWrappedRowHeightFromValues([row.getCell(3).value, row.getCell(11).value]);
+        row.height = computeWrappedRowHeight(row, worksheet);
       }
     });
 
