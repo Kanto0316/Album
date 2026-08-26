@@ -8670,11 +8670,11 @@ body[data-page="item-detail"] .return-history__total {
 
 body[data-page="item-detail"] .return-history__quantity {
   cursor: text;
-  color: var(--text);
+  color: var(--success);
 }
 
 body[data-page="item-detail"] .return-history__total-value {
-  color: var(--text);
+  color: var(--success);
 }
 
 body[data-page="item-detail"] .return-history__quantity:focus-visible {
