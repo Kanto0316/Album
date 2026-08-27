@@ -21,6 +21,7 @@ import {
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
 import { getAutomaticUnit } from './automatic-unit.js';
+import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -852,7 +853,7 @@ function getDetailReturns(detail) {
 function getTotalReturnQuantity(detail) {
   const returns = getDetailReturns(detail);
   if (returns.length) {
-    return returns.reduce((total, entry) => total + sanitizeNumber(entry.quantity), 0);
+    return sumReturnQuantities(returns.map((entry) => entry.quantity));
   }
   return sanitizeNumber(detail?.qteRetour);
 }
@@ -2589,7 +2590,7 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
     createdAt: nowIso(),
     createdBy: state.userId || null,
   };
-  const nextTotal = existingTotal + quantity;
+  const nextTotal = sumReturnQuantities([existingTotal, quantity]);
   const dateModification = nowIso();
   await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), {
     returns: arrayUnion(returnEntry),
@@ -2609,17 +2610,17 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
 }
 
 // This is deliberately shared by creation and inline editing so both actions
-// enforce the same integer and available-return rules.
+// enforce the same positive-decimal and available-return rules.
 function validateDetailReturnQuantity(detail, quantity, replacedQuantity = 0) {
-  if (!Number.isInteger(quantity) || quantity < 1) {
+  if (!Number.isFinite(quantity) || quantity <= 0) {
     return { ok: false, reason: 'invalid_quantity' };
   }
   const existingTotal = getTotalReturnQuantity(detail);
-  const available = sanitizeNumber(detail.qteSortie)
+  const available = roundReturnQuantity(sanitizeNumber(detail.qteSortie)
     - sanitizeNumber(detail.qtePosee)
     - sanitizeNumber(detail.qteRebus)
-    - (existingTotal - sanitizeNumber(replacedQuantity));
-  if (sanitizeNumber(detail.qteSortie) > 0 && quantity - available > 0.000001) {
+    - (existingTotal - sanitizeNumber(replacedQuantity)));
+  if (sanitizeNumber(detail.qteSortie) > 0 && !isReturnQuantityWithinAvailable(quantity, available)) {
     return { ok: false, reason: 'quantity_exceeds_available', available: Math.max(0, available) };
   }
   return { ok: true };
@@ -2648,7 +2649,7 @@ async function updateDetailReturnQuantity(siteId, itemId, detailId, returnId, qu
     if (!quantityValidation.ok) return quantityValidation;
 
     const nextReturns = returns.map((entry, index) => (index === returnIndex ? { ...entry, quantity } : entry));
-    const nextTotal = nextReturns.reduce((total, entry) => total + sanitizeNumber(entry.quantity), 0);
+    const nextTotal = sumReturnQuantities(nextReturns.map((entry) => entry.quantity));
     const dateModification = nowIso();
     const updates = {
       qteRetour: nextTotal,
@@ -2703,7 +2704,7 @@ async function removeDetailReturn(siteId, itemId, detailId, returnId) {
     if (returnIndex === -1) return { ok: false, reason: 'return_not_found' };
 
     const nextReturns = returns.filter((_entry, index) => index !== returnIndex);
-    const nextTotal = nextReturns.reduce((total, entry) => total + sanitizeNumber(entry.quantity), 0);
+    const nextTotal = sumReturnQuantities(nextReturns.map((entry) => entry.quantity));
     const dateModification = nowIso();
     transaction.update(detailRef, {
       returns: nextReturns,
