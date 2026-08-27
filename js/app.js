@@ -3,6 +3,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, se
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual } from './detail-status.js';
 import { getAutomaticUnit } from './automatic-unit.js';
+import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -319,7 +320,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
   }
 
   function formatEditableQuantityValue(value) {
-    return isEmptyQuantityValue(value) ? '0' : String(value);
+    return isEmptyQuantityValue(value) ? '0' : formatReturnQuantity(value);
   }
 
   function normalizeEmptyQuantityInputValue(field) {
@@ -392,7 +393,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
   function getTotalReturnQuantity(detail) {
     const returns = getDetailReturns(detail);
-    return returns.length ? returns.reduce((total, entry) => total + normalizeQuantity(entry.quantity), 0) : normalizeQuantity(detail?.qteRetour);
+    return returns.length ? sumReturnQuantities(returns.map((entry) => entry.quantity)) : normalizeQuantity(detail?.qteRetour);
   }
 
   function getSortedDetailReturns(detail) {
@@ -7639,7 +7640,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 
     function getReturnQuantityError(result) {
       return result?.reason === 'invalid_quantity'
-        ? 'La quantité doit être un entier positif supérieur ou égal à 1.'
+        ? 'La quantité doit être un nombre supérieur à 0.'
         : result?.reason === 'quantity_exceeds_available'
           ? `Quantité supérieure au retour encore disponible (${formatEditableQuantityValue(result.available)}).`
           : 'Retour impossible. Vérifiez les informations saisies.';
@@ -7654,10 +7655,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
       const previousQuantity = String(selectedReturn.quantity);
       const input = document.createElement('input');
       input.className = 'return-history__quantity-input';
-      input.type = 'number';
-      input.inputMode = 'numeric';
-      input.min = '1';
-      input.step = '1';
+      input.type = 'text';
+      input.inputMode = 'decimal';
       input.value = previousQuantity;
       input.setAttribute('aria-label', 'Quantité retournée');
       quantityElement.replaceWith(input);
@@ -7672,8 +7671,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
       };
       const save = async () => {
         if (finished) return;
-        const quantity = Number(input.value);
-        if (!Number.isInteger(quantity) || quantity < 1) {
+        const quantity = parseReturnQuantity(input.value);
+        if (quantity === null || quantity <= 0) {
           returnFormError.textContent = getReturnQuantityError({ reason: 'invalid_quantity' });
           restore();
           return;
@@ -8169,8 +8168,8 @@ import { getAutomaticUnit } from './automatic-unit.js';
       if (isSavingReturn) return;
       const detail = currentDetails.find((entry) => entry.id === activeReturnDetailId);
       if (!detail) return;
-      const quantity = Number(returnQuantityInput.value);
-      if (!Number.isInteger(quantity) || quantity < 1) { returnFormError.textContent = 'La quantité doit être un entier positif supérieur ou égal à 1.'; return; }
+      const quantity = parseReturnQuantity(returnQuantityInput.value);
+      if (quantity === null || quantity <= 0) { returnFormError.textContent = 'La quantité doit être un nombre supérieur à 0.'; return; }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(returnDateInput.value || '')) { returnFormError.textContent = 'La date de retour est obligatoire et doit être valide.'; return; }
       setReturnSavingState(true);
       try {
