@@ -111,7 +111,6 @@
                   <th>Dernière activité</th>
                   <th>Email</th>
                   <th>Rôle</th>
-                  <th>Autorisé (maintenance)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -345,7 +344,7 @@
 
         const sortedUsers = sortUsersByPointsAndName(users, pointsByUser);
         if (!sortedUsers.length) {
-          tableBody.innerHTML = '<tr><td colspan="8" class="users-empty-cell">Aucun utilisateur trouvé.</td></tr>';
+          tableBody.innerHTML = '<tr><td colspan="7" class="users-empty-cell">Aucun utilisateur trouvé.</td></tr>';
           return;
         }
 
@@ -354,7 +353,6 @@
             const displayName = resolveDisplayName(user);
             const email = cleanString(user.email);
             const role = resolveRole(user);
-            const maintenanceAuthorized = resolveMaintenanceAuthorized(user);
             const photoURL = cleanString(user.photoURL || user.avatarUrl || user.avatar);
             const isPrimaryAdmin = isAdminUser(user);
 
@@ -375,15 +373,6 @@
                     <option value="Adjoint Admin" ${role === 'Adjoint Admin' ? 'selected' : ''}>Adjoint Admin</option>
                     <option value="Limité" ${role === 'Limité' ? 'selected' : ''}>Limité</option>
                   </select>`}
-                </td>
-                <td class="maintenance-access-cell">
-                  <input
-                    type="checkbox"
-                    class="maintenance-access-checkbox"
-                    data-user-maintenance-access="${user.id}"
-                    ${maintenanceAuthorized ? 'checked' : ''}
-                    aria-label="Autoriser ${displayName.replace(/"/g, '&quot;')} pendant la maintenance"
-                  />
                 </td>
                 <td>
                   <button type="button" class="btn-delete" data-delete-user="${user.id}" ${isPrimaryAdmin ? 'disabled' : ''}>Supprimer</button>
@@ -412,29 +401,6 @@
               window.UiService?.showToast('Rôle mis à jour.');
             } catch (_error) {
               window.UiService?.showToast('Impossible de mettre à jour le rôle.');
-            }
-          });
-        });
-
-        tableBody.querySelectorAll('[data-user-maintenance-access]').forEach((checkbox) => {
-          checkbox.addEventListener('change', async () => {
-            const userId = checkbox.getAttribute('data-user-maintenance-access');
-            const checked = checkbox.checked;
-            try {
-              await setDoc(
-                doc(firebaseDb, 'users', userId),
-                {
-                  maintenanceAuthorized: checked,
-                  maintenanceAccess: checked,
-                  updatedAt: serverTimestamp(),
-                },
-                { merge: true },
-              );
-              await window.StorageService?.recordCurrentUserActivity?.();
-              window.UiService?.showToast('Accès maintenance mis à jour.');
-            } catch (_error) {
-              checkbox.checked = !checked;
-              window.UiService?.showToast('Impossible de mettre à jour l’accès maintenance.');
             }
           });
         });

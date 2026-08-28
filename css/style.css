@@ -2490,18 +2490,17 @@ body[data-page="users-management"] .table-wrapper--users {
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table {
-  min-width: 68rem;
+  min-width: 56rem;
   table-layout: fixed;
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(1) { width: 5rem; }
 body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(2) { width: 5rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(3) { width: 13rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(4) { width: 12rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(5) { width: 18rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(3) { width: 14rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(4) { width: 11rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(5) { width: 16rem; }
 body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(6) { width: 10rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(7) { width: 12rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(8) { width: 5rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(7) { width: 7rem; }
 
 body[data-page="users-management"] .table-wrapper--users .data-table th,
 body[data-page="users-management"] .table-wrapper--users .data-table td {
@@ -2578,16 +2577,34 @@ body[data-page="users-management"] .table-wrapper--users .data-table td:last-chi
   background-color: rgba(229, 72, 77, 0.12);
 }
 
-body[data-page="users-management"] .maintenance-access-cell {
-  text-align: center;
-  vertical-align: middle;
-}
+@media (max-width: 600px) {
+  body[data-page="users-management"] .table-wrapper--users {
+    overflow-x: hidden;
+  }
 
-body[data-page="users-management"] .maintenance-access-checkbox {
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: var(--primary);
-  cursor: pointer;
+  body[data-page="users-management"] .table-wrapper--users .data-table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(1),
+  body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(1),
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(2),
+  body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(2),
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(4),
+  body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(4),
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(5),
+  body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(5) {
+    display: none;
+  }
+
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(3) { width: auto; }
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(6) { width: 9rem; }
+  body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(7) { width: 6.5rem; }
+
+  body[data-page="users-management"] .table-wrapper--users .users-empty-cell {
+    display: table-cell;
+  }
 }
 
 
