@@ -8967,6 +8967,14 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     const imageEditButton = requireElement('purchaseDetailImageEditButton');
     const imageInput = requireElement('purchaseDetailImageInput');
     const qty = requireElement('purchaseDetailQty');
+    const qtyDisplay = requireElement('purchaseDetailQtyDisplay');
+    const qtyValue = requireElement('purchaseDetailQtyValue');
+    const qtyUnit = requireElement('purchaseDetailQtyUnit');
+    const qtyEdit = requireElement('purchaseDetailQtyEdit');
+    const qtyEditor = requireElement('purchaseDetailQtyEditor');
+    const qtyEditUnit = requireElement('purchaseDetailQtyEditUnit');
+    const qtyConfirm = requireElement('purchaseDetailQtyConfirm');
+    const qtyCancel = requireElement('purchaseDetailQtyCancel');
     const store = requireElement('purchaseDetailStore');
     const remarkRow = requireElement('purchaseDetailRemarkRow');
     const remark = requireElement('purchaseDetailRemark');
@@ -9017,7 +9025,11 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     }
 
     function normalizePurchaseQtyInput(value) {
-      const parsed = Number.parseInt(String(value || '').replace(',', '.').match(/\d+/)?.[0] || '', 10);
+      const normalized = String(value ?? '').trim();
+      if (!/^\d+$/.test(normalized)) {
+        return null;
+      }
+      const parsed = Number.parseInt(normalized, 10);
       if (!Number.isFinite(parsed) || parsed < 1) {
         return null;
       }
@@ -9085,11 +9097,13 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       if (fieldName === 'qty') {
         const qtyValue = normalizePurchaseQtyInput(input.value);
         if (!qtyValue) {
-          input.value = `${Number(previousPurchase.qty || 0)} ${String(previousPurchase.unit || 'Pcs')}`;
+          input.value = String(Number(previousPurchase.qty || 0));
+          UiService.showToast?.('Saisissez une quantité valide supérieure à zéro.');
           return;
         }
         if (qtyValue === Number(previousPurchase.qty || 0)) {
-          input.value = `${qtyValue} ${String(previousPurchase.unit || 'Pcs')}`;
+          input.value = String(qtyValue);
+          closeQuantityEditor();
           return;
         }
         updates = { qty: qtyValue };
@@ -9141,6 +9155,29 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       });
     }
 
+    function closeQuantityEditor() {
+      qtyEditor.hidden = true;
+      qtyDisplay.hidden = false;
+    }
+
+    function openQuantityEditor() {
+      if (!canEditPurchase || isSavingPurchase || !currentPurchase) return;
+      qty.value = String(Number(currentPurchase.qty || 0));
+      qtyDisplay.hidden = true;
+      qtyEditor.hidden = false;
+      requestAnimationFrame(() => {
+        qty.focus({ preventScroll: true });
+        qty.select();
+        setTimeout(() => qty.select(), 0);
+      });
+    }
+
+    function cancelQuantityEdit() {
+      if (currentPurchase) qty.value = String(Number(currentPurchase.qty || 0));
+      closeQuantityEditor();
+      qtyEdit.focus();
+    }
+
     backButton?.addEventListener('click', () => {
       UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
     });
@@ -9162,7 +9199,14 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       summaryMedia.innerHTML = imageUrl
         ? `<img src="${escapeHtml(imageUrl)}" alt="Photo achat matériel" />`
         : `<img src="${escapeHtml(DEFAULT_PURCHASE_IMAGE_SRC)}" alt="" aria-hidden="true" />`;
-      qty.value = `${Number(purchase?.qty || 0)} ${String(purchase?.unit || 'Pcs')}`;
+      const purchaseQty = Number(purchase?.qty || 0);
+      const purchaseUnit = String(purchase?.unit || 'Pcs');
+      qty.value = String(purchaseQty);
+      qtyValue.textContent = String(purchaseQty);
+      qtyUnit.textContent = purchaseUnit;
+      qtyEditUnit.textContent = purchaseUnit;
+      qtyEdit.hidden = !canEditPurchase;
+      closeQuantityEditor();
       store.value = purchaseStore;
       if (purchaseRemark) {
         remark.value = purchaseRemark;
@@ -9173,7 +9217,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       }
       user.textContent = String(purchase?.createdByName || purchase?.createdBy || 'Utilisateur');
       fullDate.textContent = dateLabel;
-      [summaryName, qty, store, remark].forEach(setEditableState);
+      [summaryName, store, remark].forEach(setEditableState);
       resizeInlineTextarea(remark);
 
       if (imageUrl) {
@@ -9191,9 +9235,21 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     }
 
     bindInlinePurchaseField(summaryName, 'designation');
-    bindInlinePurchaseField(qty, 'qty');
     bindInlinePurchaseField(store, 'magasin');
     bindInlinePurchaseField(remark, 'remarque');
+
+    qtyEdit?.addEventListener('click', openQuantityEditor);
+    qtyConfirm?.addEventListener('click', () => saveInlinePurchaseField('qty', qty));
+    qtyCancel?.addEventListener('click', cancelQuantityEdit);
+    qty?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        saveInlinePurchaseField('qty', qty);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelQuantityEdit();
+      }
+    });
 
     imageButton?.addEventListener('click', () => {
       const imageUrl = String(image?.src || '').trim();

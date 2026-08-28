@@ -47,7 +47,19 @@
           <article class="surface-card section purchase-detail-info-card" aria-label="Informations achat matériel">
             <div class="purchase-info-row" role="listitem">
               <div class="purchase-label"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span>Quantité :</span></div>
-              <div class="purchase-value purchase-value--inline"><input id="purchaseDetailQty" class="purchase-inline-field" type="text" value="-" readonly /></div>
+              <div class="purchase-value purchase-quantity">
+                <div id="purchaseDetailQtyDisplay" class="purchase-quantity__display">
+                  <span id="purchaseDetailQtyValue">-</span>
+                  <span id="purchaseDetailQtyUnit">Pcs</span>
+                  <button id="purchaseDetailQtyEdit" class="purchase-quantity__edit" type="button" hidden>Modifier</button>
+                </div>
+                <div id="purchaseDetailQtyEditor" class="purchase-quantity__editor" hidden>
+                  <input id="purchaseDetailQty" class="purchase-quantity__input" type="text" inputmode="decimal" autocomplete="off" aria-label="Quantité" />
+                  <span id="purchaseDetailQtyEditUnit" class="purchase-quantity__unit">Pcs</span>
+                  <button id="purchaseDetailQtyConfirm" class="purchase-quantity__action purchase-quantity__action--confirm" type="button" aria-label="Valider la quantité">✓</button>
+                  <button id="purchaseDetailQtyCancel" class="purchase-quantity__action purchase-quantity__action--cancel" type="button" aria-label="Annuler la modification de la quantité">✕</button>
+                </div>
+              </div>
             </div>
             <div class="purchase-info-row" role="listitem">
               <div class="purchase-label"><img src="Icon/Shop.png" alt="" aria-hidden="true" class="icon" /><span>Magasin :</span></div>
