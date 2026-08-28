@@ -995,11 +995,11 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(String(title || 'Achats PDD').slice(0, 31));
       worksheet.columns = [
-        { header: 'N°', key: 'number', width: 8 },
+        { header: 'N°', key: 'number', width: 20 },
         { header: 'Désignation', key: 'designation', width: 56 },
         { header: 'Quantité', key: 'quantity', width: 14 },
         { header: 'Magasin', key: 'store', width: 28 },
-        { header: 'Remarque', key: 'remark', width: 42 },
+        { header: 'Remarque', key: 'remark', width: 16 },
       ];
       purchases.forEach((purchase, index) => {
         worksheet.addRow({
@@ -1013,8 +1013,8 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       worksheet.spliceRows(1, 0, [], [], [], []);
       applyExcelProfessionalHeader(worksheet, siteName, 'ACHATS PDD');
       applyProfessionalExcelStyling(worksheet, 5, {
-        centeredColumns: [1, 3],
-        wrappedColumns: [2, 5],
+        centeredColumns: [3, 5],
+        wrappedColumns: [2],
         statusColumnNumber: null,
       });
       return workbook;
