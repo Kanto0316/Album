@@ -5291,81 +5291,75 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
   gap: 0.45rem;
 }
 
-.bottom-navigation {
+body[data-page="site-detail"] .bottom-navigation {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 50%;
+  bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
   z-index: 1000;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  height: calc(64px + env(safe-area-inset-bottom));
-  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.08);
+  width: min(26rem, calc(100% - 1.5rem));
+  min-height: 3.25rem;
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 0;
+  border-radius: 1.25rem;
+  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.1);
 }
 
-.bottom-navigation::before {
-  content: "|";
-  position: absolute;
-  left: 50%;
-  top: calc((64px + env(safe-area-inset-bottom)) / 2);
-  transform: translate(-50%, -50%);
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1;
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.bottom-nav-item {
+body[data-page="site-detail"] .bottom-nav-item {
+  position: relative;
   flex: 1;
-  height: 50px;
+  align-self: stretch;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  border: none;
+  min-width: 0;
+  padding: 0.45rem 0.75rem 0.6rem;
+  border: 0;
   background: transparent;
-  color: #64748b;
-  font-size: 12px;
+  color: var(--text-muted);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+body[data-page="site-detail"] .bottom-nav-item:focus-visible {
+  outline: 2px solid rgba(107, 114, 128, 0.35);
+  outline-offset: -2px;
+}
+
+body[data-page="site-detail"] .bottom-nav-item.active {
+  color: var(--detail-primary);
+}
+
+body[data-page="site-detail"] .bottom-nav-item.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0.3rem;
+  width: 1.5rem;
+  height: 2px;
+  transform: translateX(-50%);
+  background: currentColor;
+  border-radius: 999px;
+}
+
+body[data-page="site-detail"] .bottom-nav-label {
+  overflow: hidden;
+  font-size: 0.8rem;
   font-weight: 700;
-  border-radius: 18px;
-  transition: all 0.25s ease;
-}
-
-.bottom-nav-item.active {
-  color: #2f95e9;
-  background: rgba(47, 149, 233, 0.12);
-}
-
-.bottom-nav-icon {
-  font-size: 18px;
   line-height: 1;
-}
-
-.bottom-nav-icon img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  display: block;
-}
-
-.bottom-nav-label {
-  font-size: 12px;
-  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page2 .fab,
 .page2 #createOutFab,
 body.page2 .fab,
 body.page2 #createOutFab {
-  bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-fab-bottom-gap, 20px)) !important;
+  bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-fab-bottom-gap, 20px) + env(safe-area-inset-bottom)) !important;
   z-index: 1001 !important;
 }
 
@@ -5373,7 +5367,7 @@ body.page2 #createOutFab {
 .page2 .page-content,
 .page2 .outs-list,
 body.page2 main {
-  padding-bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-content-bottom-gap, 38px)) !important;
+  padding-bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-content-bottom-gap, 38px) + env(safe-area-inset-bottom)) !important;
 }
 
 body[data-page="site-detail"] .bottom-nav-item.hidden,
