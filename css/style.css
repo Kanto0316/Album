@@ -5293,19 +5293,21 @@ body[data-page="home"] #siteDialog #siteCreateSubmitButton.is-loading {
 
 body[data-page="site-detail"] .bottom-navigation {
   position: fixed;
-  left: 50%;
-  bottom: calc(0.5rem + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: none;
   z-index: 1000;
   display: flex;
   align-items: center;
-  width: min(26rem, calc(100% - 1.5rem));
+  width: 100%;
+  max-width: none;
   min-height: 3.25rem;
-  padding: 0.25rem;
+  padding: 0.25rem 0.25rem calc(0.25rem + env(safe-area-inset-bottom));
   background: var(--surface);
   border: 0;
-  border-radius: 1.25rem;
-  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.1);
+  border-radius: 0;
+  box-shadow: 0 -3px 14px rgba(15, 23, 42, 0.1);
 }
 
 body[data-page="site-detail"] .bottom-nav-item {
@@ -5359,7 +5361,7 @@ body[data-page="site-detail"] .bottom-nav-label {
 .page2 #createOutFab,
 body.page2 .fab,
 body.page2 #createOutFab {
-  bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-fab-bottom-gap, 20px) + env(safe-area-inset-bottom)) !important;
+  bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-fab-bottom-gap, 20px)) !important;
   z-index: 1001 !important;
 }
 
@@ -5367,7 +5369,7 @@ body.page2 #createOutFab {
 .page2 .page-content,
 .page2 .outs-list,
 body.page2 main {
-  padding-bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-content-bottom-gap, 38px) + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(var(--page2-visible-bottom-nav-height, 0px) + var(--page2-content-bottom-gap, 38px)) !important;
 }
 
 body[data-page="site-detail"] .bottom-nav-item.hidden,
