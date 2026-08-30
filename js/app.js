@@ -3821,6 +3821,10 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     const cancelEditOutNameBtn = document.getElementById('cancelEditOutNameBtn');
     const saveEditOutNameBtn = document.getElementById('saveEditOutNameBtn');
     const itemSearchInput = requireElement('itemSearchInput');
+    const page2Header = document.querySelector('.page2-header');
+    const page2SearchToggleButton = requireElement('page2SearchToggleButton');
+    const page2SearchCloseButton = requireElement('page2SearchCloseButton');
+    const page2SearchFilterBar = requireElement('page2SearchFilterBar');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
@@ -6422,6 +6426,34 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     itemSearchInput.addEventListener('blur', () => {
       siteDetailHistoryLogger.recordSearchOnBlur(itemSearchInput.value);
     });
+
+    const setPage2SearchOpen = (isOpen) => {
+      page2Header?.classList.toggle('is-search-open', isOpen);
+      page2SearchToggleButton.hidden = isOpen;
+      page2SearchToggleButton.setAttribute('aria-expanded', String(isOpen));
+      page2SearchCloseButton.hidden = !isOpen;
+      page2SearchFilterBar.setAttribute('aria-hidden', String(!isOpen));
+
+      if (isOpen) {
+        window.requestAnimationFrame(() => itemSearchInput.focus({ preventScroll: true }));
+        return;
+      }
+
+      closeItemStatusFilterMenu();
+      itemSearchInput.value = '';
+      itemSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      itemSearchInput.blur();
+    };
+
+    // A collapsed search must never leave an invisible query filtering the list.
+    if (itemSearchInput.value) {
+      itemSearchInput.value = '';
+      window.localStorage.removeItem(searchStorageKey);
+      window.localStorage.removeItem('page2_search_value');
+      activeOutSearchQuery = '';
+    }
+    page2SearchToggleButton.addEventListener('click', () => setPage2SearchOpen(true));
+    page2SearchCloseButton.addEventListener('click', () => setPage2SearchOpen(false));
 
     if (itemStatusFilterButton && itemStatusFilterMenu && itemStatusFilterOptions.length) {
       syncItemStatusFilterUi();
