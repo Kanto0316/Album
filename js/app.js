@@ -3887,6 +3887,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
 
     const setSearchOpen = (shouldOpen) => {
       isSearchOpen = shouldOpen;
+      page2SearchFilterBar.closest('.page2-header')?.classList.toggle('is-search-open', isSearchOpen);
       page2SearchFilterBar.hidden = !isSearchOpen;
       page2SearchOpenButton.hidden = isSearchOpen;
       page2SearchOpenButton.setAttribute('aria-expanded', String(isSearchOpen));
