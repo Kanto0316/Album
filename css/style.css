@@ -6748,8 +6748,8 @@ body[data-page="site-detail"] .page2-header .app-header__side {
   justify-content: center;
 }
 body[data-page="site-detail"] .btn-export-header {
-  width: 44px;
-  height: 44px;
+  width: 2.65rem;
+  height: 2.65rem;
   border: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.18);
@@ -8571,9 +8571,15 @@ body[data-page="site-detail"] .page2-header {
   height: auto;
   grid-template-columns: 6.25rem minmax(0, 1fr) 6.25rem;
   grid-template-rows: auto auto;
-  row-gap: 0.75rem;
-  align-items: start;
+  row-gap: 0;
+  align-items: center;
   padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+  transition: row-gap 220ms ease, padding-bottom 220ms ease;
+}
+
+body[data-page="site-detail"] .page2-header.is-search-open {
+  row-gap: 0.75rem;
   padding-bottom: 0.625rem;
 }
 
@@ -8594,12 +8600,12 @@ body[data-page="site-detail"] .page2-header .app-header__side--right {
 
 body[data-page="site-detail"] .page2-search-open-button,
 body[data-page="site-detail"] .page2-search-close-button {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 2.65rem;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  background: transparent;
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -8612,12 +8618,6 @@ body[data-page="site-detail"] .page2-search-open-button img {
   height: 20px;
   object-fit: contain;
   filter: brightness(0) invert(1);
-}
-
-body[data-page="site-detail"] .page2-search-close-button {
-  font-size: 2rem;
-  font-weight: 300;
-  line-height: 1;
 }
 
 body[data-page="site-detail"] :is(.page2-search-open-button, .page2-search-close-button):focus-visible {
@@ -8668,8 +8668,12 @@ body[data-page="site-detail"] .page2-header .page2-filter-menu {
 @media (max-width: 420px) {
   body[data-page="site-detail"] .page2-header {
     grid-template-columns: 6rem minmax(0, 1fr) 6rem;
-    row-gap: 0.65rem;
+    row-gap: 0;
     padding-inline: 0.65rem;
+  }
+
+  body[data-page="site-detail"] .page2-header.is-search-open {
+    row-gap: 0.65rem;
   }
 
   body[data-page="site-detail"] .page2-header > .page2-search-filter-bar {
@@ -8748,6 +8752,34 @@ body[data-page="home"] .page1-header #searchInput:focus {
   display: none;
 }
 
+/* Page 1 and Page 2 intentionally share the exact same search-close glyph. */
+body[data-page="home"] .page1-header.is-search-open .header-menu__trigger,
+body[data-page="site-detail"] .page2-search-close-button {
+  position: relative;
+}
+
+body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::before,
+body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::after,
+body[data-page="site-detail"] .page2-search-close-button::before,
+body[data-page="site-detail"] .page2-search-close-button::after {
+  content: '';
+  position: absolute;
+  width: 1.35rem;
+  height: 2px;
+  border-radius: 2px;
+  background: #fff;
+}
+
+body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::before,
+body[data-page="site-detail"] .page2-search-close-button::before {
+  transform: rotate(45deg);
+}
+
+body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::after,
+body[data-page="site-detail"] .page2-search-close-button::after {
+  transform: rotate(-45deg);
+}
+
 @media (max-width: 767px) {
   body[data-page="home"] .page1-header {
     position: relative;
@@ -8813,24 +8845,6 @@ body[data-page="home"] .page1-header #searchInput:focus {
 
   body[data-page="home"] .page1-header.is-search-open .header-menu__icon {
     visibility: hidden;
-  }
-
-  body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::before,
-  body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::after {
-    content: '';
-    position: absolute;
-    width: 1.35rem;
-    height: 2px;
-    border-radius: 2px;
-    background: #fff;
-  }
-
-  body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::before {
-    transform: rotate(45deg);
-  }
-
-  body[data-page="home"] .page1-header.is-search-open .header-menu__trigger::after {
-    transform: rotate(-45deg);
   }
 
   body[data-page="home"] .page1-header > .page1-search-filter-bar {
