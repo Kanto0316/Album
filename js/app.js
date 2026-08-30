@@ -1395,6 +1395,11 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     const siteEditNameError = requireElement('siteEditNameError');
     const siteEditNameSubmitButton = requireElement('siteEditNameSubmitButton');
     const homeMenuButton = requireElement('homeMenuButton');
+    const homeSearchToggle = requireElement('homeSearchToggle');
+    const homeSearchBar = requireElement('homeSearchBar');
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      homeSearchBar?.setAttribute('aria-hidden', 'true');
+    }
     const homeMenuPanel = requireElement('homeMenuPanel');
     const homeMenuOverlay = requireElement('homeMenuOverlay');
     const importDataButton = requireElement('sidebarImportBtn');
@@ -2103,6 +2108,23 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       window.setTimeout(() => {
         sidebarAnimating = false;
       }, HOME_MENU_ANIMATION_LOCK_MS);
+    }
+
+    function setHomeSearchOpen(isOpen) {
+      const shouldOpen = Boolean(isOpen);
+      document.querySelector('.page1-header')?.classList.toggle('is-search-open', shouldOpen);
+      homeSearchBar?.setAttribute('aria-hidden', String(!shouldOpen));
+      homeSearchToggle?.setAttribute('aria-expanded', String(shouldOpen));
+      homeMenuButton?.setAttribute('aria-label', shouldOpen ? 'Fermer la recherche' : "Plus d'options");
+
+      if (shouldOpen) {
+        window.requestAnimationFrame(() => searchInput.focus({ preventScroll: true }));
+        return;
+      }
+
+      searchInput.value = '';
+      searchInput.blur();
+      renderSites();
     }
 
 
@@ -2963,6 +2985,10 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       homeMenuButton.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (document.querySelector('.page1-header')?.classList.contains('is-search-open')) {
+          setHomeSearchOpen(false);
+          return;
+        }
         openSidebar();
       });
 
@@ -3027,6 +3053,8 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
         }
       });
     }
+
+    homeSearchToggle?.addEventListener('click', () => setHomeSearchOpen(true));
 
     function setActiveSidebarItem(targetItem) {
       sidebarItems.forEach((item) => item.classList.remove('active'));
