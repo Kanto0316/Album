@@ -9015,8 +9015,15 @@ body[data-page="site-detail"] .page2-search-close {
   justify-content: center;
 }
 
+body[data-page="site-detail"] .page2-search-close {
+  width: 2.65rem;
+  height: 2.65rem;
+}
+
 body[data-page="site-detail"] .page2-search-toggle[hidden],
-body[data-page="site-detail"] .page2-search-close[hidden] {
+body[data-page="site-detail"] .page2-search-close[hidden],
+body[data-page="site-detail"] .page2-header .back-button[hidden],
+body[data-page="site-detail"] .page2-header .page2-search-filter-bar[hidden] {
   display: none;
 }
 
