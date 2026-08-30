@@ -8714,12 +8714,23 @@ body[data-page="home"] .page1-header #searchInput:focus {
   }
 
   body[data-page="home"] .page1-header .app-header__center {
+    position: static;
+  }
+
+  body[data-page="home"] .page1-header .header-title {
     position: absolute;
     top: 0.9rem;
     left: 50%;
-    width: min(52vw, 20rem);
+    width: min(52vw, calc(100% - 12rem), 20rem);
     min-height: 2.75rem;
     transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  body[data-page="home"] .page1-header .header-title h1 {
+    white-space: nowrap;
   }
 
   body[data-page="home"] .page1-header .app-header__side--right {
