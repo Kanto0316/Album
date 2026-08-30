@@ -3822,6 +3822,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     const saveEditOutNameBtn = document.getElementById('saveEditOutNameBtn');
     const itemSearchInput = requireElement('itemSearchInput');
     const page2Header = document.querySelector('.page2-header');
+    const page2BackButton = requireElement('page2BackButton');
     const page2SearchToggleButton = requireElement('page2SearchToggleButton');
     const page2SearchCloseButton = requireElement('page2SearchCloseButton');
     const page2SearchFilterBar = requireElement('page2SearchFilterBar');
@@ -6429,9 +6430,11 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
 
     const setPage2SearchOpen = (isOpen) => {
       page2Header?.classList.toggle('is-search-open', isOpen);
+      page2BackButton.hidden = isOpen;
       page2SearchToggleButton.hidden = isOpen;
       page2SearchToggleButton.setAttribute('aria-expanded', String(isOpen));
       page2SearchCloseButton.hidden = !isOpen;
+      page2SearchFilterBar.hidden = !isOpen;
       page2SearchFilterBar.setAttribute('aria-hidden', String(!isOpen));
 
       if (isOpen) {
