@@ -8569,11 +8569,64 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverl
 body[data-page="site-detail"] .page2-header {
   min-height: auto;
   height: auto;
+  grid-template-columns: 6.25rem minmax(0, 1fr) 6.25rem;
   grid-template-rows: auto auto;
   row-gap: 0.75rem;
   align-items: start;
   padding-top: 0.9rem;
   padding-bottom: 0.625rem;
+}
+
+body[data-page="site-detail"] .page2-header .app-header__side {
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+body[data-page="site-detail"] .page2-header .app-header__side--left {
+  justify-content: flex-start;
+}
+
+body[data-page="site-detail"] .page2-header .app-header__side--right {
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+body[data-page="site-detail"] .page2-search-open-button,
+body[data-page="site-detail"] .page2-search-close-button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+body[data-page="site-detail"] .page2-search-open-button img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+body[data-page="site-detail"] .page2-search-close-button {
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+body[data-page="site-detail"] :is(.page2-search-open-button, .page2-search-close-button):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--detail-primary-focus);
+}
+
+body[data-page="site-detail"] .page2-header [hidden] {
+  display: none;
 }
 
 body[data-page="site-detail"] .page2-header > .page2-search-filter-bar {
@@ -8614,13 +8667,9 @@ body[data-page="site-detail"] .page2-header .page2-filter-menu {
 
 @media (max-width: 420px) {
   body[data-page="site-detail"] .page2-header {
-    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    grid-template-columns: 6rem minmax(0, 1fr) 6rem;
     row-gap: 0.65rem;
     padding-inline: 0.65rem;
-  }
-
-  body[data-page="site-detail"] .page2-header .app-header__side {
-    width: 48px;
   }
 
   body[data-page="site-detail"] .page2-header > .page2-search-filter-bar {

@@ -12,17 +12,21 @@
       <header class="app-header app-header--detail page2-header">
         <div class="app-header__side app-header__side--left">
           <button class="back-button back-btn" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+          <button class="page2-search-close-button" type="button" id="page2SearchCloseButton" aria-label="Fermer la recherche" hidden>&times;</button>
         </div>
         <div class="app-header__center page2-header-center">
           <h1 id="siteTitle" class="page2-title">Chargement...</h1>
           <div id="itemCount" class="site-detail-subtitle outs-count page2-header-subtitle"><span class="outs-number">0</span><span class="outs-label">OUTS</span></div>
         </div>
         <div class="app-header__side app-header__side--right">
+          <button class="page2-search-open-button" type="button" id="page2SearchOpenButton" aria-label="Ouvrir la recherche" aria-controls="page2SearchFilterBar" aria-expanded="false">
+            <img src="Icon/Recherche.png" alt="" aria-hidden="true" />
+          </button>
           <button class="btn-export-header" type="button" id="headerExportBtn" aria-label="Exporter">
             <img src="Icon/Exel.png" alt="" aria-hidden="true" />
           </button>
         </div>
-        <div class="page2-search-filter-bar">
+        <div class="page2-search-filter-bar" id="page2SearchFilterBar" hidden>
           <label class="input-group">
               <span class="sr-only">Rechercher (OUT ou article)</span>
               <span class="site-search-icon-wrap" aria-hidden="true"><img src="Icon/Recherche.png" alt="" class="site-search-icon" /></span>

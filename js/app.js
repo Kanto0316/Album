@@ -3821,6 +3821,10 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     const cancelEditOutNameBtn = document.getElementById('cancelEditOutNameBtn');
     const saveEditOutNameBtn = document.getElementById('saveEditOutNameBtn');
     const itemSearchInput = requireElement('itemSearchInput');
+    const page2SearchFilterBar = requireElement('page2SearchFilterBar');
+    const page2SearchOpenButton = requireElement('page2SearchOpenButton');
+    const page2SearchCloseButton = requireElement('page2SearchCloseButton');
+    const page2BackButton = document.querySelector('.page2-header [data-back]');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
     const itemNumberLabel = itemDialog?.querySelector('.input-group--item-create > span');
@@ -3879,6 +3883,24 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     };
     const storedCursorFilterLabel = window.localStorage.getItem(cursorFilterActiveStorageKey) || 'Tous';
     let activeStatusFilter = statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
+    let isSearchOpen = false;
+
+    const setSearchOpen = (shouldOpen) => {
+      isSearchOpen = shouldOpen;
+      page2SearchFilterBar.hidden = !isSearchOpen;
+      page2SearchOpenButton.hidden = isSearchOpen;
+      page2SearchOpenButton.setAttribute('aria-expanded', String(isSearchOpen));
+      page2SearchCloseButton.hidden = !isSearchOpen;
+      if (page2BackButton) page2BackButton.hidden = isSearchOpen;
+      if (isSearchOpen) {
+        window.requestAnimationFrame(() => itemSearchInput.focus({ preventScroll: true }));
+      } else {
+        closeItemStatusFilterMenu();
+      }
+    };
+
+    page2SearchOpenButton.addEventListener('click', () => setSearchOpen(true));
+    page2SearchCloseButton.addEventListener('click', () => setSearchOpen(false));
     const readCursorFilterOuts = new Set();
     itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
     try {
