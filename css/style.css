@@ -6781,11 +6781,17 @@ body[data-page="site-detail"] .page2-header-center {
 }
 
 body[data-page="site-detail"] .page2-title {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
+  overflow: hidden;
   font-size: 18px;
   font-weight: 700;
   color: #ffffff;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body[data-page="site-detail"] .page2-header-subtitle {
