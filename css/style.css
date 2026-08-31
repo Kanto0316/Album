@@ -534,6 +534,12 @@ body[data-page="home"] .header-menu__panel.is-closing {
   position: relative;
 }
 
+/* Keep protected content invisible until Firebase has restored the session. */
+body.auth-checking .app-shell,
+body.auth-checking > dialog {
+  visibility: hidden;
+}
+
 .page-content > :not(.page-inline-loader) {
   transition: opacity 0.2s ease;
 }
