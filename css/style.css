@@ -8816,7 +8816,7 @@ body[data-page="site-detail"] .page2-search-close-button::after {
   body[data-page="home"] .page1-header .app-header__side--right {
     grid-column: 3;
     grid-row: 1;
-    gap: 0.2rem;
+    gap: 0.65rem;
   }
 
   .home-search-toggle {
