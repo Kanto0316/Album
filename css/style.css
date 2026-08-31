@@ -8820,21 +8820,10 @@ body[data-page="site-detail"] .page2-search-close-button::after {
   }
 
   .home-search-toggle {
-    width: 2.65rem;
-    height: 2.65rem;
-    padding: 0.72rem;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .home-search-toggle__icon {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
     filter: brightness(0) invert(1);
   }
 
