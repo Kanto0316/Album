@@ -8607,8 +8607,7 @@ body[data-page="site-detail"] .page2-header .app-header__side--right {
   gap: 0.375rem;
 }
 
-body[data-page="site-detail"] .page2-search-open-button,
-body[data-page="site-detail"] .page2-search-close-button {
+body[data-page="site-detail"] .page2-search-open-button {
   width: 2.65rem;
   height: 2.65rem;
   flex: 0 0 2.65rem;
