@@ -2486,6 +2486,33 @@ async function createDetail(siteId, itemId, payload) {
     dateCreation: timestamp,
     dateModification: timestamp,
   };
+
+  if (!navigator.onLine) {
+    try {
+      const action = window.OfflineActionBuilder.createDetailAction({
+        siteId,
+        itemId,
+        payload: detailPayload,
+        userId: state.userId,
+      });
+      await window.OfflineSync.addPendingAction(action);
+
+      const detail = { id: action.localId, ...detailPayload };
+      if (!state.detailsByItem.has(detailsKey)) {
+        state.detailsByItem.set(detailsKey, []);
+      }
+      state.detailsByItem.get(detailsKey).push(detail);
+      const item = getItem(siteId, itemId);
+      applyItemArticleCount(siteId, itemId, normalizeArticleCount(item?.articleCount) + 1);
+      persistOfflineState();
+      emitAll();
+      return { ok: true, id: action.localId, synced: false, pending: true };
+    } catch (error) {
+      console.error('[Storage] Impossible de créer le détail hors connexion :', error);
+      return { ok: false, error: error?.message || String(error) };
+    }
+  }
+
   const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
   await incrementItemArticleCount(siteId, itemId, 1);
   const detail = { id: created.id, ...detailPayload };
@@ -2500,7 +2527,7 @@ async function createDetail(siteId, itemId, payload) {
   await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`, { siteId });
   persistOfflineState();
   emitAll();
-  return { ok: true, id: detail.id };
+  return { ok: true, id: detail.id, synced: true };
 }
 
 async function updateDetail(siteId, itemId, detailId, changes) {
