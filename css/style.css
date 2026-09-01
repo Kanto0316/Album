@@ -8757,6 +8757,10 @@ body[data-page="home"] .page1-header #searchInput:focus {
   display: none;
 }
 
+.home-search-toggle[hidden] {
+  display: none;
+}
+
 /* Page 1 and Page 2 intentionally share the exact same search-close glyph. */
 body[data-page="home"] .page1-header.is-search-open .header-menu__trigger,
 body[data-page="site-detail"] .page2-search-close-button {

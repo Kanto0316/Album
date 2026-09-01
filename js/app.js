@@ -639,8 +639,13 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
   function renderHomeAccessControls({ authUser, onAvatarClick }) {
     const avatarButton = document.getElementById('userAvatarButton');
     const loginButton = document.getElementById('openLoginButton');
+    const searchButton = document.getElementById('homeSearchToggle');
     const userData = normalizeAuthUserData(authUser);
     const isAuthenticated = Boolean(userData);
+
+    if (searchButton) {
+      searchButton.hidden = !isAuthenticated;
+    }
 
     setHomeAccessControlVisibility({ showAvatar: false, showLoginButton: false });
 
@@ -3264,6 +3269,9 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     }
     onAuthStateChanged(firebaseAuth, (user) => {
       isAuthenticated = Boolean(user);
+      if (!isAuthenticated) {
+        setHomeSearchOpen(false);
+      }
       renderUserAvatar(user || null);
       mettreAJourHeaderUtilisateur(user || null);
       mettreAJourPermissionsUI(currentPermissions);
