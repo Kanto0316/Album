@@ -2,6 +2,8 @@ import {
   collection,
   deleteDoc,
   doc,
+  increment,
+  runTransaction,
   setDoc,
   updateDoc,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
@@ -44,6 +46,61 @@ function getCollectionReference(collectionName) {
   return collection(firebaseDatabase, normalizedName);
 }
 
+async function processCreateDetail(action, detailCollectionReference) {
+  const localId = typeof action.localId === 'string' ? action.localId.trim() : '';
+  const itemId = typeof action.itemId === 'string' ? action.itemId.trim() : '';
+  const idempotencyKey = typeof action.idempotencyKey === 'string'
+    ? action.idempotencyKey.trim()
+    : '';
+
+  if (!localId) {
+    throw new TypeError('localId est requis pour la création du détail.');
+  }
+  if (!itemId) {
+    throw new TypeError('itemId est requis pour la création du détail.');
+  }
+  if (!idempotencyKey) {
+    throw new TypeError('idempotencyKey est requise pour la création du détail.');
+  }
+  if (!action.payload || typeof action.payload !== 'object' || Array.isArray(action.payload)) {
+    throw new TypeError('Un payload valide est requis pour la création du détail.');
+  }
+  if (!Number.isFinite(action.articleCountDelta)) {
+    throw new TypeError('articleCountDelta doit être un nombre valide.');
+  }
+
+  const detailReference = doc(detailCollectionReference, localId);
+  const parentReference = doc(getCollectionReference(action.parentCollection), itemId);
+  const markerReference = doc(
+    collection(firebaseDatabase, 'offlineCreateDetailOperations'),
+    idempotencyKey,
+  );
+
+  await runTransaction(firebaseDatabase, async (transaction) => {
+    const markerSnapshot = await transaction.get(markerReference);
+
+    // Firestore peut rejouer la fonction de transaction. La marque, écrite
+    // dans la même transaction que les données, protège aussi les reprises de
+    // la file offline après une réponse réseau perdue.
+    if (markerSnapshot.exists()) {
+      return;
+    }
+
+    transaction.set(detailReference, action.payload);
+    transaction.update(parentReference, {
+      articleCount: increment(action.articleCountDelta),
+    });
+    transaction.set(markerReference, {
+      operation: 'createDetail',
+      localId,
+      itemId,
+      articleCountDelta: action.articleCountDelta,
+    });
+  });
+
+  return localId;
+}
+
 async function processAction(action) {
   const actionId = action?.id;
   let firestoreId;
@@ -56,6 +113,10 @@ async function processAction(action) {
     const collectionReference = getCollectionReference(action.collection);
 
     switch (action.action) {
+      case 'createDetail':
+        firestoreId = await processCreateDetail(action, collectionReference);
+        break;
+
       case 'add':
         if (!action.localId || typeof action.localId !== 'string' || !action.localId.trim()) {
           throw new TypeError('localId est requis pour la création.');
