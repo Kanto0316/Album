@@ -8,6 +8,40 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
 (function () {
   const { StorageService, UiService } = window;
 
+  // État public minimal permettant à l'interface de suivre le bootstrap et le réseau.
+  window.AppOfflineStatus = {
+    status: 'idle',
+    initialized: false,
+  };
+
+  window.addEventListener('syncStatusChanged', (event) => {
+    window.AppOfflineStatus.status = event?.detail?.status || 'idle';
+  });
+
+  window.addEventListener('offlineStatusChanged', (event) => {
+    window.AppOfflineStatus.status = event?.detail?.online === false ? 'offline' : 'idle';
+  });
+
+  async function initOfflineBootstrap() {
+    console.info('[OfflineBootstrap] Initialisation offline démarrée');
+
+    try {
+      if (!window.SyncManager || typeof window.SyncManager.init !== 'function') {
+        throw new Error('SyncManager est indisponible. Vérifiez l’ordre de chargement des scripts.');
+      }
+
+      // firebaseDb provient de firebase-core.js : Firestore est donc prêt à cet instant.
+      await window.SyncManager.init({ firebaseDb });
+      window.AppOfflineStatus.initialized = true;
+      window.AppOfflineStatus.status = window.SyncManager.getStatus();
+      console.info('[OfflineBootstrap] SyncManager initialisé');
+    } catch (error) {
+      window.AppOfflineStatus.initialized = false;
+      window.AppOfflineStatus.status = 'error';
+      console.error('[OfflineBootstrap] Échec de l’initialisation offline :', error);
+    }
+  }
+
   function requireElement(id) {
     return document.getElementById(id);
   }
@@ -9429,6 +9463,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
   }
 
   async function bootstrap() {
+    await initOfflineBootstrap();
     UiService.bindDialogCloser();
     setupBackButtons();
 
