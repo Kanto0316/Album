@@ -1,8 +1,8 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
+  setDoc,
   updateDoc,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
@@ -57,13 +57,16 @@ async function processAction(action) {
 
     switch (action.action) {
       case 'add':
+        if (!action.localId || typeof action.localId !== 'string' || !action.localId.trim()) {
+          throw new TypeError('localId est requis pour la création.');
+        }
         if (!action.payload || typeof action.payload !== 'object' || Array.isArray(action.payload)) {
           throw new TypeError('Un payload valide est requis pour la création.');
         }
-        // L'identifiant généré est transmis à la couche métier afin qu'elle
-        // puisse enregistrer les relations entre données locales et Firestore.
-        const documentReference = await addDoc(collectionReference, action.payload);
-        firestoreId = documentReference.id;
+        // L'identifiant local stable rend la création rejouable sans générer
+        // un second document si la synchronisation est interrompue ensuite.
+        firestoreId = action.localId.trim();
+        await setDoc(doc(collectionReference, firestoreId), action.payload);
         break;
 
       case 'update':

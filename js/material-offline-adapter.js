@@ -106,6 +106,7 @@ import {
       id: action.id,
       action: 'add',
       collection: COLLECTIONS[entityType],
+      localId,
       payload,
     });
 
