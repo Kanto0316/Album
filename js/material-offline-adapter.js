@@ -133,11 +133,40 @@ import {
   }
 
   async function createDetail(action) {
-    return createEntity(action, 'detail', 'Article', async (payload) => ({
-      ...payload,
-      siteId: await resolveFirestoreId(payload.siteId, 'siteId'),
-      itemId: await resolveFirestoreId(payload.itemId, 'itemId'),
-    }));
+    const localId = requireId(action.localId, 'localId');
+    const payload = {
+      ...requireObject(action.payload, 'payload'),
+    };
+    payload.siteId = await resolveFirestoreId(payload.siteId, 'siteId');
+    payload.itemId = await resolveFirestoreId(payload.itemId, 'itemId');
+
+    const articleCountDelta = Number(action.articleCountDelta);
+    if (!Number.isFinite(articleCountDelta)) {
+      throw new TypeError('articleCountDelta doit être un nombre valide.');
+    }
+
+    const result = await window.OfflineAdapter.processAction({
+      id: action.id,
+      action: 'createDetail',
+      collection: COLLECTIONS.detail,
+      parentCollection: COLLECTIONS.item,
+      localId,
+      itemId: payload.itemId,
+      articleCountDelta,
+      // Le localId ne change pas entre deux tentatives, contrairement à un
+      // éventuel identifiant de passage dans la file de synchronisation.
+      idempotencyKey: `createDetail:${localId}`,
+      payload,
+    });
+
+    if (!result?.ok) {
+      throw new Error(result?.error || 'La création de l’article a échoué.');
+    }
+
+    const firestoreId = requireId(result.firestoreId, 'firestoreId');
+    await window.OfflineIdMapper.saveMapping({ localId, firestoreId, entityType: 'detail' });
+    console.info('[MaterialOfflineAdapter] Article synchronisé', firestoreId);
+    return { ok: true, localId, firestoreId };
   }
 
   function getDetailLocalId(action) {
