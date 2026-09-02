@@ -1186,8 +1186,17 @@ async function bootstrapMaterialCodesFromDetails() {
   return entries;
 }
 
-async function loadRemoteSnapshot() {
+async function loadRemoteSnapshot(options = {}) {
+  const pageContext = String(options?.page || '').trim();
   const page1 = await readPageItems('page1');
+
+  if (pageContext === 'site-detail') {
+    // Page 2 does not need materialCodes during bootstrap. Keep the snapshot
+    // limited to shared data and let getMaterialCodes() load the catalogue on
+    // demand for Page 3 or other features that explicitly require it.
+    return { page1, page3: [] };
+  }
+
   return { page1, page3: [] };
 }
 
@@ -1301,7 +1310,7 @@ function emitAll() {
   });
 }
 
-async function init() {
+async function init(options = {}) {
   if (state.initialized) {
     return;
   }
@@ -1318,7 +1327,7 @@ async function init() {
 
   if (!offlineState?.isFresh) {
     try {
-      const remote = await loadRemoteSnapshot();
+      const remote = await loadRemoteSnapshot(options);
       applySnapshot(remote);
       persistOfflineState();
     } catch (_error) {
@@ -1329,7 +1338,7 @@ async function init() {
   } else if (!offlineState.snapshot) {
     // Defensive fallback, should never happen.
     try {
-      const remote = await loadRemoteSnapshot();
+      const remote = await loadRemoteSnapshot(options);
       applySnapshot(remote);
       persistOfflineState();
     } catch (_error) {

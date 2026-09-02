@@ -9468,7 +9468,8 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     setupBackButtons();
 
     const authUser = await waitForAuthState();
-    await StorageService.init();
+    const page = document.body.dataset.page;
+    await StorageService.init({ page });
 
     const isAuthenticated = Boolean(authUser);
     let profile = await StorageService.getCurrentUserProfile();
@@ -9485,8 +9486,6 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     window.dispatchEvent(new CustomEvent('app:permissions-ready', { detail: { permissions } }));
 
     initMaintenanceGate(permissions, profile);
-
-    const page = document.body.dataset.page;
     if (page === 'home') {
       initHomePage(permissions, { isAuthenticated, authUser });
     }
