@@ -1,5 +1,4 @@
 import {
-  addDoc,
   arrayUnion,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
@@ -75,12 +74,25 @@ import {
     }
   }
 
-  async function resolveFirestoreId(localId, fieldName) {
-    const normalizedLocalId = requireId(localId, fieldName);
-    const firestoreId = await window.OfflineIdMapper.getFirestoreId(normalizedLocalId);
+  function isLocalId(id) {
+    // Les deux formes couvrent les identifiants générés par l'application et
+    // ceux créés par les versions offline antérieures.
+    return /^(?:local_|(?:site|item|detail)_local_)/.test(id);
+  }
+
+  async function resolveFirestoreId(id, fieldName) {
+    const normalizedId = requireId(id, fieldName);
+
+    // Un identifiant qui ne porte pas le marqueur local est déjà exploitable
+    // par Firestore et ne nécessite aucun mapping IndexedDB.
+    if (!isLocalId(normalizedId)) {
+      return normalizedId;
+    }
+
+    const firestoreId = await window.OfflineIdMapper.getFirestoreId(normalizedId);
 
     if (!firestoreId) {
-      throw new Error(`Aucun identifiant Firestore trouvé pour ${fieldName} "${normalizedLocalId}".`);
+      throw new Error(`Aucun identifiant Firestore trouvé pour ${fieldName} "${normalizedId}".`);
     }
 
     return firestoreId;
@@ -90,12 +102,18 @@ import {
     const localId = requireId(action.localId, 'localId');
     const sourcePayload = requireObject(action.payload, 'payload');
     const payload = transformPayload ? await transformPayload({ ...sourcePayload }) : { ...sourcePayload };
-    const collectionReference = window.OfflineAdapter.getCollectionReference(COLLECTIONS[entityType]);
+    const result = await window.OfflineAdapter.processAction({
+      id: action.id,
+      action: 'add',
+      collection: COLLECTIONS[entityType],
+      payload,
+    });
 
-    // addDoc est utilisé ici car OfflineAdapter.processAction ne restitue pas encore
-    // l'identifiant généré, indispensable à la résolution des relations métier.
-    const documentReference = await addDoc(collectionReference, payload);
-    const firestoreId = requireId(documentReference?.id, 'firestoreId');
+    if (!result?.ok) {
+      throw new Error(result?.error || `La création ${successLabel.toLowerCase()} a échoué.`);
+    }
+
+    const firestoreId = requireId(result.firestoreId, 'firestoreId');
 
     await window.OfflineIdMapper.saveMapping({ localId, firestoreId, entityType });
     console.info(`[MaterialOfflineAdapter] ${successLabel} synchronisé`, firestoreId);

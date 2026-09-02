@@ -46,6 +46,7 @@ function getCollectionReference(collectionName) {
 
 async function processAction(action) {
   const actionId = action?.id;
+  let firestoreId;
 
   try {
     if (!action || typeof action !== 'object' || Array.isArray(action)) {
@@ -59,7 +60,10 @@ async function processAction(action) {
         if (!action.payload || typeof action.payload !== 'object' || Array.isArray(action.payload)) {
           throw new TypeError('Un payload valide est requis pour la création.');
         }
-        await addDoc(collectionReference, action.payload);
+        // L'identifiant généré est transmis à la couche métier afin qu'elle
+        // puisse enregistrer les relations entre données locales et Firestore.
+        const documentReference = await addDoc(collectionReference, action.payload);
+        firestoreId = documentReference.id;
         break;
 
       case 'update':
@@ -87,7 +91,7 @@ async function processAction(action) {
 
     // Intégration future : appeler ici OfflineSync.removePendingAction(actionId)
     // uniquement après la confirmation de Firestore.
-    return { ok: true, actionId };
+    return { ok: true, actionId, ...(firestoreId ? { firestoreId } : {}) };
   } catch (error) {
     const message = errorMessage(error);
     console.error('[OfflineAdapter] Erreur Firebase', actionId, error);
