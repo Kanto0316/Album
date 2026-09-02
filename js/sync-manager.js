@@ -18,8 +18,10 @@
   }
 
   function requireDependencies() {
-    if (!window.OfflineSync || !window.OfflineAdapter) {
-      throw new Error('OfflineSync et OfflineAdapter doivent être chargés avant SyncManager.');
+    if (!window.OfflineSync || !window.OfflineAdapter || !window.MaterialOfflineAdapter) {
+      throw new Error(
+        'OfflineSync, OfflineAdapter et MaterialOfflineAdapter doivent être chargés avant SyncManager.',
+      );
     }
   }
 
@@ -28,6 +30,7 @@
       requireDependencies();
       await window.OfflineSync.init();
       window.OfflineAdapter.init(firebaseDb);
+      await window.MaterialOfflineAdapter.init();
       initialized = true;
       setStatus(window.OfflineSync.isOnline() ? 'idle' : 'offline');
       start();
@@ -107,7 +110,7 @@
       setStatus('syncing');
       console.info('[SyncManager] Synchronisation démarrée');
 
-      const adapterReport = await window.OfflineAdapter.syncActions(actions);
+      const adapterReport = await window.MaterialOfflineAdapter.syncActions(actions);
       const failedIds = failedActionIds(adapterReport);
       const successfulActions = actions.filter((action) => !failedIds.has(action.id));
 
