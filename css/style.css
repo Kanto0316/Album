@@ -1549,6 +1549,10 @@ body[data-page="history"] .list-grid {
   margin-top: 0.35rem;
 }
 
+#siteExportDialog .input-group + .input-group {
+  margin-top: 1.25rem;
+}
+
 .input-group--item-create {
   margin-bottom: 0.3rem;
 }
