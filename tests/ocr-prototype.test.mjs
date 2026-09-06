@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { prepareImage, validateImageFile } from '../js/image-import.service.js';
 import { recognizeImage } from '../js/ocr.service.js';
@@ -40,4 +41,17 @@ test('recognizeImage renvoie texte, confiance et durée sans stockage', async ()
 test('recognizeImage transforme une erreur moteur en erreur OCR claire', async () => {
   const engine = { recognize: async () => { throw new Error('worker indisponible'); } };
   await assert.rejects(() => recognizeImage({}, { engine }), /Analyse OCR impossible : worker indisponible/);
+});
+
+test('le prototype OCR est présent uniquement sur la page 3 détail OUT', async () => {
+  const [homePage, itemDetailPage] = await Promise.all([
+    readFile(new URL('../index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../page3.html', import.meta.url), 'utf8'),
+  ]);
+
+  assert.doesNotMatch(homePage, /id="openOcrTest"|id="ocrTestDialog"|tesseract\.min\.js/);
+  assert.match(itemDetailPage, /data-page="item-detail"/);
+  assert.match(itemDetailPage, /data-fab-row="create"[\s\S]*id="openOcrTest"[\s\S]*id="openDetailFormButton"/);
+  assert.match(itemDetailPage, /id="openOcrTest"[^>]*hidden/);
+  assert.match(itemDetailPage, /tesseract\.min\.js/);
 });
