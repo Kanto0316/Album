@@ -134,29 +134,7 @@
       </main>
 
 
-      <!-- Prototype temporaire Phase 1 : réservé aux administrateurs et isolé du FAB existant. -->
-      <button id="openOcrTest" class="ocr-test-button" type="button" aria-haspopup="dialog" aria-controls="ocrTestDialog" hidden>📷 Tester OCR</button>
       <button id="openCreateSite" class="fab" type="button" aria-label="Créer un site">+</button>
-
-      <dialog id="ocrTestDialog" class="modal-card modal-card--wide ocr-test-dialog">
-        <section class="modal-content ocr-test-content" aria-labelledby="ocrTestTitle">
-          <div class="modal-header">
-            <h2 id="ocrTestTitle">Test OCR</h2>
-          </div>
-          <p id="ocrTestStatus" class="ocr-test-status" role="status" aria-live="polite"></p>
-          <img id="ocrTestPreview" class="ocr-test-preview" alt="Image sélectionnée pour le test OCR" hidden />
-          <div id="ocrTestResult" class="ocr-test-result" hidden>
-            <h3>Texte brut détecté</h3>
-            <pre id="ocrTestText"></pre>
-            <p><strong>Confiance :</strong> <span id="ocrTestConfidence">Non disponible</span></p>
-            <p><strong>Temps de traitement :</strong> <span id="ocrTestDuration">—</span></p>
-          </div>
-          <div class="modal-actions modal-actions--split">
-            <button id="ocrTestClose" type="button" class="btn btn-neutral">Fermer</button>
-            <button id="ocrTestChooseImage" type="button" class="btn btn-success">Choisir une image</button>
-          </div>
-        </section>
-      </dialog>
 
       <dialog id="siteDialog" class="modal-card">
         <form class="modal-content modal-content--site-create" id="siteForm">
@@ -349,7 +327,6 @@
     <script type="module" src="js/offline-action-builder.js"></script>
     <script type="module" src="js/sync-manager.js"></script>
     <script type="module" src="js/storage.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
     <script type="module" src="js/app.js"></script>
 
   </body>

@@ -3211,27 +3211,6 @@ import { OcrService } from './ocr.service.js';
     }
 
     const openCreateSite = requireElement('openCreateSite');
-    const openOcrTest = requireElement('openOcrTest');
-    const ocrTestDialog = requireElement('ocrTestDialog');
-    const ocrTestChooseImage = requireElement('ocrTestChooseImage');
-    const ocrTestClose = requireElement('ocrTestClose');
-    const ocrTestStatus = requireElement('ocrTestStatus');
-    const ocrTestPreview = requireElement('ocrTestPreview');
-    const ocrTestResult = requireElement('ocrTestResult');
-    const ocrTestText = requireElement('ocrTestText');
-    const ocrTestConfidence = requireElement('ocrTestConfidence');
-    const ocrTestDuration = requireElement('ocrTestDuration');
-    let ocrPreviewUrl = null;
-
-    function canUseOcrPrototype() {
-      return isAuthenticated && Boolean(currentPermissions?.isAdmin);
-    }
-
-    function updateOcrPrototypeAccess() {
-      if (openOcrTest) openOcrTest.hidden = !canUseOcrPrototype();
-      if (!canUseOcrPrototype() && ocrTestDialog?.open) ocrTestDialog.close();
-    }
-
     function mettreAJourHeaderUtilisateur(authUser) {
       const authUserData = normalizeAuthUserData(authUser);
       renderHomeAccessControls({
@@ -3312,8 +3291,6 @@ import { OcrService } from './ocr.service.js';
       if (openCreateSite) {
         openCreateSite.hidden = !isAuthenticated;
       }
-      updateOcrPrototypeAccess();
-
       updateSidebarPermissions();
 
       closeSidebar();
@@ -3334,52 +3311,6 @@ import { OcrService } from './ocr.service.js';
       mettreAJourHeaderUtilisateur(user || null);
       mettreAJourPermissionsUI(currentPermissions);
       renderSites();
-    });
-
-    openOcrTest?.addEventListener('click', () => {
-      if (!canUseOcrPrototype()) {
-        openOcrTest.hidden = true;
-        UiService.showToast('Prototype OCR réservé aux administrateurs.');
-        return;
-      }
-      ocrTestStatus.textContent = 'Sélectionnez une image de liste de marchandises.';
-      ocrTestResult.hidden = true;
-      ocrTestDialog.showModal();
-    });
-
-    ocrTestClose?.addEventListener('click', () => ocrTestDialog.close());
-    ocrTestDialog?.addEventListener('close', () => {
-      if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
-      ocrPreviewUrl = null;
-      ocrTestPreview.removeAttribute('src');
-      ocrTestPreview.hidden = true;
-    });
-    ocrTestChooseImage?.addEventListener('click', async () => {
-      if (!canUseOcrPrototype()) {
-        ocrTestDialog.close();
-        return;
-      }
-      ocrTestChooseImage.disabled = true;
-      ocrTestResult.hidden = true;
-      try {
-        const image = await ImageImportService.selectImage();
-        if (!canUseOcrPrototype()) throw new Error('Session administrateur expirée.');
-        if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
-        ocrPreviewUrl = image.previewUrl;
-        ocrTestPreview.src = image.previewUrl;
-        ocrTestPreview.hidden = false;
-        ocrTestStatus.textContent = 'Analyse OCR en cours…';
-        const result = await OcrService.recognizeImage(image.file);
-        ocrTestText.textContent = result.text || 'Aucun texte détecté.';
-        ocrTestConfidence.textContent = result.confidence === null ? 'Non disponible' : `${result.confidence.toFixed(1)} %`;
-        ocrTestDuration.textContent = `${result.durationMs} ms`;
-        ocrTestResult.hidden = false;
-        ocrTestStatus.textContent = 'Analyse terminée.';
-      } catch (error) {
-        ocrTestStatus.textContent = error?.message || 'Impossible d’analyser cette image.';
-      } finally {
-        ocrTestChooseImage.disabled = false;
-      }
     });
 
     openCreateSite?.addEventListener('click', () => {
@@ -6795,8 +6726,81 @@ import { OcrService } from './ocr.service.js';
     loadUserNames();
   }
 
+  function initOcrPrototype(permissions) {
+    const openOcrTest = requireElement('openOcrTest');
+    const ocrTestDialog = requireElement('ocrTestDialog');
+    const ocrTestChooseImage = requireElement('ocrTestChooseImage');
+    const ocrTestClose = requireElement('ocrTestClose');
+    const ocrTestStatus = requireElement('ocrTestStatus');
+    const ocrTestPreview = requireElement('ocrTestPreview');
+    const ocrTestResult = requireElement('ocrTestResult');
+    const ocrTestText = requireElement('ocrTestText');
+    const ocrTestConfidence = requireElement('ocrTestConfidence');
+    const ocrTestDuration = requireElement('ocrTestDuration');
+    let ocrPreviewUrl = null;
+
+    function canUseOcrPrototype(user = firebaseAuth.currentUser) {
+      return Boolean(user?.uid && permissions?.isAdmin);
+    }
+
+    function updateOcrPrototypeAccess(user) {
+      if (openOcrTest) openOcrTest.hidden = !canUseOcrPrototype(user);
+      if (!canUseOcrPrototype(user) && ocrTestDialog?.open) ocrTestDialog.close();
+    }
+
+    updateOcrPrototypeAccess(firebaseAuth.currentUser);
+    onAuthStateChanged(firebaseAuth, (user) => updateOcrPrototypeAccess(user));
+
+    openOcrTest?.addEventListener('click', () => {
+      if (!canUseOcrPrototype()) {
+        openOcrTest.hidden = true;
+        UiService.showToast('Prototype OCR réservé aux administrateurs.');
+        return;
+      }
+      ocrTestStatus.textContent = 'Sélectionnez une image de liste de marchandises.';
+      ocrTestResult.hidden = true;
+      ocrTestDialog.showModal();
+    });
+
+    ocrTestClose?.addEventListener('click', () => ocrTestDialog.close());
+    ocrTestDialog?.addEventListener('close', () => {
+      if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
+      ocrPreviewUrl = null;
+      ocrTestPreview.removeAttribute('src');
+      ocrTestPreview.hidden = true;
+    });
+    ocrTestChooseImage?.addEventListener('click', async () => {
+      if (!canUseOcrPrototype()) {
+        ocrTestDialog.close();
+        return;
+      }
+      ocrTestChooseImage.disabled = true;
+      ocrTestResult.hidden = true;
+      try {
+        const image = await ImageImportService.selectImage();
+        if (!canUseOcrPrototype()) throw new Error('Session administrateur expirée.');
+        if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
+        ocrPreviewUrl = image.previewUrl;
+        ocrTestPreview.src = image.previewUrl;
+        ocrTestPreview.hidden = false;
+        ocrTestStatus.textContent = 'Analyse OCR en cours…';
+        const result = await OcrService.recognizeImage(image.file);
+        ocrTestText.textContent = result.text || 'Aucun texte détecté.';
+        ocrTestConfidence.textContent = result.confidence === null ? 'Non disponible' : `${result.confidence.toFixed(1)} %`;
+        ocrTestDuration.textContent = `${result.durationMs} ms`;
+        ocrTestResult.hidden = false;
+        ocrTestStatus.textContent = 'Analyse terminée.';
+      } catch (error) {
+        ocrTestStatus.textContent = error?.message || 'Impossible d’analyser cette image.';
+      } finally {
+        ocrTestChooseImage.disabled = false;
+      }
+    });
+  }
+
   function initItemDetailPage(permissions) {
     initAuthRequiredNoticeCard();
+    initOcrPrototype(permissions);
 
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
