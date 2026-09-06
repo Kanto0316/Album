@@ -4,6 +4,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual } from './detail-status.js';
 import { getAutomaticUnit } from './automatic-unit.js';
 import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from './return-quantity.js';
+import { getNextLineNumber } from './next-line-number.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -6744,6 +6745,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
     const detailFormSection = requireElement('detailFormSection');
     const detailFormError = requireElement('detailFormError');
     const detailFormModal = requireElement('detailFormModal');
+    const detailNextLineNumber = requireElement('detailNextLineNumber');
     const returnFormModal = requireElement('returnFormModal');
     const returnForm = requireElement('returnForm');
     const returnFormError = requireElement('returnFormError');
@@ -6866,6 +6868,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
       clearDetailFormError();
       clearDetailRequiredFieldErrors();
       updateDetailInputCounters();
+      detailNextLineNumber.textContent = `# ${getNextLineNumber(currentDetails)}`;
       detailFormModal.showModal();
       setDetailModalOpenState(true);
       window.setTimeout(() => {
@@ -8566,6 +8569,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
         animateNextTableRender = isDetailSkeletonVisible;
         hideDetailTableSkeleton();
         currentDetails = details;
+        detailNextLineNumber.textContent = `# ${getNextLineNumber(currentDetails)}`;
         renderTable();
         const activeReturnDetail = currentDetails.find((detail) => detail.id === activeReturnDetailId);
         if (activeReturnDetail && returnFormModal?.open) {
