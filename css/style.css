@@ -9047,7 +9047,7 @@ body[data-page="item-detail"] .return-history__quantity-input {
   font: inherit;
 }
 
-/* Prototype OCR administrateur (Phase 1) — bloc temporaire facilement supprimable. */
+/* Assistant d'extraction OCR administrateur. */
 .ocr-test-button {
   position: fixed;
   right: 5.5rem;
@@ -9068,7 +9068,12 @@ body[data-page="item-detail"] .return-history__quantity-input {
 .ocr-test-status { min-height: 1.5rem; color: var(--text-muted, #52606d); }
 .ocr-test-preview { display: block; width: 100%; max-height: 18rem; object-fit: contain; border-radius: 0.75rem; background: #eef2f6; }
 .ocr-test-preview[hidden], .ocr-test-result[hidden] { display: none; }
-.ocr-test-result pre { max-height: 14rem; overflow: auto; padding: 0.8rem; border-radius: 0.5rem; background: #f4f6f8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ocr-articles-table-wrap { overflow-x: auto; }
+.ocr-articles-table { width: 100%; border-collapse: collapse; }
+.ocr-articles-table th, .ocr-articles-table td { padding: 0.55rem; border-bottom: 1px solid #d8dee6; text-align: left; }
+.ocr-articles-table input { box-sizing: border-box; width: 100%; min-width: 9rem; padding: 0.55rem; border: 1px solid #b8c2cc; border-radius: 0.4rem; font: inherit; }
+.ocr-articles-table input:read-only { border-color: transparent; background: transparent; }
+.ocr-test-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: flex-end; }
 @media (max-width: 480px) {
   .ocr-test-button { right: 5rem; bottom: 1.75rem; padding-inline: 0.75rem; }
 }
