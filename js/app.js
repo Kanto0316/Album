@@ -7,6 +7,7 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
 import { getNextLineNumber } from './next-line-number.js';
 import { ImageImportService } from './image-import.service.js';
 import { OcrService } from './ocr.service.js';
+import { OCR_API_URL } from './config.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -6735,8 +6736,6 @@ import { OcrService } from './ocr.service.js';
     const ocrTestPreview = requireElement('ocrTestPreview');
     const ocrTestResult = requireElement('ocrTestResult');
     const ocrTestRows = requireElement('ocrTestRows');
-    const ocrTestConfidence = requireElement('ocrTestConfidence');
-    const ocrTestDuration = requireElement('ocrTestDuration');
     const ocrTestCorrect = requireElement('ocrTestCorrect');
     const ocrTestAdd = requireElement('ocrTestAdd');
     let ocrPreviewUrl = null;
@@ -6746,6 +6745,7 @@ import { OcrService } from './ocr.service.js';
         <tr>
           <td><input data-ocr-field="code" value="${escapeHtml(article.code)}" aria-label="Code article" readonly required></td>
           <td><input data-ocr-field="designation" value="${escapeHtml(article.designation)}" aria-label="Désignation article" readonly required></td>
+          <td><button class="ocr-row-delete" type="button" data-ocr-delete aria-label="Supprimer l’article ${escapeHtml(article.code)}">Supprimer</button></td>
         </tr>`).join('');
       ocrTestCorrect.hidden = articles.length === 0;
       ocrTestAdd.hidden = articles.length === 0;
@@ -6770,6 +6770,18 @@ import { OcrService } from './ocr.service.js';
     updateOcrPrototypeAccess(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => updateOcrPrototypeAccess(user));
 
+    ocrTestRows?.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('[data-ocr-delete]');
+      if (!deleteButton) return;
+      deleteButton.closest('tr')?.remove();
+      const remainingCount = getEditedArticles().length;
+      ocrTestCorrect.hidden = remainingCount === 0;
+      ocrTestAdd.hidden = remainingCount === 0;
+      ocrTestStatus.textContent = remainingCount
+        ? `${remainingCount} article${remainingCount > 1 ? 's' : ''} à valider.`
+        : 'Aucun article détecté.';
+    });
+
     ocrTestClose?.addEventListener('click', () => ocrTestDialog.close());
     ocrTestDialog?.addEventListener('close', () => {
       if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
@@ -6782,7 +6794,7 @@ import { OcrService } from './ocr.service.js';
       if (!canUseOcrPrototype()) {
         openOcrTest.hidden = true;
         if (ocrTestDialog.open) ocrTestDialog.close();
-        UiService.showToast('Prototype OCR réservé aux administrateurs.');
+        UiService.showToast('Utilisateur non autorisé à utiliser l’OCR.');
         return;
       }
       ocrTestChooseImage.disabled = true;
@@ -6797,11 +6809,12 @@ import { OcrService } from './ocr.service.js';
         ocrTestPreview.src = image.previewUrl;
         ocrTestPreview.hidden = false;
         ocrTestStatus.textContent = 'Analyse OCR en cours…';
-        const result = await OcrService.recognizeImage(image.file);
-        const articles = OcrService.extractArticles(result.text);
+        const currentUser = firebaseAuth.currentUser;
+        if (!currentUser) throw new Error('Utilisateur non autorisé à utiliser l’OCR.');
+        const token = await currentUser.getIdToken();
+        const result = await OcrService.recognizeArticles(image.file, { apiUrl: OCR_API_URL, token });
+        const articles = result.articles;
         renderExtractedArticles(articles);
-        ocrTestConfidence.textContent = result.confidence === null ? 'Non disponible' : `${result.confidence.toFixed(1)} %`;
-        ocrTestDuration.textContent = `${result.durationMs} ms`;
         ocrTestResult.hidden = false;
         ocrTestStatus.textContent = articles.length
           ? `${articles.length} article${articles.length > 1 ? 's' : ''} détecté${articles.length > 1 ? 's' : ''}.`

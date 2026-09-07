@@ -101,7 +101,7 @@
       </main>
 
       <div class="item-detail-fab-row site-detail-fab-row" data-fab-row="create">
-        <button id="openOcrTest" class="ocr-test-button" type="button" aria-haspopup="dialog" aria-controls="ocrTestDialog" hidden>📷 Importer par OCR</button>
+        <button id="openOcrTest" class="ocr-test-button" type="button" aria-haspopup="dialog" aria-controls="ocrTestDialog" hidden>📷 Importer depuis image</button>
         <button type="button" id="openDetailFormButton" class="fab fab-add--item-detail" aria-label="Ajouter une donnée">+</button>
       </div>
 
@@ -116,12 +116,10 @@
             <p>Vérifiez et corrigez les articles avant de les ajouter.</p>
             <div class="ocr-articles-table-wrap">
               <table class="ocr-articles-table">
-                <thead><tr><th scope="col">Code</th><th scope="col">Désignation</th></tr></thead>
+                <thead><tr><th scope="col">Code</th><th scope="col">Désignation</th><th scope="col">Action</th></tr></thead>
                 <tbody id="ocrTestRows"></tbody>
               </table>
             </div>
-            <p><strong>Confiance :</strong> <span id="ocrTestConfidence">Non disponible</span></p>
-            <p><strong>Temps de traitement :</strong> <span id="ocrTestDuration">—</span></p>
           </div>
           <div class="modal-actions ocr-test-actions">
             <button id="ocrTestClose" type="button" class="btn btn-neutral">Annuler</button>
@@ -270,7 +268,6 @@
     <script type="module" src="js/offline-action-builder.js"></script>
     <script type="module" src="js/sync-manager.js"></script>
     <script type="module" src="js/storage.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
     <script type="module" src="js/app.js"></script>
 
   </body>

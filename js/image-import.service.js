@@ -40,7 +40,7 @@ export function selectImage(options = {}) {
   return new Promise((resolve, reject) => {
     const input = documentRef.createElement('input');
     input.type = 'file';
-    input.accept = '.jpg,.jpeg,.png,.webp';
+    input.accept = 'image/jpeg,image/png,image/webp';
     input.hidden = true;
 
     const cleanup = () => input.remove();
