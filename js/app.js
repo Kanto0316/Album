@@ -6726,7 +6726,7 @@ import { OcrService } from './ocr.service.js';
     loadUserNames();
   }
 
-  function initOcrPrototype(permissions) {
+  function initOcrPrototype(permissions, addArticles) {
     const openOcrTest = requireElement('openOcrTest');
     const ocrTestDialog = requireElement('ocrTestDialog');
     const ocrTestChooseImage = requireElement('ocrTestChooseImage');
@@ -6734,10 +6734,29 @@ import { OcrService } from './ocr.service.js';
     const ocrTestStatus = requireElement('ocrTestStatus');
     const ocrTestPreview = requireElement('ocrTestPreview');
     const ocrTestResult = requireElement('ocrTestResult');
-    const ocrTestText = requireElement('ocrTestText');
+    const ocrTestRows = requireElement('ocrTestRows');
     const ocrTestConfidence = requireElement('ocrTestConfidence');
     const ocrTestDuration = requireElement('ocrTestDuration');
+    const ocrTestCorrect = requireElement('ocrTestCorrect');
+    const ocrTestAdd = requireElement('ocrTestAdd');
     let ocrPreviewUrl = null;
+
+    function renderExtractedArticles(articles) {
+      ocrTestRows.innerHTML = articles.map((article) => `
+        <tr>
+          <td><input data-ocr-field="code" value="${escapeHtml(article.code)}" aria-label="Code article" readonly required></td>
+          <td><input data-ocr-field="designation" value="${escapeHtml(article.designation)}" aria-label="Désignation article" readonly required></td>
+        </tr>`).join('');
+      ocrTestCorrect.hidden = articles.length === 0;
+      ocrTestAdd.hidden = articles.length === 0;
+    }
+
+    function getEditedArticles() {
+      return Array.from(ocrTestRows.querySelectorAll('tr')).map((row) => ({
+        code: row.querySelector('[data-ocr-field="code"]')?.value.trim() || '',
+        designation: row.querySelector('[data-ocr-field="designation"]')?.value.trim() || '',
+      }));
+    }
 
     function canUseOcrPrototype(user = firebaseAuth.currentUser) {
       return Boolean(user?.uid && permissions?.isAdmin);
@@ -6757,6 +6776,7 @@ import { OcrService } from './ocr.service.js';
       ocrPreviewUrl = null;
       ocrTestPreview.removeAttribute('src');
       ocrTestPreview.hidden = true;
+      renderExtractedArticles([]);
     });
     async function selectAndAnalyzeImage() {
       if (!canUseOcrPrototype()) {
@@ -6767,6 +6787,7 @@ import { OcrService } from './ocr.service.js';
       }
       ocrTestChooseImage.disabled = true;
       ocrTestResult.hidden = true;
+      renderExtractedArticles([]);
       try {
         const image = await ImageImportService.selectImage();
         if (!canUseOcrPrototype()) throw new Error('Session administrateur expirée.');
@@ -6777,11 +6798,14 @@ import { OcrService } from './ocr.service.js';
         ocrTestPreview.hidden = false;
         ocrTestStatus.textContent = 'Analyse OCR en cours…';
         const result = await OcrService.recognizeImage(image.file);
-        ocrTestText.textContent = result.text || 'Aucun texte détecté.';
+        const articles = OcrService.extractArticles(result.text);
+        renderExtractedArticles(articles);
         ocrTestConfidence.textContent = result.confidence === null ? 'Non disponible' : `${result.confidence.toFixed(1)} %`;
         ocrTestDuration.textContent = `${result.durationMs} ms`;
         ocrTestResult.hidden = false;
-        ocrTestStatus.textContent = 'Analyse terminée.';
+        ocrTestStatus.textContent = articles.length
+          ? `${articles.length} article${articles.length > 1 ? 's' : ''} détecté${articles.length > 1 ? 's' : ''}.`
+          : 'Aucun article détecté. Essayez une image plus nette.';
       } catch (error) {
         if (!ocrTestDialog.open && canUseOcrPrototype()) ocrTestDialog.showModal();
         ocrTestStatus.textContent = error?.message || 'Impossible d’analyser cette image.';
@@ -6794,12 +6818,35 @@ import { OcrService } from './ocr.service.js';
     // modale permet ensuite de recommencer avec une autre image.
     openOcrTest?.addEventListener('click', selectAndAnalyzeImage);
     ocrTestChooseImage?.addEventListener('click', selectAndAnalyzeImage);
+    ocrTestCorrect?.addEventListener('click', () => {
+      const inputs = ocrTestRows.querySelectorAll('input');
+      inputs.forEach((input) => { input.readOnly = false; });
+      inputs[0]?.focus();
+      ocrTestStatus.textContent = 'Vous pouvez corriger les champs détectés.';
+    });
+    ocrTestAdd?.addEventListener('click', async () => {
+      if (!canUseOcrPrototype()) return;
+      const articles = getEditedArticles();
+      if (!articles.length || articles.some(({ code, designation }) => !code || !designation)) {
+        ocrTestStatus.textContent = 'Chaque article doit avoir un code et une désignation.';
+        return;
+      }
+      ocrTestAdd.disabled = true;
+      ocrTestStatus.textContent = 'Ajout des articles en cours…';
+      try {
+        const addedCount = await addArticles(articles);
+        ocrTestDialog.close();
+        UiService.showToast(`${addedCount} article${addedCount > 1 ? 's' : ''} ajouté${addedCount > 1 ? 's' : ''}.`);
+      } catch (error) {
+        ocrTestStatus.textContent = error?.message || 'Impossible d’ajouter les articles.';
+      } finally {
+        ocrTestAdd.disabled = false;
+      }
+    });
   }
 
   function initItemDetailPage(permissions) {
     initAuthRequiredNoticeCard();
-    initOcrPrototype(permissions);
-
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
     const itemId = params.get('itemId');
@@ -6807,6 +6854,22 @@ import { OcrService } from './ocr.service.js';
       UiService.navigate('index.html');
       return;
     }
+
+    initOcrPrototype(permissions, async (articles) => {
+      let addedCount = 0;
+      for (const article of articles) {
+        const result = await StorageService.createDetail(siteId, itemId, {
+          code: article.code,
+          designation: article.designation,
+          qteSortie: '',
+          unite: getAutomaticUnit(article.designation),
+          statut: 'OK',
+        });
+        if (!result?.ok) throw new Error(`L’article ${article.code} n’a pas pu être ajouté.`);
+        addedCount += 1;
+      }
+      return addedCount;
+    });
 
     requireElement('itemBackButton').addEventListener('click', () => {
       UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);

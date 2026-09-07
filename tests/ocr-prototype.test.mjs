@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { prepareImage, selectImage, validateImageFile } from '../js/image-import.service.js';
-import { recognizeImage } from '../js/ocr.service.js';
+import { ARTICLE_EXTRACTION_FIELDS, extractArticles, recognizeImage } from '../js/ocr.service.js';
 
 test('validateImageFile accepte une image valide', () => {
   const file = { name: 'liste.png', type: 'image/png', size: 1024 };
@@ -86,6 +86,20 @@ test('recognizeImage transforme une erreur moteur en erreur OCR claire', async (
   await assert.rejects(() => recognizeImage({}, { engine }), /Analyse OCR impossible : worker indisponible/);
 });
 
+test('extractArticles associe les références à leurs désignations et ignore les entêtes', () => {
+  const text = `SOCIÉTÉ EXEMPLE\nChauffeur Jean Dupont\nCode article Désignation\n200LDV102350STD LEVIER DE VANNE STANDARD\nABC-45678\nJoint haute température\nPage 1`;
+  assert.deepEqual(extractArticles(text), [
+    { code: '200LDV102350STD', designation: 'LEVIER DE VANNE STANDARD' },
+    { code: 'ABC-45678', designation: 'Joint haute température' },
+  ]);
+});
+
+test('extractArticles ne retourne pas de ligne incomplète et réserve les champs futurs', () => {
+  assert.deepEqual(extractArticles('INVENTAIRE\n200LDV102350STD\nDate 01/01/2026'), []);
+  assert.deepEqual(ARTICLE_EXTRACTION_FIELDS.active, ['code', 'designation']);
+  assert.deepEqual(ARTICLE_EXTRACTION_FIELDS.planned, ['quantity', 'unit', 'status']);
+});
+
 test('le prototype OCR est présent uniquement sur la page 3 détail OUT', async () => {
   const [homePage, itemDetailPage] = await Promise.all([
     readFile(new URL('../index.html', import.meta.url), 'utf8'),
@@ -97,4 +111,7 @@ test('le prototype OCR est présent uniquement sur la page 3 détail OUT', async
   assert.match(itemDetailPage, /data-fab-row="create"[\s\S]*id="openOcrTest"[\s\S]*id="openDetailFormButton"/);
   assert.match(itemDetailPage, /id="openOcrTest"[^>]*hidden/);
   assert.match(itemDetailPage, /tesseract\.min\.js/);
+  assert.match(itemDetailPage, /id="ocrTestRows"/);
+  assert.match(itemDetailPage, /id="ocrTestAdd"[^>]*>Ajouter les articles/);
+  assert.doesNotMatch(itemDetailPage, /Texte brut détecté/);
 });
