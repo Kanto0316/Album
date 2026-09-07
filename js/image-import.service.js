@@ -1,4 +1,5 @@
 const DEFAULT_ALLOWED_TYPES = Object.freeze(['image/jpeg', 'image/png', 'image/webp']);
+const DEFAULT_ALLOWED_EXTENSIONS = Object.freeze(['jpg', 'jpeg', 'png', 'webp']);
 const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 export function validateImageFile(file, options = {}) {
@@ -8,8 +9,11 @@ export function validateImageFile(file, options = {}) {
   if (!file) {
     throw new Error('Aucune image sélectionnée.');
   }
-  if (!allowedTypes.includes(String(file.type || '').toLowerCase())) {
-    throw new Error('Format non pris en charge. Utilisez une image JPG, PNG ou WebP.');
+  const normalizedType = String(file.type || '').toLowerCase();
+  const extension = String(file.name || '').split('.').pop()?.toLowerCase();
+  const hasAllowedType = !normalizedType || allowedTypes.includes(normalizedType);
+  if (!hasAllowedType || !DEFAULT_ALLOWED_EXTENSIONS.includes(extension)) {
+    throw new Error('Format non pris en charge. Utilisez une image JPG, JPEG, PNG ou WEBP.');
   }
   if (!Number.isFinite(file.size) || file.size <= 0) {
     throw new Error('L’image sélectionnée est vide ou illisible.');
@@ -36,8 +40,7 @@ export function selectImage(options = {}) {
   return new Promise((resolve, reject) => {
     const input = documentRef.createElement('input');
     input.type = 'file';
-    input.accept = DEFAULT_ALLOWED_TYPES.join(',');
-    input.setAttribute('capture', 'environment');
+    input.accept = '.jpg,.jpeg,.png,.webp';
     input.hidden = true;
 
     const cleanup = () => input.remove();

@@ -2,9 +2,9 @@
 
 ## Périmètre et fichiers modifiés
 
-- `index.html` : bouton temporaire **📷 Tester OCR**, dialogue de résultat et chargement de Tesseract.js.
+- `page3.html` : bouton temporaire **📷 Tester OCR**, dialogue de résultat et chargement de Tesseract.js, uniquement sur le détail OUT.
 - `css/style.css` : styles isolés du bouton et du dialogue OCR.
-- `js/app.js` : branchement du prototype sur la page d’accueil et contrôle d’accès.
+- `js/app.js` : ouverture directe de la galerie, branchement du prototype sur le détail OUT et contrôle d’accès.
 - `js/image-import.service.js` : sélection, validation et préparation locale de l’image.
 - `js/ocr.service.js` : appel du moteur OCR et normalisation du texte, de la confiance et de la durée.
 - `tests/ocr-prototype.test.mjs` : tests unitaires de validation et du traitement OCR.
@@ -26,7 +26,7 @@ Le prototype utilise **Tesseract.js 5.1.1**, chargé depuis jsDelivr, avec les l
 - Administrateur connecté : condition `isAuthenticated && permissions.isAdmin`, bouton visible.
 - Utilisateur non administrateur : bouton conservé avec l’attribut `hidden`.
 - Déconnexion : rappel de la mise à jour d’accès, bouton masqué et dialogue fermé.
-- Image JPG, PNG ou WebP valide (10 Mo maximum) : préparation puis appel du moteur OCR.
+- Image JPG, JPEG, PNG ou WebP valide (10 Mo maximum) : aperçu local, puis appel du moteur OCR.
 - Type non autorisé, fichier vide ou trop volumineux : erreur explicite affichée dans le dialogue.
 - Moteur indisponible ou en erreur : message OCR explicite, sans mutation des données métier.
 
