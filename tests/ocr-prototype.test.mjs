@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { prepareImage, validateImageFile } from '../js/image-import.service.js';
+import { prepareImage, selectImage, validateImageFile } from '../js/image-import.service.js';
 import { recognizeImage } from '../js/ocr.service.js';
 
 test('validateImageFile accepte une image valide', () => {
@@ -12,7 +12,22 @@ test('validateImageFile accepte une image valide', () => {
 test('validateImageFile refuse un format invalide avec un message clair', () => {
   assert.throws(
     () => validateImageFile({ name: 'liste.pdf', type: 'application/pdf', size: 1024 }),
-    /Format non pris en charge.*JPG, PNG ou WebP/,
+    /Format non pris en charge.*JPG, JPEG, PNG ou WEBP/,
+  );
+});
+
+test('validateImageFile refuse une extension incompatible même avec un type image', () => {
+  assert.throws(
+    () => validateImageFile({ name: 'liste.gif', type: 'image/png', size: 1024 }),
+    /Format non pris en charge/,
+  );
+});
+
+test('validateImageFile signale une image absente ou trop volumineuse', () => {
+  assert.throws(() => validateImageFile(), /Aucune image sélectionnée/);
+  assert.throws(
+    () => validateImageFile({ name: 'liste.webp', type: 'image/webp', size: (10 * 1024 * 1024) + 1 }),
+    /taille maximale autorisée de 10 Mo/,
   );
 });
 
@@ -23,6 +38,34 @@ test('prepareImage prépare une URL de prévisualisation', () => {
     const prepared = prepareImage({ name: 'liste.jpg', type: 'image/jpeg', size: 2048 });
     assert.equal(prepared.previewUrl, 'blob:test-preview');
     assert.equal(prepared.name, 'liste.jpg');
+  } finally {
+    globalThis.URL = originalUrl;
+  }
+});
+
+test('selectImage ouvre la galerie avec uniquement les extensions acceptées', async () => {
+  const originalUrl = globalThis.URL;
+  globalThis.URL = { createObjectURL: () => 'blob:gallery-preview' };
+  const attributes = new Map();
+  const input = {
+    files: [{ name: 'inventaire.jpeg', type: 'image/jpeg', size: 2048 }],
+    hidden: false,
+    addEventListener(type, callback) { this[`on${type}`] = callback; },
+    setAttribute(name, value) { attributes.set(name, value); },
+    remove() {},
+    click() { this.onchange(); },
+  };
+  const documentRef = {
+    createElement: () => input,
+    body: { append() {} },
+  };
+
+  try {
+    const selected = await selectImage({ documentRef });
+    assert.equal(input.type, 'file');
+    assert.equal(input.accept, '.jpg,.jpeg,.png,.webp');
+    assert.equal(attributes.has('capture'), false);
+    assert.equal(selected.previewUrl, 'blob:gallery-preview');
   } finally {
     globalThis.URL = originalUrl;
   }

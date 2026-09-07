@@ -6751,17 +6751,6 @@ import { OcrService } from './ocr.service.js';
     updateOcrPrototypeAccess(firebaseAuth.currentUser);
     onAuthStateChanged(firebaseAuth, (user) => updateOcrPrototypeAccess(user));
 
-    openOcrTest?.addEventListener('click', () => {
-      if (!canUseOcrPrototype()) {
-        openOcrTest.hidden = true;
-        UiService.showToast('Prototype OCR réservé aux administrateurs.');
-        return;
-      }
-      ocrTestStatus.textContent = 'Sélectionnez une image de liste de marchandises.';
-      ocrTestResult.hidden = true;
-      ocrTestDialog.showModal();
-    });
-
     ocrTestClose?.addEventListener('click', () => ocrTestDialog.close());
     ocrTestDialog?.addEventListener('close', () => {
       if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
@@ -6769,9 +6758,11 @@ import { OcrService } from './ocr.service.js';
       ocrTestPreview.removeAttribute('src');
       ocrTestPreview.hidden = true;
     });
-    ocrTestChooseImage?.addEventListener('click', async () => {
+    async function selectAndAnalyzeImage() {
       if (!canUseOcrPrototype()) {
-        ocrTestDialog.close();
+        openOcrTest.hidden = true;
+        if (ocrTestDialog.open) ocrTestDialog.close();
+        UiService.showToast('Prototype OCR réservé aux administrateurs.');
         return;
       }
       ocrTestChooseImage.disabled = true;
@@ -6779,6 +6770,7 @@ import { OcrService } from './ocr.service.js';
       try {
         const image = await ImageImportService.selectImage();
         if (!canUseOcrPrototype()) throw new Error('Session administrateur expirée.');
+        if (!ocrTestDialog.open) ocrTestDialog.showModal();
         if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
         ocrPreviewUrl = image.previewUrl;
         ocrTestPreview.src = image.previewUrl;
@@ -6791,11 +6783,17 @@ import { OcrService } from './ocr.service.js';
         ocrTestResult.hidden = false;
         ocrTestStatus.textContent = 'Analyse terminée.';
       } catch (error) {
+        if (!ocrTestDialog.open && canUseOcrPrototype()) ocrTestDialog.showModal();
         ocrTestStatus.textContent = error?.message || 'Impossible d’analyser cette image.';
       } finally {
         ocrTestChooseImage.disabled = false;
       }
-    });
+    }
+
+    // Le clic principal ouvre directement la galerie native. Le bouton dans la
+    // modale permet ensuite de recommencer avec une autre image.
+    openOcrTest?.addEventListener('click', selectAndAnalyzeImage);
+    ocrTestChooseImage?.addEventListener('click', selectAndAnalyzeImage);
   }
 
   function initItemDetailPage(permissions) {
