@@ -6809,10 +6809,12 @@ import { OCR_API_URL } from './config.js';
         ocrTestPreview.src = image.previewUrl;
         ocrTestPreview.hidden = false;
         ocrTestStatus.textContent = 'Analyse OCR en cours…';
-        const currentUser = firebaseAuth.currentUser;
-        if (!currentUser) throw new Error('Utilisateur non autorisé à utiliser l’OCR.');
-        const token = await currentUser.getIdToken(true);
-        const result = await OcrService.recognizeArticles(image.file, { apiUrl: OCR_API_URL, token });
+        const user = firebaseAuth.currentUser;
+        if (!user?.uid) throw new Error('Votre session n’est plus valide. Reconnectez-vous.');
+        const result = await OcrService.recognizeArticlesWithAuth(image.file, {
+          apiUrl: OCR_API_URL,
+          user,
+        });
         const articles = result.articles;
         renderExtractedArticles(articles);
         ocrTestResult.hidden = false;

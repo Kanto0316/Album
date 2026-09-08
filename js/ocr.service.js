@@ -20,19 +20,39 @@ function readArticles(payload) {
   return candidates.map(normalizeArticle).filter(({ code, designation }) => code && designation);
 }
 
+function readErrorCode(payload) {
+  return String(payload?.code || payload?.errorCode || payload?.error?.code || payload?.error || '')
+    .trim()
+    .toUpperCase();
+}
+
 function makeOcrError(response, payload) {
   const backendMessage = String(payload?.message || payload?.error || '').trim();
+  const code = readErrorCode(payload);
+  if (response.status === 401 && code === 'TOKEN_EXPIRED') {
+    return Object.assign(new Error('Le jeton Firebase a expiré.'), { code, status: response.status });
+  }
+  if (response.status === 401) {
+    return Object.assign(
+      new Error('Votre session n’est plus valide. Reconnectez-vous.'),
+      { code: code || 'TOKEN_INVALID', status: response.status },
+    );
+  }
   const messagesByStatus = {
-    401: 'Session expirée. Reconnectez-vous pour utiliser l’OCR.',
-    403: 'Utilisateur non autorisé à utiliser l’OCR.',
+    403: 'Vous n’êtes pas autorisé à utiliser l’OCR.',
     413: 'Image trop volumineuse. Sélectionnez une image plus petite.',
     415: 'Format d’image non supporté. Utilisez une image JPG, PNG ou WEBP.',
     422: 'Image inexploitable. Essayez une image plus nette.',
     429: 'Trop de requêtes OCR. Patientez quelques instants puis réessayez.',
   };
-  if (messagesByStatus[response.status]) return new Error(messagesByStatus[response.status]);
-  if (response.status >= 500) {
-    return new Error('Serveur OCR indisponible. Réessayez plus tard.');
+  if (messagesByStatus[response.status]) {
+    return Object.assign(new Error(messagesByStatus[response.status]), { code, status: response.status });
+  }
+  if (response.status === 500 || response.status === 503) {
+    return Object.assign(
+      new Error('Le service OCR est temporairement indisponible.'),
+      { code, status: response.status },
+    );
   }
   return new Error(backendMessage || 'OCR indisponible. Impossible d’analyser cette image.');
 }
@@ -80,4 +100,27 @@ export async function recognizeArticles(image, options = {}) {
   return { articles: readArticles(payload) };
 }
 
-export const OcrService = Object.freeze({ recognizeArticles });
+/**
+ * Récupère un ID token Firebase juste avant l'envoi et ne force son
+ * renouvellement qu'après un TOKEN_EXPIRED. Le second appel est l'unique retry.
+ */
+export async function recognizeArticlesWithAuth(image, options = {}) {
+  const { user } = options;
+  if (!user?.uid || typeof user.getIdToken !== 'function') {
+    throw new Error('Votre session n’est plus valide. Reconnectez-vous.');
+  }
+
+  const requestOptions = { ...options };
+  delete requestOptions.user;
+
+  const token = await user.getIdToken();
+  try {
+    return await recognizeArticles(image, { ...requestOptions, token });
+  } catch (error) {
+    if (error?.status !== 401 || error?.code !== 'TOKEN_EXPIRED') throw error;
+    const freshToken = await user.getIdToken(true);
+    return recognizeArticles(image, { ...requestOptions, token: freshToken });
+  }
+}
+
+export const OcrService = Object.freeze({ recognizeArticles, recognizeArticlesWithAuth });
