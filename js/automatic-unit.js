@@ -17,6 +17,7 @@ const PIECE_KEYWORDS = [
 ];
 
 const LENGTH_KEYWORDS = [
+  'cuivre nu',
   'fil',
   'cable',
   'fibre',
