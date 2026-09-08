@@ -2494,39 +2494,41 @@ body[data-page="users-management"] .table-wrapper--users {
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table {
-  min-width: 68rem;
+  min-width: 58rem;
   table-layout: fixed;
+  font-size: 0.6875rem;
 }
 
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(1) { width: 5rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(2) { width: 5rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(3) { width: 13rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(4) { width: 12rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(5) { width: 18rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(6) { width: 10rem; }
-body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(7) { width: 12rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(1) { width: 2.75rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(2) { width: 2.75rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(3) { width: 8.5rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(4) { width: 8rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(5) { width: 14rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(6) { width: 7rem; }
+body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(7) { width: 10rem; }
 body[data-page="users-management"] .table-wrapper--users .data-table th:nth-child(8) { width: 5rem; }
 
 body[data-page="users-management"] .table-wrapper--users .data-table th,
 body[data-page="users-management"] .table-wrapper--users .data-table td {
-  padding: 0.85rem 0.7rem;
-  font-size: 0.94rem;
-  line-height: 1.32;
+  padding: 0.3rem 0.35rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
   vertical-align: middle;
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table td {
-  height: 3.8rem;
+  height: auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table th {
-  font-size: 0.84rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #3b4a5f;
+  white-space: nowrap;
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(3),
@@ -2542,7 +2544,22 @@ body[data-page="users-management"] .users-email-cell {
 }
 
 body[data-page="users-management"] .table-wrapper--users .data-table td:nth-child(6) select {
+  min-width: 5.75rem;
   max-width: 100%;
+  padding: 0.25rem 0.3rem;
+  font-size: 0.6875rem;
+}
+
+body[data-page="users-management"] .table-wrapper--users .users-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.6875rem;
+}
+
+body[data-page="users-management"] .table-wrapper--users .btn-delete {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
 }
 
 
@@ -7224,7 +7241,7 @@ body[data-page="item-detail"] .search-highlight {
   }
 
   body[data-page="users-management"] .table-wrapper--users .data-table {
-    min-width: 76rem;
+    min-width: 58rem;
   }
 
   body[data-page="item-detail"] .data-table {
