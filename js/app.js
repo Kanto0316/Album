@@ -6811,7 +6811,7 @@ import { OCR_API_URL } from './config.js';
         ocrTestStatus.textContent = 'Analyse OCR en cours…';
         const currentUser = firebaseAuth.currentUser;
         if (!currentUser) throw new Error('Utilisateur non autorisé à utiliser l’OCR.');
-        const token = await currentUser.getIdToken();
+        const token = await currentUser.getIdToken(true);
         const result = await OcrService.recognizeArticles(image.file, { apiUrl: OCR_API_URL, token });
         const articles = result.articles;
         renderExtractedArticles(articles);

@@ -3,6 +3,11 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { prepareImage, selectImage, validateImageFile } from '../js/image-import.service.js';
 import { ARTICLE_EXTRACTION_FIELDS, recognizeArticles } from '../js/ocr.service.js';
+import { OCR_API_URL } from '../js/config.js';
+
+test('la configuration de production cible le backend OCR Render', () => {
+  assert.equal(OCR_API_URL, 'https://back-end-serveur-1.onrender.com');
+});
 
 test('validateImageFile accepte une image valide', () => {
   const file = { name: 'liste.png', type: 'image/png', size: 1024 };
@@ -107,8 +112,13 @@ test('recognizeArticles accepte les enveloppes backend et ignore les lignes inco
 
 test('recognizeArticles fournit des erreurs explicites', async () => {
   const options = { apiUrl: 'https://ocr.test', token: 'token', FormDataImpl: class { append() {} } };
-  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => { throw new Error('offline'); } }), /Serveur OCR indisponible/);
+  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => { throw new Error('offline'); } }), /Serveur OCR inaccessible.*CORS/);
+  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 401, json: async () => ({}) }) }), /Session expirée/);
   await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({}) }) }), /Utilisateur non autorisé/);
+  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 413, json: async () => ({}) }) }), /trop volumineuse/);
+  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 415, json: async () => ({}) }) }), /non supporté/);
+  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 422, json: async () => ({}) }) }), /inexploitable/);
+  await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 429, json: async () => ({}) }) }), /Trop de requêtes/);
   await assert.rejects(() => recognizeArticles({}, { ...options, fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) }), /Serveur OCR indisponible/);
   await assert.rejects(() => recognizeArticles({}, { ...options, apiUrl: '' }), /OCR_API_URL/);
 });
@@ -130,7 +140,7 @@ test('le prototype OCR est présent uniquement sur la page 3 détail OUT', async
   assert.match(itemDetailPage, /📷 Importer depuis image/);
   assert.match(itemDetailPage, /<th scope="col">Action<\/th>/);
   assert.doesNotMatch(itemDetailPage, /Texte brut détecté/);
-  assert.match(appSource, /currentUser\.getIdToken\(\)/);
+  assert.match(appSource, /currentUser\.getIdToken\(true\)/);
   assert.match(appSource, /OcrService\.recognizeArticles\(image\.file, \{ apiUrl: OCR_API_URL, token \}\)/);
   assert.match(appSource, /initOcrPrototype\(permissions, async \(articles\)[\s\S]*StorageService\.createDetail\(siteId, itemId/);
   assert.match(appSource, /initOcrPrototype\(permissions, async \(articles\)[\s\S]*unite: getAutomaticUnit\(article\.designation\)/);

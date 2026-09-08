@@ -21,10 +21,16 @@ function readArticles(payload) {
 }
 
 function makeOcrError(response, payload) {
-  if (response.status === 401 || response.status === 403) {
-    return new Error('Utilisateur non autorisé à utiliser l’OCR.');
-  }
   const backendMessage = String(payload?.message || payload?.error || '').trim();
+  const messagesByStatus = {
+    401: 'Session expirée. Reconnectez-vous pour utiliser l’OCR.',
+    403: 'Utilisateur non autorisé à utiliser l’OCR.',
+    413: 'Image trop volumineuse. Sélectionnez une image plus petite.',
+    415: 'Format d’image non supporté. Utilisez une image JPG, PNG ou WEBP.',
+    422: 'Image inexploitable. Essayez une image plus nette.',
+    429: 'Trop de requêtes OCR. Patientez quelques instants puis réessayez.',
+  };
+  if (messagesByStatus[response.status]) return new Error(messagesByStatus[response.status]);
   if (response.status >= 500) {
     return new Error('Serveur OCR indisponible. Réessayez plus tard.');
   }
@@ -56,7 +62,10 @@ export async function recognizeArticles(image, options = {}) {
       body: formData,
     });
   } catch (_error) {
-    throw new Error('Serveur OCR indisponible. Vérifiez votre connexion puis réessayez.');
+    throw new Error(
+      'Serveur OCR inaccessible. Vérifiez votre connexion. Si le navigateur bloque la requête CORS, '
+      + `le backend Render doit autoriser l’origine ${globalThis.location?.origin || 'https://kanto0316.github.io'}.`,
+    );
   }
 
   let payload = {};
