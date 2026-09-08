@@ -133,4 +133,5 @@ test('le prototype OCR est présent uniquement sur la page 3 détail OUT', async
   assert.match(appSource, /currentUser\.getIdToken\(\)/);
   assert.match(appSource, /OcrService\.recognizeArticles\(image\.file, \{ apiUrl: OCR_API_URL, token \}\)/);
   assert.match(appSource, /initOcrPrototype\(permissions, async \(articles\)[\s\S]*StorageService\.createDetail\(siteId, itemId/);
+  assert.match(appSource, /initOcrPrototype\(permissions, async \(articles\)[\s\S]*unite: getAutomaticUnit\(article\.designation\)/);
 });
