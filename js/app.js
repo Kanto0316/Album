@@ -8812,16 +8812,6 @@ import { OCR_API_URL } from './config.js';
       ].some((value) => normalizeSearchText(value).includes(query));
     }
 
-    function resolveMaintenanceAuthorized(user) {
-      if (typeof user?.maintenanceAuthorized === 'boolean') {
-        return user.maintenanceAuthorized;
-      }
-      if (typeof user?.maintenanceAccess === 'boolean') {
-        return user.maintenanceAccess;
-      }
-      return false;
-    }
-
     function updateMaintenanceLabel(isEnabled) {
       if (maintenanceStatusText) {
         maintenanceStatusText.textContent = isEnabled ? 'Activé' : 'Désactivé';
@@ -8909,7 +8899,7 @@ import { OCR_API_URL } from './config.js';
     function renderUsers(users, pointsByUser = {}) {
       const sortedUsers = sortUsersByPointsAndName(users, pointsByUser);
       if (!sortedUsers.length) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="users-empty-cell">Aucun utilisateur trouvé.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="users-empty-cell">Aucun utilisateur trouvé.</td></tr>';
         return;
       }
 
@@ -8932,15 +8922,6 @@ import { OCR_API_URL } from './config.js';
                 <option value="limite" ${resolveRole(user) === 'limite' ? 'selected' : ''}>${roleLabel.limite}</option>
               </select>`}
             </td>
-            <td class="maintenance-access-cell">
-              <input
-                type="checkbox"
-                class="maintenance-access-checkbox"
-                data-user-maintenance-access="${user.id}"
-                ${resolveMaintenanceAuthorized(user) ? 'checked' : ''}
-                aria-label="Autoriser ${escapeHtml(resolveDisplayName(user))} pendant la maintenance"
-              />
-            </td>
             <td>
               ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com'
       ? '<span class="table-action-disabled">-</span>'
@@ -8954,19 +8935,6 @@ import { OCR_API_URL } from './config.js';
         select.addEventListener('change', async () => {
           await StorageService.updateUserRole(select.dataset.userRole, select.value);
           UiService.showToast('Rôle mis à jour.');
-        });
-      });
-
-      tableBody.querySelectorAll('[data-user-maintenance-access]').forEach((checkbox) => {
-        checkbox.addEventListener('change', async () => {
-          const isAllowed = checkbox.checked;
-          try {
-            await StorageService.updateUserMaintenanceAccess(checkbox.dataset.userMaintenanceAccess, isAllowed);
-            UiService.showToast('Accès maintenance mis à jour.');
-          } catch (_error) {
-            checkbox.checked = !isAllowed;
-            UiService.showToast('Impossible de mettre à jour l’accès maintenance.');
-          }
         });
       });
 
@@ -9056,7 +9024,6 @@ import { OCR_API_URL } from './config.js';
             displayName: resolveDisplayName(user),
             email: cleanText(user.email),
             role: resolveRole(user),
-            maintenanceAuthorized: resolveMaintenanceAuthorized(user),
           });
         });
         currentUsers = users;
