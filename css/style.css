@@ -8891,22 +8891,32 @@ body[data-page="site-detail"] .page2-search-close-button::after {
 
   body[data-page="home"] .page1-header .app-header__center {
     position: static;
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    justify-content: flex-start;
   }
 
   body[data-page="home"] .page1-header .header-title {
-    position: absolute;
-    top: 0.9rem;
-    left: 50%;
-    width: min(52vw, calc(100% - 12rem), 20rem);
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 2.75rem;
-    transform: translateX(-50%);
+    transform: none;
+    margin-left: 0.25rem;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     pointer-events: none;
   }
 
   body[data-page="home"] .page1-header .header-title h1 {
+    width: 100%;
+    text-align: left;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   body[data-page="home"] .page1-header .app-header__side--right {
