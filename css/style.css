@@ -1643,7 +1643,7 @@ body[data-page="home"] #siteUnlockDialog .form-error--field {
 }
 
 body[data-page="home"] #siteUnlockDialog .form-info--attempts,
-body[data-page="home"] #siteLockManageDialog .form-info--attempts {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .form-info--attempts {
   margin: 0.1rem 0 0;
   min-height: 1rem;
   text-align: left;
@@ -1670,7 +1670,7 @@ body[data-page="home"] #siteUnlockDialog .site-unlock-message-slot .form-error--
 }
 
 body[data-page="home"] #siteUnlockDialog .form-info--attempts.form-info--blocked,
-body[data-page="home"] #siteLockManageDialog .form-info--attempts.form-info--blocked {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .form-info--attempts.form-info--blocked {
   color: var(--danger);
 }
 
@@ -1684,20 +1684,20 @@ body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-shaking {
   animation: site-lock-input-shake 300ms ease-in-out 1;
 }
 
-body[data-page="home"] #siteLockDialog .password-wrap--site-lock {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-wrap--site-lock {
   position: relative;
   width: 100%;
 }
 
-body[data-page="home"] #siteLockDialog .password-wrap--site-lock input {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-wrap--site-lock input {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength {
   margin-top: 0.55rem;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength__track {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength__track {
   width: 100%;
   height: 0.35rem;
   border-radius: 999px;
@@ -1705,7 +1705,7 @@ body[data-page="home"] #siteLockDialog .password-strength__track {
   overflow: hidden;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength__bar {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength__bar {
   display: block;
   width: 0;
   height: 100%;
@@ -1714,7 +1714,7 @@ body[data-page="home"] #siteLockDialog .password-strength__bar {
   transition: width 220ms ease, background-color 220ms ease;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength__text {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength__text {
   margin: 0.38rem 0 0;
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -1722,34 +1722,34 @@ body[data-page="home"] #siteLockDialog .password-strength__text {
   transition: color 220ms ease;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength[data-strength='weak'] .password-strength__bar {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='weak'] .password-strength__bar {
   width: 30%;
   background: #e53935;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength[data-strength='medium'] .password-strength__bar {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='medium'] .password-strength__bar {
   width: 60%;
   background: #fb8c00;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength[data-strength='strong'] .password-strength__bar {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='strong'] .password-strength__bar {
   width: 100%;
   background: #43a047;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength[data-strength='weak'] .password-strength__text {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='weak'] .password-strength__text {
   color: #e53935;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength[data-strength='medium'] .password-strength__text {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='medium'] .password-strength__text {
   color: #fb8c00;
 }
 
-body[data-page="home"] #siteLockDialog .password-strength[data-strength='strong'] .password-strength__text {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='strong'] .password-strength__text {
   color: #43a047;
 }
 
-body[data-page="home"] #siteLockDialog .form-error--field {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .form-error--field {
   margin-top: 0.1rem;
   min-height: 1rem;
   text-align: left;
@@ -1757,16 +1757,16 @@ body[data-page="home"] #siteLockDialog .form-error--field {
   font-size: 0.82rem;
 }
 
-body[data-page="home"] #siteLockDialog #siteLockPasswordInput.is-error,
-body[data-page="home"] #siteLockDialog #siteLockPasswordInput.is-error:focus,
-body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-error,
-body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-error:focus {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockPasswordInput.is-error,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockPasswordInput.is-error:focus,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockConfirmPasswordInput.is-error,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockConfirmPasswordInput.is-error:focus {
   border-color: #e57373;
   box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
 }
 
-body[data-page="home"] #siteLockDialog #siteLockPasswordInput.is-shaking,
-body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockPasswordInput.is-shaking,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockConfirmPasswordInput.is-shaking {
   animation: site-lock-input-shake 300ms ease-in-out 1;
 }
 
@@ -1810,21 +1810,21 @@ body[data-page="home"] #siteLockDialog #siteLockConfirmPasswordInput.is-shaking 
   margin-top: 16px;
 }
 
-body[data-page="home"] #siteLockManageDialog .input-group--site-lock-manage {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .input-group--site-lock-manage {
   gap: 0.65rem;
 }
 
-body[data-page="home"] #siteLockManageDialog .password-wrap--site-lock-manage {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .password-wrap--site-lock-manage {
   position: relative;
   width: 100%;
 }
 
-body[data-page="home"] #siteLockManageDialog .password-wrap--site-lock-manage input {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .password-wrap--site-lock-manage input {
   padding-right: 2.8rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .password-toggle--site-lock-manage {
   position: absolute;
   top: 50%;
   right: 0.4rem;
@@ -1840,7 +1840,7 @@ body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage 
   justify-content: center;
 }
 
-body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage img {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .password-toggle--site-lock-manage img {
   width: 1.3125rem;
   height: 1.3125rem;
   object-fit: contain;
@@ -1848,12 +1848,12 @@ body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage 
   transition: opacity 0.2s ease;
 }
 
-body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage:hover img,
-body[data-page="home"] #siteLockManageDialog .password-toggle--site-lock-manage:focus-visible img {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .password-toggle--site-lock-manage:hover img,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .password-toggle--site-lock-manage:focus-visible img {
   opacity: 1;
 }
 
-body[data-page="home"] #siteLockManageDialog .form-error--field {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog .form-error--field {
   margin-top: 0.1rem;
   min-height: 1rem;
   text-align: left;
@@ -1861,16 +1861,16 @@ body[data-page="home"] #siteLockManageDialog .form-error--field {
   font-size: 0.82rem;
 }
 
-body[data-page="home"] #siteLockManageDialog #siteLockCurrentPasswordInput.is-error,
-body[data-page="home"] #siteLockManageDialog #siteLockCurrentPasswordInput.is-error:focus,
-body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-error,
-body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-error:focus {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog #siteLockCurrentPasswordInput.is-error,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog #siteLockCurrentPasswordInput.is-error:focus,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog #siteLockNewPasswordInput.is-error,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog #siteLockNewPasswordInput.is-error:focus {
   border-color: #e57373;
   box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
 }
 
-body[data-page="home"] #siteLockManageDialog #siteLockCurrentPasswordInput.is-shaking,
-body[data-page="home"] #siteLockManageDialog #siteLockNewPasswordInput.is-shaking {
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog #siteLockCurrentPasswordInput.is-shaking,
+body:is([data-page="home"], [data-page="site-detail"]) #siteLockManageDialog #siteLockNewPasswordInput.is-shaking {
   animation: site-lock-input-shake 300ms ease-in-out 1;
 }
 
@@ -5243,11 +5243,11 @@ body[data-page="home"] #siteDialog #siteNameCounter {
 }
 
 
-body[data-page="home"] #siteEditNameDialog .input-group--site-create {
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog .input-group--site-create {
   position: relative;
 }
 
-body[data-page="home"] #siteEditNameDialog .site-input-feedback-row {
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog .site-input-feedback-row {
   width: 100%;
   margin-top: 0.24rem;
   display: flex;
@@ -5256,7 +5256,7 @@ body[data-page="home"] #siteEditNameDialog .site-input-feedback-row {
   gap: 0.5rem;
 }
 
-body[data-page="home"] #siteEditNameDialog #siteEditNameError {
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameError {
   width: auto;
   margin-top: 0;
   text-align: left;
@@ -5266,9 +5266,9 @@ body[data-page="home"] #siteEditNameDialog #siteEditNameError {
   min-height: 0;
 }
 
-body[data-page="home"] #siteEditNameDialog #siteEditNameCounter,
-body[data-page="home"] #siteEditNameDialog #siteEditNameCounter.is-warning,
-body[data-page="home"] #siteEditNameDialog #siteEditNameCounter.is-limit {
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameCounter,
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameCounter.is-warning,
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameCounter.is-limit {
   display: block;
   width: auto;
   text-align: right;
@@ -5283,12 +5283,12 @@ body[data-page="home"] #siteEditNameDialog #siteEditNameCounter.is-limit {
   opacity: 1;
 }
 
-body[data-page="home"] #siteEditNameDialog #siteEditNameInput.input-error,
-body[data-page="home"] #siteEditNameDialog #siteEditNameInput.input-error:focus {
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameInput.input-error,
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameInput.input-error:focus {
   border: 2px solid #ef4444 !important;
 }
 
-body[data-page="home"] #siteEditNameDialog #siteEditNameInput.is-shaking {
+body:is([data-page="home"], [data-page="site-detail"]) #siteEditNameDialog #siteEditNameInput.is-shaking {
   animation: site-name-input-shake 300ms ease-in-out 1;
 }
 
@@ -8615,7 +8615,8 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteDeleteForbiddenOverl
 body[data-page="site-detail"] .page2-header {
   min-height: auto;
   height: auto;
-  grid-template-columns: 6.25rem minmax(0, 1fr) 6.25rem;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  column-gap: 0.5rem;
   grid-template-rows: auto auto;
   grid-template-areas:
     "main-left main-center main-right"
@@ -8662,6 +8663,12 @@ body[data-page="site-detail"] .page2-search-open-button img {
   height: 20px;
   object-fit: contain;
   filter: brightness(0) invert(1);
+}
+
+body[data-page="site-detail"] .page2-site-menu-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 body[data-page="site-detail"] :is(.page2-search-open-button, .page2-search-close-button):focus-visible {
@@ -8712,7 +8719,7 @@ body[data-page="site-detail"] .page2-header .page2-filter-menu {
 
 @media (max-width: 420px) {
   body[data-page="site-detail"] .page2-header {
-    grid-template-columns: 6rem minmax(0, 1fr) 6rem;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
     row-gap: 0;
     padding-inline: 0.65rem;
   }
