@@ -1479,7 +1479,7 @@ import { OCR_API_URL } from './config.js';
         <div class="bottom-sheet__handle" aria-hidden="true"></div>
         <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
         <div class="item-action-sheet__content">
-          <button type="button" class="item-action-sheet__row" id="siteActionExportButton"><img src="Icon/Exel.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Exporter Excel</span></button>
+          <button type="button" class="item-action-sheet__row" id="siteActionExportButton"><img src="Icon/Exel.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Exporter</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerAfterExport" aria-hidden="true"></div>
           <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton"><img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span id="siteActionLockToggleLabel">Verrouiller</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
