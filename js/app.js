@@ -2003,9 +2003,9 @@ import { OCR_API_URL } from './config.js';
         return;
       }
       const strengthLabelByKey = {
-        weak: 'Mot de passe faible',
-        medium: 'Mot de passe moyen',
-        strong: 'Mot de passe fort',
+        weak: 'Force du mot de passe : faible',
+        medium: 'Force du mot de passe : moyenne',
+        strong: 'Force du mot de passe : forte',
       };
       siteLockStrengthIndicator.hidden = false;
       siteLockStrengthIndicator.dataset.strength = strength;
