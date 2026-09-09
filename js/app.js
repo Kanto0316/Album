@@ -1483,15 +1483,18 @@ import { OCR_API_URL } from './config.js';
     const site = StorageService.getSite(siteId);
     if (!site || !sheet) return;
     const locked = isSiteLocked(site);
-    const canDelete = permissions?.canDelete && !locked;
+    const isSiteDetailAction = document.body.dataset.page === 'site-detail'
+      || document.activeElement?.id === 'page2SiteMenuButton';
+    const canEdit = permissions?.canEdit && (!locked || isSiteDetailAction);
+    const canDelete = permissions?.canDelete && (!locked || isSiteDetailAction);
     overlay.querySelector('#siteActionSheetTitle').textContent = String(site.nom || '').trim() || 'Actions';
     overlay.querySelector('#siteActionLockToggleLabel').textContent = locked ? 'Déverrouiller' : 'Verrouiller';
     const edit = overlay.querySelector('#siteActionEditNameButton');
     const remove = overlay.querySelector('#siteActionDeleteButton');
-    edit.hidden = locked;
+    edit.hidden = !canEdit;
     remove.hidden = !canDelete;
-    overlay.querySelector('#siteActionDividerAfterLock').hidden = locked && !canDelete;
-    overlay.querySelector('#siteActionDividerBeforeDelete').hidden = locked || !canDelete;
+    overlay.querySelector('#siteActionDividerAfterLock').hidden = !canEdit && !canDelete;
+    overlay.querySelector('#siteActionDividerBeforeDelete').hidden = !canEdit || !canDelete;
     let historyEntry = false;
     const close = () => {
       overlay.classList.remove('is-open');
@@ -4013,8 +4016,8 @@ import { OCR_API_URL } from './config.js';
     };
     const openNameAction = (actionSiteId) => {
       const latest = StorageService.getSite(actionSiteId);
-      if (isSiteLocked(latest)) {
-        UiService.showToast('Impossible de modifier le nom tant que le site est verrouillé.');
+      if (!isAuthenticated || !permissions?.canEdit) {
+        UiService.showToast('Action non autorisée.');
         return;
       }
       pendingSiteActionId = actionSiteId;
@@ -4026,8 +4029,12 @@ import { OCR_API_URL } from './config.js';
     };
     const deleteSiteAction = async (actionSiteId) => {
       const latest = StorageService.getSite(actionSiteId);
-      if (!latest || isSiteLocked(latest)) {
-        UiService.showToast('Suppression impossible tant que le site est verrouillé.');
+      if (!latest) {
+        UiService.showToast('Suppression impossible.');
+        return;
+      }
+      if (!isAuthenticated || !permissions?.canDelete) {
+        UiService.showToast('Action non autorisée.');
         return;
       }
       if (!canCurrentUserDeleteSiteForActions(latest, permissions)) {
@@ -4040,9 +4047,14 @@ import { OCR_API_URL } from './config.js';
         UiService.showToast('Suppression impossible.');
         return;
       }
+      const redirectToHomeTimer = window.setTimeout(() => UiService.navigate('index.html'), 5000);
       UiService.showUndoSnackbar('Site supprimé.', async () => {
+        window.clearTimeout(redirectToHomeTimer);
         const restored = await StorageService.restoreSite(snapshot);
         UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+        if (!restored) {
+          UiService.navigate('index.html');
+        }
       });
     };
     page2SiteMenuButton.addEventListener('click', () => openSiteActionSheet(siteId, {
@@ -4061,9 +4073,9 @@ import { OCR_API_URL } from './config.js';
       event.preventDefault();
       const latest = StorageService.getSite(pendingSiteActionId);
       const nextName = siteEditNameInput.value.trim();
-      if (isSiteLocked(latest)) {
+      if (!isAuthenticated || !permissions?.canEdit) {
         siteEditNameDialog.close();
-        UiService.showToast('Impossible de modifier le nom tant que le site est verrouillé.');
+        UiService.showToast('Action non autorisée.');
         return;
       }
       if (nextName.length < 4 || nextName.length > 25) {
