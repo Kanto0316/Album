@@ -1479,6 +1479,8 @@ import { OCR_API_URL } from './config.js';
         <div class="bottom-sheet__handle" aria-hidden="true"></div>
         <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
         <div class="item-action-sheet__content">
+          <button type="button" class="item-action-sheet__row" id="siteActionExportButton"><img src="Icon/Exel.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Exporter Excel</span></button>
+          <div class="item-action-sheet__divider" id="siteActionDividerAfterExport" aria-hidden="true"></div>
           <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton"><img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span id="siteActionLockToggleLabel">Verrouiller</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
           <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton"><img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier le nom</span></button>
@@ -1515,24 +1517,28 @@ import { OCR_API_URL } from './config.js';
     });
   }
 
-  function openSiteActionSheet(siteId, { permissions, isAuthenticated, onLock, onEdit, onDelete }) {
+  function openSiteActionSheet(siteId, { permissions, isAuthenticated, onExport, onLock, onEdit, onDelete }) {
     if (!isAuthenticated) return;
     const overlay = ensureSharedSiteActionSheet();
     const sheet = overlay.querySelector('#siteActionSheet');
     const site = StorageService.getSite(siteId);
     if (!site || !sheet) return;
     const locked = isSiteLocked(site);
-    const isSiteDetailAction = document.body.dataset.page === 'site-detail'
-      || document.activeElement?.id === 'page2SiteMenuButton';
+    const isSiteDetailAction = document.body.dataset.page === 'site-detail';
+    const canExport = isSiteDetailAction && isAuthenticated && typeof onExport === 'function';
     const canEdit = permissions?.canEdit && (!locked || isSiteDetailAction);
     const canDelete = permissions?.canDelete && (!locked || isSiteDetailAction);
     overlay.querySelector('#siteActionSheetTitle').textContent = String(site.nom || '').trim() || 'Actions';
     overlay.querySelector('#siteActionLockToggleLabel').textContent = locked ? 'Déverrouiller' : 'Verrouiller';
+    const exportButton = overlay.querySelector('#siteActionExportButton');
+    const dividerAfterExport = overlay.querySelector('#siteActionDividerAfterExport');
     const edit = overlay.querySelector('#siteActionEditNameButton');
     const remove = overlay.querySelector('#siteActionDeleteButton');
+    exportButton.hidden = !canExport;
+    dividerAfterExport.hidden = !canExport;
     edit.hidden = !canEdit;
     remove.hidden = !canDelete;
-    overlay.querySelector('#siteActionDividerAfterLock').hidden = !canEdit && !canDelete;
+    overlay.querySelector('#siteActionDividerAfterLock').hidden = isSiteDetailAction || (!canEdit && !canDelete);
     overlay.querySelector('#siteActionDividerBeforeDelete').hidden = !canEdit || !canDelete;
     let historyEntry = false;
     const close = () => {
@@ -1542,6 +1548,10 @@ import { OCR_API_URL } from './config.js';
         historyEntry = false;
         window.history.back();
       }
+    };
+    exportButton.onclick = () => {
+      close();
+      onExport?.(siteId);
     };
     overlay.querySelector('#siteActionLockToggleButton').onclick = () => { close(); onLock(siteId); };
     edit.onclick = () => { close(); onEdit(siteId); };
@@ -3916,7 +3926,6 @@ import { OCR_API_URL } from './config.js';
     const itemNumberCounter = requireElement('itemNumberCounter');
     const itemFormError = requireElement('itemFormError');
     const itemCreateSubmitButton = requireElement('itemCreateSubmitButton');
-    const openExportItems = requireElement('headerExportBtn');
     const siteExportDialog = requireElement('siteExportDialog');
     const siteExportForm = requireElement('siteExportForm');
     const siteExportFileNameInput = requireElement('siteExportFileNameInput');
@@ -4071,9 +4080,18 @@ import { OCR_API_URL } from './config.js';
         }
       });
     };
+    function handleSiteExportAction() {
+      if (activeSiteTab === 'purchases') {
+        exportPurchases();
+        return;
+      }
+
+      openSiteExportDialog();
+    }
     page2SiteMenuButton.addEventListener('click', () => openSiteActionSheet(siteId, {
       permissions,
       isAuthenticated,
+      onExport: handleSiteExportAction,
       onLock: openLockAction,
       onEdit: openNameAction,
       onDelete: deleteSiteAction,
@@ -4868,10 +4886,6 @@ import { OCR_API_URL } from './config.js';
 
     function updateSiteExportButtonState(user = firebaseAuth.currentUser) {
       const isAuthenticated = isFirebaseUserAuthenticated(user);
-      if (openExportItems) {
-        openExportItems.disabled = !isAuthenticated;
-        openExportItems.setAttribute('aria-disabled', isAuthenticated ? 'false' : 'true');
-      }
       if (!isAuthenticated) {
         closeSiteExportDialog();
       }
@@ -6013,18 +6027,6 @@ import { OCR_API_URL } from './config.js';
     }
 
 
-    function updateHeaderExportButton(tabName) {
-      const exportBtn = document.querySelector('#headerExportBtn');
-      if (!exportBtn) {
-        return;
-      }
-      // The OUT and Achat PDD tabs share this header action.  Reset both ways
-      // a native button can be hidden when switching to purchases so the XLS
-      // icon keeps the exact same header position on every viewport.
-      exportBtn.hidden = false;
-      exportBtn.classList.remove('hidden');
-    }
-
     function setActiveSiteTab(tabName) {
       const safeTabName = tabName === 'purchases' && isAdminTabAllowed ? 'purchases' : 'outs';
       activeSiteTab = safeTabName;
@@ -6059,7 +6061,6 @@ import { OCR_API_URL } from './config.js';
       }
       updateItemStatusFilterVisibility(safeTabName);
       updateFabByActiveTab(safeTabName);
-      updateHeaderExportButton(safeTabName);
       renderActiveTabContent();
     }
 
@@ -6679,16 +6680,6 @@ import { OCR_API_URL } from './config.js';
     });
 
     updateSiteExportButtonState(firebaseAuth.currentUser);
-
-    if (openExportItems) {
-      openExportItems.addEventListener('click', () => {
-        if (activeSiteTab === 'purchases') {
-          exportPurchases();
-          return;
-        }
-        openSiteExportDialog();
-      });
-    }
 
     if (siteExportCancelButton) {
       siteExportCancelButton.addEventListener('click', closeSiteExportDialog);
