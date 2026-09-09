@@ -8666,8 +8666,8 @@ body[data-page="site-detail"] .page2-search-open-button img {
 }
 
 body[data-page="site-detail"] .page2-site-menu-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
