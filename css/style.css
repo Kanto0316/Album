@@ -8895,9 +8895,9 @@ body[data-page="site-detail"] .page2-search-close-button::after {
   body[data-page="home"] .page1-header:not(.is-search-open) {
     grid-template-columns:
       max-content
-      minmax(0, max-content)
+      minmax(0, 1fr)
       max-content;
-    justify-content: space-between;
+    justify-content: stretch;
     column-gap: 0;
   }
 
@@ -8919,9 +8919,13 @@ body[data-page="site-detail"] .page2-search-close-button::after {
     justify-content: flex-start;
   }
 
+  body[data-page="home"] .page1-header:not(.is-search-open) .app-header__center {
+    justify-content: center;
+  }
+
   body[data-page="home"] .page1-header .header-title {
     position: static;
-    width: auto;
+    width: max-content;
     max-width: 100%;
     min-width: 0;
     min-height: 2.75rem;
@@ -8934,7 +8938,8 @@ body[data-page="site-detail"] .page2-search-close-button::after {
   }
 
   body[data-page="home"] .page1-header .header-title h1 {
-    width: 100%;
+    width: max-content;
+    max-width: 100%;
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
@@ -8992,9 +8997,9 @@ body[data-page="site-detail"] .page2-search-close-button::after {
   body[data-page="home"] .page1-header:not(.is-search-open) {
     grid-template-columns:
       max-content
-      minmax(0, max-content)
+      minmax(0, 1fr)
       max-content;
-    justify-content: space-between;
+    justify-content: stretch;
     column-gap: 0;
   }
 
