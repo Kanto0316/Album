@@ -50,6 +50,45 @@ import { OCR_API_URL } from './config.js';
     return document.getElementById(id);
   }
 
+  function getPasswordStrength(passwordValue) {
+    const value = String(passwordValue || '');
+    const length = value.length;
+    if (!length) {
+      return null;
+    }
+    const bonusCount = [/[A-Z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)].filter(Boolean).length;
+    if (length < 6) {
+      return 'weak';
+    }
+    if (length >= 10 && bonusCount >= 2) {
+      return 'strong';
+    }
+    if ((length >= 6 && length <= 9) || bonusCount >= 1) {
+      return 'medium';
+    }
+    return 'weak';
+  }
+
+  function updatePasswordStrengthIndicator({ input, indicator, label }) {
+    if (!input || !indicator || !label) {
+      return;
+    }
+    const strength = getPasswordStrength(input.value);
+    if (!strength) {
+      indicator.hidden = true;
+      indicator.removeAttribute('data-strength');
+      return;
+    }
+    const strengthLabelByKey = {
+      weak: 'Force du mot de passe : faible',
+      medium: 'Force du mot de passe : moyenne',
+      strong: 'Force du mot de passe : forte',
+    };
+    indicator.hidden = false;
+    indicator.dataset.strength = strength;
+    label.textContent = strengthLabelByKey[strength] || strengthLabelByKey.weak;
+  }
+
   function escapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -2059,25 +2098,6 @@ import { OCR_API_URL } from './config.js';
       }
     }
 
-    function getPasswordStrength(passwordValue) {
-      const value = String(passwordValue || '');
-      const length = value.length;
-      if (!length) {
-        return null;
-      }
-      const bonusCount = [/[A-Z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value)].filter(Boolean).length;
-      if (length < 6) {
-        return 'weak';
-      }
-      if (length >= 10 && bonusCount >= 2) {
-        return 'strong';
-      }
-      if ((length >= 6 && length <= 9) || bonusCount >= 1) {
-        return 'medium';
-      }
-      return 'weak';
-    }
-
     function canCurrentUserChangeSiteCreator() {
       return Boolean(currentPermissions?.isAdmin);
     }
@@ -2087,24 +2107,11 @@ import { OCR_API_URL } from './config.js';
     }
 
     function updateSiteLockStrengthIndicator() {
-      if (!siteLockStrengthIndicator || !siteLockStrengthLabel) {
-        return;
-      }
-      const passwordValue = siteLockPasswordInput?.value || '';
-      const strength = getPasswordStrength(passwordValue);
-      if (!strength) {
-        siteLockStrengthIndicator.hidden = true;
-        siteLockStrengthIndicator.removeAttribute('data-strength');
-        return;
-      }
-      const strengthLabelByKey = {
-        weak: 'Force du mot de passe : faible',
-        medium: 'Force du mot de passe : moyenne',
-        strong: 'Force du mot de passe : forte',
-      };
-      siteLockStrengthIndicator.hidden = false;
-      siteLockStrengthIndicator.dataset.strength = strength;
-      siteLockStrengthLabel.textContent = strengthLabelByKey[strength] || strengthLabelByKey.weak;
+      updatePasswordStrengthIndicator({
+        input: siteLockPasswordInput,
+        indicator: siteLockStrengthIndicator,
+        label: siteLockStrengthLabel,
+      });
     }
 
     async function loadUserNames() {
@@ -3978,6 +3985,8 @@ import { OCR_API_URL } from './config.js';
     const siteLockConfirmPasswordInput = requireElement('siteLockConfirmPasswordInput');
     const siteLockPasswordError = requireElement('siteLockPasswordError');
     const siteLockConfirmPasswordError = requireElement('siteLockConfirmPasswordError');
+    const siteLockStrengthIndicator = requireElement('siteLockStrengthIndicator');
+    const siteLockStrengthLabel = requireElement('siteLockStrengthLabel');
     const siteLockManageDialog = requireElement('siteLockManageDialog');
     const siteLockManageForm = requireElement('siteLockManageForm');
     const siteLockCurrentPasswordInput = requireElement('siteLockCurrentPasswordInput');
@@ -4010,6 +4019,11 @@ import { OCR_API_URL } from './config.js';
       } else {
         siteLockPasswordInput.value = '';
         siteLockConfirmPasswordInput.value = '';
+        updatePasswordStrengthIndicator({
+          input: siteLockPasswordInput,
+          indicator: siteLockStrengthIndicator,
+          label: siteLockStrengthLabel,
+        });
         siteLockDialog.showModal();
         siteLockPasswordInput.focus();
       }
@@ -4068,6 +4082,15 @@ import { OCR_API_URL } from './config.js';
     siteEditNameInput.addEventListener('input', () => {
       clearActionErrors();
       siteEditNameCounter.textContent = `${siteEditNameInput.value.length} / 25`;
+    });
+    siteLockPasswordInput?.addEventListener('input', () => {
+      if (siteLockPasswordError) siteLockPasswordError.textContent = '';
+      siteLockPasswordInput.classList.remove('is-error', 'is-shaking');
+      updatePasswordStrengthIndicator({
+        input: siteLockPasswordInput,
+        indicator: siteLockStrengthIndicator,
+        label: siteLockStrengthLabel,
+      });
     });
     siteEditNameForm.addEventListener('submit', async (event) => {
       event.preventDefault();
