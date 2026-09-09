@@ -1419,6 +1419,98 @@ import { OCR_API_URL } from './config.js';
     });
   }
 
+  function canCurrentUserDeleteSiteForActions(site, permissions) {
+    if (permissions?.isAdmin) {
+      return true;
+    }
+    const currentUserId = String(permissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
+    const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
+    return Boolean(currentUserId && creatorId && currentUserId === creatorId);
+  }
+
+  function ensureSharedSiteActionSheet() {
+    let overlay = document.getElementById('siteActionSheetOverlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'siteActionSheetOverlay';
+    overlay.className = 'bottom-sheet-overlay item-action-sheet-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="bottom-sheet item-action-sheet" id="siteActionSheet" role="dialog" aria-modal="true" aria-label="Actions du site">
+        <div class="bottom-sheet__handle" aria-hidden="true"></div>
+        <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
+        <div class="item-action-sheet__content">
+          <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton"><img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span id="siteActionLockToggleLabel">Verrouiller</span></button>
+          <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
+          <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton"><img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier le nom</span></button>
+          <div class="item-action-sheet__divider" id="siteActionDividerBeforeDelete" aria-hidden="true"></div>
+          <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Supprimer</span></button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function confirmSharedSiteDeletion(siteName) {
+    let overlay = document.getElementById('siteDeleteConfirmOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'siteDeleteConfirmOverlay';
+      overlay.className = 'maintenance-overlay item-delete-confirm-overlay';
+      overlay.hidden = true;
+      overlay.innerHTML = `<article class="maintenance-card item-delete-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="siteDeleteConfirmTitle"><h3 id="siteDeleteConfirmTitle"></h3><div class="modal-actions item-delete-confirm-actions"><button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--cancel" id="siteDeleteCancelButton">Annuler</button><button type="button" class="btn item-delete-confirm-button item-delete-confirm-button--danger" id="siteDeleteConfirmButton">Supprimer</button></div></article>`;
+      document.body.appendChild(overlay);
+    }
+    overlay.querySelector('#siteDeleteConfirmTitle').textContent = `Supprimer ce site ${siteName || 'inconnu'} ?`;
+    return new Promise((resolve) => {
+      const close = (answer) => {
+        overlay.classList.remove('is-open');
+        window.setTimeout(() => { overlay.hidden = true; }, 170);
+        resolve(answer);
+      };
+      overlay.querySelector('#siteDeleteCancelButton').onclick = () => close(false);
+      overlay.querySelector('#siteDeleteConfirmButton').onclick = () => close(true);
+      overlay.onclick = (event) => { if (event.target === overlay) close(false); };
+      overlay.hidden = false;
+      window.requestAnimationFrame(() => overlay.classList.add('is-open'));
+    });
+  }
+
+  function openSiteActionSheet(siteId, { permissions, isAuthenticated, onLock, onEdit, onDelete }) {
+    if (!isAuthenticated) return;
+    const overlay = ensureSharedSiteActionSheet();
+    const sheet = overlay.querySelector('#siteActionSheet');
+    const site = StorageService.getSite(siteId);
+    if (!site || !sheet) return;
+    const locked = isSiteLocked(site);
+    const canDelete = permissions?.canDelete && !locked;
+    overlay.querySelector('#siteActionSheetTitle').textContent = String(site.nom || '').trim() || 'Actions';
+    overlay.querySelector('#siteActionLockToggleLabel').textContent = locked ? 'Déverrouiller' : 'Verrouiller';
+    const edit = overlay.querySelector('#siteActionEditNameButton');
+    const remove = overlay.querySelector('#siteActionDeleteButton');
+    edit.hidden = locked;
+    remove.hidden = !canDelete;
+    overlay.querySelector('#siteActionDividerAfterLock').hidden = locked && !canDelete;
+    overlay.querySelector('#siteActionDividerBeforeDelete').hidden = locked || !canDelete;
+    let historyEntry = false;
+    const close = () => {
+      overlay.classList.remove('is-open');
+      window.setTimeout(() => { overlay.hidden = true; }, 280);
+      if (historyEntry) {
+        historyEntry = false;
+        window.history.back();
+      }
+    };
+    overlay.querySelector('#siteActionLockToggleButton').onclick = () => { close(); onLock(siteId); };
+    edit.onclick = () => { close(); onEdit(siteId); };
+    remove.onclick = () => { close(); onDelete(siteId); };
+    overlay.onclick = (event) => { if (event.target === overlay) close(); };
+    overlay.hidden = false;
+    window.history.pushState({ siteActionSheet: true }, '');
+    historyEntry = true;
+    window.requestAnimationFrame(() => overlay.classList.add('is-open'));
+  }
+
   function initHomePage(permissions, authState) {
     initAuthRequiredNoticeCard();
 
@@ -2859,14 +2951,12 @@ import { OCR_API_URL } from './config.js';
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
-          const canShowSiteActions = isAuthenticated;
           const isPendingCreatorDecision = Boolean(StorageService.isSitePendingInactivityDecision?.(site));
           const pendingDecisionBadge = isPendingCreatorDecision
             ? '<span class="list-card__pending-decision-badge">En attente de votre décision</span>'
             : '';
           return `
             <article class="list-card ${isPendingCreatorDecision ? 'list-card--pending-decision' : ''}">
-              ${canShowSiteActions ? `<button class="list-card__menu-button" type="button" data-site-menu="${site.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-site-open="${site.id}">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 ${pendingDecisionBadge}
@@ -3017,11 +3107,6 @@ import { OCR_API_URL } from './config.js';
         });
       });
 
-      siteList.querySelectorAll('[data-site-menu]').forEach((button) => {
-        button.addEventListener('click', () => {
-          openSiteActionSheet(button.dataset.siteMenu);
-        });
-      });
     }
 
     if (homeMenuButton && homeMenuPanel && homeMenuOverlay) {
@@ -3797,7 +3882,7 @@ import { OCR_API_URL } from './config.js';
     loadUserNames();
   }
 
-  function initSiteDetailPage(permissions) {
+  function initSiteDetailPage(permissions, authState) {
     initAuthRequiredNoticeCard();
 
     const params = UiService.getQueryParams();
@@ -3868,6 +3953,7 @@ import { OCR_API_URL } from './config.js';
     const page2SearchFilterBar = requireElement('page2SearchFilterBar');
     const page2SearchOpenButton = requireElement('page2SearchOpenButton');
     const page2SearchCloseButton = requireElement('page2SearchCloseButton');
+    const page2SiteMenuButton = requireElement('page2SiteMenuButton');
     const page2BackButton = document.querySelector('.page2-header [data-back]');
     const itemDateFilter = requireElement('itemDateFilter');
     const itemDialogTitle = itemDialog?.querySelector('.modal-header h2');
@@ -3875,6 +3961,173 @@ import { OCR_API_URL } from './config.js';
     const itemNumberLabelText = itemDialog?.querySelector('.item-number-label-text');
 
     let currentSite = StorageService.getSite(siteId);
+    const isAuthenticated = Boolean(authState?.isAuthenticated);
+    page2SiteMenuButton.hidden = !isAuthenticated;
+
+    const siteEditNameDialog = requireElement('siteEditNameDialog');
+    const siteEditNameForm = requireElement('siteEditNameForm');
+    const siteEditNameInput = requireElement('siteEditNameInput');
+    const siteEditNameCounter = requireElement('siteEditNameCounter');
+    const siteEditNameError = requireElement('siteEditNameError');
+    const siteLockDialog = requireElement('siteLockDialog');
+    const siteLockForm = requireElement('siteLockForm');
+    const siteLockPasswordInput = requireElement('siteLockPasswordInput');
+    const siteLockConfirmPasswordInput = requireElement('siteLockConfirmPasswordInput');
+    const siteLockPasswordError = requireElement('siteLockPasswordError');
+    const siteLockConfirmPasswordError = requireElement('siteLockConfirmPasswordError');
+    const siteLockManageDialog = requireElement('siteLockManageDialog');
+    const siteLockManageForm = requireElement('siteLockManageForm');
+    const siteLockCurrentPasswordInput = requireElement('siteLockCurrentPasswordInput');
+    const siteLockNewPasswordInput = requireElement('siteLockNewPasswordInput');
+    const siteLockCurrentPasswordError = requireElement('siteLockCurrentPasswordError');
+    const siteLockNewPasswordError = requireElement('siteLockNewPasswordError');
+    let pendingSiteActionId = null;
+
+    const showActionError = (input, output, message) => {
+      if (output) output.textContent = message;
+      input?.classList.add('is-error', 'is-shaking');
+      input?.focus();
+    };
+    const clearActionErrors = () => {
+      [siteEditNameError, siteLockPasswordError, siteLockConfirmPasswordError, siteLockCurrentPasswordError, siteLockNewPasswordError]
+        .forEach((element) => { if (element) element.textContent = ''; });
+      [siteEditNameInput, siteLockPasswordInput, siteLockConfirmPasswordInput, siteLockCurrentPasswordInput, siteLockNewPasswordInput]
+        .forEach((element) => element?.classList.remove('is-error', 'is-shaking'));
+    };
+    const openLockAction = (actionSiteId) => {
+      if (!isAuthenticated) return;
+      const latest = StorageService.getSite(actionSiteId);
+      pendingSiteActionId = actionSiteId;
+      clearActionErrors();
+      if (isSiteLocked(latest)) {
+        siteLockCurrentPasswordInput.value = '';
+        siteLockNewPasswordInput.value = '';
+        siteLockManageDialog.showModal();
+        siteLockCurrentPasswordInput.focus();
+      } else {
+        siteLockPasswordInput.value = '';
+        siteLockConfirmPasswordInput.value = '';
+        siteLockDialog.showModal();
+        siteLockPasswordInput.focus();
+      }
+    };
+    const openNameAction = (actionSiteId) => {
+      const latest = StorageService.getSite(actionSiteId);
+      if (isSiteLocked(latest)) {
+        UiService.showToast('Impossible de modifier le nom tant que le site est verrouillé.');
+        return;
+      }
+      pendingSiteActionId = actionSiteId;
+      clearActionErrors();
+      siteEditNameInput.value = String(latest?.nom || '').trim();
+      siteEditNameCounter.textContent = `${siteEditNameInput.value.length} / 25`;
+      siteEditNameDialog.showModal();
+      siteEditNameInput.focus();
+    };
+    const deleteSiteAction = async (actionSiteId) => {
+      const latest = StorageService.getSite(actionSiteId);
+      if (!latest || isSiteLocked(latest)) {
+        UiService.showToast('Suppression impossible tant que le site est verrouillé.');
+        return;
+      }
+      if (!canCurrentUserDeleteSiteForActions(latest, permissions)) {
+        UiService.showToast('Seul le créateur de ce site est autorisé à supprimer ce site.');
+        return;
+      }
+      if (!await confirmSharedSiteDeletion(String(latest.nom || '').trim())) return;
+      const snapshot = await StorageService.removeSite(actionSiteId);
+      if (!snapshot) {
+        UiService.showToast('Suppression impossible.');
+        return;
+      }
+      UiService.showUndoSnackbar('Site supprimé.', async () => {
+        const restored = await StorageService.restoreSite(snapshot);
+        UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+      });
+    };
+    page2SiteMenuButton.addEventListener('click', () => openSiteActionSheet(siteId, {
+      permissions,
+      isAuthenticated,
+      onLock: openLockAction,
+      onEdit: openNameAction,
+      onDelete: deleteSiteAction,
+    }));
+
+    siteEditNameInput.addEventListener('input', () => {
+      clearActionErrors();
+      siteEditNameCounter.textContent = `${siteEditNameInput.value.length} / 25`;
+    });
+    siteEditNameForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const latest = StorageService.getSite(pendingSiteActionId);
+      const nextName = siteEditNameInput.value.trim();
+      if (isSiteLocked(latest)) {
+        siteEditNameDialog.close();
+        UiService.showToast('Impossible de modifier le nom tant que le site est verrouillé.');
+        return;
+      }
+      if (nextName.length < 4 || nextName.length > 25) {
+        showActionError(siteEditNameInput, siteEditNameError, nextName ? 'Le nom doit contenir entre 4 et 25 caractères.' : 'Veuillez entrer un nom de site.');
+        return;
+      }
+      const result = await StorageService.updateSiteName(pendingSiteActionId, nextName);
+      if (!result?.ok) {
+        showActionError(siteEditNameInput, siteEditNameError, result?.reason === 'duplicate_site' ? 'Ce nom de site existe déjà.' : 'Modification impossible.');
+        return;
+      }
+      siteEditNameDialog.close();
+      UiService.showToast('Nom du site mis à jour.');
+    });
+    siteLockForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearActionErrors();
+      const password = siteLockPasswordInput.value;
+      if (!password.trim() || !siteLockConfirmPasswordInput.value.trim()) {
+        if (!password.trim()) showActionError(siteLockPasswordInput, siteLockPasswordError, 'Veuillez remplir ce champ');
+        if (!siteLockConfirmPasswordInput.value.trim()) showActionError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Veuillez remplir ce champ');
+        return;
+      }
+      if (password !== siteLockConfirmPasswordInput.value) {
+        showActionError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Les mots de passe ne correspondent pas.');
+        return;
+      }
+      const result = await StorageService.setSiteLock(pendingSiteActionId, { passwordHash: await hashPassword(password), historyAction: 'a protégé le site par un mot de passe' });
+      if (!result?.ok) {
+        showActionError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Impossible de verrouiller ce site.');
+        return;
+      }
+      siteLockDialog.close();
+      UiService.showToast('Site protégé par un mot de passe.');
+    });
+    siteLockManageForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearActionErrors();
+      const latest = StorageService.getSite(pendingSiteActionId);
+      const action = event.submitter?.dataset?.lockManageAction === 'unlock' ? 'unlock' : 'update';
+      if (!siteLockCurrentPasswordInput.value.trim()) {
+        showActionError(siteLockCurrentPasswordInput, siteLockCurrentPasswordError, 'Veuillez remplir ce champ');
+        return;
+      }
+      if (await hashPassword(siteLockCurrentPasswordInput.value) !== latest?.passwordHash) {
+        showActionError(siteLockCurrentPasswordInput, siteLockCurrentPasswordError, 'Mot de passe actuel incorrect.');
+        return;
+      }
+      if (action === 'unlock') {
+        const result = await StorageService.clearSiteLock(pendingSiteActionId);
+        if (!result?.ok) return showActionError(siteLockCurrentPasswordInput, siteLockCurrentPasswordError, 'Impossible de retirer le verrouillage.');
+        siteLockManageDialog.close();
+        UiService.showToast('Le verrouillage a été retiré avec succès.');
+        return;
+      }
+      if (!siteLockNewPasswordInput.value.trim()) {
+        showActionError(siteLockNewPasswordInput, siteLockNewPasswordError, 'Veuillez remplir ce champ');
+        return;
+      }
+      const result = await StorageService.setSiteLock(pendingSiteActionId, { passwordHash: await hashPassword(siteLockNewPasswordInput.value), historyAction: 'a changé le mot de passe du site' });
+      if (!result?.ok) return showActionError(siteLockNewPasswordInput, siteLockNewPasswordError, 'Impossible de mettre à jour le mot de passe.');
+      siteLockManageDialog.close();
+      UiService.showToast('Le mot de passe a été mis à jour avec succès.');
+    });
     const siteDetailHistoryLogger = createSearchAndFilterHistoryLogger(siteId, () => currentSite?.nom || siteTitle?.textContent || '');
     let currentItems = [];
     let currentPurchases = [];
@@ -9611,7 +9864,7 @@ import { OCR_API_URL } from './config.js';
       initHomePage(permissions, { isAuthenticated, authUser });
     }
     if (page === 'site-detail') {
-      initSiteDetailPage(permissions);
+      initSiteDetailPage(permissions, { isAuthenticated, authUser });
     }
     if (page === 'item-detail') {
       initItemDetailPage(permissions);
