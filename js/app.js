@@ -1563,6 +1563,18 @@ import { OCR_API_URL } from './config.js';
     window.requestAnimationFrame(() => overlay.classList.add('is-open'));
   }
 
+  function setPasswordVisibility(inputElement, toggleButton, isVisible) {
+    if (!inputElement || !toggleButton) {
+      return;
+    }
+    const iconElement = toggleButton.querySelector('img');
+    inputElement.type = isVisible ? 'text' : 'password';
+    toggleButton.setAttribute('aria-label', isVisible ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
+    if (iconElement) {
+      iconElement.src = isVisible ? 'Icon/Eye_ON.png' : 'Icon/Eye_OFF.png';
+    }
+  }
+
   function initHomePage(permissions, authState) {
     initAuthRequiredNoticeCard();
 
@@ -2094,18 +2106,6 @@ import { OCR_API_URL } from './config.js';
       setSiteUnlockBlockedState(false);
       clearSiteUnlockBlockTimer();
       return { ok: true, isBlocked: false };
-    }
-
-    function setPasswordVisibility(inputElement, toggleButton, isVisible) {
-      if (!inputElement || !toggleButton) {
-        return;
-      }
-      const iconElement = toggleButton.querySelector('img');
-      inputElement.type = isVisible ? 'text' : 'password';
-      toggleButton.setAttribute('aria-label', isVisible ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
-      if (iconElement) {
-        iconElement.src = isVisible ? 'Icon/Eye_ON.png' : 'Icon/Eye_OFF.png';
-      }
     }
 
     function canCurrentUserChangeSiteCreator() {
@@ -4000,6 +4000,8 @@ import { OCR_API_URL } from './config.js';
     const siteLockManageForm = requireElement('siteLockManageForm');
     const siteLockCurrentPasswordInput = requireElement('siteLockCurrentPasswordInput');
     const siteLockNewPasswordInput = requireElement('siteLockNewPasswordInput');
+    const siteLockCurrentPasswordToggle = requireElement('siteLockCurrentPasswordToggle');
+    const siteLockNewPasswordToggle = requireElement('siteLockNewPasswordToggle');
     const siteLockCurrentPasswordError = requireElement('siteLockCurrentPasswordError');
     const siteLockNewPasswordError = requireElement('siteLockNewPasswordError');
     let pendingSiteActionId = null;
@@ -4023,6 +4025,8 @@ import { OCR_API_URL } from './config.js';
       if (isSiteLocked(latest)) {
         siteLockCurrentPasswordInput.value = '';
         siteLockNewPasswordInput.value = '';
+        setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, false);
+        setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, false);
         siteLockManageDialog.showModal();
         siteLockCurrentPasswordInput.focus();
       } else {
@@ -4037,6 +4041,14 @@ import { OCR_API_URL } from './config.js';
         siteLockPasswordInput.focus();
       }
     };
+    siteLockCurrentPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteLockCurrentPasswordInput?.type === 'password';
+      setPasswordVisibility(siteLockCurrentPasswordInput, siteLockCurrentPasswordToggle, nextIsVisible);
+    });
+    siteLockNewPasswordToggle?.addEventListener('click', () => {
+      const nextIsVisible = siteLockNewPasswordInput?.type === 'password';
+      setPasswordVisibility(siteLockNewPasswordInput, siteLockNewPasswordToggle, nextIsVisible);
+    });
     const openNameAction = (actionSiteId) => {
       const latest = StorageService.getSite(actionSiteId);
       if (!isAuthenticated || !permissions?.canEdit) {
