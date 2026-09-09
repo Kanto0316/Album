@@ -2164,6 +2164,17 @@ body[data-page="home"] .modal-actions--password:not(.modal-actions--password-man
   width: 50%;
 }
 
+body[data-page="site-detail"] .modal-actions--password:not(.modal-actions--password-manage) {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+body[data-page="site-detail"] .modal-actions--password:not(.modal-actions--password-manage) .btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
 .form-footer {
   grid-column: 1 / -1;
   justify-content: space-between;
