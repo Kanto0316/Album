@@ -8678,7 +8678,9 @@ body[data-page="site-detail"] .page2-search-open-button img {
   filter: brightness(0) invert(1);
 }
 
-body[data-page="site-detail"] .page2-site-menu-icon {
+body[data-page="site-detail"]
+#page2SiteMenuButton
+.page2-site-menu-icon {
   width: 16px;
   height: 16px;
   object-fit: contain;
