@@ -8669,6 +8669,7 @@ body[data-page="site-detail"] .page2-site-menu-icon {
   width: 20px;
   height: 20px;
   object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 body[data-page="site-detail"] :is(.page2-search-open-button, .page2-search-close-button):focus-visible {
