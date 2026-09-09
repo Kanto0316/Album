@@ -8904,7 +8904,7 @@ body[data-page="site-detail"] .page2-search-close-button::after {
     min-width: 0;
     min-height: 2.75rem;
     transform: none;
-    margin-left: 0.25rem;
+    margin-left: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: flex-start;
