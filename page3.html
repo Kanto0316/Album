@@ -101,34 +101,8 @@
       </main>
 
       <div class="item-detail-fab-row site-detail-fab-row" data-fab-row="create">
-        <button id="openOcrTest" class="ocr-test-button" type="button" aria-haspopup="dialog" aria-controls="ocrTestDialog" hidden>📷 Importer depuis image</button>
         <button type="button" id="openDetailFormButton" class="fab fab-add--item-detail" aria-label="Ajouter une donnée">+</button>
       </div>
-
-      <dialog id="ocrTestDialog" class="modal-card modal-card--wide ocr-test-dialog">
-        <section class="modal-content ocr-test-content" aria-labelledby="ocrTestTitle">
-          <div class="modal-header">
-            <h2 id="ocrTestTitle">Articles détectés par OCR</h2>
-          </div>
-          <p id="ocrTestStatus" class="ocr-test-status" role="status" aria-live="polite"></p>
-          <img id="ocrTestPreview" class="ocr-test-preview" alt="Image sélectionnée pour le test OCR" hidden />
-          <div id="ocrTestResult" class="ocr-test-result" hidden>
-            <p>Vérifiez et corrigez les articles avant de les ajouter.</p>
-            <div class="ocr-articles-table-wrap">
-              <table class="ocr-articles-table">
-                <thead><tr><th scope="col">Code</th><th scope="col">Désignation</th><th scope="col">Action</th></tr></thead>
-                <tbody id="ocrTestRows"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-actions ocr-test-actions">
-            <button id="ocrTestClose" type="button" class="btn btn-neutral">Annuler</button>
-            <button id="ocrTestChooseImage" type="button" class="btn btn-neutral">Choisir une image</button>
-            <button id="ocrTestCorrect" type="button" class="btn btn-neutral" hidden>Corriger</button>
-            <button id="ocrTestAdd" type="button" class="btn btn-success" hidden>Ajouter les articles</button>
-          </div>
-        </section>
-      </dialog>
 
       <dialog id="detailFormModal" class="modal-card detail-form-modal">
         <div class="modal-content detail-form-modal__content">

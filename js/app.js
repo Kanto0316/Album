@@ -5,9 +5,6 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
 import { getAutomaticUnit } from './automatic-unit.js';
 import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 import { getNextLineNumber } from './next-line-number.js';
-import { ImageImportService } from './image-import.service.js';
-import { OcrService } from './ocr.service.js';
-import { OCR_API_URL } from './config.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -7018,139 +7015,6 @@ import { OCR_API_URL } from './config.js';
     loadUserNames();
   }
 
-  function initOcrPrototype(permissions, addArticles) {
-    const openOcrTest = requireElement('openOcrTest');
-    const ocrTestDialog = requireElement('ocrTestDialog');
-    const ocrTestChooseImage = requireElement('ocrTestChooseImage');
-    const ocrTestClose = requireElement('ocrTestClose');
-    const ocrTestStatus = requireElement('ocrTestStatus');
-    const ocrTestPreview = requireElement('ocrTestPreview');
-    const ocrTestResult = requireElement('ocrTestResult');
-    const ocrTestRows = requireElement('ocrTestRows');
-    const ocrTestCorrect = requireElement('ocrTestCorrect');
-    const ocrTestAdd = requireElement('ocrTestAdd');
-    let ocrPreviewUrl = null;
-
-    function renderExtractedArticles(articles) {
-      ocrTestRows.innerHTML = articles.map((article) => `
-        <tr>
-          <td><input data-ocr-field="code" value="${escapeHtml(article.code)}" aria-label="Code article" readonly required></td>
-          <td><input data-ocr-field="designation" value="${escapeHtml(article.designation)}" aria-label="Désignation article" readonly required></td>
-          <td><button class="ocr-row-delete" type="button" data-ocr-delete aria-label="Supprimer l’article ${escapeHtml(article.code)}">Supprimer</button></td>
-        </tr>`).join('');
-      ocrTestCorrect.hidden = articles.length === 0;
-      ocrTestAdd.hidden = articles.length === 0;
-    }
-
-    function getEditedArticles() {
-      return Array.from(ocrTestRows.querySelectorAll('tr')).map((row) => ({
-        code: row.querySelector('[data-ocr-field="code"]')?.value.trim() || '',
-        designation: row.querySelector('[data-ocr-field="designation"]')?.value.trim() || '',
-      }));
-    }
-
-    function canUseOcrPrototype(user = firebaseAuth.currentUser) {
-      return Boolean(user?.uid && permissions?.isAdmin);
-    }
-
-    function updateOcrPrototypeAccess(user) {
-      if (openOcrTest) openOcrTest.hidden = !canUseOcrPrototype(user);
-      if (!canUseOcrPrototype(user) && ocrTestDialog?.open) ocrTestDialog.close();
-    }
-
-    updateOcrPrototypeAccess(firebaseAuth.currentUser);
-    onAuthStateChanged(firebaseAuth, (user) => updateOcrPrototypeAccess(user));
-
-    ocrTestRows?.addEventListener('click', (event) => {
-      const deleteButton = event.target.closest('[data-ocr-delete]');
-      if (!deleteButton) return;
-      deleteButton.closest('tr')?.remove();
-      const remainingCount = getEditedArticles().length;
-      ocrTestCorrect.hidden = remainingCount === 0;
-      ocrTestAdd.hidden = remainingCount === 0;
-      ocrTestStatus.textContent = remainingCount
-        ? `${remainingCount} article${remainingCount > 1 ? 's' : ''} à valider.`
-        : 'Aucun article détecté.';
-    });
-
-    ocrTestClose?.addEventListener('click', () => ocrTestDialog.close());
-    ocrTestDialog?.addEventListener('close', () => {
-      if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
-      ocrPreviewUrl = null;
-      ocrTestPreview.removeAttribute('src');
-      ocrTestPreview.hidden = true;
-      renderExtractedArticles([]);
-    });
-    async function selectAndAnalyzeImage() {
-      if (!canUseOcrPrototype()) {
-        openOcrTest.hidden = true;
-        if (ocrTestDialog.open) ocrTestDialog.close();
-        UiService.showToast('Utilisateur non autorisé à utiliser l’OCR.');
-        return;
-      }
-      ocrTestChooseImage.disabled = true;
-      ocrTestResult.hidden = true;
-      renderExtractedArticles([]);
-      try {
-        const image = await ImageImportService.selectImage();
-        if (!canUseOcrPrototype()) throw new Error('Session administrateur expirée.');
-        if (!ocrTestDialog.open) ocrTestDialog.showModal();
-        if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
-        ocrPreviewUrl = image.previewUrl;
-        ocrTestPreview.src = image.previewUrl;
-        ocrTestPreview.hidden = false;
-        ocrTestStatus.textContent = 'Analyse OCR en cours…';
-        const user = firebaseAuth.currentUser;
-        if (!user?.uid) throw new Error('Votre session n’est plus valide. Reconnectez-vous.');
-        const result = await OcrService.recognizeArticlesWithAuth(image.file, {
-          apiUrl: OCR_API_URL,
-          user,
-        });
-        const articles = result.articles;
-        renderExtractedArticles(articles);
-        ocrTestResult.hidden = false;
-        ocrTestStatus.textContent = articles.length
-          ? `${articles.length} article${articles.length > 1 ? 's' : ''} détecté${articles.length > 1 ? 's' : ''}.`
-          : 'Aucun article détecté. Essayez une image plus nette.';
-      } catch (error) {
-        if (!ocrTestDialog.open && canUseOcrPrototype()) ocrTestDialog.showModal();
-        ocrTestStatus.textContent = error?.message || 'Impossible d’analyser cette image.';
-      } finally {
-        ocrTestChooseImage.disabled = false;
-      }
-    }
-
-    // Le clic principal ouvre directement la galerie native. Le bouton dans la
-    // modale permet ensuite de recommencer avec une autre image.
-    openOcrTest?.addEventListener('click', selectAndAnalyzeImage);
-    ocrTestChooseImage?.addEventListener('click', selectAndAnalyzeImage);
-    ocrTestCorrect?.addEventListener('click', () => {
-      const inputs = ocrTestRows.querySelectorAll('input');
-      inputs.forEach((input) => { input.readOnly = false; });
-      inputs[0]?.focus();
-      ocrTestStatus.textContent = 'Vous pouvez corriger les champs détectés.';
-    });
-    ocrTestAdd?.addEventListener('click', async () => {
-      if (!canUseOcrPrototype()) return;
-      const articles = getEditedArticles();
-      if (!articles.length || articles.some(({ code, designation }) => !code || !designation)) {
-        ocrTestStatus.textContent = 'Chaque article doit avoir un code et une désignation.';
-        return;
-      }
-      ocrTestAdd.disabled = true;
-      ocrTestStatus.textContent = 'Ajout des articles en cours…';
-      try {
-        const addedCount = await addArticles(articles);
-        ocrTestDialog.close();
-        UiService.showToast(`${addedCount} article${addedCount > 1 ? 's' : ''} ajouté${addedCount > 1 ? 's' : ''}.`);
-      } catch (error) {
-        ocrTestStatus.textContent = error?.message || 'Impossible d’ajouter les articles.';
-      } finally {
-        ocrTestAdd.disabled = false;
-      }
-    });
-  }
-
   function initItemDetailPage(permissions) {
     initAuthRequiredNoticeCard();
     const params = UiService.getQueryParams();
@@ -7160,22 +7024,6 @@ import { OCR_API_URL } from './config.js';
       UiService.navigate('index.html');
       return;
     }
-
-    initOcrPrototype(permissions, async (articles) => {
-      let addedCount = 0;
-      for (const article of articles) {
-        const result = await StorageService.createDetail(siteId, itemId, {
-          code: article.code,
-          designation: article.designation,
-          qteSortie: '',
-          unite: getAutomaticUnit(article.designation),
-          statut: 'OK',
-        });
-        if (!result?.ok) throw new Error(`L’article ${article.code} n’a pas pu être ajouté.`);
-        addedCount += 1;
-      }
-      return addedCount;
-    });
 
     requireElement('itemBackButton').addEventListener('click', () => {
       UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
