@@ -4,6 +4,7 @@
   --surface-muted: #eef3f8;
   --primary: #59b8ff;
   --primary-dark: #278dda;
+  --chip-active-blue: #4aa8e8;
   --text: #1f2a37;
   --text-muted: #6b7280;
   --success: #21b66f;
@@ -5459,12 +5460,8 @@ body[data-page="site-detail"] .filter-chip:active {
 }
 
 body[data-page="site-detail"] .filter-chip.is-active {
-  background: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-dark) 100%
-  );
-  border-color: var(--header-gradient-bottom);
+  background: var(--chip-active-blue);
+  border-color: var(--chip-active-blue);
   color: #fff;
   box-shadow: none;
 }
