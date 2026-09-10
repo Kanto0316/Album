@@ -5459,13 +5459,10 @@ body[data-page="site-detail"] .filter-chip:active {
 }
 
 body[data-page="site-detail"] .filter-chip.is-active {
-  background: linear-gradient(
-    180deg,
-    var(--header-gradient-top) 0%,
-    var(--header-gradient-bottom) 100%
-  );
+  background: var(--detail-primary-soft);
   border-color: var(--header-gradient-bottom);
   color: #fff;
+  box-shadow: none;
 }
 
 body[data-page="site-detail"] .list-separator {
