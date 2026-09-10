@@ -5459,8 +5459,12 @@ body[data-page="site-detail"] .filter-chip:active {
 }
 
 body[data-page="site-detail"] .filter-chip.is-active {
-  background: var(--detail-primary);
-  border-color: var(--detail-primary);
+  background: linear-gradient(
+    180deg,
+    var(--header-gradient-top) 0%,
+    var(--header-gradient-bottom) 100%
+  );
+  border-color: var(--header-gradient-bottom);
   color: #fff;
 }
 
@@ -5520,7 +5524,11 @@ body[data-page="site-detail"] .list-card::before {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, var(--detail-primary-soft) 0%, var(--detail-primary) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--header-gradient-top) 0%,
+    var(--header-gradient-bottom) 100%
+  );
 }
 
 body[data-page="site-detail"] .list-card:hover {
