@@ -5459,7 +5459,11 @@ body[data-page="site-detail"] .filter-chip:active {
 }
 
 body[data-page="site-detail"] .filter-chip.is-active {
-  background: var(--detail-primary-soft);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   border-color: var(--header-gradient-bottom);
   color: #fff;
   box-shadow: none;
