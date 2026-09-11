@@ -22,6 +22,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
 import { getAutomaticUnit } from './automatic-unit.js';
 import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantities } from './return-quantity.js';
+import { STRUCTURED_HISTORY_ACTIONS } from './history-message.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -2239,7 +2240,9 @@ async function createItem(siteId, numberValue, options = {}) {
   }
   state.itemsBySite.get(siteId).unshift(item);
 
-  await appendHistoryEntry(`a créé ${item.numero}`, { siteId });
+  await appendHistoryEntry(`a créé ${item.numero}`, {
+    action: STRUCTURED_HISTORY_ACTIONS.CREATE_OUT, siteId, outNumber: item.numero,
+  });
   persistOfflineState();
   emitAll();
   return { ok: true, id: item.id };
@@ -2524,7 +2527,12 @@ async function createDetail(siteId, itemId, payload) {
   await ensureMaterialCode(detail.code, detail.designation);
 
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendHistoryEntry(`a ajouté ${detail.designation} dans ${item?.numero || 'OUT inconnu'}`, {
+    action: STRUCTURED_HISTORY_ACTIONS.ADD_MATERIAL,
+    siteId, outNumber: item?.numero, materialCode: detail.code,
+    materialDesignation: detail.designation, quantity: detail.qteSortie, unit: detail.unite,
+    oldQuantity: null, newQuantity: detail.qteSortie,
+  });
   persistOfflineState();
   emitAll();
   return { ok: true, id: detail.id, synced: true };
@@ -2538,6 +2546,7 @@ async function updateDetail(siteId, itemId, detailId, changes) {
     return null;
   }
 
+  const previousQuantity = target.qteSortie;
   const syncedChanges = {};
   const nextValues = {};
   if ('code' in changes) {
@@ -2589,7 +2598,12 @@ async function updateDetail(siteId, itemId, detailId, changes) {
     await ensureMaterialCode(target.code, target.designation);
   }
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendHistoryEntry(`a modifié ${target.designation} dans ${item?.numero || 'OUT inconnu'}`, {
+    action: STRUCTURED_HISTORY_ACTIONS.UPDATE_MATERIAL,
+    siteId, outNumber: item?.numero, materialCode: target.code,
+    materialDesignation: target.designation, quantity: target.qteSortie, unit: target.unite,
+    oldQuantity: previousQuantity, newQuantity: target.qteSortie,
+  });
   persistOfflineState();
   emitAll();
   return true;
@@ -2630,7 +2644,11 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
   target.dateRetour = target.returns.map((entry) => entry.date).filter(Boolean).join('\n');
   target.dateModification = dateModification;
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a ajouté un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendHistoryEntry(`a ajouté un retour de ${target.designation} dans ${item?.numero || 'OUT inconnu'}`, {
+    action: STRUCTURED_HISTORY_ACTIONS.ADD_RETURN,
+    siteId, outNumber: item?.numero, materialCode: target.code,
+    materialDesignation: target.designation, quantity, unit: target.unite,
+  });
   persistOfflineState();
   emitAll();
   return { ok: true, return: clone(returnEntry), qteRetour: nextTotal };
@@ -2763,15 +2781,21 @@ async function removeDetail(siteId, itemId, detailId) {
     return false;
   }
 
+  const removedDetail = clone(details[detailIndex]);
   if (await isTrashEnabled()) {
-    await addTrashEntry('detail', detailId, { detail: clone(details[detailIndex]) });
+    await addTrashEntry('detail', detailId, { detail: clone(removedDetail) });
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
   await incrementItemArticleCount(siteId, itemId, -1);
   details.splice(detailIndex, 1);
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendHistoryEntry(`a supprimé ${removedDetail.designation} de ${item?.numero || 'OUT inconnu'}`, {
+    action: STRUCTURED_HISTORY_ACTIONS.DELETE_MATERIAL,
+    siteId, outNumber: item?.numero, materialCode: removedDetail.code,
+    materialDesignation: removedDetail.designation,
+    quantity: removedDetail.qteSortie, unit: removedDetail.unite,
+  });
   persistOfflineState();
   emitAll();
   return true;
@@ -2790,8 +2814,9 @@ function resolveSiteNameForHistory(siteId, fallbackName = '') {
 }
 
 async function appendHistoryEntry(actionText, context = {}) {
-  const action = sanitizeText(actionText, false);
-  if (!action) {
+  const legacyAction = sanitizeText(actionText, false);
+  const action = sanitizeText(context?.action, false) || legacyAction;
+  if (!legacyAction || !action) {
     return;
   }
   try {
@@ -2803,13 +2828,25 @@ async function appendHistoryEntry(actionText, context = {}) {
     const username = normalizeUsername(profile?.username) || normalizeUsername(state.authUser?.displayName) || 'Utilisateur inconnu';
     const siteId = sanitizeText(context?.siteId, false);
     const siteName = resolveSiteNameForHistory(siteId, context?.siteName);
+    const timestamp = serverTimestamp();
     await addDoc(historyCollection(), {
       userId: profile?.id || state.userId || null,
       userName: username,
+      user: username,
       action,
+      legacyAction,
       siteId: siteId || null,
       siteName: siteName || null,
-      createdAt: serverTimestamp(),
+      site: siteName || null,
+      outNumber: sanitizeText(context?.outNumber, false) || null,
+      materialCode: sanitizeText(context?.materialCode, false) || null,
+      materialDesignation: sanitizeText(context?.materialDesignation, false) || null,
+      quantity: context?.quantity ?? null,
+      unit: sanitizeText(context?.unit, false) || null,
+      oldQuantity: context?.oldQuantity ?? null,
+      newQuantity: context?.newQuantity ?? null,
+      timestamp,
+      createdAt: timestamp,
     });
     await pruneHistoryEntries();
   } catch (_error) {
@@ -2834,11 +2871,21 @@ function normalizeHistoryDocument(snap) {
   return {
     id: snap.id,
     userId: sanitizeText(data.userId, false),
-    userName: normalizeUsername(data.userName) || 'Utilisateur inconnu',
+    userName: normalizeUsername(data.userName || data.user) || 'Utilisateur inconnu',
     action: sanitizeText(data.action, false),
+    legacyAction: sanitizeText(data.legacyAction, false),
     siteId: sanitizeText(data.siteId, false),
     siteName: resolveSiteNameForHistory(data.siteId, data.siteName),
-    createdAt: data.createdAt || null,
+    site: sanitizeText(data.site, false) || resolveSiteNameForHistory(data.siteId, data.siteName),
+    outNumber: sanitizeText(data.outNumber, false),
+    materialCode: sanitizeText(data.materialCode, false),
+    materialDesignation: sanitizeText(data.materialDesignation, false),
+    quantity: data.quantity ?? null,
+    unit: sanitizeText(data.unit, false),
+    oldQuantity: data.oldQuantity ?? null,
+    newQuantity: data.newQuantity ?? null,
+    timestamp: data.timestamp || data.createdAt || null,
+    createdAt: data.createdAt || data.timestamp || null,
   };
 }
 

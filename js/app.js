@@ -5,6 +5,7 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
 import { getAutomaticUnit } from './automatic-unit.js';
 import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 import { getNextLineNumber } from './next-line-number.js';
+import { STRUCTURED_HISTORY_ACTIONS, formatStructuredHistoryAction } from './history-message.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -9185,7 +9186,10 @@ import { getNextLineNumber } from './next-line-number.js';
   }
 
   function formatHistoryActionWithSite(history) {
-    const action = String(history?.action || '').trim();
+    const action = formatStructuredHistoryAction(history);
+    if (Object.values(STRUCTURED_HISTORY_ACTIONS).includes(String(history?.action || '').trim())) {
+      return action;
+    }
     const siteName = String(history?.siteName || '').trim();
     if (!action || !siteName) {
       return action;
