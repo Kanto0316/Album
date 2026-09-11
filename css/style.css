@@ -4827,6 +4827,10 @@ body[data-page="site-detail"] .progress-total {
   opacity: 0.9;
 }
 
+body[data-page="site-detail"] .progress-total__value {
+  color: #16a34a;
+}
+
 body[data-page="site-detail"] .progress-item {
   margin-bottom: 10px;
 }

@@ -5607,7 +5607,7 @@ import { getNextLineNumber } from './next-line-number.js';
 
       itemProgressStatsCard.hidden = activeSiteTab !== 'outs' || total <= 0;
       if (itemProgressTotal) {
-        itemProgressTotal.textContent = `Total • ${total} ARTICLE${total > 1 ? 'S' : ''}`;
+        itemProgressTotal.innerHTML = `Total des articles : <span class="progress-total__value">${total}</span>`;
       }
       if (total <= 0) {
         return;
