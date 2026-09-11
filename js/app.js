@@ -1131,6 +1131,7 @@ import { getNextLineNumber } from './next-line-number.js';
         canManageUsers: true,
         canImportExport: true,
         isLecture: false,
+        role,
       };
     }
     return {
@@ -1138,6 +1139,7 @@ import { getNextLineNumber } from './next-line-number.js';
       canEdit: true,
       canDelete: true,
       userId,
+      role,
       username,
       isAdmin: false,
       isStandard,

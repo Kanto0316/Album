@@ -1,5 +1,11 @@
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseDb } from './firebase-core.js';
+import {
+  getCatalogueNotification,
+  mergeMaterialCatalogs,
+  normalizeCatalogMaterial,
+  normalizeMaterialCode,
+} from './material-catalog.js';
 
 (function () {
   const isMaterialsPage = location.pathname.includes('materiels.html');
@@ -11,6 +17,9 @@ import { firebaseDb } from './firebase-core.js';
   let isRequestPngDownloading = false;
   let displayedMaterials = [];
   let hasRecordedMaterialsPageOpen = false;
+  let staticMaterialCodes = new Set();
+  let allMaterials = [];
+  let applyMaterialsSearch = () => renderMaterials(allMaterials);
 
 
   function waitForAppPermissionsReady() {
@@ -71,14 +80,6 @@ import { firebaseDb } from './firebase-core.js';
     return cleaned ? `Demande matériel — ${cleaned}` : 'Demande matériel';
   }
 
-
-  function normalizeMaterialRow(data) {
-    const code = String(data?.code || data?.ref || data?.reference || data?.Code || '').trim();
-    const designation = String(
-      data?.designation || data?.Designation || data?.désignation || data?.['Désignation'] || data?.name || '',
-    ).trim();
-    return { code, designation };
-  }
 
   function loadMaterialCart() {
     try {
@@ -898,15 +899,63 @@ import { firebaseDb } from './firebase-core.js';
     return { designation, qty: 1, unit: 'Pcs' };
   }
 
-  function saveManualMaterial() {
-    const code = String(requireElement('manualMaterialCodeInput')?.value || '').trim();
+  function showCatalogueNotification(simpleMessage, adminMessage = simpleMessage) {
+    const message = getCatalogueNotification(window.AppPermissions?.role, simpleMessage, adminMessage);
+    window.UiService?.showToast?.(message);
+  }
+
+  async function saveManualMaterial() {
+    const codeInput = requireElement('manualMaterialCodeInput');
+    const errorEl = requireElement('manualMaterialError');
+    const saveButton = requireElement('saveManualMaterialBtn');
+    const code = normalizeMaterialCode(codeInput?.value);
+    if (!code) {
+      showTempFieldError(codeInput, errorEl, 'Le code est obligatoire.');
+      codeInput?.focus();
+      return;
+    }
     const valid = validateManualMaterialForm();
     if (!valid) {
       return;
     }
     const { designation, qty, unit } = valid;
+
+    if (staticMaterialCodes.has(code)) {
+      showCatalogueNotification('Demande enregistrée.', `Doublon détecté :\nCode : ${code}`);
+      return;
+    }
+
+    saveButton?.setAttribute('disabled', '');
+    try {
+      const catalogueRef = doc(firebaseDb, 'catalogueMateriels', code);
+      const existingCatalogueMaterial = await getDoc(catalogueRef);
+      if (existingCatalogueMaterial.exists()) {
+        showCatalogueNotification('Demande enregistrée.', `Doublon détecté :\nCode : ${code}`);
+        return;
+      }
+
+      await setDoc(catalogueRef, {
+        code,
+        designation,
+        source: 'manuel',
+        createdAt: serverTimestamp(),
+      });
+
+      if (!allMaterials.some((material) => normalizeMaterialCode(material.code) === code)) {
+        allMaterials = mergeMaterialCatalogs(allMaterials, [{ code, designation }]);
+        applyMaterialsSearch();
+      }
+      showCatalogueNotification('Matériel ajouté.', `Nouveau matériel ajouté au catalogue :\nCode : ${code}`);
+    } catch (error) {
+      console.error('Erreur ajout matériel au catalogue :', error);
+      showCatalogueNotification('Demande enregistrée.', `Erreur lors de l’ajout au catalogue :\nCode : ${code}`);
+      return;
+    } finally {
+      saveButton?.removeAttribute('disabled');
+    }
+
     const manualItem = { code, designation, qty, unit, manual: true };
-    const existing = materialCart.find((item) => String(item.code || '').trim() === code && code);
+    const existing = materialCart.find((item) => normalizeMaterialCode(item.code) === code);
     if (existing) {
       existing.qty = sanitizeQty((Number(existing.qty) || 0) + qty);
       if (!String(existing.designation || '').trim()) {
@@ -979,23 +1028,29 @@ import { firebaseDb } from './firebase-core.js';
 
   async function loadAllMaterials() {
     console.log('Chargement tous matériels...');
-    const snap = await getDocs(collection(firebaseDb, 'pages', 'page3', 'items'));
-    console.log('Documents articles trouvés :', snap.size);
+    let staticMaterials = [];
+    let firestoreMaterials = [];
 
-    const uniqueMaterials = new Map();
-    snap.forEach((docSnap) => {
-      const row = normalizeMaterialRow(docSnap.data());
-      if (!row.code) {
-        return;
+    try {
+      const response = await fetch('data/materiel/materiels.json');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-      if (!uniqueMaterials.has(row.code)) {
-        uniqueMaterials.set(row.code, row);
-      }
-    });
+      const payload = await response.json();
+      staticMaterials = Array.isArray(payload) ? payload.map(normalizeCatalogMaterial) : [];
+    } catch (error) {
+      console.warn('Catalogue JSON indisponible, chargement Firestore uniquement :', error);
+    }
+    staticMaterialCodes = new Set(staticMaterials.map((material) => material.code).filter(Boolean));
 
-    const materials = Array.from(uniqueMaterials.values()).sort((a, b) =>
-      String(a.designation).localeCompare(String(b.designation), 'fr', { sensitivity: 'base' }),
-    );
+    try {
+      const snap = await getDocs(collection(firebaseDb, 'catalogueMateriels'));
+      firestoreMaterials = snap.docs.map((docSnap) => normalizeCatalogMaterial(docSnap.data()));
+    } catch (error) {
+      console.warn('Catalogue Firestore indisponible, catalogue JSON conservé :', error);
+    }
+
+    const materials = mergeMaterialCatalogs(staticMaterials, firestoreMaterials);
 
     console.log('Matériels uniques :', materials.length);
     return materials;
@@ -1008,7 +1063,6 @@ import { firebaseDb } from './firebase-core.js';
     const searchInput = requireElement('materialsSearchInput');
     const clearSearchBtn = requireElement('materialsClearSearchBtn');
     const exportButton = requireElement('materialsExportBtn');
-    let allMaterials = [];
 
     backButton?.addEventListener('click', () => {
       window.location.assign('index.html');
@@ -1027,6 +1081,7 @@ import { firebaseDb } from './firebase-core.js';
       });
       renderMaterials(filtered);
     };
+    applyMaterialsSearch = applySearch;
 
     searchInput?.addEventListener('input', applySearch);
 
