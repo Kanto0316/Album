@@ -1,10 +1,11 @@
 import {
+  addDoc,
   collection,
+  deleteDoc,
   deleteField,
   doc,
   getDoc,
   getDocs,
-  getDocsFromServer,
   increment,
   arrayUnion,
   onSnapshot,
@@ -12,8 +13,10 @@ import {
   query,
   where,
   serverTimestamp,
+  setDoc,
   Timestamp,
-  runTransaction as firestoreRunTransaction,
+  updateDoc,
+  runTransaction,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
@@ -22,61 +25,9 @@ import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantiti
 import { formatMaterialHistoryAction } from './material-history.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
+const OFFLINE_CACHE_TTL_MS = 180 * 1000;
 const SITE_INACTIVITY_THRESHOLD_DAYS = Number(APP_CONFIG?.siteInactivity?.thresholdDays) || 30;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
-const INTERNET_REQUIRED_MESSAGE = 'Connexion Internet obligatoire pour enregistrer cette modification.';
-
-function requireOnlineWrite() {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    throw new Error(INTERNET_REQUIRED_MESSAGE);
-  }
-}
-
-async function commitOnline(operation) {
-  requireOnlineWrite();
-  try {
-    // A transaction is acknowledged by the Firestore backend and, unlike a
-    // normal SDK write, is never queued in the local Firestore cache offline.
-    return await operation();
-  } catch (error) {
-    console.error('[Storage] Écriture Firestore refusée :', error);
-    throw new Error(INTERNET_REQUIRED_MESSAGE);
-  }
-}
-
-async function addDoc(collectionReference, data) {
-  const reference = doc(collectionReference);
-  await commitOnline(() => firestoreRunTransaction(state.db, async (transaction) => {
-    transaction.set(reference, data);
-  }));
-  return reference;
-}
-
-async function setDoc(reference, data, options) {
-  return commitOnline(() => firestoreRunTransaction(state.db, async (transaction) => {
-    if (options === undefined) {
-      transaction.set(reference, data);
-    } else {
-      transaction.set(reference, data, options);
-    }
-  }));
-}
-
-async function updateDoc(reference, data) {
-  return commitOnline(() => firestoreRunTransaction(state.db, async (transaction) => {
-    transaction.update(reference, data);
-  }));
-}
-
-async function deleteDoc(reference) {
-  return commitOnline(() => firestoreRunTransaction(state.db, async (transaction) => {
-    transaction.delete(reference);
-  }));
-}
-
-async function runTransaction(database, operation) {
-  return commitOnline(() => firestoreRunTransaction(database, operation));
-}
 
 const state = {
   initialized: false,
@@ -1165,8 +1116,13 @@ function parseOfflineState() {
     const page2 = Array.isArray(parsed?.pages?.page2) ? parsed.pages.page2 : [];
     const page3 = Array.isArray(parsed?.pages?.page3) ? parsed.pages.page3 : [];
     const materialCodes = Array.isArray(parsed?.materialCodes) ? parsed.materialCodes : [];
+    const savedAt = typeof parsed?.savedAt === 'string' ? parsed.savedAt : null;
+    const savedAtTime = savedAt ? new Date(savedAt).getTime() : NaN;
+    const isFresh = Number.isFinite(savedAtTime) && Date.now() - savedAtTime < OFFLINE_CACHE_TTL_MS;
     return {
       snapshot: { page1, page2, page3, materialCodes },
+      savedAt,
+      isFresh,
     };
   } catch (_error) {
     return null;
@@ -1175,7 +1131,7 @@ function parseOfflineState() {
 
 async function readPageItems(pageName) {
   const pageRef = makePageItemsCollection(pageName);
-  const snapshot = await getDocsFromServer(pageRef);
+  const snapshot = await getDocs(pageRef);
   return snapshot.docs.map(normalizeDocData);
 }
 
@@ -1184,7 +1140,7 @@ async function readPage2ItemsBySite(siteId) {
   if (!normalizedSiteId) {
     return [];
   }
-  const snapshot = await getDocsFromServer(query(makePageItemsCollection('page2'), where('siteId', '==', normalizedSiteId)));
+  const snapshot = await getDocs(query(makePageItemsCollection('page2'), where('siteId', '==', normalizedSiteId)));
   return snapshot.docs.map(normalizeDocData);
 }
 
@@ -1207,7 +1163,7 @@ function normalizeMaterialCodeEntry(entry) {
 }
 
 async function readMaterialCodes() {
-  const snapshot = await getDocsFromServer(materialCodesCollection());
+  const snapshot = await getDocs(materialCodesCollection());
   return snapshot.docs.map(normalizeDocData).map(normalizeMaterialCodeEntry).filter(Boolean);
 }
 
@@ -1357,14 +1313,29 @@ async function init() {
   state.db = firebaseDb;
 
   const offlineState = parseOfflineState();
-  try {
-    // Firestore is always attempted first, even while the read cache is fresh.
-    const remote = await loadRemoteSnapshot();
-    applySnapshot(remote);
-    persistOfflineState();
-  } catch (_error) {
-    // localStorage remains a read-only fallback when Firestore is unavailable.
-    applySnapshot(offlineState?.snapshot || { page1: [], page2: [], page3: [] });
+  if (offlineState?.snapshot) {
+    applySnapshot(offlineState.snapshot);
+  }
+
+  if (!offlineState?.isFresh) {
+    try {
+      const remote = await loadRemoteSnapshot();
+      applySnapshot(remote);
+      persistOfflineState();
+    } catch (_error) {
+      if (!offlineState?.snapshot) {
+        applySnapshot({ page1: [], page2: [], page3: [] });
+      }
+    }
+  } else if (!offlineState.snapshot) {
+    // Defensive fallback, should never happen.
+    try {
+      const remote = await loadRemoteSnapshot();
+      applySnapshot(remote);
+      persistOfflineState();
+    } catch (_error) {
+      applySnapshot({ page1: [], page2: [], page3: [] });
+    }
   }
 }
 
@@ -1729,7 +1700,7 @@ async function ensureMaterialCode(code, designation) {
 }
 
 async function readDetailsByQuery(...constraints) {
-  const snapshot = await getDocsFromServer(query(makePageItemsCollection('page3'), ...constraints));
+  const snapshot = await getDocs(query(makePageItemsCollection('page3'), ...constraints));
   return snapshot.docs.map(normalizeDocData);
 }
 
@@ -2516,6 +2487,32 @@ async function createDetail(siteId, itemId, payload) {
     dateCreation: timestamp,
     dateModification: timestamp,
   };
+
+  if (!navigator.onLine) {
+    try {
+      const action = window.OfflineActionBuilder.createDetailAction({
+        siteId,
+        itemId,
+        payload: detailPayload,
+        userId: state.userId,
+      });
+      await window.OfflineSync.addPendingAction(action);
+
+      const detail = { id: action.localId, ...detailPayload };
+      if (!state.detailsByItem.has(detailsKey)) {
+        state.detailsByItem.set(detailsKey, []);
+      }
+      state.detailsByItem.get(detailsKey).push(detail);
+      const item = getItem(siteId, itemId);
+      applyItemArticleCount(siteId, itemId, normalizeArticleCount(item?.articleCount) + 1);
+      persistOfflineState();
+      emitAll();
+      return { ok: true, id: action.localId, synced: false, pending: true };
+    } catch (error) {
+      console.error('[Storage] Impossible de créer le détail hors connexion :', error);
+      return { ok: false, error: error?.message || String(error) };
+    }
+  }
 
   const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
   await incrementItemArticleCount(siteId, itemId, 1);
