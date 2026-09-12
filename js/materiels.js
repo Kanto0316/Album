@@ -1188,6 +1188,10 @@ import { firebaseDb } from './firebase-core.js';
       renderMaterials([]);
     } finally {
       window.UiService?.markAppReady?.();
+      document.body.classList.remove('loading');
+      document.querySelector('.global-skeleton')?.remove();
+      document.querySelector('.skeleton-container')?.remove();
+      document.querySelector('#skeleton')?.remove();
     }
   }
 
