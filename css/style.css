@@ -1322,6 +1322,24 @@ body[data-page="history"] .list-grid {
   text-align: left;
 }
 
+.list-card--deleting {
+  opacity: 0.58;
+  cursor: progress;
+}
+
+.list-card--deleting::after {
+  content: "Suppression en cours…";
+  position: absolute;
+  right: 1rem;
+  bottom: 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.list-card--deleting button {
+  pointer-events: none;
+}
+
 .list-card__title {
   margin: 0;
   font-size: 1.02rem;
@@ -3568,6 +3586,15 @@ body[data-page="item-detail"] .data-table tbody tr td {
 body[data-page="item-detail"] .data-table tbody tr.detail-row--ko td {
   background: #fff5f5;
   border-bottom-color: #ffd4d4;
+}
+
+body[data-page="item-detail"] .data-table tbody tr.detail-row--deleting {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+body[data-page="item-detail"] .data-table tbody tr.detail-row--deleting td {
+  pointer-events: none;
 }
 
 body[data-page="item-detail"] .data-table tbody tr.detail-row--done td {

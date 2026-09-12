@@ -5,7 +5,7 @@ import test from 'node:test';
 const app = await readFile(new URL('../js/app.js', import.meta.url), 'utf8');
 const storage = await readFile(new URL('../js/storage.js', import.meta.url), 'utf8');
 
-test('la confirmation de suppression remet toujours le bouton dans son état normal', () => {
+test('la confirmation Page 3 disparaît avant Firestore et réactive toujours la ligne', () => {
   const handler = app.slice(
     app.indexOf('confirmButton.onclick = async () => {', app.indexOf('function askDetailDeleteConfirmation')),
     app.indexOf('overlay.onclick = (event) => {', app.indexOf('function askDetailDeleteConfirmation')),
@@ -14,8 +14,9 @@ test('la confirmation de suppression remet toujours le bouton dans son état nor
   assert.match(handler, /try \{/);
   assert.match(handler, /catch \(error\) \{/);
   assert.match(handler, /finally \{[\s\S]*isDeleting = false;[\s\S]*setLoadingState\(false\);/);
-  assert.match(handler, /if \(!removed\)[\s\S]*Suppression impossible/);
-  assert.match(handler, /Article supprimé\.[\s\S]*close\(\)/);
+  assert.match(handler, /overlay\.hidden = true;[\s\S]*deletingDetailIds\.add\(detailId\);[\s\S]*await StorageService\.removeDetail/);
+  assert.match(handler, /if \(!removed\)[\s\S]*L’article a été conservé/);
+  assert.match(handler, /finally \{[\s\S]*deletingDetailIds\.delete\(detailId\);[\s\S]*renderTable\(\)/);
 });
 
 test('la suppression publie la nouvelle liste avant les traitements secondaires', () => {

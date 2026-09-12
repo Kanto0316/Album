@@ -4195,6 +4195,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
     const siteDetailHistoryLogger = createSearchAndFilterHistoryLogger(siteId, () => currentSite?.nom || siteTitle?.textContent || '');
     let currentItems = [];
     let currentPurchases = [];
+    const deletingItemIds = new Set();
     let detailCountsByItem = {};
     let detailDesignationsByItem = {};
     let detailRowsByItem = {};
@@ -5085,17 +5086,21 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           }
           isDeleting = true;
           setLoadingState(true);
+          // La confirmation n'est pas un indicateur de progression : elle est
+          // retirée avant de lancer la suppression sur l'élément lui-même.
+          overlay.classList.remove('is-open');
+          overlay.hidden = true;
+          let confirmed = false;
           try {
-            const confirmed = typeof onConfirm === 'function' ? await onConfirm() : true;
-            if (confirmed !== false) {
-              await close(true);
-            }
+            confirmed = typeof onConfirm === 'function' ? await onConfirm() : true;
           } catch (error) {
             console.error('[Page 2] Suppression impossible :', error);
-            UiService.showToast('Suppression impossible. Veuillez réessayer.');
+            UiService.showToast('Suppression impossible. L’OUT a été conservé. Veuillez réessayer.');
           } finally {
             isDeleting = false;
             setLoadingState(false);
+            cleanup();
+            resolve(confirmed !== false);
           }
         };
         overlay.onclick = (event) => {
@@ -5335,20 +5340,27 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
             return;
           }
           await askItemDeleteConfirmation(activeItem.numero || 'cet élément', async () => {
-            const removedSnapshot = await StorageService.removeItem(siteId, itemId);
-            if (removedSnapshot?.limitReached) {
-              showOutDeleteLimitDialog();
+            deletingItemIds.add(itemId);
+            renderItems();
+            try {
+              const removedSnapshot = await StorageService.removeItem(siteId, itemId);
+              if (removedSnapshot?.limitReached) {
+                showOutDeleteLimitDialog();
+                return true;
+              }
+              if (!removedSnapshot) {
+                UiService.showToast('Suppression impossible. L’OUT a été conservé.');
+                return false;
+              }
+              UiService.showUndoSnackbar('Élément supprimé.', async () => {
+                const restored = await StorageService.restoreItem(removedSnapshot);
+                UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+              });
               return true;
+            } finally {
+              deletingItemIds.delete(itemId);
+              renderItems();
             }
-            if (!removedSnapshot) {
-              UiService.showToast('Suppression impossible.');
-              return false;
-            }
-            UiService.showUndoSnackbar('Élément supprimé.', async () => {
-              const restored = await StorageService.restoreItem(removedSnapshot);
-              UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
-            });
-            return true;
           });
         } finally {
           deleteButton.disabled = false;
@@ -5417,6 +5429,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
       const htmlParts = [];
       let previousLabel = null;
       filteredItems.forEach((item) => {
+        const isDeletingItem = deletingItemIds.has(item.id);
         const currentLabel = resolveItemPeriodLabel(item);
         if (currentLabel && currentLabel !== previousLabel) {
           htmlParts.push(renderListSeparator(currentLabel));
@@ -5433,9 +5446,9 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
         const isCursorFilterUnread = isCursorFilterActive && !readCursorFilterOuts.has(String(item.id));
         const unreadClassName = (isCursorFilterUnread || isSearchUnread) ? ' list-card--search-unread' : '';
         htmlParts.push(`
-            <article class="list-card${unreadClassName}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
-              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
-              <button class="list-card__button" type="button" data-item-open="${item.id}">
+            <article class="list-card${unreadClassName}${isDeletingItem ? ' list-card--deleting' : ''}" data-search-match="true" data-item-id="${escapeHtml(item.id)}" aria-busy="${isDeletingItem}">
+              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions" ${isDeletingItem ? 'disabled' : ''}><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
+              <button class="list-card__button" type="button" data-item-open="${item.id}" ${isDeletingItem ? 'disabled' : ''}>
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
                   <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountForCard}</span><span class="outs-label">Article${detailCountForCard > 1 ? 's' : ''}</span></span></span>
@@ -7128,6 +7141,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
     const detailHistoryLogger = createSearchAndFilterHistoryLogger(siteId, () => currentSite?.nom || '');
     let currentItem = StorageService.getItem(siteId, itemId);
     let currentDetails = [];
+    const deletingDetailIds = new Set();
     let hasResolvedInitialDetails = false;
     let isDetailSkeletonVisible = false;
     let detailSkeletonTimerId = null;
@@ -7979,20 +7993,29 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           }
           isDeleting = true;
           setLoadingState(true);
+          // Fermer visuellement avant toute attente réseau, puis porter l'état
+          // de chargement sur la ligne concernée.
+          overlay.classList.remove('is-open');
+          overlay.hidden = true;
+          deletingDetailIds.add(detailId);
+          renderTable();
           try {
             const removed = await StorageService.removeDetail(siteId, itemId, detailId);
             if (!removed) {
-              UiService.showToast('Suppression impossible.');
+              UiService.showToast('Suppression impossible. L’article a été conservé.');
               return;
             }
             UiService.showToast('Article supprimé.');
-            close();
           } catch (error) {
             console.error('[Page 3] Suppression de l\'article impossible :', error);
-            UiService.showToast('Suppression impossible. Veuillez réessayer.');
+            UiService.showToast('Suppression impossible. L’article a été conservé. Veuillez réessayer.');
           } finally {
+            deletingDetailIds.delete(detailId);
             isDeleting = false;
             setLoadingState(false);
+            cleanup();
+            resolve();
+            renderTable();
           }
         };
 
@@ -8269,6 +8292,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
       detailTableBody.innerHTML = filteredDetails
         .map(
           (detail, index) => {
+            const isDeletingDetail = deletingDetailIds.has(detail.id);
             const ecart = computeEcart(detail);
             const ecartClassName = typeof ecart === 'number' && !quantitiesAreEqual(ecart, 0) ? ' cell-input--ecart-alert' : '';
             const enterAnimationStyle = animateNextTableRender ? ` style="--detail-row-enter-delay:${Math.min(index, 5) * 40}ms"` : '';
@@ -8276,9 +8300,10 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
             const rowClasses = [
               animateNextTableRender ? 'detail-row-enter' : '',
               isKoStatus ? 'detail-row--ko' : '',
+              isDeletingDetail ? 'detail-row--deleting' : '',
             ].filter(Boolean).join(' ');
             return `
-            <tr data-detail-id="${detail.id}" data-qte-retour="${getTotalReturnQuantity(detail)}" class="${rowClasses}"${enterAnimationStyle}>
+            <tr data-detail-id="${detail.id}" data-qte-retour="${getTotalReturnQuantity(detail)}" class="${rowClasses}" aria-busy="${isDeletingDetail}"${enterAnimationStyle}>
               <td><span class="field-badge">${getHighlightedHtml(detail.champ, searchQuery)}</span></td>
               <td><input class="cell-input cell-input--compact-dynamic cell-input--left" data-col-key="code" data-field="code" type="text" maxlength="120" value="${escapeHtml(detail.code)}" /></td>
               <td><textarea class="cell-input cell-textarea cell-input--autosize cell-input--designation designation-field cell-input--left" data-field="designation" maxlength="120" rows="1">${escapeHtml(detail.designation)}</textarea></td>
