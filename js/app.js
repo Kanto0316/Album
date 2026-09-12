@@ -5,7 +5,7 @@ import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual 
 import { getAutomaticUnit } from './automatic-unit.js';
 import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 import { getNextLineNumber } from './next-line-number.js';
-import { formatMaterialHistoryAction } from './material-history.js';
+import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './material-history.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -9211,6 +9211,24 @@ import { formatMaterialHistoryAction } from './material-history.js';
     return `${action} du ${suffix}.`;
   }
 
+  function renderHistoryAction(history) {
+    const action = formatHistoryActionWithSite(history);
+    const highlights = getMaterialHistoryHighlights(history, action);
+    if (!highlights.length) {
+      return escapeHtml(action);
+    }
+
+    let cursor = 0;
+    const markup = highlights.map(({ start, end, className }) => {
+      const plainText = escapeHtml(action.slice(cursor, start));
+      const highlightedText = escapeHtml(action.slice(start, end));
+      cursor = end;
+      return `${plainText}<span class="${className}">${highlightedText}</span>`;
+    });
+    markup.push(escapeHtml(action.slice(cursor)));
+    return markup.join('');
+  }
+
   async function initHistoryPage() {
     const historyList = requireElement('historyList');
     if (!historyList) {
@@ -9255,7 +9273,7 @@ import { formatMaterialHistoryAction } from './material-history.js';
                 </div>
                 <div class="history-list__content">
                   <p class="history-list__name">${escapeHtml(displayName)}</p>
-                  <p class="history-list__title">${escapeHtml(formatHistoryActionWithSite(history))}</p>
+                  <p class="history-list__title">${renderHistoryAction(history)}</p>
                   <p class="history-list__date">${escapeHtml(UiService.formatDate(history.createdAt?.toDate?.() || history.createdAt))}</p>
                 </div>
               </li>
