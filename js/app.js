@@ -3904,8 +3904,10 @@ import { STRUCTURED_HISTORY_ACTIONS, formatStructuredHistoryAction } from './his
     initAuthRequiredNoticeCard();
 
     const params = UiService.getQueryParams();
-    const siteId = params.get('siteId');
+    const siteId = String(params.get('siteId') || '').trim();
     if (!siteId) {
+      console.error('Navigation page 2 impossible : siteId est absent de l’URL.');
+      UiService.showToast({ message: 'Impossible d’ouvrir les OUT : identifiant du site manquant.', type: 'error' });
       UiService.navigate('index.html');
       return;
     }
@@ -5396,7 +5398,7 @@ import { STRUCTURED_HISTORY_ACTIONS, formatStructuredHistoryAction } from './his
         htmlParts.push(`
             <article class="list-card${unreadClassName}" data-search-match="true" data-item-id="${escapeHtml(item.id)}">
               ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
-              <button class="list-card__button" type="button" data-item-open="${item.id}">
+              <button class="list-card__button" type="button" data-item-open="${escapeHtml(item.id)}">
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
                   <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountForCard}</span><span class="outs-label">Article${detailCountForCard > 1 ? 's' : ''}</span></span></span>
@@ -5423,18 +5425,30 @@ import { STRUCTURED_HISTORY_ACTIONS, formatStructuredHistoryAction } from './his
 
       itemList.querySelectorAll('[data-item-open]').forEach((button) => {
         button.addEventListener('click', () => {
-          const openedItemId = String(button.dataset.itemOpen || '');
+          const itemId = String(button.dataset.itemOpen || '').trim();
+          if (!siteId) {
+            console.error('Navigation vers page 3 impossible : siteId est absent.');
+            UiService.showToast({ message: 'Impossible d’ouvrir cet OUT : identifiant du site manquant.', type: 'error' });
+            return;
+          }
+          if (!itemId) {
+            console.error('Navigation vers page 3 impossible : itemId est absent.');
+            UiService.showToast({ message: 'Impossible d’ouvrir cet OUT : identifiant de l’OUT manquant.', type: 'error' });
+            return;
+          }
           if (query) {
-            readSearchResults.add(openedItemId);
+            readSearchResults.add(itemId);
             persistSearchReadIdsToStorage(readSearchResults);
           }
           if (activeStatusFilter !== 'all' && !query) {
-            readCursorFilterOuts.add(openedItemId);
+            readCursorFilterOuts.add(itemId);
             persistCursorFilterReadIdsToStorage(readCursorFilterOuts);
           }
           const card = button.closest('.list-card');
           card?.classList.remove('list-card--search-unread');
-          UiService.navigate(`page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(button.dataset.itemOpen)}&search=${encodeURIComponent(query)}`);
+          const urlDestination = `page3.html?siteId=${encodeURIComponent(siteId)}&itemId=${encodeURIComponent(itemId)}`;
+          console.log(siteId, itemId, urlDestination);
+          UiService.navigate(urlDestination);
         });
       });
 
@@ -7018,11 +7032,17 @@ import { STRUCTURED_HISTORY_ACTIONS, formatStructuredHistoryAction } from './his
 
   function initItemDetailPage(permissions) {
     initAuthRequiredNoticeCard();
-    const params = UiService.getQueryParams();
-    const siteId = params.get('siteId');
-    const itemId = params.get('itemId');
-    if (!siteId || !itemId) {
-      UiService.navigate('index.html');
+    const params = new URLSearchParams(window.location.search);
+    const siteId = String(params.get('siteId') || '').trim();
+    const itemId = String(params.get('itemId') || '').trim();
+    if (!siteId) {
+      console.error('Chargement de la page 3 impossible : siteId est absent de l’URL.');
+      UiService.showToast({ message: 'Impossible de charger le détail : identifiant du site manquant.', type: 'error' });
+      return;
+    }
+    if (!itemId) {
+      console.error('Chargement de la page 3 impossible : itemId est absent de l’URL.');
+      UiService.showToast({ message: 'Impossible de charger le détail : identifiant de l’OUT manquant.', type: 'error' });
       return;
     }
 
@@ -8836,9 +8856,14 @@ import { STRUCTURED_HISTORY_ACTIONS, formatStructuredHistoryAction } from './his
       renderTitle();
     });
 
+    let itemSnapshotsReceived = 0;
     StorageService.subscribeItems(siteId, (items) => {
+      itemSnapshotsReceived += 1;
       currentItem = items.find((item) => item.id === itemId) || currentItem;
-      if (!currentItem) {
+      // subscribeItems émet d'abord un tableau vide pendant la lecture Firestore.
+      // Attendre l'émission résolue évite de renvoyer prématurément vers la page 2.
+      if (!currentItem && itemSnapshotsReceived > 1) {
+        UiService.showToast({ message: 'Impossible de charger le détail : OUT introuvable.', type: 'error' });
         UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
         return;
       }
