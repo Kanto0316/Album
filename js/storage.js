@@ -26,6 +26,7 @@ import { STRUCTURED_HISTORY_ACTIONS } from './history-message.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
+const INTERNET_REQUIRED_MESSAGE = 'Connexion Internet requise pour enregistrer cette modification.';
 const SITE_INACTIVITY_THRESHOLD_DAYS = Number(APP_CONFIG?.siteInactivity?.thresholdDays) || 30;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -38,6 +39,7 @@ const state = {
   itemsBySite: new Map(),
   detailsByItem: new Map(),
   materialCodes: [],
+  materialCodesLoadedFromFirestore: false,
   loadedItemSites: new Set(),
   loadedDetailSites: new Set(),
   loadedDetailPairs: new Set(),
@@ -1312,31 +1314,43 @@ async function init() {
   state.userId = state.authUser?.uid || null;
   state.db = firebaseDb;
 
+  // Firestore est toujours interrogé avant le cache, même si celui-ci est récent.
+  // Le cache n'est appliqué qu'en secours lorsqu'aucune lecture distante n'aboutit.
   const offlineState = parseOfflineState();
-  if (offlineState?.snapshot) {
-    applySnapshot(offlineState.snapshot);
+  try {
+    const remote = await loadRemoteSnapshot();
+    applySnapshot(remote);
+    persistOfflineState();
+  } catch (error) {
+    console.warn('[Storage] Firestore indisponible, lecture depuis le cache offline.', error);
+    applySnapshot(offlineState?.snapshot || { page1: [], page2: [], page3: [], materialCodes: [] });
+    // Les marqueurs du snapshot signifient seulement « disponible en cache » :
+    // les lectures paresseuses devront encore essayer Firestore en premier.
+    state.loadedItemSites.clear();
+    state.loadedDetailSites.clear();
+    state.loadedDetailPairs.clear();
   }
+}
 
-  if (!offlineState?.isFresh) {
-    try {
-      const remote = await loadRemoteSnapshot();
-      applySnapshot(remote);
-      persistOfflineState();
-    } catch (_error) {
-      if (!offlineState?.snapshot) {
-        applySnapshot({ page1: [], page2: [], page3: [] });
-      }
+function notifyInternetRequired() {
+  window.UiService?.showToast?.(INTERNET_REQUIRED_MESSAGE);
+}
+
+function firestoreRequiredWrite(operation) {
+  return async (...args) => {
+    if (!window.navigator.onLine) {
+      notifyInternetRequired();
+      return { ok: false, reason: 'internet_required', error: INTERNET_REQUIRED_MESSAGE };
     }
-  } else if (!offlineState.snapshot) {
-    // Defensive fallback, should never happen.
+
     try {
-      const remote = await loadRemoteSnapshot();
-      applySnapshot(remote);
-      persistOfflineState();
-    } catch (_error) {
-      applySnapshot({ page1: [], page2: [], page3: [] });
+      return await operation(...args);
+    } catch (error) {
+      console.error('[Storage] Écriture Firestore refusée :', error);
+      notifyInternetRequired();
+      return { ok: false, reason: 'internet_required', error: INTERNET_REQUIRED_MESSAGE };
     }
-  }
+  };
 }
 
 
@@ -1665,16 +1679,15 @@ async function getAllDetails() {
 }
 
 async function getMaterialCodes() {
-  if (!state.materialCodes.length) {
+  if (!state.materialCodesLoadedFromFirestore) {
     try {
-      state.materialCodes = await readMaterialCodes();
-      if (!state.materialCodes.length) {
-        state.materialCodes = await bootstrapMaterialCodesFromDetails();
-      }
+      const remoteCodes = await readMaterialCodes();
+      state.materialCodes = remoteCodes.length ? remoteCodes : await bootstrapMaterialCodesFromDetails();
+      state.materialCodesLoadedFromFirestore = true;
       sortState();
       persistOfflineState();
     } catch (_error) {
-      // Keep cached catalogue when Firestore is unavailable.
+      // Le catalogue déjà chargé depuis le cache reste le secours de lecture.
     }
   }
   return clone(state.materialCodes);
@@ -1722,7 +1735,12 @@ function mergeDetails(details) {
 async function ensureSiteDetailsLoaded(siteId) {
   const normalizedSiteId = String(siteId || '');
   if (!normalizedSiteId || state.loadedDetailSites.has(normalizedSiteId)) return;
-  const details = await readDetailsByQuery(where('siteId', '==', normalizedSiteId));
+  let details;
+  try {
+    details = await readDetailsByQuery(where('siteId', '==', normalizedSiteId));
+  } catch (_error) {
+    return;
+  }
   mergeDetails(details);
   await ensureSiteItemsLoaded(normalizedSiteId);
   await reconcileItemArticleCounts(new Set([normalizedSiteId]));
@@ -1735,7 +1753,12 @@ async function ensureSiteDetailsLoaded(siteId) {
 async function ensurePairDetailsLoaded(siteId, itemId) {
   const key = `${siteId}:${itemId}`;
   if (!siteId || !itemId || state.loadedDetailPairs.has(key) || state.loadedDetailSites.has(String(siteId))) return;
-  const details = await readDetailsByQuery(where('siteId', '==', String(siteId)), where('itemId', '==', String(itemId)));
+  let details;
+  try {
+    details = await readDetailsByQuery(where('siteId', '==', String(siteId)), where('itemId', '==', String(itemId)));
+  } catch (_error) {
+    return;
+  }
   state.detailsByItem.set(key, []);
   mergeDetails(details);
   state.loadedDetailPairs.add(key);
@@ -1771,9 +1794,12 @@ function mergeSiteItems(siteId, items) {
 async function ensureSiteItemsLoaded(siteId) {
   const normalizedSiteId = String(siteId || '').trim();
   if (!normalizedSiteId || state.loadedItemSites.has(normalizedSiteId)) return;
-  state.itemsBySite.set(normalizedSiteId, []);
-  emitForSite(normalizedSiteId);
-  const items = await readPage2ItemsBySite(normalizedSiteId);
+  let items;
+  try {
+    items = await readPage2ItemsBySite(normalizedSiteId);
+  } catch (_error) {
+    return;
+  }
   mergeSiteItems(normalizedSiteId, items);
   persistOfflineState();
   emitAll();
@@ -2490,32 +2516,6 @@ async function createDetail(siteId, itemId, payload) {
     dateModification: timestamp,
   };
 
-  if (!navigator.onLine) {
-    try {
-      const action = window.OfflineActionBuilder.createDetailAction({
-        siteId,
-        itemId,
-        payload: detailPayload,
-        userId: state.userId,
-      });
-      await window.OfflineSync.addPendingAction(action);
-
-      const detail = { id: action.localId, ...detailPayload };
-      if (!state.detailsByItem.has(detailsKey)) {
-        state.detailsByItem.set(detailsKey, []);
-      }
-      state.detailsByItem.get(detailsKey).push(detail);
-      const item = getItem(siteId, itemId);
-      applyItemArticleCount(siteId, itemId, normalizeArticleCount(item?.articleCount) + 1);
-      persistOfflineState();
-      emitAll();
-      return { ok: true, id: action.localId, synced: false, pending: true };
-    } catch (error) {
-      console.error('[Storage] Impossible de créer le détail hors connexion :', error);
-      return { ok: false, error: error?.message || String(error) };
-    }
-  }
-
   const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
   await incrementItemArticleCount(siteId, itemId, 1);
   const detail = { id: created.id, ...detailPayload };
@@ -3122,30 +3122,30 @@ window.StorageService = {
   getDetailRowsBySite,
   getAllDetails,
   getMaterialCodes,
-  createSite,
-  updateSiteName,
-  updateSiteCreator,
-  setSiteLock,
-  clearSiteLock,
+  createSite: firestoreRequiredWrite(createSite),
+  updateSiteName: firestoreRequiredWrite(updateSiteName),
+  updateSiteCreator: firestoreRequiredWrite(updateSiteCreator),
+  setSiteLock: firestoreRequiredWrite(setSiteLock),
+  clearSiteLock: firestoreRequiredWrite(clearSiteLock),
   getSiteUnlockProtectionState,
   registerSiteUnlockFailure,
   resetSiteUnlockProtection,
   setTrashEnabled,
   subscribeTrashSettings,
   subscribeTrashEntries,
-  restoreTrashEntry,
-  removeSite,
-  restoreSite,
-  createItem,
-  updateItemName,
-  removeItem,
-  restoreItem,
-  createDetail,
-  updateDetail,
-  addDetailReturn,
-  updateDetailReturnQuantity,
-  removeDetailReturn,
-  removeDetail,
+  restoreTrashEntry: firestoreRequiredWrite(restoreTrashEntry),
+  removeSite: firestoreRequiredWrite(removeSite),
+  restoreSite: firestoreRequiredWrite(restoreSite),
+  createItem: firestoreRequiredWrite(createItem),
+  updateItemName: firestoreRequiredWrite(updateItemName),
+  removeItem: firestoreRequiredWrite(removeItem),
+  restoreItem: firestoreRequiredWrite(restoreItem),
+  createDetail: firestoreRequiredWrite(createDetail),
+  updateDetail: firestoreRequiredWrite(updateDetail),
+  addDetailReturn: firestoreRequiredWrite(addDetailReturn),
+  updateDetailReturnQuantity: firestoreRequiredWrite(updateDetailReturnQuantity),
+  removeDetailReturn: firestoreRequiredWrite(removeDetailReturn),
+  removeDetail: firestoreRequiredWrite(removeDetail),
   recordSiteUnlockHistory,
   recordSiteUnlockFailureHistory,
   recordExcelExportHistory,
