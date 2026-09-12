@@ -1,5 +1,6 @@
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { collection, getDocsFromServer } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseDb } from './firebase-core.js';
+import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
 
 (function () {
   const isMaterialsPage = location.pathname.includes('materiels.html');
@@ -979,26 +980,33 @@ import { firebaseDb } from './firebase-core.js';
 
   async function loadAllMaterials() {
     console.log('Chargement tous matériels...');
-    const snap = await getDocs(collection(firebaseDb, 'pages', 'page3', 'items'));
-    console.log('Documents articles trouvés :', snap.size);
+    try {
+      const snap = await getDocsFromServer(collection(firebaseDb, 'pages', 'page3', 'items'));
+      console.log('Documents articles trouvés :', snap.size);
 
-    const uniqueMaterials = new Map();
-    snap.forEach((docSnap) => {
-      const row = normalizeMaterialRow(docSnap.data());
-      if (!row.code) {
-        return;
-      }
-      if (!uniqueMaterials.has(row.code)) {
-        uniqueMaterials.set(row.code, row);
-      }
-    });
+      const uniqueMaterials = new Map();
+      snap.forEach((docSnap) => {
+        const row = normalizeMaterialRow(docSnap.data());
+        if (!row.code) {
+          return;
+        }
+        if (!uniqueMaterials.has(row.code)) {
+          uniqueMaterials.set(row.code, row);
+        }
+      });
 
-    const materials = Array.from(uniqueMaterials.values()).sort((a, b) =>
-      String(a.designation).localeCompare(String(b.designation), 'fr', { sensitivity: 'base' }),
-    );
+      const materials = Array.from(uniqueMaterials.values()).sort((a, b) =>
+        String(a.designation).localeCompare(String(b.designation), 'fr', { sensitivity: 'base' }),
+      );
 
-    console.log('Matériels uniques :', materials.length);
-    return materials;
+      console.log('Matériels uniques :', materials.length);
+      updateLocalFallback('catalogue.details', materials);
+      reportReadMode('server');
+      return materials;
+    } catch (_error) {
+      reportReadMode('offline');
+      return readLocalFallback('catalogue.details', []);
+    }
   }
 
   async function initMaterialsPage() {
