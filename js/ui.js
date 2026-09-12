@@ -19,8 +19,6 @@
   let hasWindowLoaded = document.readyState === "complete";
   let isAppReady = false;
   let inlineLoaderTimerId = null;
-  let readinessObserver = null;
-  let readinessCheckPending = false;
 
   function showGlobalLoader() {
     ensureInlineLoader();
@@ -113,59 +111,6 @@
     }
     document.body.classList.remove(CONTENT_PENDING_CLASS, CONTENT_LOADING_CLASS, LEGACY_LOADING_CLASS);
     document.body.classList.add(CONTENT_READY_CLASS);
-    document
-      .querySelectorAll(".global-skeleton, .skeleton-container, #skeleton")
-      .forEach((skeleton) => skeleton.remove());
-  }
-
-  const PRIMARY_CONTENT_BY_PAGE = {
-    home: "#siteList",
-    "site-detail": "#itemList",
-    "item-detail": "#detailTableBody",
-    "all-materials": "#materialsTableBody",
-    "users-management": "#usersTableBody",
-    history: "#historyList",
-    trash: "#trashList",
-  };
-
-  const COUNTER_BY_PAGE = {
-    home: "#siteCount",
-    "site-detail": "#itemCount",
-    "item-detail": "#detailCount .count-number",
-    "all-materials": "#materialsCount .count-number",
-  };
-
-  function isPageDomReady() {
-    const pageContent = document.querySelector(".page-content");
-    if (!pageContent) {
-      return true;
-    }
-
-    const pageName = document.body?.dataset?.page || "";
-    const primarySelector = PRIMARY_CONTENT_BY_PAGE[pageName];
-    const primaryContent = primarySelector ? document.querySelector(primarySelector) : pageContent;
-    const hasFirestoreError = Boolean(document.querySelector(".toast--visible"));
-    if (!primaryContent || (!primaryContent.children.length && !hasFirestoreError)) {
-      return false;
-    }
-
-    if (primaryContent.querySelector(".detail-skeleton-row") || /chargement/i.test(primaryContent.textContent || "")) {
-      return false;
-    }
-
-    const counterSelector = COUNTER_BY_PAGE[pageName];
-    const counter = counterSelector ? document.querySelector(counterSelector) : null;
-    if (counterSelector && (!counter || !counter.textContent.trim())) {
-      return false;
-    }
-
-    return Boolean(document.querySelector("button, input, select, textarea, [role='button']"));
-  }
-
-  function waitForDomPaint() {
-    return new Promise((resolve) => {
-      window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
-    });
   }
 
   function waitForImagesReady() {
@@ -185,37 +130,21 @@
     ).then(() => undefined);
   }
 
-  async function maybeHideGlobalLoader() {
-    if (!hasWindowLoaded || !isAppReady || readinessCheckPending) {
+  function maybeHideGlobalLoader() {
+    if (!hasWindowLoaded || !isAppReady) {
       return;
     }
 
-    readinessCheckPending = true;
-    await waitForDomPaint();
-    readinessCheckPending = false;
-    if (!isPageDomReady()) {
-      return;
-    }
-
-    await waitForImagesReady();
-    await waitForDomPaint();
-    if (isPageDomReady()) {
-      readinessObserver?.disconnect();
-      readinessObserver = null;
-      hideGlobalLoader();
-    }
+    waitForImagesReady().then(hideGlobalLoader);
   }
 
   function markAppReady() {
     isAppReady = true;
+    stopContentLoadingState();
     try {
       sessionStorage.setItem(APP_LOADED_STORAGE_KEY, "1");
     } catch (_error) {
       // Ignore storage restrictions.
-    }
-    if (!readinessObserver) {
-      readinessObserver = new MutationObserver(maybeHideGlobalLoader);
-      readinessObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
     }
     maybeHideGlobalLoader();
   }
