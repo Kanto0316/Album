@@ -2329,17 +2329,39 @@ async function removeItem(siteId, itemId) {
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId));
-  await incrementSiteOutCount(siteId, -1);
-
   const [item] = items.splice(itemIndex, 1);
   const detailsKey = `${siteId}:${itemId}`;
   const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
+
+  // La suppression du document OUT est l'opération principale. Dès qu'elle est
+  // confirmée, publier la source de vérité locale afin que la Page 2 et son
+  // compteur soient actualisés même si un traitement secondaire échoue.
+  applySiteOutCount(siteId, getActualOutCountForSite(siteId));
+  persistOfflineState();
+  emitAll();
+
+  const secondaryOperations = [
+    incrementSiteOutCount(siteId, -1),
+    appendHistoryEntry(`a supprimé ${item.numero}`, { siteId }),
+  ];
   if (shouldCountDeletion) {
-    await recordOutDeletionLimitUsage(currentUserId);
+    secondaryOperations.push(recordOutDeletionLimitUsage(currentUserId));
+  }
+  const [countUpdate, historyUpdate, deletionLimitUpdate] = await Promise.allSettled(secondaryOperations);
+  if (countUpdate.status === 'rejected') {
+    console.warn('[Storage] OUT supprimé, mais compteur non synchronisé :', countUpdate.reason);
+  }
+  if (historyUpdate.status === 'rejected') {
+    console.warn('[Storage] OUT supprimé, mais historique non synchronisé :', historyUpdate.reason);
+  }
+  if (deletionLimitUpdate?.status === 'rejected') {
+    console.warn('[Storage] OUT supprimé, mais quota de suppression non synchronisé :', deletionLimitUpdate.reason);
   }
 
-  await appendHistoryEntry(`a supprimé ${item.numero}`, { siteId });
+  // incrementSiteOutCount met aussi à jour l'état local. Le réaligner sur la
+  // liste évite un double décrément après la publication optimiste confirmée.
+  applySiteOutCount(siteId, getActualOutCountForSite(siteId));
   persistOfflineState();
   emitAll();
   return { item: clone(item), details };
