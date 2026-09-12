@@ -35,13 +35,22 @@ test('un échec Firestore précède toute mutation locale', () => {
   assert.ok(deletion >= 0 && deletion < splice);
 });
 
-test('la confirmation Page 2 conserve son chargement et gère toujours les erreurs', () => {
+test('la confirmation Page 2 ferme le modal avant Firestore et réactive toujours l’OUT', () => {
   const confirmation = app.slice(
     app.indexOf('function askItemDeleteConfirmation'),
     app.indexOf('function ensureOutDeleteLimitDialog'),
   );
   assert.match(confirmation, /setLoadingState\(true\);[\s\S]*await onConfirm\(\)/);
-  assert.match(confirmation, /catch \(error\)[\s\S]*Suppression impossible\. Veuillez réessayer\./);
-  assert.match(confirmation, /finally \{[\s\S]*isDeleting = false;[\s\S]*setLoadingState\(false\);/);
-  assert.match(confirmation, /if \(confirmed !== false\) \{[\s\S]*close\(true\)/);
+  assert.match(confirmation, /overlay\.hidden = true;[\s\S]*await onConfirm\(\)/);
+  assert.match(confirmation, /catch \(error\)[\s\S]*L’OUT a été conservé/);
+  assert.match(confirmation, /finally \{[\s\S]*isDeleting = false;[\s\S]*setLoadingState\(false\);[\s\S]*cleanup\(\)/);
+});
+
+test('la carte OUT porte le chargement pendant removeItem puis est réactivée', () => {
+  const handler = app.slice(
+    app.indexOf("deletingItemIds.add(itemId)"),
+    app.indexOf("overlay.onclick = (event)", app.indexOf("deletingItemIds.add(itemId)")),
+  );
+  assert.match(handler, /deletingItemIds\.add\(itemId\);[\s\S]*await StorageService\.removeItem/);
+  assert.match(handler, /finally \{[\s\S]*deletingItemIds\.delete\(itemId\);[\s\S]*renderItems\(\)/);
 });
