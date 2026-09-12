@@ -7941,14 +7941,21 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           }
           isDeleting = true;
           setLoadingState(true);
-          const removed = await StorageService.removeDetail(siteId, itemId, detailId);
-          UiService.showToast(removed ? 'Article supprimée.' : 'Suppression impossible.');
-          if (removed) {
+          try {
+            const removed = await StorageService.removeDetail(siteId, itemId, detailId);
+            if (!removed) {
+              UiService.showToast('Suppression impossible.');
+              return;
+            }
+            UiService.showToast('Article supprimé.');
             close();
-            return;
+          } catch (error) {
+            console.error('[Page 3] Suppression de l\'article impossible :', error);
+            UiService.showToast('Suppression impossible. Veuillez réessayer.');
+          } finally {
+            isDeleting = false;
+            setLoadingState(false);
           }
-          isDeleting = false;
-          setLoadingState(false);
         };
 
         overlay.onclick = (event) => {

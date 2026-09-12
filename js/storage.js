@@ -2788,10 +2788,25 @@ async function removeDetail(siteId, itemId, detailId) {
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
-  await incrementItemArticleCount(siteId, itemId, -1);
   details.splice(detailIndex, 1);
   const item = getItem(siteId, itemId);
-  await appendMaterialHistoryEntry('material_delete', { siteId, item, detail: removedDetail });
+
+  // La suppression du document est l'opération principale. Publier aussitôt
+  // le nouvel état évite qu'un échec secondaire (compteur/historique)
+  // laisse la ligne supprimée affichée jusqu'au prochain rechargement.
+  persistOfflineState();
+  emitAll();
+
+  const [countUpdate, historyUpdate] = await Promise.allSettled([
+    incrementItemArticleCount(siteId, itemId, -1),
+    appendMaterialHistoryEntry('material_delete', { siteId, item, detail: removedDetail }),
+  ]);
+  if (countUpdate.status === 'rejected') {
+    console.warn('[Storage] Article supprimé, mais compteur non synchronisé :', countUpdate.reason);
+  }
+  if (historyUpdate.status === 'rejected') {
+    console.warn('[Storage] Article supprimé, mais historique non synchronisé :', historyUpdate.reason);
+  }
   persistOfflineState();
   emitAll();
   return true;
