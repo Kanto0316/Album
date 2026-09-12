@@ -22,6 +22,7 @@ import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
 import { getAutomaticUnit } from './automatic-unit.js';
 import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantities } from './return-quantity.js';
+import { formatMaterialHistoryAction } from './material-history.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -2524,7 +2525,7 @@ async function createDetail(siteId, itemId, payload) {
   await ensureMaterialCode(detail.code, detail.designation);
 
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a ajouté des articles dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendMaterialHistoryEntry('material_add', { siteId, item, detail, quantity: detail.qteSortie });
   persistOfflineState();
   emitAll();
   return { ok: true, id: detail.id, synced: true };
@@ -2583,13 +2584,22 @@ async function updateDetail(siteId, itemId, detailId, changes) {
   nextValues.dateModification = nowIso();
   syncedChanges.dateModification = nextValues.dateModification;
 
+  const previousDetail = clone(target);
   await updateDoc(doc(state.db, 'pages', 'page3', 'items', detailId), syncedChanges);
   Object.assign(target, nextValues);
   if ('code' in syncedChanges || 'designation' in syncedChanges) {
     await ensureMaterialCode(target.code, target.designation);
   }
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a modifié un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  const changedFields = Object.keys(syncedChanges).filter((field) => field !== 'dateModification' && String(previousDetail[field] ?? '') !== String(target[field] ?? ''));
+  for (const field of changedFields) {
+    const actionType = field === 'qteSortie'
+      ? 'material_quantity_update'
+      : field === 'qteRetour' ? 'material_return_update' : 'material_field_update';
+    await appendMaterialHistoryEntry(actionType, {
+      siteId, item, detail: target, field, previousValue: previousDetail[field], newValue: target[field],
+    });
+  }
   persistOfflineState();
   emitAll();
   return true;
@@ -2630,7 +2640,9 @@ async function addDetailReturn(siteId, itemId, detailId, payload) {
   target.dateRetour = target.returns.map((entry) => entry.date).filter(Boolean).join('\n');
   target.dateModification = dateModification;
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a ajouté un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendMaterialHistoryEntry('material_return_update', {
+    siteId, item, detail: target, previousValue: existingTotal, newValue: nextTotal,
+  });
   persistOfflineState();
   emitAll();
   return { ok: true, return: clone(returnEntry), qteRetour: nextTotal };
@@ -2697,7 +2709,7 @@ async function updateDetailReturnQuantity(siteId, itemId, detailId, returnId, qu
       ));
     }
     transaction.update(detailRef, updates);
-    return { ok: true, returns: nextReturns, qteRetour: updates.qteRetour, dateRetour: updates.dateRetour, dateModification };
+    return { ok: true, returns: nextReturns, qteRetour: updates.qteRetour, dateRetour: updates.dateRetour, dateModification, previousValue: selectedReturn.quantity, newValue: quantity };
   });
 
   if (!result.ok) return result;
@@ -2707,7 +2719,9 @@ async function updateDetailReturnQuantity(siteId, itemId, detailId, returnId, qu
   target.dateRetour = result.dateRetour;
   target.dateModification = result.dateModification;
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a modifié un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendMaterialHistoryEntry('material_return_update', {
+    siteId, item, detail: target, previousValue: result.previousValue, newValue: result.newValue,
+  });
   persistOfflineState();
   emitAll();
   return { ok: true, qteRetour: result.qteRetour };
@@ -2739,7 +2753,7 @@ async function removeDetailReturn(siteId, itemId, detailId, returnId) {
       dateRetour: nextReturns.map((entry) => entry.date).filter(Boolean).join('\n'),
       dateModification,
     });
-    return { ok: true, returns: nextReturns, qteRetour: nextTotal, dateModification };
+    return { ok: true, returns: nextReturns, qteRetour: nextTotal, dateModification, previousTotal: getTotalReturnQuantity(detail) };
   });
 
   if (!result.ok) return result;
@@ -2749,7 +2763,9 @@ async function removeDetailReturn(siteId, itemId, detailId, returnId) {
   target.dateRetour = result.returns.map((entry) => entry.date).filter(Boolean).join('\n');
   target.dateModification = result.dateModification;
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a supprimé un retour dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendMaterialHistoryEntry('material_return_update', {
+    siteId, item, detail: target, previousValue: result.previousTotal, newValue: result.qteRetour,
+  });
   persistOfflineState();
   emitAll();
   return { ok: true, qteRetour: result.qteRetour };
@@ -2763,15 +2779,16 @@ async function removeDetail(siteId, itemId, detailId) {
     return false;
   }
 
+  const removedDetail = clone(details[detailIndex]);
   if (await isTrashEnabled()) {
-    await addTrashEntry('detail', detailId, { detail: clone(details[detailIndex]) });
+    await addTrashEntry('detail', detailId, { detail: removedDetail });
   }
 
   await deleteDoc(doc(state.db, 'pages', 'page3', 'items', detailId));
   await incrementItemArticleCount(siteId, itemId, -1);
   details.splice(detailIndex, 1);
   const item = getItem(siteId, itemId);
-  await appendHistoryEntry(`a supprimé un article dans ${item?.numero || 'OUT inconnu'}`, { siteId });
+  await appendMaterialHistoryEntry('material_delete', { siteId, item, detail: removedDetail });
   persistOfflineState();
   emitAll();
   return true;
@@ -2787,6 +2804,26 @@ function resolveSiteNameForHistory(siteId, fallbackName = '') {
     return '';
   }
   return sanitizeText(state.sites.find((site) => site.id === normalizedSiteId)?.nom, false);
+}
+
+async function appendMaterialHistoryEntry(actionType, context) {
+  const detail = context?.detail || {};
+  const item = context?.item || {};
+  const historyContext = {
+    siteId: context?.siteId,
+    actionType,
+    designation: sanitizeText(detail.designation, false),
+    materialCode: sanitizeText(detail.code, false),
+    outNumber: sanitizeText(item.numero, false) || 'OUT inconnu',
+    quantity: context?.quantity ?? detail.qteSortie,
+    unit: sanitizeText(detail.unite, false),
+    field: sanitizeText(context?.field, false),
+    previousValue: context?.previousValue ?? null,
+    newValue: context?.newValue ?? null,
+  };
+  const siteName = resolveSiteNameForHistory(historyContext.siteId);
+  const action = formatMaterialHistoryAction({ ...historyContext, siteName });
+  await appendHistoryEntry(action, historyContext);
 }
 
 async function appendHistoryEntry(actionText, context = {}) {
@@ -2809,6 +2846,17 @@ async function appendHistoryEntry(actionText, context = {}) {
       action,
       siteId: siteId || null,
       siteName: siteName || null,
+      ...(context?.actionType ? {
+        actionType: sanitizeText(context.actionType, false),
+        designation: sanitizeText(context.designation, false) || null,
+        materialCode: sanitizeText(context.materialCode, false) || null,
+        outNumber: sanitizeText(context.outNumber, false) || null,
+        quantity: context.quantity ?? null,
+        unit: sanitizeText(context.unit, false) || null,
+        field: sanitizeText(context.field, false) || null,
+        previousValue: context.previousValue ?? null,
+        newValue: context.newValue ?? null,
+      } : {}),
       createdAt: serverTimestamp(),
     });
     await pruneHistoryEntries();
@@ -2838,6 +2886,15 @@ function normalizeHistoryDocument(snap) {
     action: sanitizeText(data.action, false),
     siteId: sanitizeText(data.siteId, false),
     siteName: resolveSiteNameForHistory(data.siteId, data.siteName),
+    actionType: sanitizeText(data.actionType, false),
+    designation: sanitizeText(data.designation, false),
+    materialCode: sanitizeText(data.materialCode, false),
+    outNumber: sanitizeText(data.outNumber, false),
+    quantity: data.quantity ?? null,
+    unit: sanitizeText(data.unit, false),
+    field: sanitizeText(data.field, false),
+    previousValue: data.previousValue ?? null,
+    newValue: data.newValue ?? null,
     createdAt: data.createdAt || null,
   };
 }
