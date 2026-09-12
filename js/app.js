@@ -5007,7 +5007,7 @@ import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './mat
       return overlay;
     }
 
-    function askItemDeleteConfirmation(itemLabel) {
+    function askItemDeleteConfirmation(titleText) {
       const overlay = ensureItemDeleteConfirmationDialog();
       const text = overlay.querySelector('#itemDeleteConfirmText');
       const cancelButton = overlay.querySelector('#itemDeleteCancelButton');
@@ -5017,9 +5017,8 @@ import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './mat
       }
 
       const title = overlay.querySelector('#itemDeleteConfirmTitle');
-      const normalizedLabel = String(itemLabel || '').trim() || 'OUT inconnu';
       if (title) {
-        title.textContent = activeSiteTab === 'purchases' ? `Supprimer ${normalizedLabel} ?` : `Supprimer cet ${normalizedLabel} ?`;
+        title.textContent = String(titleText || '').trim() || 'Confirmer la suppression ?';
       }
       text.textContent = 'Confirmer si OUI .';
 
@@ -5071,6 +5070,16 @@ import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './mat
           overlay.classList.add('is-open');
         });
       });
+    }
+
+    function askOutDeleteConfirmation(item) {
+      const itemLabel = String(item?.numero || '').trim() || 'OUT inconnu';
+      return askItemDeleteConfirmation(`Supprimer cet ${itemLabel} ?`);
+    }
+
+    function askPurchaseDeleteConfirmation(purchase) {
+      const purchaseLabel = String(purchase?.designation || '').trim() || 'achat matériel';
+      return askItemDeleteConfirmation(`Supprimer ${purchaseLabel} ?`);
     }
 
     function ensureOutDeleteLimitDialog() {
@@ -5276,9 +5285,9 @@ import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './mat
           await closeSheet();
           selectedPurchaseId = isPurchaseActions ? itemId : null;
           selectedPurchaseData = isPurchaseActions ? activeItem : null;
-          const shouldDelete = await askItemDeleteConfirmation(
-            isPurchaseActions ? (activeItem.designation || 'achat matériel') : (activeItem.numero || 'cet élément'),
-          );
+          const shouldDelete = await (isPurchaseActions
+            ? askPurchaseDeleteConfirmation(activeItem)
+            : askOutDeleteConfirmation(activeItem));
           if (!shouldDelete) {
             return;
           }
