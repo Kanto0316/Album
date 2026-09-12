@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   increment,
   arrayUnion,
   onSnapshot,
@@ -23,11 +24,16 @@ import { APP_CONFIG } from './config.js';
 import { getAutomaticUnit } from './automatic-unit.js';
 import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 import { formatMaterialHistoryAction } from './material-history.js';
+import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
 const SITE_INACTIVITY_THRESHOLD_DAYS = Number(APP_CONFIG?.siteInactivity?.thresholdDays) || 30;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+function setReadMode(mode) {
+  reportReadMode(mode);
+}
 
 const state = {
   initialized: false,
@@ -447,9 +453,22 @@ async function updateAvatarUrl(avatarUrl) {
 }
 
 async function listUsers() {
-  const snapshot = await getDocs(usersCollection());
-  return snapshot.docs
-    .map((snap) => {
+  try {
+    const snapshot = await getDocsFromServer(usersCollection());
+    const users = normalizeUsersSnapshot(snapshot);
+    updateLocalFallback('users', users);
+    setReadMode('server');
+    return users;
+  } catch (error) {
+    setReadMode('offline');
+    const cachedUsers = readLocalFallback('users', null);
+    if (cachedUsers) return cachedUsers;
+    throw error;
+  }
+}
+
+function normalizeUsersSnapshot(snapshot) {
+  return snapshot.docs.map((snap) => {
       const data = snap.data() || {};
       const email = String(data.email || '').trim();
       const fallbackName = email ? email.split('@')[0] : '';
@@ -622,49 +641,26 @@ function subscribeCurrentUserProfile(onChange, onError) {
 }
 
 function subscribeUsers(onChange, onError) {
+  let unsubscribe = () => {};
+  let cancelled = false;
   try {
-    return onSnapshot(
-      usersCollection(),
-      (snapshot) => {
-        console.log('[users] snapshot size:', snapshot.size);
-        snapshot.docs.forEach((snap) => {
-          console.log('[users] doc id:', snap.id, snap.data());
-        });
-        const users = snapshot.docs
-          .map((snap) => {
-            const data = snap.data() || {};
-            const email = String(data.email || '').trim();
-            const fallbackName = email ? email.split('@')[0] : '';
-            return {
-              id: snap.id,
-              username: normalizeUsername(data.username || data.displayName || data.name || fallbackName),
-              email,
-              avatarUrl: normalizeAvatarUrl(data.photoURL || data.avatarUrl || data.avatar),
-              role: normalizeRole(data.role),
-              maintenanceAccess: normalizeMaintenanceAuthorized(data),
-              maintenanceAuthorized: normalizeMaintenanceAuthorized(data),
-              createdAt: data.createdAt || null,
-              lastActivity: data.lastActivity || null,
-              lastSeen: data.lastSeen || null,
-              online: data.online === true,
-              presence: data.presence || null,
-              status: data.status || null,
-            };
-          });
-        onChange(users);
-      },
-      (error) => {
-        if (typeof onError === 'function') {
-          onError(error);
-        }
-      },
-    );
+    listUsers().then((users) => {
+      if (cancelled) return;
+      onChange(users);
+      unsubscribe = onSnapshot(usersCollection(), { includeMetadataChanges: true }, (snapshot) => {
+        if (snapshot.metadata.fromCache) return;
+        const freshUsers = normalizeUsersSnapshot(snapshot);
+        updateLocalFallback('users', freshUsers);
+        setReadMode('server');
+        onChange(freshUsers);
+      }, onError);
+    }).catch(onError);
   } catch (error) {
     if (typeof onError === 'function') {
       onError(error);
     }
-    return () => {};
   }
+  return () => { cancelled = true; unsubscribe(); };
 }
 
 function normalizeMaintenanceState(value) {
@@ -1131,7 +1127,7 @@ function parseOfflineState() {
 
 async function readPageItems(pageName) {
   const pageRef = makePageItemsCollection(pageName);
-  const snapshot = await getDocs(pageRef);
+  const snapshot = await getDocsFromServer(pageRef);
   return snapshot.docs.map(normalizeDocData);
 }
 
@@ -1140,7 +1136,7 @@ async function readPage2ItemsBySite(siteId) {
   if (!normalizedSiteId) {
     return [];
   }
-  const snapshot = await getDocs(query(makePageItemsCollection('page2'), where('siteId', '==', normalizedSiteId)));
+  const snapshot = await getDocsFromServer(query(makePageItemsCollection('page2'), where('siteId', '==', normalizedSiteId)));
   return snapshot.docs.map(normalizeDocData);
 }
 
@@ -1163,7 +1159,7 @@ function normalizeMaterialCodeEntry(entry) {
 }
 
 async function readMaterialCodes() {
-  const snapshot = await getDocs(materialCodesCollection());
+  const snapshot = await getDocsFromServer(materialCodesCollection());
   return snapshot.docs.map(normalizeDocData).map(normalizeMaterialCodeEntry).filter(Boolean);
 }
 
@@ -1189,7 +1185,7 @@ async function bootstrapMaterialCodesFromDetails() {
 
 async function loadRemoteSnapshot() {
   const page1 = await readPageItems('page1');
-  return { page1, page3: [] };
+  return { page1 };
 }
 
 function applySnapshot(snapshot) {
@@ -1313,29 +1309,34 @@ async function init() {
   state.db = firebaseDb;
 
   const offlineState = parseOfflineState();
-  if (offlineState?.snapshot) {
-    applySnapshot(offlineState.snapshot);
+  try {
+    const remote = await loadRemoteSnapshot();
+    applySnapshot(remote);
+    persistOfflineState();
+    setReadMode('server');
+  } catch (_error) {
+    applySnapshot(offlineState?.snapshot || { page1: [], page2: [], page3: [] });
+    setReadMode('offline');
   }
 
-  if (!offlineState?.isFresh) {
-    try {
-      const remote = await loadRemoteSnapshot();
-      applySnapshot(remote);
-      persistOfflineState();
-    } catch (_error) {
-      if (!offlineState?.snapshot) {
-        applySnapshot({ page1: [], page2: [], page3: [] });
-      }
-    }
-  } else if (!offlineState.snapshot) {
-    // Defensive fallback, should never happen.
-    try {
-      const remote = await loadRemoteSnapshot();
-      applySnapshot(remote);
-      persistOfflineState();
-    } catch (_error) {
-      applySnapshot({ page1: [], page2: [], page3: [] });
-    }
+  window.addEventListener('online', refreshSubscribedReadsFromServer);
+}
+
+async function refreshSubscribedReadsFromServer() {
+  try {
+    const remote = await loadRemoteSnapshot();
+    const cachedSnapshot = parseOfflineState()?.snapshot || {};
+    applySnapshot({ ...cachedSnapshot, ...remote });
+    await Promise.all(Array.from(state.listeners.itemsBySite.keys()).map((siteId) => ensureSiteItemsLoaded(siteId, true)));
+    await Promise.all(Array.from(state.listeners.detailsByPair.keys()).map((key) => {
+      const [siteId, itemId] = key.split(':');
+      return ensurePairDetailsLoaded(siteId, itemId, true);
+    }));
+    persistOfflineState();
+    emitAll();
+    setReadMode('server');
+  } catch (_error) {
+    setReadMode('offline');
   }
 }
 
@@ -1511,10 +1512,11 @@ function subscribeItems(siteId, onChange, onError) {
   try {
     const normalizedSiteId = String(siteId || '').trim();
     const unsubscribe = subscribeFactory(state.listeners.itemsBySite, normalizedSiteId, onChange);
-    onChange(state.loadedItemSites.has(normalizedSiteId) ? clone(state.itemsBySite.get(normalizedSiteId) || []) : []);
-    ensureSiteItemsLoaded(normalizedSiteId)
+    ensureSiteItemsLoaded(normalizedSiteId, true)
       .then(() => onChange(clone(state.itemsBySite.get(normalizedSiteId) || [])))
       .catch((error) => {
+        onChange(clone(state.itemsBySite.get(normalizedSiteId) || []));
+        setReadMode('offline');
         if (typeof onError === 'function') onError(error);
       });
     return unsubscribe;
@@ -1547,12 +1549,14 @@ function subscribeDetails(siteId, itemId, onChange, onError) {
   try {
     const key = `${siteId}:${itemId}`;
     const unsubscribe = subscribeFactory(state.listeners.detailsByPair, key, onChange);
-    onChange(clone(state.detailsByItem.get(key) || []));
-    ensurePairDetailsLoaded(siteId, itemId)
+    ensurePairDetailsLoaded(siteId, itemId, true)
       .then(() => {
+        setReadMode('server');
         onChange(clone(state.detailsByItem.get(key) || []));
       })
       .catch((error) => {
+        onChange(clone(state.detailsByItem.get(key) || []));
+        setReadMode('offline');
         if (typeof onError === 'function') onError(error);
       });
     return unsubscribe;
@@ -1665,17 +1669,17 @@ async function getAllDetails() {
 }
 
 async function getMaterialCodes() {
-  if (!state.materialCodes.length) {
-    try {
-      state.materialCodes = await readMaterialCodes();
-      if (!state.materialCodes.length) {
-        state.materialCodes = await bootstrapMaterialCodesFromDetails();
-      }
-      sortState();
-      persistOfflineState();
-    } catch (_error) {
-      // Keep cached catalogue when Firestore is unavailable.
+  try {
+    state.materialCodes = await readMaterialCodes();
+    if (!state.materialCodes.length) {
+      state.materialCodes = await bootstrapMaterialCodesFromDetails();
     }
+    sortState();
+    persistOfflineState();
+    setReadMode('server');
+  } catch (_error) {
+    // Le catalogue en mémoire provient du cache chargé par init().
+    setReadMode('offline');
   }
   return clone(state.materialCodes);
 }
@@ -1700,7 +1704,7 @@ async function ensureMaterialCode(code, designation) {
 }
 
 async function readDetailsByQuery(...constraints) {
-  const snapshot = await getDocs(query(makePageItemsCollection('page3'), ...constraints));
+  const snapshot = await getDocsFromServer(query(makePageItemsCollection('page3'), ...constraints));
   return snapshot.docs.map(normalizeDocData);
 }
 
@@ -1732,9 +1736,9 @@ async function ensureSiteDetailsLoaded(siteId) {
   emitForSite(normalizedSiteId);
 }
 
-async function ensurePairDetailsLoaded(siteId, itemId) {
+async function ensurePairDetailsLoaded(siteId, itemId, forceServer = false) {
   const key = `${siteId}:${itemId}`;
-  if (!siteId || !itemId || state.loadedDetailPairs.has(key) || state.loadedDetailSites.has(String(siteId))) return;
+  if (!siteId || !itemId || (!forceServer && (state.loadedDetailPairs.has(key) || state.loadedDetailSites.has(String(siteId))))) return;
   const details = await readDetailsByQuery(where('siteId', '==', String(siteId)), where('itemId', '==', String(itemId)));
   state.detailsByItem.set(key, []);
   mergeDetails(details);
@@ -1768,15 +1772,14 @@ function mergeSiteItems(siteId, items) {
   sortState();
 }
 
-async function ensureSiteItemsLoaded(siteId) {
+async function ensureSiteItemsLoaded(siteId, forceServer = false) {
   const normalizedSiteId = String(siteId || '').trim();
-  if (!normalizedSiteId || state.loadedItemSites.has(normalizedSiteId)) return;
-  state.itemsBySite.set(normalizedSiteId, []);
-  emitForSite(normalizedSiteId);
+  if (!normalizedSiteId || (!forceServer && state.loadedItemSites.has(normalizedSiteId))) return;
   const items = await readPage2ItemsBySite(normalizedSiteId);
   mergeSiteItems(normalizedSiteId, items);
   persistOfflineState();
   emitAll();
+  setReadMode('server');
 }
 
 function isDuplicateSiteName(name) {
@@ -2920,15 +2923,29 @@ async function recordMaterialsPageOpenHistory() {
 }
 
 async function listHistoriques() {
-  const snapshot = await getDocs(query(historyCollection(), orderBy('createdAt', 'desc')));
-  return snapshot.docs.map(normalizeHistoryDocument);
+  try {
+    const snapshot = await getDocsFromServer(query(historyCollection(), orderBy('createdAt', 'desc')));
+    const histories = snapshot.docs.map(normalizeHistoryDocument);
+    updateLocalFallback('historiques', histories);
+    setReadMode('server');
+    return histories;
+  } catch (error) {
+    setReadMode('offline');
+    const cachedHistories = readLocalFallback('historiques', null);
+    if (cachedHistories) return cachedHistories;
+    throw error;
+  }
 }
 
 function subscribeHistoriques(onChange, onError) {
   return onSnapshot(
     query(historyCollection(), orderBy('createdAt', 'desc')),
     (snapshot) => {
-      onChange(snapshot.docs.map(normalizeHistoryDocument));
+      if (snapshot.metadata.fromCache) return;
+      const histories = snapshot.docs.map(normalizeHistoryDocument);
+      updateLocalFallback('historiques', histories);
+      setReadMode('server');
+      onChange(histories);
     },
     onError,
   );

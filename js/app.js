@@ -1,11 +1,12 @@
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDocFromServer, getDocsFromServer, orderBy, query, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { computeEcart, isDetailCompleted, normalizeQuantity, quantitiesAreEqual } from './detail-status.js';
 import { getAutomaticUnit } from './automatic-unit.js';
 import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 import { getNextLineNumber } from './next-line-number.js';
 import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './material-history.js';
+import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -5994,16 +5995,21 @@ import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './mat
           collection(firebaseDb, 'sites', siteId, 'achatsMateriels'),
           orderBy('createdAt', 'desc'),
         );
-        const snap = await getDocs(purchasesQuery);
+        const snap = await getDocsFromServer(purchasesQuery);
         currentPurchases = snap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+        updateLocalFallback(`purchases.${siteId}`, currentPurchases);
+        reportReadMode('server');
       } catch (_error) {
-        currentPurchases = [];
+        currentPurchases = readLocalFallback(`purchases.${siteId}`, []);
+        reportReadMode('offline');
       }
       renderPurchases();
     }
+
+    window.addEventListener('online', loadPurchasesForCurrentSite);
 
     function renderActiveTabContent(options = {}) {
       if (activeSiteTab === 'purchases') {
@@ -9650,19 +9656,30 @@ import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './mat
       }
     });
 
-    getDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId))
+    function loadPurchaseDetailFromServer() {
+      return getDocFromServer(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', purchaseId))
       .then((snapshot) => {
         if (!snapshot.exists()) {
           UiService.showToast?.('Achat matériel introuvable.');
           UiService.navigate(`page2.html?siteId=${encodeURIComponent(siteId)}`);
           return;
         }
-        renderPurchaseDetail({ id: snapshot.id, ...snapshot.data() });
+        const purchase = { id: snapshot.id, ...snapshot.data() };
+        updateLocalFallback(`purchase.${siteId}.${purchaseId}`, purchase);
+        reportReadMode('server');
+        renderPurchaseDetail(purchase);
       })
       .catch((error) => {
         console.error('Erreur chargement détail achat matériel :', error);
-        UiService.showToast?.('Erreur lors du chargement de l’achat matériel.');
+        const cachedPurchase = readLocalFallback(`purchase.${siteId}.${purchaseId}`, null);
+        reportReadMode('offline');
+        if (cachedPurchase) renderPurchaseDetail(cachedPurchase);
+        else UiService.showToast?.('Erreur lors du chargement de l’achat matériel.');
       });
+    }
+
+    loadPurchaseDetailFromServer();
+    window.addEventListener('online', loadPurchaseDetailFromServer);
   }
 
 
