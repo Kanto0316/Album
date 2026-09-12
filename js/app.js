@@ -5008,7 +5008,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
       return overlay;
     }
 
-    function askItemDeleteConfirmation(itemLabel) {
+    function askItemDeleteConfirmation(itemLabel, onConfirm) {
       const overlay = ensureItemDeleteConfirmationDialog();
       const text = overlay.querySelector('#itemDeleteConfirmText');
       const cancelButton = overlay.querySelector('#itemDeleteCancelButton');
@@ -5028,6 +5028,13 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
         const closeAnimationDurationMs = 170;
         let closeAnimationTimer = null;
         let isClosing = false;
+        let isDeleting = false;
+        const defaultConfirmLabel = confirmButton.textContent;
+        const setLoadingState = (loading) => {
+          confirmButton.disabled = loading;
+          cancelButton.disabled = loading;
+          confirmButton.textContent = loading ? 'Suppression...' : defaultConfirmLabel;
+        };
         const cleanup = () => {
           if (closeAnimationTimer) {
             window.clearTimeout(closeAnimationTimer);
@@ -5038,31 +5045,61 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           overlay.onclick = null;
           cancelButton.onclick = null;
           confirmButton.onclick = null;
+          setLoadingState(false);
           document.removeEventListener('keydown', handleKeyDown);
           itemActionState.closeConfirmation = null;
         };
         const close = (value) => {
           if (isClosing) {
-            return;
+            return Promise.resolve();
           }
           isClosing = true;
           overlay.classList.remove('is-open');
-          closeAnimationTimer = window.setTimeout(() => {
-            cleanup();
-            resolve(value);
-          }, closeAnimationDurationMs);
+          return new Promise((finishClose) => {
+            closeAnimationTimer = window.setTimeout(() => {
+              cleanup();
+              resolve(value);
+              finishClose();
+            }, closeAnimationDurationMs);
+          });
         };
         const handleKeyDown = (event) => {
-          if (event.key === 'Escape') {
+          if (event.key === 'Escape' && !isDeleting) {
             close(false);
           }
         };
 
-        itemActionState.closeConfirmation = () => close(false);
-        cancelButton.onclick = () => close(false);
-        confirmButton.onclick = () => close(true);
+        itemActionState.closeConfirmation = () => {
+          if (!isDeleting) {
+            close(false);
+          }
+        };
+        cancelButton.onclick = () => {
+          if (!isDeleting) {
+            close(false);
+          }
+        };
+        confirmButton.onclick = async () => {
+          if (isDeleting) {
+            return;
+          }
+          isDeleting = true;
+          setLoadingState(true);
+          try {
+            const confirmed = typeof onConfirm === 'function' ? await onConfirm() : true;
+            if (confirmed !== false) {
+              await close(true);
+            }
+          } catch (error) {
+            console.error('[Page 2] Suppression impossible :', error);
+            UiService.showToast('Suppression impossible. Veuillez réessayer.');
+          } finally {
+            isDeleting = false;
+            setLoadingState(false);
+          }
+        };
         overlay.onclick = (event) => {
-          if (event.target === overlay) {
+          if (event.target === overlay && !isDeleting) {
             close(false);
           }
         };
@@ -5277,13 +5314,11 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           await closeSheet();
           selectedPurchaseId = isPurchaseActions ? itemId : null;
           selectedPurchaseData = isPurchaseActions ? activeItem : null;
-          const shouldDelete = await askItemDeleteConfirmation(
-            isPurchaseActions ? (activeItem.designation || 'achat matériel') : (activeItem.numero || 'cet élément'),
-          );
-          if (!shouldDelete) {
-            return;
-          }
           if (isPurchaseActions) {
+            const shouldDelete = await askItemDeleteConfirmation(activeItem.designation || 'achat matériel');
+            if (!shouldDelete) {
+              return;
+            }
             if (!permissions?.isAdmin) {
               UiService.showToast('Action non autorisée.');
               return;
@@ -5299,18 +5334,21 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
             }
             return;
           }
-          const removedSnapshot = await StorageService.removeItem(siteId, itemId);
-          if (removedSnapshot?.limitReached) {
-            showOutDeleteLimitDialog();
-            return;
-          }
-          if (!removedSnapshot) {
-            UiService.showToast('Suppression impossible.');
-            return;
-          }
-          UiService.showUndoSnackbar('Élément supprimé.', async () => {
-            const restored = await StorageService.restoreItem(removedSnapshot);
-            UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+          await askItemDeleteConfirmation(activeItem.numero || 'cet élément', async () => {
+            const removedSnapshot = await StorageService.removeItem(siteId, itemId);
+            if (removedSnapshot?.limitReached) {
+              showOutDeleteLimitDialog();
+              return true;
+            }
+            if (!removedSnapshot) {
+              UiService.showToast('Suppression impossible.');
+              return false;
+            }
+            UiService.showUndoSnackbar('Élément supprimé.', async () => {
+              const restored = await StorageService.restoreItem(removedSnapshot);
+              UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
+            });
+            return true;
           });
         } finally {
           deleteButton.disabled = false;
