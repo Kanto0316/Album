@@ -21,24 +21,5 @@ export function reportReadMode(mode) {
   window.dispatchEvent(new CustomEvent('firestoreReadModeChanged', { detail: { mode } }));
 }
 
-function installOfflineIndicator() {
-  const indicator = document.createElement('div');
-  indicator.id = 'offlineReadIndicator';
-  indicator.className = 'offline-read-indicator';
-  indicator.textContent = 'Mode hors connexion — données du cache local';
-  indicator.hidden = true;
-  indicator.setAttribute('role', 'status');
-  document.body.appendChild(indicator);
-
-  window.addEventListener('firestoreReadModeChanged', (event) => {
-    indicator.hidden = event?.detail?.mode !== 'offline';
-  });
-  window.addEventListener('offline', () => reportReadMode('offline'));
-  if (!window.navigator.onLine) indicator.hidden = false;
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', installOfflineIndicator, { once: true });
-} else {
-  installOfflineIndicator();
-}
+// Le mode cache est silencieux : consulter des données hors connexion n'est
+// pas une erreur et ne doit donc plus déclencher de message utilisateur.

@@ -29,11 +29,16 @@ import { formatMaterialHistoryAction } from './material-history.js';
 import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
 import { createOutAndIncrementCounter, deleteOutAndDecrementCounter } from './out-counter-transaction.js';
 import { deleteOutCascade, deleteReferencesInControlledBatches, deleteSiteCascade } from './cascade-deletion.js';
+import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
 const SITE_INACTIVITY_THRESHOLD_DAYS = Number(APP_CONFIG?.siteInactivity?.thresholdDays) || 30;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+function blockOfflineWrite() {
+  return isOnline() ? null : { ok: false, reason: OFFLINE_WRITE_BLOCKED, error: OFFLINE_WRITE_BLOCKED };
+}
 
 function setReadMode(mode) {
   reportReadMode(mode);
@@ -1843,6 +1848,8 @@ function withoutId(payload) {
 }
 
 async function createSite(name) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const siteName = sanitizeText(name, true);
   if (!siteName) {
     return { ok: false, reason: 'invalid_name' };
@@ -1873,6 +1880,8 @@ async function createSite(name) {
 }
 
 async function updateSiteName(siteId, name) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return { ok: false, reason: 'site_not_found' };
@@ -1911,6 +1920,8 @@ async function updateSiteName(siteId, name) {
 }
 
 async function updateSiteCreator(siteId, user) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return { ok: false, reason: 'site_not_found' };
@@ -2170,6 +2181,8 @@ async function restoreTrashEntry(entryId) {
 }
 
 async function removeSite(siteId) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return null;
@@ -2241,6 +2254,8 @@ async function removeSite(siteId) {
 }
 
 async function createItem(siteId, numberValue, options = {}) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   await ensureSiteItemsLoaded(siteId);
   const cleanNumber = sanitizeDigits(sanitizeText(numberValue, true).replace(/^OUT-/, ''));
   if (cleanNumber.length < 4) {
@@ -2296,6 +2311,8 @@ async function createItem(siteId, numberValue, options = {}) {
 }
 
 async function updateItemName(siteId, itemId, nextValue) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const items = state.itemsBySite.get(siteId) || [];
   const itemIndex = items.findIndex((item) => item.id === itemId);
   if (itemIndex === -1) {
@@ -2352,6 +2369,8 @@ async function updateItemName(siteId, itemId, nextValue) {
 }
 
 async function removeItem(siteId, itemId) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   await ensureSiteItemsLoaded(siteId);
   const items = state.itemsBySite.get(siteId) || [];
   const itemIndex = items.findIndex((item) => item.id === itemId);
@@ -2540,6 +2559,8 @@ async function restoreDetail(snapshot) {
 }
 
 async function createDetail(siteId, itemId, payload) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const designation = sanitizeText(payload.designation, true);
   if (!designation) {
     return { ok: false, reason: 'invalid_designation' };
@@ -2573,32 +2594,6 @@ async function createDetail(siteId, itemId, payload) {
     dateModification: timestamp,
   };
 
-  if (!navigator.onLine) {
-    try {
-      const action = window.OfflineActionBuilder.createDetailAction({
-        siteId,
-        itemId,
-        payload: detailPayload,
-        userId: state.userId,
-      });
-      await window.OfflineSync.addPendingAction(action);
-
-      const detail = { id: action.localId, ...detailPayload };
-      if (!state.detailsByItem.has(detailsKey)) {
-        state.detailsByItem.set(detailsKey, []);
-      }
-      state.detailsByItem.get(detailsKey).push(detail);
-      const item = getItem(siteId, itemId);
-      applyItemArticleCount(siteId, itemId, normalizeArticleCount(item?.articleCount) + 1);
-      persistOfflineState();
-      emitAll();
-      return { ok: true, id: action.localId, synced: false, pending: true };
-    } catch (error) {
-      console.error('[Storage] Impossible de créer le détail hors connexion :', error);
-      return { ok: false, error: error?.message || String(error) };
-    }
-  }
-
   const created = await addDoc(makePageItemsCollection('page3'), detailPayload);
   await incrementItemArticleCount(siteId, itemId, 1);
   const detail = { id: created.id, ...detailPayload };
@@ -2617,6 +2612,8 @@ async function createDetail(siteId, itemId, payload) {
 }
 
 async function updateDetail(siteId, itemId, detailId, changes) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const target = details.find((detail) => detail.id === detailId);
@@ -2692,6 +2689,8 @@ async function updateDetail(siteId, itemId, detailId, changes) {
 
 
 async function addDetailReturn(siteId, itemId, detailId, payload) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const target = details.find((detail) => detail.id === detailId);
@@ -2751,6 +2750,8 @@ function validateDetailReturnQuantity(detail, quantity, replacedQuantity = 0) {
 }
 
 async function updateDetailReturnQuantity(siteId, itemId, detailId, returnId, quantityValue) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const target = details.find((detail) => detail.id === detailId);
@@ -2813,6 +2814,8 @@ async function updateDetailReturnQuantity(siteId, itemId, detailId, returnId, qu
 }
 
 async function removeDetailReturn(siteId, itemId, detailId, returnId) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const target = details.find((detail) => detail.id === detailId);
@@ -2857,6 +2860,8 @@ async function removeDetailReturn(siteId, itemId, detailId, returnId) {
 }
 
 async function removeDetail(siteId, itemId, detailId) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
   const detailsKey = `${siteId}:${itemId}`;
   const details = state.detailsByItem.get(detailsKey) || [];
   const detailIndex = details.findIndex((detail) => detail.id === detailId);
