@@ -25,6 +25,7 @@ import { getAutomaticUnit } from './automatic-unit.js';
 import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantities } from './return-quantity.js';
 import { formatMaterialHistoryAction } from './material-history.js';
 import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
+import { createOutAndIncrementCounter, deleteOutAndDecrementCounter } from './out-counter-transaction.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -2225,9 +2226,23 @@ async function createItem(siteId, numberValue, options = {}) {
     dateCreation: timestamp,
     dateModification: timestamp,
   };
-  const created = await addDoc(makePageItemsCollection('page2'), itemPayload);
-  await incrementSiteOutCount(siteId, 1);
-  const item = { id: created.id, ...itemPayload };
+  const itemRef = doc(makePageItemsCollection('page2'));
+  const nextOutCount = await createOutAndIncrementCounter({
+    runTransaction,
+    db: state.db,
+    itemRef,
+    siteRef: siteDocRef(siteId),
+    itemPayload,
+  });
+  const item = { id: itemRef.id, ...itemPayload };
+
+  if (!state.itemsBySite.has(siteId)) {
+    state.itemsBySite.set(siteId, []);
+  }
+  state.itemsBySite.get(siteId).unshift(item);
+  applySiteOutCount(siteId, nextOutCount);
+  persistOfflineState();
+  emitAll();
 
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex !== -1 && (state.sites[siteIndex].inactiveSince || state.sites[siteIndex].inactivityDecisionPending)) {
@@ -2238,14 +2253,7 @@ async function createItem(siteId, numberValue, options = {}) {
     state.sites[siteIndex].dateModification = timestamp;
   }
 
-  if (!state.itemsBySite.has(siteId)) {
-    state.itemsBySite.set(siteId, []);
-  }
-  state.itemsBySite.get(siteId).unshift(item);
-
   await appendHistoryEntry(`a créé ${item.numero}`, { siteId });
-  persistOfflineState();
-  emitAll();
   return { ok: true, id: item.id };
 }
 
@@ -2328,30 +2336,29 @@ async function removeItem(siteId, itemId) {
     await addTrashEntry('item', itemId, { item: clone(itemToRemove), details: clone(state.detailsByItem.get(`${siteId}:${itemId}`) || []) });
   }
 
-  await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId));
+  const nextOutCount = await deleteOutAndDecrementCounter({
+    runTransaction,
+    db: state.db,
+    itemRef: itemDocRef(itemId),
+    siteRef: siteDocRef(siteId),
+    siteId,
+  });
   const [item] = items.splice(itemIndex, 1);
   const detailsKey = `${siteId}:${itemId}`;
   const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
 
-  // La suppression du document OUT est l'opération principale. Dès qu'elle est
-  // confirmée, publier la source de vérité locale afin que la Page 2 et son
-  // compteur soient actualisés même si un traitement secondaire échoue.
-  applySiteOutCount(siteId, getActualOutCountForSite(siteId));
+  applySiteOutCount(siteId, nextOutCount);
   persistOfflineState();
   emitAll();
 
   const secondaryOperations = [
-    incrementSiteOutCount(siteId, -1),
     appendHistoryEntry(`a supprimé ${item.numero}`, { siteId }),
   ];
   if (shouldCountDeletion) {
     secondaryOperations.push(recordOutDeletionLimitUsage(currentUserId));
   }
-  const [countUpdate, historyUpdate, deletionLimitUpdate] = await Promise.allSettled(secondaryOperations);
-  if (countUpdate.status === 'rejected') {
-    console.warn('[Storage] OUT supprimé, mais compteur non synchronisé :', countUpdate.reason);
-  }
+  const [historyUpdate, deletionLimitUpdate] = await Promise.allSettled(secondaryOperations);
   if (historyUpdate.status === 'rejected') {
     console.warn('[Storage] OUT supprimé, mais historique non synchronisé :', historyUpdate.reason);
   }
@@ -2359,11 +2366,6 @@ async function removeItem(siteId, itemId) {
     console.warn('[Storage] OUT supprimé, mais quota de suppression non synchronisé :', deletionLimitUpdate.reason);
   }
 
-  // incrementSiteOutCount met aussi à jour l'état local. Le réaligner sur la
-  // liste évite un double décrément après la publication optimiste confirmée.
-  applySiteOutCount(siteId, getActualOutCountForSite(siteId));
-  persistOfflineState();
-  emitAll();
   return { item: clone(item), details };
 }
 

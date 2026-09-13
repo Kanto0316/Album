@@ -10,10 +10,10 @@ const removeItem = storage.slice(
   storage.indexOf('async function restoreSite'),
 );
 
-test('retire et publie l’OUT local dès que Firestore confirme la suppression', () => {
-  const deletion = removeItem.indexOf("await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId))");
+test('retire et publie l’OUT local dès que la transaction Firestore confirme la suppression', () => {
+  const deletion = removeItem.indexOf('await deleteOutAndDecrementCounter({');
   const splice = removeItem.indexOf('items.splice(itemIndex, 1)');
-  const count = removeItem.indexOf('applySiteOutCount(siteId, getActualOutCountForSite(siteId))');
+  const count = removeItem.indexOf('applySiteOutCount(siteId, nextOutCount)');
   const emit = removeItem.indexOf('emitAll()');
   const secondaryWork = removeItem.indexOf('await Promise.allSettled(secondaryOperations)');
 
@@ -22,15 +22,14 @@ test('retire et publie l’OUT local dès que Firestore confirme la suppression'
   assert.match(removeItem, /persistOfflineState\(\);[\s\S]*emitAll\(\);/);
 });
 
-test('une erreur de compteur ou historique reste secondaire après la suppression', () => {
+test('l’historique reste secondaire après la transaction de suppression', () => {
   assert.match(removeItem, /Promise\.allSettled\(secondaryOperations\)/);
-  assert.match(removeItem, /OUT supprimé, mais compteur non synchronisé/);
   assert.match(removeItem, /OUT supprimé, mais historique non synchronisé/);
   assert.match(removeItem, /return \{ item: clone\(item\), details \};/);
 });
 
 test('un échec Firestore précède toute mutation locale', () => {
-  const deletion = removeItem.indexOf("await deleteDoc(doc(state.db, 'pages', 'page2', 'items', itemId))");
+  const deletion = removeItem.indexOf('await deleteOutAndDecrementCounter({');
   const splice = removeItem.indexOf('items.splice(itemIndex, 1)');
   assert.ok(deletion >= 0 && deletion < splice);
 });
