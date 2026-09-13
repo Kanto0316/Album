@@ -603,6 +603,18 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
     });
   }
 
+  function redirectToLogin() {
+    window.location.replace('login.html');
+  }
+
+  function watchAuthenticatedSession() {
+    onAuthStateChanged(firebaseAuth, (user) => {
+      if (!user) {
+        redirectToLogin();
+      }
+    }, redirectToLogin);
+  }
+
   function normalizeAuthUserData(user) {
     const authUser = user || firebaseAuth.currentUser;
     if (!authUser) {
@@ -1424,6 +1436,8 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
       try {
         await StorageService?.recordCurrentUserActivity?.();
         await signOut(firebaseAuth);
+        localStorage.removeItem('suiviMateriel.authUser.v1');
+        redirectToLogin();
       } catch (_error) {
         message.textContent = "Impossible de se déconnecter pour l'instant.";
       }
@@ -9837,9 +9851,16 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
     setupBackButtons();
 
     const authUser = await waitForAuthState();
+    if (!authUser) {
+      redirectToLogin();
+      return;
+    }
+
+    watchAuthenticatedSession();
+    document.body.classList.remove('auth-checking');
     await StorageService.init();
 
-    const isAuthenticated = Boolean(authUser);
+    const isAuthenticated = true;
     let profile = await StorageService.getCurrentUserProfile();
 
     if (isAuthenticated) {
