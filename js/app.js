@@ -2579,9 +2579,15 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           }
           restoreButton.disabled = true;
           deleteButton.disabled = true;
-          const removedSnapshot = await StorageService.removeSite(site.id);
-          UiService.showToast(removedSnapshot ? 'Site supprimé définitivement.' : 'Suppression impossible.');
-          close(removedSnapshot ? 'deleted' : 'deferred');
+          try {
+            const removedSnapshot = await StorageService.removeSite(site.id);
+            UiService.showToast(removedSnapshot ? 'Site supprimé définitivement.' : 'Suppression impossible.');
+            close(removedSnapshot ? 'deleted' : 'deferred');
+          } catch (error) {
+            console.error('Erreur suppression site inactif :', error);
+            UiService.showToast(error?.message || 'Suppression du site interrompue. Rechargez les données.');
+            close('deferred');
+          }
         };
         document.addEventListener('keydown', handleKeyDown);
         overlay.hidden = false;
@@ -2902,6 +2908,9 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
             const restored = await StorageService.restoreSite(removedSnapshot);
             UiService.showToast(restored ? 'Suppression annulée.' : 'Restauration impossible.');
           });
+        } catch (error) {
+          console.error('Erreur suppression site :', error);
+          UiService.showToast(error?.message || 'Suppression du site interrompue. Rechargez les données.');
         } finally {
           deleteButton.disabled = false;
         }
@@ -4076,7 +4085,14 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
         return;
       }
       if (!await confirmSharedSiteDeletion(String(latest.nom || '').trim())) return;
-      const snapshot = await StorageService.removeSite(actionSiteId);
+      let snapshot;
+      try {
+        snapshot = await StorageService.removeSite(actionSiteId);
+      } catch (error) {
+        console.error('Erreur suppression site :', error);
+        UiService.showToast(error?.message || 'Suppression du site interrompue. Rechargez les données.');
+        return;
+      }
       if (!snapshot) {
         UiService.showToast('Suppression impossible.');
         return;

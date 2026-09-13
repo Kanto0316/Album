@@ -5,6 +5,7 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   getDocsFromServer,
   increment,
@@ -18,6 +19,7 @@ import {
   Timestamp,
   updateDoc,
   runTransaction,
+  writeBatch,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 import { firebaseAuth, firebaseDb } from './firebase-core.js';
 import { APP_CONFIG } from './config.js';
@@ -26,6 +28,7 @@ import { isReturnQuantityWithinAvailable, roundReturnQuantity, sumReturnQuantiti
 import { formatMaterialHistoryAction } from './material-history.js';
 import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
 import { createOutAndIncrementCounter, deleteOutAndDecrementCounter } from './out-counter-transaction.js';
+import { deleteOutCascade, deleteReferencesInControlledBatches, deleteSiteCascade } from './cascade-deletion.js';
 
 const OFFLINE_CACHE_KEY = 'suiviMateriel.offlineCache.v1';
 const OFFLINE_CACHE_TTL_MS = 180 * 1000;
@@ -1141,6 +1144,29 @@ async function readPage2ItemsBySite(siteId) {
   return snapshot.docs.map(normalizeDocData);
 }
 
+async function readPage3ItemsBySite(siteId) {
+  const snapshot = await getDocsFromServer(query(makePageItemsCollection('page3'), where('siteId', '==', String(siteId || '').trim())));
+  return snapshot.docs.map(normalizeDocData);
+}
+
+async function readPage3ItemsByOut(siteId, itemId) {
+  const snapshot = await getDocsFromServer(query(
+    makePageItemsCollection('page3'),
+    where('siteId', '==', String(siteId || '').trim()),
+    where('itemId', '==', String(itemId || '').trim()),
+  ));
+  return snapshot.docs.map(normalizeDocData);
+}
+
+async function readSitePurchases(siteId) {
+  const snapshot = await getDocsFromServer(collection(state.db, 'sites', String(siteId || '').trim(), 'achatsMateriels'));
+  return snapshot.docs.map(normalizeDocData);
+}
+
+async function deleteRefsInBatches(refs) {
+  return deleteReferencesInControlledBatches(refs, { db: state.db, writeBatch });
+}
+
 function materialCodesCollection() {
   return collection(state.db, 'materialCodes');
 }
@@ -2144,62 +2170,74 @@ async function restoreTrashEntry(entryId) {
 }
 
 async function removeSite(siteId) {
-  await ensureSiteItemsLoaded(siteId);
-  await ensureSiteDetailsLoaded(siteId);
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return null;
   }
 
-  const siteToRemove = state.sites[siteIndex];
+  const localSite = state.sites[siteIndex];
   const profile = await getCurrentUserProfile();
   const currentUserId = String(state.userId || profile?.id || '').trim();
-  const creatorId = String(siteToRemove?.createdBy || siteToRemove?.ownerId || '').trim();
+  const creatorId = String(localSite?.createdBy || localSite?.ownerId || '').trim();
   const normalizedRole = normalizeRole(profile?.role);
   const isAdmin = normalizedRole === 'admin' || normalizedRole === 'standard' || isAdminEmail(profile?.email);
   if (!isAdmin && (!currentUserId || !creatorId || currentUserId !== creatorId)) {
     return null;
   }
 
-  const itemsToDelete = clone(state.itemsBySite.get(siteId) || []);
-  const detailsSnapshot = [];
-  Array.from(state.detailsByItem.entries()).forEach(([key, details]) => {
-    if (key.startsWith(`${siteId}:`)) {
-      detailsSnapshot.push(...clone(details));
+  let deletedSite;
+  let deletedItems = [];
+  let deletedDetails = [];
+  let deletedPurchases = [];
+  try {
+    const [siteSnapshot, itemsToDelete, detailsSnapshot, purchasesSnapshot] = await Promise.all([
+      getDocFromServer(siteDocRef(siteId)),
+      readPage2ItemsBySite(siteId),
+      readPage3ItemsBySite(siteId),
+      readSitePurchases(siteId),
+    ]);
+    if (!siteSnapshot.exists()) throw new Error('site_not_found');
+    const siteToRemove = normalizeDocData(siteSnapshot);
+    deletedSite = siteToRemove;
+    deletedItems = itemsToDelete;
+    deletedDetails = detailsSnapshot;
+    deletedPurchases = purchasesSnapshot;
+    if (await isTrashEnabled()) {
+      await addTrashEntry('site', siteId, {
+        site: clone(siteToRemove), items: clone(itemsToDelete), details: clone(detailsSnapshot), purchases: clone(purchasesSnapshot),
+      });
     }
-  });
-  if (await isTrashEnabled()) {
-    await addTrashEntry('site', siteId, { site: clone(siteToRemove), items: itemsToDelete, details: detailsSnapshot });
+    await deleteSiteCascade({
+      purchaseRefs: purchasesSnapshot.map((purchase) => doc(state.db, 'sites', siteId, 'achatsMateriels', purchase.id)),
+      detailRefs: detailsSnapshot.map((detail) => doc(state.db, 'pages', 'page3', 'items', detail.id)),
+      outRefs: itemsToDelete.map((item) => itemDocRef(item.id)),
+      deleteReferences: deleteRefsInBatches,
+      deleteSite: () => deleteDoc(siteDocRef(siteId)),
+    });
+  } catch (error) {
+    console.error(`[Storage] Suppression cascade du site ${siteId} incomplète :`, error);
+    throw new Error('Suppression du site interrompue : certains enfants peuvent déjà être supprimés, rechargez les données avant de réessayer.', { cause: error });
   }
-  const detailDeletePromises = [];
-  Array.from(state.detailsByItem.entries()).forEach(([key, details]) => {
-    if (key.startsWith(`${siteId}:`)) {
-      details.forEach((detail) => detailDeletePromises.push(deleteDoc(doc(state.db, 'pages', 'page3', 'items', detail.id))));
-    }
-  });
-  await Promise.all([
-    ...detailDeletePromises,
-    ...itemsToDelete.map((item) => deleteDoc(doc(state.db, 'pages', 'page2', 'items', item.id))),
-    deleteDoc(doc(state.db, 'pages', 'page1', 'items', siteId)),
-  ]);
 
-  const [site] = state.sites.splice(siteIndex, 1);
-  const items = clone(state.itemsBySite.get(siteId) || []);
+  state.sites.splice(siteIndex, 1);
   state.itemsBySite.delete(siteId);
 
-  const details = [];
   Array.from(state.detailsByItem.keys()).forEach((key) => {
     if (key.startsWith(`${siteId}:`)) {
-      details.push(...(state.detailsByItem.get(key) || []));
       state.detailsByItem.delete(key);
     }
   });
 
-  await appendHistoryEntry(`a supprimé le site ${site.nom}`, { siteId, siteName: site.nom });
   persistOfflineState();
   emitAll();
 
-  return { site: clone(site), items, details };
+  try {
+    await appendHistoryEntry(`a supprimé le site ${deletedSite.nom}`, { siteId, siteName: deletedSite.nom });
+  } catch (error) {
+    console.warn('[Storage] Site supprimé, mais historique non synchronisé :', error);
+  }
+
+  return { site: clone(deletedSite), items: clone(deletedItems), details: clone(deletedDetails), purchases: clone(deletedPurchases) };
 }
 
 async function createItem(siteId, numberValue, options = {}) {
@@ -2332,20 +2370,36 @@ async function removeItem(siteId, itemId) {
     return { limitReached: true };
   }
 
-  if (await isTrashEnabled()) {
-    await addTrashEntry('item', itemId, { item: clone(itemToRemove), details: clone(state.detailsByItem.get(`${siteId}:${itemId}`) || []) });
+  let details;
+  let nextOutCount;
+  try {
+    const [itemSnapshot, serverDetails] = await Promise.all([
+      getDocFromServer(itemDocRef(itemId)),
+      readPage3ItemsByOut(siteId, itemId),
+    ]);
+    if (!itemSnapshot.exists()) throw new Error('item_not_found');
+    const completeItem = normalizeDocData(itemSnapshot);
+    details = clone(serverDetails);
+    if (await isTrashEnabled()) {
+      await addTrashEntry('item', itemId, { item: clone(completeItem), details: clone(details) });
+    }
+    nextOutCount = await deleteOutCascade({
+      detailRefs: details.map((detail) => doc(state.db, 'pages', 'page3', 'items', detail.id)),
+      deleteDetails: deleteRefsInBatches,
+      deleteOutAndCounter: () => deleteOutAndDecrementCounter({
+        runTransaction,
+        db: state.db,
+        itemRef: itemDocRef(itemId),
+        siteRef: siteDocRef(siteId),
+        siteId,
+      }),
+    });
+  } catch (error) {
+    console.error(`[Storage] Suppression cascade de l’OUT ${itemId} interrompue :`, error);
+    throw new Error('Suppression de l’OUT interrompue : l’OUT a été conservé. Rechargez les données avant de réessayer.', { cause: error });
   }
-
-  const nextOutCount = await deleteOutAndDecrementCounter({
-    runTransaction,
-    db: state.db,
-    itemRef: itemDocRef(itemId),
-    siteRef: siteDocRef(siteId),
-    siteId,
-  });
   const [item] = items.splice(itemIndex, 1);
   const detailsKey = `${siteId}:${itemId}`;
-  const details = clone(state.detailsByItem.get(detailsKey) || []);
   state.detailsByItem.delete(detailsKey);
 
   applySiteOutCount(siteId, nextOutCount);
@@ -2400,6 +2454,10 @@ async function restoreSite(snapshot) {
       const detailPayload = { ...withoutId(detail), siteId: nextSite.id, itemId: nextItemId };
       const createdDetail = await addDoc(makePageItemsCollection('page3'), detailPayload);
       restoredDetails.push({ ...detailPayload, id: createdDetail.id });
+    }
+
+    for (const purchase of Array.isArray(snapshot.purchases) ? snapshot.purchases : []) {
+      await addDoc(collection(state.db, 'sites', nextSite.id, 'achatsMateriels'), withoutId(purchase));
     }
 
     state.sites.unshift(nextSite);

@@ -11,7 +11,7 @@ const removeItem = storage.slice(
 );
 
 test('retire et publie l’OUT local dès que la transaction Firestore confirme la suppression', () => {
-  const deletion = removeItem.indexOf('await deleteOutAndDecrementCounter({');
+  const deletion = removeItem.indexOf('nextOutCount = await deleteOutCascade({');
   const splice = removeItem.indexOf('items.splice(itemIndex, 1)');
   const count = removeItem.indexOf('applySiteOutCount(siteId, nextOutCount)');
   const emit = removeItem.indexOf('emitAll()');
@@ -29,7 +29,7 @@ test('l’historique reste secondaire après la transaction de suppression', () 
 });
 
 test('un échec Firestore précède toute mutation locale', () => {
-  const deletion = removeItem.indexOf('await deleteOutAndDecrementCounter({');
+  const deletion = removeItem.indexOf('nextOutCount = await deleteOutCascade({');
   const splice = removeItem.indexOf('items.splice(itemIndex, 1)');
   assert.ok(deletion >= 0 && deletion < splice);
 });
