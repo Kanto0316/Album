@@ -7,9 +7,41 @@ import { formatReturnQuantity, parseReturnQuantity, sumReturnQuantities } from '
 import { getNextLineNumber } from './next-line-number.js';
 import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './material-history.js';
 import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
+import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
 (function () {
   const { StorageService, UiService } = window;
+
+  const OFFLINE_WRITE_MESSAGE = 'Vérifiez votre connexion internet';
+
+  function installOfflineFabProtection() {
+    const fabIds = ['openCreateSite', 'openCreateItem', 'openDetailFormButton'];
+    const updateFabState = () => {
+      const online = isOnline();
+      fabIds.forEach((id) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.disabled = !online;
+        button.setAttribute('aria-disabled', String(!online));
+        button.title = online ? '' : OFFLINE_WRITE_MESSAGE;
+      });
+    };
+    document.addEventListener('pointerdown', (event) => {
+      if (!isOnline() && event.target.closest?.(`#${fabIds.join(', #')}`)) {
+        UiService.showToast(OFFLINE_WRITE_MESSAGE);
+      }
+    });
+    window.addEventListener('app:connectivity-changed', updateFabState);
+    updateFabState();
+  }
+
+  function showOfflineWriteError(result) {
+    if (result?.reason !== OFFLINE_WRITE_BLOCKED && result?.error !== OFFLINE_WRITE_BLOCKED) return false;
+    UiService.showToast(OFFLINE_WRITE_MESSAGE);
+    return true;
+  }
+
+  installOfflineFabProtection();
 
   // État public minimal permettant à l'interface de suivre le bootstrap et le réseau.
   window.AppOfflineStatus = {
@@ -3547,6 +3579,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
         setSiteCreateLoadingState(true);
         const result = await StorageService.createSite(name);
         if (!result?.ok) {
+          if (showOfflineWriteError(result)) return;
           showSiteNameError(
             result?.reason === 'duplicate_site'
               ? 'Ce nom de site existe déjà.'
@@ -3603,6 +3636,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
         setSiteEditNameLoadingState(true);
         const result = await StorageService.updateSiteName(siteId, nextName);
         if (!result?.ok) {
+          if (showOfflineWriteError(result)) return;
           showSiteEditNameError(result?.reason === 'duplicate_site' ? 'Ce nom de site existe déjà.' : 'Modification impossible.');
           setSiteEditNameLoadingState(false);
           return;
@@ -3651,6 +3685,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
         const passwordHash = await hashPassword(passwordValue);
         const result = await StorageService.setSiteLock(siteIdPendingLock, { passwordHash, historyAction: 'a protégé le site par un mot de passe' });
         if (!result?.ok) {
+          if (showOfflineWriteError(result)) return;
           showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Impossible de verrouiller ce site.');
           return;
         }
@@ -7003,6 +7038,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
             })()
             : await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
         if (!result?.ok) {
+          if (showOfflineWriteError(result)) return;
           showItemFormError(
             result?.reason === 'duplicate_out'
               ? 'Ce N° OUT existe déjà pour ce site.'
@@ -8584,6 +8620,7 @@ import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-c
           statut: requireElement('statutInput')?.value || 'OK',
         });
         if (!result?.ok) {
+          if (showOfflineWriteError(result)) return;
           showDetailFormError(
             result?.reason === 'duplicate_designation'
               ? 'Cette désignation existe déjà pour ce N° OUT.'

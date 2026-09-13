@@ -1505,6 +1505,15 @@ body[data-page="history"] .list-grid {
   transform: scale(0.95);
 }
 
+.fab:disabled,
+.fab[aria-disabled="true"] {
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+  opacity: 0.48;
+  transform: none;
+  box-shadow: 0 5px 12px rgba(17, 24, 39, 0.18);
+}
+
 .fab-add {
   position: fixed;
   right: 24px;
