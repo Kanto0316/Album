@@ -1267,7 +1267,11 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       return;
     }
     renderUserAvatar(authUserData);
-    avatarButton.title = authUserData?.name || authUserData?.email || '';
+    const userName = String(authUserData?.name || '').trim();
+    const userEmail = String(authUserData?.email || '').trim();
+    const userLabel = [userName, userEmail].filter(Boolean).join(' — ') || 'Utilisateur';
+    avatarButton.title = userLabel;
+    avatarButton.setAttribute('aria-label', `Profil de ${userLabel}`);
     setHomeAccessControlVisibility({ showAvatar: true, showLoginButton: false });
     avatarButton.onclick = onClick;
   }
@@ -3448,7 +3452,10 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     if (isAuthenticated) {
       showGoogleWelcomeOverlay(authState?.authUser || firebaseAuth.currentUser);
     }
-    onAuthStateChanged(firebaseAuth, (user) => {
+    let authStateUpdateId = 0;
+    onAuthStateChanged(firebaseAuth, async (user) => {
+      console.log("Firebase user:", user);
+      const updateId = ++authStateUpdateId;
       isAuthenticated = Boolean(user);
       if (!isAuthenticated) {
         setHomeSearchOpen(false);
@@ -3457,6 +3464,26 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       mettreAJourHeaderUtilisateur(user || null);
       mettreAJourPermissionsUI(currentPermissions);
       renderSites();
+
+      let nextProfile = null;
+      if (user) {
+        try {
+          await StorageService.ensureCurrentUser();
+          nextProfile = await StorageService.getCurrentUserProfile();
+        } catch (error) {
+          console.error('[Auth] Impossible de charger le profil utilisateur :', error);
+        }
+      }
+
+      if (updateId !== authStateUpdateId) {
+        return;
+      }
+
+      nextProfile = resolveConnectedProfile(nextProfile, Boolean(user));
+      const nextPermissions = buildPermissions(nextProfile);
+      window.AppPermissions = nextPermissions;
+      window.dispatchEvent(new CustomEvent('app:permissions-ready', { detail: { permissions: nextPermissions } }));
+      mettreAJourPermissionsUI(nextPermissions);
     });
 
     openCreateSite?.addEventListener('click', () => {
