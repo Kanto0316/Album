@@ -64,49 +64,6 @@ body {
   width: 100%;
   margin: .55rem 0;
 }
-.auth-debug-card {
-  margin: 0 0 .55rem;
-  padding: .8rem .9rem;
-  border: 1px solid rgba(255, 255, 255, .7);
-  border-radius: .75rem;
-  background: rgba(255, 255, 255, .94);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, .16);
-  color: #0f172a;
-}
-.auth-debug-card__title {
-  margin: 0 0 .6rem;
-  color: #1d4ed8;
-  font-size: 1rem;
-}
-.auth-debug-card__details {
-  display: grid;
-  gap: .45rem;
-  margin: 0;
-}
-.auth-debug-card__details div {
-  display: grid;
-  grid-template-columns: 8.25rem minmax(0, 1fr);
-  gap: .45rem;
-}
-.auth-debug-card__details dt {
-  color: #475569;
-  font-size: .7rem;
-  font-weight: 800;
-  letter-spacing: .025em;
-  text-transform: uppercase;
-}
-.auth-debug-card__details dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-size: .78rem;
-}
-#authDebugStatus {
-  color: #1d4ed8;
-  font-weight: 800;
-}
-#authDebugStatus[data-auth-debug-status$="ERROR"] {
-  color: var(--danger);
-}
 .field-group { display: grid; gap: .32rem; color: #f8fafc; }
 .field-group input {
   width: 100%;
