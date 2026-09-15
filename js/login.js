@@ -16,7 +16,25 @@ provider.setCustomParameters({ prompt: 'select_account' });
 
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
 const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
+const AUTH_DEBUG_EVENT_KEY = 'suiviMateriel.authDebug.event.v1';
+const AUTH_DEBUG_ERRORS_KEY = 'suiviMateriel.authDebug.errors.v1';
+const AUTH_DEBUG_RESULT_KEY = 'suiviMateriel.authDebug.result.v1';
 let googleSignInPending = false;
+
+function recordAuthDebugEvent(message) {
+  sessionStorage.setItem(AUTH_DEBUG_EVENT_KEY, message);
+}
+
+function recordFirebaseError(error) {
+  let errors = [];
+  try {
+    errors = JSON.parse(sessionStorage.getItem(AUTH_DEBUG_ERRORS_KEY) || '[]');
+  } catch (_error) {
+    errors = [];
+  }
+  errors.push(`Erreur Firebase : ${error?.message || String(error || 'Erreur inconnue')}`);
+  sessionStorage.setItem(AUTH_DEBUG_ERRORS_KEY, JSON.stringify(errors));
+}
 
 function isInAppBrowser() {
   return /FBAN|FBAV|Instagram|Messenger|WhatsApp/i.test(navigator.userAgent);
@@ -47,7 +65,8 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
       }
     });
   })
-  .catch(() => {
+  .catch((error) => {
+    recordFirebaseError(error);
     globalError.textContent = 'Une erreur est survenue lors de la préparation de la connexion. Veuillez réessayer.';
   });
 
@@ -78,6 +97,7 @@ function redirectToHome() {
 
 window.onAndroidGoogleAccountResult = async function (result) {
   console.log('Android Google account received');
+  recordAuthDebugEvent('Retour Google reçu');
 
   const email = result?.account?.email;
   if (!email) {
@@ -97,6 +117,8 @@ window.onAndroidGoogleAccountResult = async function (result) {
       }),
     );
     console.log('Login success');
+    recordAuthDebugEvent('login Google réussi');
+    sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, JSON.stringify({ email, provider: 'google-android' }));
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
     redirectToHome();
@@ -177,6 +199,7 @@ async function startGoogleSignIn() {
   try {
     console.log('Firebase web login used');
     const result = await signInWithPopup(auth, provider);
+    recordAuthDebugEvent('Retour Google reçu');
     saveGoogleWelcomePayload(result);
     // Attendre la restauration de Firebase Auth avant d'ouvrir index.html.
     await new Promise((resolve) => {
@@ -190,6 +213,8 @@ async function startGoogleSignIn() {
       });
     });
     console.log('Login success');
+    recordAuthDebugEvent('login Google réussi');
+    sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, `uid=${result.user?.uid || '—'}, email=${result.user?.email || '—'}`);
     window.location.replace('index.html');
   } catch (error) {
     googleSignInPending = false;
@@ -354,6 +379,7 @@ form.addEventListener('submit', async (event) => {
     await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
     saveCredentials(emailInput.value.trim(), passwordInput.value);
   } catch (error) {
+    recordFirebaseError(error);
     const code = String(error?.code || '');
     if (code.includes('wrong-password') || code.includes('invalid-credential')) {
       showFieldError(passwordInput, passwordError, 'Mot de passe incorrect.');
@@ -374,6 +400,7 @@ googleLoginButton.addEventListener('click', async () => {
   }
 
   isAuthInProgress = true;
+  recordAuthDebugEvent('Ouverture sélecteur Google...');
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
@@ -383,6 +410,7 @@ googleLoginButton.addEventListener('click', async () => {
     }
   } catch (error) {
     googleSignInPending = false;
+    recordFirebaseError(error);
     globalError.textContent = mapGoogleAuthError(error);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);

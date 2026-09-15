@@ -3454,7 +3454,9 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     }
     let authStateUpdateId = 0;
     onAuthStateChanged(firebaseAuth, async (user) => {
-      console.log("Firebase user:", user);
+      console.log('AUTH CHANGE', user);
+      window.AuthDebug?.renderUser(user);
+      window.AuthDebug?.setEvent(user ? 'AUTH CHANGE : utilisateur détecté' : 'AUTH CHANGE : null');
       const updateId = ++authStateUpdateId;
       isAuthenticated = Boolean(user);
       if (!isAuthenticated) {
@@ -3472,6 +3474,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
           nextProfile = await StorageService.getCurrentUserProfile();
         } catch (error) {
           console.error('[Auth] Impossible de charger le profil utilisateur :', error);
+          window.AuthDebug?.addError(error, 'Erreur de récupération profil');
         }
       }
 
