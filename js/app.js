@@ -14,6 +14,27 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
   const OFFLINE_WRITE_MESSAGE = 'Vérifiez votre connexion internet';
 
+  // Source unique du diagnostic Firebase affiché par index.html.
+  onAuthStateChanged(firebaseAuth, (user) => {
+    if (typeof window.updateFirebaseDiagnostic !== 'function') {
+      return;
+    }
+    if (user) {
+      window.updateFirebaseDiagnostic({
+        status: true,
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        event: 'AUTH_STATE_CHANGED',
+      });
+      return;
+    }
+    window.updateFirebaseDiagnostic({
+      status: false,
+      event: 'SIGNED_OUT',
+    });
+  });
+
   function installOfflineFabProtection() {
     const fabIds = ['openCreateSite', 'openCreateItem', 'openDetailFormButton'];
     const updateFabState = () => {
