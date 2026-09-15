@@ -178,6 +178,17 @@ async function startGoogleSignIn() {
     console.log('Firebase web login used');
     const result = await signInWithPopup(auth, provider);
     saveGoogleWelcomePayload(result);
+    // Attendre la restauration de Firebase Auth avant d'ouvrir index.html.
+    await new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          return;
+        }
+
+        unsubscribe();
+        resolve();
+      });
+    });
     console.log('Login success');
     window.location.replace('index.html');
   } catch (error) {
