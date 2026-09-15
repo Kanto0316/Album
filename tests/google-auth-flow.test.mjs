@@ -40,10 +40,29 @@ test('les journaux Web Auth demandés sont présents sans donnée sensible', () 
     'credential_created',
     'firebase_signin_success',
     'firebase_signin_error',
+    'redirect_to_index',
   ]) {
     assert.match(loginSource, new RegExp(`logWebAuth\\('${event}'\\)`));
   }
   assert.doesNotMatch(loginSource, /console\.(?:log|info|warn|error)\([^\n]*(?:idToken|credential)/);
+});
+
+test('la redirection Auth est unique et couvre le retour Android', () => {
+  const redirectHelper = loginSource.slice(
+    loginSource.indexOf('function redirectToHome()'),
+    loginSource.indexOf('window.firebaseLoginWithToken'),
+  );
+  const nativeBridge = loginSource.slice(
+    loginSource.indexOf('window.firebaseLoginWithToken'),
+    loginSource.indexOf('function isInAppBrowser'),
+  );
+
+  assert.match(loginSource, /let redirectDone = false/);
+  assert.match(redirectHelper, /if \(redirectDone\)/);
+  assert.match(redirectHelper, /redirectDone = true/);
+  assert.match(redirectHelper, /window\.location\.replace\('index\.html'\)/);
+  assert.match(nativeBridge, /logWebAuth\('firebase_signin_success'\);\s+googleSignInPending = false;\s+redirectToHome\(\)/);
+  assert.equal(loginSource.match(/window\.location\.replace\('index\.html'\)/g)?.length, 1);
 });
 
 test('app.js est la source unique du diagnostic Auth', () => {
