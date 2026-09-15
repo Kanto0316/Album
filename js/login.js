@@ -5,6 +5,7 @@ import {
   fetchSignInMethodsForEmail,
   onAuthStateChanged,
   setPersistence,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
@@ -96,34 +97,52 @@ function redirectToHome() {
 }
 
 window.onAndroidGoogleAccountResult = async function (result) {
-  console.log('Android Google account received');
-  recordAuthDebugEvent('Retour Google reçu');
+  console.log('Google result reçu', result);
+  recordAuthDebugEvent('Google result reçu');
 
-  const email = result?.account?.email;
-  if (!email) {
-    globalError.textContent = 'Connexion Google impossible pour le moment. Réessayez.';
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
-    return;
-  }
+  const idToken = result?.idToken || result?.account?.idToken || result?.authentication?.idToken;
+  console.log(`idToken ${idToken ? 'présent' : 'absent'}`);
+  recordAuthDebugEvent(`idToken ${idToken ? 'présent' : 'absent'}`);
 
   try {
+    if (!idToken) {
+      throw new Error('Le résultat Google ne contient pas de idToken.');
+    }
+
+    await authReadyPromise;
+    const credential = GoogleAuthProvider.credential(idToken);
+    console.log('credential créé');
+    recordAuthDebugEvent('credential créé');
+
+    const firebaseResult = await signInWithCredential(auth, credential);
+    if (!auth.currentUser) {
+      throw new Error('Firebase Auth ne contient aucun utilisateur après signInWithCredential.');
+    }
+
+    console.log('signInWithCredential réussi', auth.currentUser.uid);
+    recordAuthDebugEvent('signInWithCredential réussi');
+    saveGoogleWelcomePayload(firebaseResult);
+
+    const user = auth.currentUser;
     localStorage.setItem(
       'suiviMateriel.authUser.v1',
       JSON.stringify({
-        email,
-        provider: 'google-android',
-        timestamp: Date.now(),
+        uid: user.uid || '',
+        displayName: user.displayName || '',
+        email: user.email || '',
+        photoURL: user.photoURL || '',
       }),
     );
-    console.log('Login success');
-    recordAuthDebugEvent('login Google réussi');
-    sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, JSON.stringify({ email, provider: 'google-android' }));
+    sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, `uid=${user.uid || '—'}, email=${user.email || '—'}`);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
     redirectToHome();
-  } catch (_error) {
-    globalError.textContent = 'Connexion Google impossible pour le moment. Réessayez.';
+  } catch (error) {
+    googleSignInPending = false;
+    console.error('signInWithCredential erreur Firebase', error);
+    recordAuthDebugEvent('signInWithCredential erreur Firebase');
+    recordFirebaseError(error);
+    globalError.textContent = mapGoogleAuthError(error);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
   }
