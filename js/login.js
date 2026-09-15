@@ -5,6 +5,7 @@ import {
   fetchSignInMethodsForEmail,
   onAuthStateChanged,
   setPersistence,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
@@ -17,6 +18,52 @@ provider.setCustomParameters({ prompt: 'select_account' });
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
 const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
 let googleSignInPending = false;
+
+function logWebAuth(event) {
+  console.info('[WEB_AUTH]', event);
+}
+
+window.firebaseLoginWithToken = async function (idToken) {
+  logWebAuth('native_token_received');
+  if (!idToken) {
+    logWebAuth('firebase_signin_error');
+    return {
+      success: false,
+      code: 'auth/missing-id-token',
+      message: 'Le Google ID Token est requis.',
+    };
+  }
+
+  // Empêche la surveillance Auth de naviguer avant qu’Android ait reçu la réponse JS.
+  googleSignInPending = true;
+  try {
+    const credential = GoogleAuthProvider.credential(idToken);
+    logWebAuth('credential_created');
+    const result = await signInWithCredential(firebaseAuth, credential);
+    if (!result?.user) {
+      throw Object.assign(new Error('Firebase n’a retourné aucun utilisateur.'), {
+        code: 'auth/missing-user',
+      });
+    }
+    logWebAuth('firebase_signin_success');
+    return {
+      success: true,
+      uid: result.user.uid || '',
+      email: result.user.email || '',
+      displayName: result.user.displayName || '',
+    };
+  } catch (error) {
+    logWebAuth('firebase_signin_error');
+    return {
+      success: false,
+      code: String(error?.code || 'auth/unknown'),
+      message: String(error?.message || 'Connexion Firebase impossible.').split(String(idToken)).join('[REDACTED]'),
+    };
+  } finally {
+    googleSignInPending = false;
+  }
+};
+
 
 function isInAppBrowser() {
   return /FBAN|FBAV|Instagram|Messenger|WhatsApp/i.test(navigator.userAgent);
@@ -50,6 +97,11 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
   .catch(() => {
     globalError.textContent = 'Une erreur est survenue lors de la préparation de la connexion. Veuillez réessayer.';
   });
+
+authReadyPromise.then(() => {
+  window.firebaseBridgeReady = true;
+  window.AndroidAuth?.firebaseReady?.();
+});
 
 const form = document.getElementById('loginForm');
 const emailInput = document.getElementById('loginEmail');
@@ -134,11 +186,19 @@ function saveGoogleWelcomePayload(result) {
 }
 
 async function startGoogleSignIn() {
+  logWebAuth('login_start');
   await authReadyPromise;
+
+  if (window.AndroidAuth) {
+    window.AndroidAuth.startGoogleSignIn();
+    return;
+  }
+
   // signInWithRedirect est évité ici car le projet est hébergé sur GitHub Pages et non sur Firebase Hosting.
   googleSignInPending = true;
   try {
     const result = await signInWithPopup(auth, provider);
+    logWebAuth('popup_success');
     saveGoogleWelcomePayload(result);
     window.location.replace('index.html');
   } catch (error) {
