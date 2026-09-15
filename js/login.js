@@ -18,9 +18,19 @@ provider.setCustomParameters({ prompt: 'select_account' });
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
 const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
 let googleSignInPending = false;
+let redirectDone = false;
 
 function logWebAuth(event) {
   console.info('[WEB_AUTH]', event);
+}
+
+function redirectToHome() {
+  if (redirectDone) {
+    return;
+  }
+  redirectDone = true;
+  logWebAuth('redirect_to_index');
+  window.location.replace('index.html');
 }
 
 window.firebaseLoginWithToken = async function (idToken) {
@@ -46,6 +56,8 @@ window.firebaseLoginWithToken = async function (idToken) {
       });
     }
     logWebAuth('firebase_signin_success');
+    googleSignInPending = false;
+    redirectToHome();
     return {
       success: true,
       uid: result.user.uid || '',
@@ -89,7 +101,7 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
         };
         localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
         if (!googleSignInPending) {
-          window.location.replace('index.html');
+          redirectToHome();
         }
       }
     });
@@ -123,10 +135,6 @@ let lastEmailCheckId = 0;
 let isAuthInProgress = false;
 const fieldErrorTimers = new Map();
 const fieldStateTimers = new Map();
-
-function redirectToHome() {
-  window.location.replace('index.html');
-}
 
 function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
@@ -200,7 +208,8 @@ async function startGoogleSignIn() {
     const result = await signInWithPopup(auth, provider);
     logWebAuth('popup_success');
     saveGoogleWelcomePayload(result);
-    window.location.replace('index.html');
+    googleSignInPending = false;
+    redirectToHome();
   } catch (error) {
     googleSignInPending = false;
     throw error;
