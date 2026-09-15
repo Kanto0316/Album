@@ -3369,6 +3369,17 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       });
     }
 
+    function mettreAJourDiagnosticFirebase(user) {
+      window.AuthDebug?.renderUser(user || null);
+      window.AuthDebug?.setEvent(user ? 'CONNECTÉ : session Firebase active' : 'AUTH CHANGE : null');
+      if (user) {
+        window.sessionStorage.setItem(
+          'suiviMateriel.authDebug.result.v1',
+          `uid=${user.uid || '—'}, email=${user.email || '—'}`,
+        );
+      }
+    }
+
     function getCurrentUserRole() {
       if (currentPermissions?.isAdmin) {
         return 'admin';
@@ -3455,8 +3466,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     let authStateUpdateId = 0;
     onAuthStateChanged(firebaseAuth, async (user) => {
       console.log('AUTH CHANGE', user);
-      window.AuthDebug?.renderUser(user);
-      window.AuthDebug?.setEvent(user ? 'AUTH CHANGE : utilisateur détecté' : 'AUTH CHANGE : null');
+      mettreAJourDiagnosticFirebase(user);
       const updateId = ++authStateUpdateId;
       isAuthenticated = Boolean(user);
       if (!isAuthenticated) {

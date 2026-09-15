@@ -5,9 +5,9 @@ import {
   fetchSignInMethodsForEmail,
   onAuthStateChanged,
   setPersistence,
-  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
 
@@ -21,6 +21,17 @@ const AUTH_DEBUG_EVENT_KEY = 'suiviMateriel.authDebug.event.v1';
 const AUTH_DEBUG_ERRORS_KEY = 'suiviMateriel.authDebug.errors.v1';
 const AUTH_DEBUG_RESULT_KEY = 'suiviMateriel.authDebug.result.v1';
 let googleSignInPending = false;
+
+function saveAuthenticatedUser(user) {
+  const authPayload = {
+    uid: user.uid || '',
+    displayName: user.displayName || '',
+    email: user.email || '',
+    photoURL: user.photoURL || '',
+  };
+  localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
+  sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, `uid=${authPayload.uid || '—'}, email=${authPayload.email || '—'}`);
+}
 
 function recordAuthDebugEvent(message) {
   sessionStorage.setItem(AUTH_DEBUG_EVENT_KEY, message);
@@ -53,13 +64,7 @@ const authReadyPromise = setPersistence(auth, browserLocalPersistence)
   .then(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        const authPayload = {
-          uid: user.uid || '',
-          displayName: user.displayName || '',
-          email: user.email || '',
-          photoURL: user.photoURL || '',
-        };
-        localStorage.setItem('suiviMateriel.authUser.v1', JSON.stringify(authPayload));
+        saveAuthenticatedUser(user);
         if (!googleSignInPending) {
           window.location.replace('index.html');
         }
@@ -95,58 +100,6 @@ const fieldStateTimers = new Map();
 function redirectToHome() {
   window.location.replace('index.html');
 }
-
-window.onAndroidGoogleAccountResult = async function (result) {
-  console.log('Google result reçu', result);
-  recordAuthDebugEvent('Google result reçu');
-
-  const idToken = result?.idToken || result?.account?.idToken || result?.authentication?.idToken;
-  console.log(`idToken ${idToken ? 'présent' : 'absent'}`);
-  recordAuthDebugEvent(`idToken ${idToken ? 'présent' : 'absent'}`);
-
-  try {
-    if (!idToken) {
-      throw new Error('Le résultat Google ne contient pas de idToken.');
-    }
-
-    await authReadyPromise;
-    const credential = GoogleAuthProvider.credential(idToken);
-    console.log('credential créé');
-    recordAuthDebugEvent('credential créé');
-
-    const firebaseResult = await signInWithCredential(auth, credential);
-    if (!auth.currentUser) {
-      throw new Error('Firebase Auth ne contient aucun utilisateur après signInWithCredential.');
-    }
-
-    console.log('signInWithCredential réussi', auth.currentUser.uid);
-    recordAuthDebugEvent('signInWithCredential réussi');
-    saveGoogleWelcomePayload(firebaseResult);
-
-    const user = auth.currentUser;
-    localStorage.setItem(
-      'suiviMateriel.authUser.v1',
-      JSON.stringify({
-        uid: user.uid || '',
-        displayName: user.displayName || '',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
-      }),
-    );
-    sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, `uid=${user.uid || '—'}, email=${user.email || '—'}`);
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
-    redirectToHome();
-  } catch (error) {
-    googleSignInPending = false;
-    console.error('signInWithCredential erreur Firebase', error);
-    recordAuthDebugEvent('signInWithCredential erreur Firebase');
-    recordFirebaseError(error);
-    globalError.textContent = mapGoogleAuthError(error);
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
-  }
-};
 
 function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
@@ -206,41 +159,50 @@ function saveGoogleWelcomePayload(result) {
 }
 
 async function startGoogleSignIn() {
-  if (window.AndroidGoogleSignIn) {
-    googleSignInPending = true;
-    window.AndroidGoogleSignIn.openAccountChooser();
-    return true;
-  }
-
   await authReadyPromise;
-  // signInWithRedirect est évité ici car le projet est hébergé sur GitHub Pages et non sur Firebase Hosting.
   googleSignInPending = true;
   try {
     console.log('Firebase web login used');
-    const result = await signInWithPopup(auth, provider);
+    if (typeof signInWithPopup !== 'function') {
+      recordAuthDebugEvent('Popup indisponible : redirection Google');
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
+    let result;
+    try {
+      result = await signInWithPopup(auth, provider);
+    } catch (error) {
+      if (String(error?.code || '').includes('auth/popup-blocked')) {
+        recordAuthDebugEvent('Popup bloquée : redirection Google');
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw error;
+    }
+
     recordAuthDebugEvent('Retour Google reçu');
     saveGoogleWelcomePayload(result);
-    // Attendre la restauration de Firebase Auth avant d'ouvrir index.html.
-    await new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const user = await new Promise((resolve, reject) => {
+      let unsubscribe = () => {};
+      unsubscribe = onAuthStateChanged(auth, (user) => {
         if (!user) {
           return;
         }
 
         unsubscribe();
-        resolve();
-      });
+        resolve(user);
+      }, reject);
     });
     console.log('Login success');
     recordAuthDebugEvent('login Google réussi');
-    sessionStorage.setItem(AUTH_DEBUG_RESULT_KEY, `uid=${result.user?.uid || '—'}, email=${result.user?.email || '—'}`);
-    window.location.replace('index.html');
+    saveAuthenticatedUser(user);
+    redirectToHome();
   } catch (error) {
     googleSignInPending = false;
     throw error;
   }
 
-  return false;
 }
 
 function encodeMemo(email, password) {
@@ -423,10 +385,7 @@ googleLoginButton.addEventListener('click', async () => {
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
-    const isAndroidFlow = await startGoogleSignIn();
-    if (isAndroidFlow) {
-      return;
-    }
+    await startGoogleSignIn();
   } catch (error) {
     googleSignInPending = false;
     recordFirebaseError(error);
