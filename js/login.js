@@ -3,10 +3,10 @@ import {
   browserLocalPersistence,
   getAdditionalUserInfo,
   fetchSignInMethodsForEmail,
+  getRedirectResult,
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signInWithRedirect,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { firebaseAuth } from './firebase-core.js';
@@ -38,6 +38,7 @@ function recordAuthDebugEvent(message) {
 }
 
 function recordFirebaseError(error) {
+  console.error('Erreur Firebase éventuelle', error);
   let errors = [];
   try {
     errors = JSON.parse(sessionStorage.getItem(AUTH_DEBUG_ERRORS_KEY) || '[]');
@@ -59,22 +60,6 @@ function showInAppBrowserWarning() {
 
   return 'Pour une connexion Google plus fiable, ouvrez cette page dans votre navigateur principal (Chrome, Safari, etc.).';
 }
-
-const authReadyPromise = setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        saveAuthenticatedUser(user);
-        if (!googleSignInPending) {
-          window.location.replace('index.html');
-        }
-      }
-    });
-  })
-  .catch((error) => {
-    recordFirebaseError(error);
-    globalError.textContent = 'Une erreur est survenue lors de la préparation de la connexion. Veuillez réessayer.';
-  });
 
 const form = document.getElementById('loginForm');
 const emailInput = document.getElementById('loginEmail');
@@ -100,6 +85,52 @@ const fieldStateTimers = new Map();
 function redirectToHome() {
   window.location.replace('index.html');
 }
+
+async function handleGoogleRedirectResult() {
+  console.log('Retour redirect Google');
+  recordAuthDebugEvent('Retour redirect Google');
+
+  // Le second argument conserve explicitement le provider utilisé au départ du
+  // flux, notamment pour les implémentations Firebase embarquées par la WebView.
+  const result = await getRedirectResult(auth, provider);
+  if (!result?.user) {
+    return false;
+  }
+
+  console.log('User Firebase reçu');
+  saveGoogleWelcomePayload(result);
+  saveAuthenticatedUser(result.user);
+  recordAuthDebugEvent('Redirect Google terminé');
+  redirectToHome();
+  return true;
+}
+
+const authReadyPromise = setPersistence(auth, browserLocalPersistence)
+  .then(async () => {
+    googleSignInPending = true;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        return;
+      }
+
+      console.log('User Firebase reçu');
+      saveAuthenticatedUser(user);
+      if (!googleSignInPending) {
+        redirectToHome();
+      }
+    }, recordFirebaseError);
+
+    const redirectHandled = await handleGoogleRedirectResult();
+    googleSignInPending = false;
+    if (!redirectHandled && auth.currentUser) {
+      redirectToHome();
+    }
+  })
+  .catch((error) => {
+    googleSignInPending = false;
+    recordFirebaseError(error);
+    globalError.textContent = 'Une erreur est survenue lors de la préparation de la connexion. Veuillez réessayer.';
+  });
 
 function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
@@ -162,42 +193,9 @@ async function startGoogleSignIn() {
   await authReadyPromise;
   googleSignInPending = true;
   try {
-    console.log('Firebase web login used');
-    if (typeof signInWithPopup !== 'function') {
-      recordAuthDebugEvent('Popup indisponible : redirection Google');
-      await signInWithRedirect(auth, provider);
-      return;
-    }
-
-    let result;
-    try {
-      result = await signInWithPopup(auth, provider);
-    } catch (error) {
-      if (String(error?.code || '').includes('auth/popup-blocked')) {
-        recordAuthDebugEvent('Popup bloquée : redirection Google');
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      throw error;
-    }
-
-    recordAuthDebugEvent('Retour Google reçu');
-    saveGoogleWelcomePayload(result);
-    const user = await new Promise((resolve, reject) => {
-      let unsubscribe = () => {};
-      unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (!user) {
-          return;
-        }
-
-        unsubscribe();
-        resolve(user);
-      }, reject);
-    });
-    console.log('Login success');
-    recordAuthDebugEvent('login Google réussi');
-    saveAuthenticatedUser(user);
-    redirectToHome();
+    console.log('Début redirect Google');
+    recordAuthDebugEvent('Début redirect Google');
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     googleSignInPending = false;
     throw error;
