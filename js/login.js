@@ -76,6 +76,35 @@ function redirectToHome() {
   window.location.replace('index.html');
 }
 
+window.onAndroidGoogleAccountResult = async function (result) {
+  console.log('Android Google account received');
+
+  const email = result?.account?.email;
+  if (!email) {
+    globalError.textContent = 'Connexion Google impossible pour le moment. Réessayez.';
+    isAuthInProgress = false;
+    setLoading(false, googleLoginButton);
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      'suiviMateriel.authUser.v1',
+      JSON.stringify({
+        email,
+        provider: 'google-android',
+        timestamp: Date.now(),
+      }),
+    );
+    console.log('Login success');
+    redirectToHome();
+  } catch (_error) {
+    globalError.textContent = 'Connexion Google impossible pour le moment. Réessayez.';
+    isAuthInProgress = false;
+    setLoading(false, googleLoginButton);
+  }
+};
+
 function mapGoogleAuthError(error) {
   const code = String(error?.code || '');
 
@@ -134,17 +163,27 @@ function saveGoogleWelcomePayload(result) {
 }
 
 async function startGoogleSignIn() {
+  if (window.AndroidGoogleSignIn) {
+    googleSignInPending = true;
+    window.AndroidGoogleSignIn.signIn();
+    return true;
+  }
+
   await authReadyPromise;
   // signInWithRedirect est évité ici car le projet est hébergé sur GitHub Pages et non sur Firebase Hosting.
   googleSignInPending = true;
   try {
+    console.log('Firebase web login used');
     const result = await signInWithPopup(auth, provider);
     saveGoogleWelcomePayload(result);
+    console.log('Login success');
     window.location.replace('index.html');
   } catch (error) {
     googleSignInPending = false;
     throw error;
   }
+
+  return false;
 }
 
 function encodeMemo(email, password) {
@@ -325,8 +364,12 @@ googleLoginButton.addEventListener('click', async () => {
   globalError.textContent = '';
   setLoading(true, googleLoginButton);
   try {
-    await startGoogleSignIn();
+    const isAndroidFlow = await startGoogleSignIn();
+    if (isAndroidFlow) {
+      return;
+    }
   } catch (error) {
+    googleSignInPending = false;
     globalError.textContent = mapGoogleAuthError(error);
     isAuthInProgress = false;
     setLoading(false, googleLoginButton);
