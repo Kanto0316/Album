@@ -97,6 +97,8 @@ window.onAndroidGoogleAccountResult = async function (result) {
       }),
     );
     console.log('Login success');
+    isAuthInProgress = false;
+    setLoading(false, googleLoginButton);
     redirectToHome();
   } catch (_error) {
     globalError.textContent = 'Connexion Google impossible pour le moment. Réessayez.';
@@ -165,7 +167,7 @@ function saveGoogleWelcomePayload(result) {
 async function startGoogleSignIn() {
   if (window.AndroidGoogleSignIn) {
     googleSignInPending = true;
-    window.AndroidGoogleSignIn.signIn();
+    window.AndroidGoogleSignIn.openAccountChooser();
     return true;
   }
 
