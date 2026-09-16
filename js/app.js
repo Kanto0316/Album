@@ -2353,7 +2353,34 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
 
     function downloadSuFile(fileName, content) {
-      const blob = new Blob([content], { type: 'application/octet-stream' });
+      const mimeType = 'application/json';
+      const bytes = new TextEncoder().encode(content);
+
+      if (
+        window.AndroidDownloads
+        && typeof window.AndroidDownloads.saveFile === 'function'
+      ) {
+        const chunkSize = 0x8000;
+        let binaryContent = '';
+        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+          binaryContent += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+        }
+        const base64 = window.btoa(binaryContent);
+        console.log('[EXPORT SU] mode: Android bridge');
+        console.log('[EXPORT SU] nom fichier:', fileName);
+        console.log('[EXPORT SU] MIME:', mimeType);
+        console.log('[EXPORT SU] taille octets:', bytes.length);
+        console.log('[EXPORT SU] taille Base64:', base64.length);
+        window.AndroidDownloads.saveFile(fileName, mimeType, base64);
+        return;
+      }
+
+      console.log('[EXPORT SU] mode: Web');
+      console.log('[EXPORT SU] nom fichier:', fileName);
+      console.log('[EXPORT SU] MIME:', mimeType);
+      console.log('[EXPORT SU] taille octets:', bytes.length);
+      console.log('[EXPORT SU] taille Base64: non applicable');
+      const blob = new Blob([content], { type: mimeType });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = fileName;
