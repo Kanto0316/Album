@@ -896,16 +896,29 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     try {
       const workbook = await workbookFactory();
       const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+      const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const androidDownloadBridge = window.AndroidDownloads;
+
+      if (androidDownloadBridge && typeof androidDownloadBridge.saveFile === 'function') {
+        console.log('[EXPORT] Android bridge download');
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        let binaryContent = '';
+        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+          binaryContent += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+        }
+        androidDownloadBridge.saveFile(fileName, mimeType, window.btoa(binaryContent));
+      } else {
+        console.log('[EXPORT] Web download');
+        const blob = new Blob([buffer], { type: mimeType });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+      }
       UiService.showToast(`${title} lancé.`);
     } catch (error) {
       console.error('Erreur export Excel :', error);
