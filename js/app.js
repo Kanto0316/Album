@@ -4071,6 +4071,9 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
   function initSiteDetailPage(permissions, authState) {
     initAuthRequiredNoticeCard();
+    let isPage2Loading = true;
+    document.body.dataset.page2Loading = 'true';
+    document.body.setAttribute('aria-busy', 'true');
 
     const params = UiService.getQueryParams();
     const siteId = params.get('siteId');
@@ -4918,7 +4921,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       } catch (_error) {
         userNamesById = {};
       }
-      renderItems(options);
+      renderActiveTabContent();
     }
 
     function formatSiteExportUnit(unit) {
@@ -6568,7 +6571,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     }
     const savedActiveTab = getSavedActiveSiteTab();
     setActiveSiteTab(savedActiveTab === 'purchases' ? 'purchases' : 'outs');
-    loadPurchasesForCurrentSite();
+    const initialPurchasesReady = loadPurchasesForCurrentSite();
     siteTabButtons.forEach((tab) => {
       tab.addEventListener('click', async () => {
         const targetTab = tab.dataset.tab;
@@ -7202,7 +7205,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       siteTitle.textContent = currentSite.nom;
     });
 
-    StorageService.subscribeItems(
+    const itemsSubscription = StorageService.subscribeItems(
       siteId,
       (items) => {
         currentItems = items;
@@ -7216,7 +7219,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       },
     );
 
-    StorageService.subscribeDetailCounts(
+    const detailCountsSubscription = StorageService.subscribeDetailCounts(
       siteId,
       (counts) => {
         detailCountsByItem = counts;
@@ -7225,7 +7228,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       () => {},
     );
 
-    StorageService.subscribeDetailDesignations(
+    const detailDesignationsSubscription = StorageService.subscribeDetailDesignations(
       siteId,
       (designationsByItem) => {
         detailDesignationsByItem = designationsByItem;
@@ -7234,7 +7237,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       () => {},
     );
 
-    StorageService.subscribeDetailRows(
+    const detailRowsSubscription = StorageService.subscribeDetailRows(
       siteId,
       (rowsByItem) => {
         detailRowsByItem = rowsByItem;
@@ -7246,7 +7249,30 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       () => {},
     );
 
-    loadUserNames();
+    const initialUserNamesReady = loadUserNames();
+
+    const initialReads = [
+      itemsSubscription.initialRead,
+      detailCountsSubscription.initialRead,
+      detailDesignationsSubscription.initialRead,
+      detailRowsSubscription.initialRead,
+      initialPurchasesReady,
+      initialUserNamesReady,
+    ].filter(Boolean);
+
+    return Promise.all(initialReads)
+      .then((results) => new Promise((resolve) => {
+        // The loading state ends only after statistics and cards have reached the DOM.
+        window.requestAnimationFrame(() => resolve(results));
+      }))
+      .then((results) => {
+        isPage2Loading = false;
+        document.body.dataset.page2Loading = String(isPage2Loading);
+        document.body.removeAttribute('aria-busy');
+        if (results.some((result) => result?.error)) {
+          UiService.showToast('Certaines données sont affichées depuis le cache.', { type: 'warning' });
+        }
+      });
   }
 
   function initItemDetailPage(permissions) {
@@ -10037,7 +10063,7 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       initHomePage(permissions, { isAuthenticated, authUser });
     }
     if (page === 'site-detail') {
-      initSiteDetailPage(permissions, { isAuthenticated, authUser });
+      await initSiteDetailPage(permissions, { isAuthenticated, authUser });
     }
     if (page === 'item-detail') {
       initItemDetailPage(permissions);
