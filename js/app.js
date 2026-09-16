@@ -14,6 +14,42 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
   const OFFLINE_WRITE_MESSAGE = 'Vérifiez votre connexion internet';
 
+  let firestoreReadySignalSent = false;
+
+  async function notifyAndroidWhenFirestoreIsReady() {
+    if (document.body.dataset.page !== 'home') {
+      return;
+    }
+
+    console.info('[SPLASH_WEB] attente Firestore');
+
+    try {
+      // La liste des sites est la première donnée indispensable à l'écran d'accueil.
+      // Cette lecture démarre sans dépendre de la résolution de Firebase Auth.
+      await getDocsFromServer(collection(firebaseDb, 'pages', 'page1', 'items'));
+
+      // Le module est chargé en fin de body. Attendre une frame garantit également
+      // que le DOM initial est prêt à recevoir le rendu des données.
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      console.info('[SPLASH_WEB] Firestore prêt');
+
+      if (
+        !firestoreReadySignalSent &&
+        window.AndroidApp &&
+        typeof window.AndroidApp.readyFirestore === 'function'
+      ) {
+        firestoreReadySignalSent = true;
+        window.AndroidApp.readyFirestore();
+        console.info('[SPLASH_WEB] signal Android envoyé');
+      }
+    } catch (error) {
+      console.error('[SPLASH_WEB] Firestore indisponible', error);
+    }
+  }
+
+  // Ne pas chaîner ce contrôle au bootstrap : celui-ci attend volontairement Auth.
+  void notifyAndroidWhenFirestoreIsReady();
+
   // Source unique du diagnostic Firebase affiché par index.html.
   onAuthStateChanged(firebaseAuth, (user) => {
     if (typeof window.updateFirebaseDiagnostic !== 'function') {
