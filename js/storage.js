@@ -56,6 +56,7 @@ const state = {
   loadedItemSites: new Set(),
   loadedDetailSites: new Set(),
   loadedDetailPairs: new Set(),
+  detailSiteLoads: new Map(),
   listeners: {
     sites: new Set(),
     itemCounts: new Set(),
@@ -1248,19 +1249,21 @@ function applySnapshot(snapshot) {
     }
   });
 
-  state.detailsByItem = new Map();
-  (Array.isArray(snapshot.page3) ? snapshot.page3 : []).forEach((detail) => {
-    const siteId = String(detail.siteId || '');
-    const itemId = String(detail.itemId || '');
-    if (!siteId || !itemId) {
-      return;
-    }
-    const key = `${siteId}:${itemId}`;
-    if (!state.detailsByItem.has(key)) {
-      state.detailsByItem.set(key, []);
-    }
-    state.detailsByItem.get(key).push(detail);
-  });
+  if (Object.prototype.hasOwnProperty.call(snapshot, 'page3')) {
+    state.detailsByItem = new Map();
+    (Array.isArray(snapshot.page3) ? snapshot.page3 : []).forEach((detail) => {
+      const siteId = String(detail.siteId || '');
+      const itemId = String(detail.itemId || '');
+      if (!siteId || !itemId) {
+        return;
+      }
+      const key = `${siteId}:${itemId}`;
+      if (!state.detailsByItem.has(key)) {
+        state.detailsByItem.set(key, []);
+      }
+      state.detailsByItem.get(key).push(detail);
+    });
+  }
 
   if (Array.isArray(snapshot.materialCodes)) {
     state.materialCodes = snapshot.materialCodes.map(normalizeMaterialCodeEntry).filter(Boolean);
@@ -1341,6 +1344,11 @@ async function init() {
   state.db = firebaseDb;
 
   const offlineState = parseOfflineState();
+  // Hydrate every cached page before refreshing page 1. This keeps page 2 data
+  // available as a fallback when its dedicated server reads fail.
+  if (offlineState?.snapshot) {
+    applySnapshot(offlineState.snapshot);
+  }
   try {
     const remote = await loadRemoteSnapshot();
     applySnapshot(remote);
@@ -1527,6 +1535,13 @@ function subscribeFactory(registry, key, onChange) {
   return () => listeners.delete(onChange);
 }
 
+function attachInitialRead(unsubscribe, initialRead) {
+  // Preserve the historical unsubscribe-function API while exposing a promise
+  // that page controllers can use as a real initial-loading barrier.
+  unsubscribe.initialRead = initialRead;
+  return unsubscribe;
+}
+
 function subscribeSites(onChange, onError) {
   try {
     state.listeners.sites.add(onChange);
@@ -1544,14 +1559,18 @@ function subscribeItems(siteId, onChange, onError) {
   try {
     const normalizedSiteId = String(siteId || '').trim();
     const unsubscribe = subscribeFactory(state.listeners.itemsBySite, normalizedSiteId, onChange);
-    ensureSiteItemsLoaded(normalizedSiteId, true)
-      .then(() => onChange(clone(state.itemsBySite.get(normalizedSiteId) || [])))
+    const initialRead = ensureSiteItemsLoaded(normalizedSiteId, true)
+      .then(() => {
+        onChange(clone(state.itemsBySite.get(normalizedSiteId) || []));
+        return { source: 'server' };
+      })
       .catch((error) => {
         onChange(clone(state.itemsBySite.get(normalizedSiteId) || []));
         setReadMode('offline');
         if (typeof onError === 'function') onError(error);
+        return { source: 'cache', error };
       });
-    return unsubscribe;
+    return attachInitialRead(unsubscribe, initialRead);
   } catch (error) {
     if (typeof onError === 'function') {
       onError(error);
@@ -1615,12 +1634,16 @@ function subscribeDetailCounts(siteId, onChange, onError) {
   try {
     const unsubscribe = subscribeFactory(state.listeners.detailCountsBySite, siteId, onChange);
     onChange(clone(buildDetailCountsForSite(siteId)));
-    ensureSiteDetailsLoaded(siteId)
-      .then(() => onChange(clone(buildDetailCountsForSite(siteId))))
+    const initialRead = ensureSiteDetailsLoaded(siteId)
+      .then(() => {
+        onChange(clone(buildDetailCountsForSite(siteId)));
+        return { source: 'server' };
+      })
       .catch((error) => {
         if (typeof onError === 'function') onError(error);
+        return { source: 'cache', error };
       });
-    return unsubscribe;
+    return attachInitialRead(unsubscribe, initialRead);
   } catch (error) {
     if (typeof onError === 'function') {
       onError(error);
@@ -1644,12 +1667,16 @@ function subscribeDetailDesignations(siteId, onChange, onError) {
   try {
     const unsubscribe = subscribeFactory(state.listeners.detailDesignationsBySite, siteId, onChange);
     onChange(clone(buildDetailDesignationsForSite(siteId)));
-    ensureSiteDetailsLoaded(siteId)
-      .then(() => onChange(clone(buildDetailDesignationsForSite(siteId))))
+    const initialRead = ensureSiteDetailsLoaded(siteId)
+      .then(() => {
+        onChange(clone(buildDetailDesignationsForSite(siteId)));
+        return { source: 'server' };
+      })
       .catch((error) => {
         if (typeof onError === 'function') onError(error);
+        return { source: 'cache', error };
       });
-    return unsubscribe;
+    return attachInitialRead(unsubscribe, initialRead);
   } catch (error) {
     if (typeof onError === 'function') {
       onError(error);
@@ -1673,12 +1700,16 @@ function subscribeDetailRows(siteId, onChange, onError) {
   try {
     const unsubscribe = subscribeFactory(state.listeners.detailRowsBySite, siteId, onChange);
     onChange(clone(buildDetailRowsForSite(siteId)));
-    ensureSiteDetailsLoaded(siteId)
-      .then(() => onChange(clone(buildDetailRowsForSite(siteId))))
+    const initialRead = ensureSiteDetailsLoaded(siteId)
+      .then(() => {
+        onChange(clone(buildDetailRowsForSite(siteId)));
+        return { source: 'server' };
+      })
       .catch((error) => {
         if (typeof onError === 'function') onError(error);
+        return { source: 'cache', error };
       });
-    return unsubscribe;
+    return attachInitialRead(unsubscribe, initialRead);
   } catch (error) {
     if (typeof onError === 'function') {
       onError(error);
@@ -1758,14 +1789,25 @@ function mergeDetails(details) {
 async function ensureSiteDetailsLoaded(siteId) {
   const normalizedSiteId = String(siteId || '');
   if (!normalizedSiteId || state.loadedDetailSites.has(normalizedSiteId)) return;
-  const details = await readDetailsByQuery(where('siteId', '==', normalizedSiteId));
-  mergeDetails(details);
-  await ensureSiteItemsLoaded(normalizedSiteId);
-  await reconcileItemArticleCounts(new Set([normalizedSiteId]));
-  state.loadedDetailSites.add(normalizedSiteId);
-  details.forEach((detail) => state.loadedDetailPairs.add(`${detail.siteId}:${detail.itemId}`));
-  persistOfflineState();
-  emitForSite(normalizedSiteId);
+  if (state.detailSiteLoads.has(normalizedSiteId)) {
+    return state.detailSiteLoads.get(normalizedSiteId);
+  }
+  const load = (async () => {
+    const details = await readDetailsByQuery(where('siteId', '==', normalizedSiteId));
+    mergeDetails(details);
+    await ensureSiteItemsLoaded(normalizedSiteId);
+    await reconcileItemArticleCounts(new Set([normalizedSiteId]));
+    state.loadedDetailSites.add(normalizedSiteId);
+    details.forEach((detail) => state.loadedDetailPairs.add(`${detail.siteId}:${detail.itemId}`));
+    persistOfflineState();
+    emitForSite(normalizedSiteId);
+  })();
+  state.detailSiteLoads.set(normalizedSiteId, load);
+  try {
+    await load;
+  } finally {
+    state.detailSiteLoads.delete(normalizedSiteId);
+  }
 }
 
 async function ensurePairDetailsLoaded(siteId, itemId, forceServer = false) {
