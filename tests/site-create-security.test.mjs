@@ -55,6 +55,7 @@ test('le dialogue de création conserve le centrage natif utilisé par les autre
   const css = await readSource('../css/style.css');
   const mobileRules = css.slice(css.indexOf('/* Le formulaire de création reste utilisable au-dessus du clavier mobile. */'));
 
+  assert.match(mobileRules, /\.site-create-security-fields\s*\{[^}]*margin-top:\s*1rem/);
   assert.doesNotMatch(mobileRules, /#siteDialog\s*\{[^}]*margin(?:-block)?\s*:/);
   assert.match(mobileRules, /#siteDialog \.modal-content--site-create\s*\{[^}]*overflow-y:\s*auto/);
   assert.match(mobileRules, /#siteDialog \.modal-actions--site-create\s*\{[^}]*position:\s*sticky[^}]*bottom:\s*0/);

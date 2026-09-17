@@ -9273,6 +9273,10 @@ body[data-page="item-detail"] .return-history__quantity-input {
   display: none;
 }
 
+.site-create-security-fields {
+  margin-top: 1rem;
+}
+
 .site-lock-fields {
   margin-top: 0.35rem;
 }
