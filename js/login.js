@@ -17,11 +17,8 @@ provider.setCustomParameters({ prompt: 'select_account' });
 
 const STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
 const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
-const AUTH_LOGOUT_IN_PROGRESS_KEY = 'suiviMateriel.authLogoutInProgress.v1';
-const NATIVE_LOGIN_TIMEOUT_MS = 60000;
 let googleSignInPending = false;
 let redirectDone = false;
-let nativeGoogleAttempt = null;
 
 function logWebAuth(event) {
   console.info('[WEB_AUTH]', event);
@@ -38,22 +35,8 @@ function redirectToHome() {
 
 window.firebaseLoginWithToken = async function (idToken) {
   logWebAuth('native_token_received');
-  const attempt = nativeGoogleAttempt;
-  if (!attempt || sessionStorage.getItem(AUTH_LOGOUT_IN_PROGRESS_KEY)) {
-    logWebAuth('firebase_signin_error');
-    return {
-      success: false,
-      code: 'auth/no-interactive-attempt',
-      message: 'Ce retour de connexion Google est expiré. Appuyez de nouveau sur le bouton Google.',
-    };
-  }
-  nativeGoogleAttempt = null;
-  window.clearTimeout(attempt.timeoutId);
-
   if (!idToken) {
     logWebAuth('firebase_signin_error');
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
     return {
       success: false,
       code: 'auth/missing-id-token',
@@ -83,7 +66,6 @@ window.firebaseLoginWithToken = async function (idToken) {
     };
   } catch (error) {
     logWebAuth('firebase_signin_error');
-    globalError.textContent = mapGoogleAuthError(error);
     return {
       success: false,
       code: String(error?.code || 'auth/unknown'),
@@ -91,8 +73,6 @@ window.firebaseLoginWithToken = async function (idToken) {
     };
   } finally {
     googleSignInPending = false;
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
   }
 };
 
@@ -218,32 +198,7 @@ async function startGoogleSignIn() {
   await authReadyPromise;
 
   if (window.AndroidAuth) {
-    if (nativeGoogleAttempt) {
-      return;
-    }
-    const attemptId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    nativeGoogleAttempt = {
-      id: attemptId,
-      timeoutId: window.setTimeout(() => {
-        if (nativeGoogleAttempt?.id !== attemptId) {
-          return;
-        }
-        nativeGoogleAttempt = null;
-        googleSignInPending = false;
-        isAuthInProgress = false;
-        setLoading(false, googleLoginButton);
-        globalError.textContent = 'Connexion Google annulée ou sans réponse. Vous pouvez réessayer.';
-      }, NATIVE_LOGIN_TIMEOUT_MS),
-    };
-    googleSignInPending = true;
-    try {
-      window.AndroidAuth.startGoogleSignIn();
-    } catch (error) {
-      window.clearTimeout(nativeGoogleAttempt.timeoutId);
-      nativeGoogleAttempt = null;
-      googleSignInPending = false;
-      throw error;
-    }
+    window.AndroidAuth.startGoogleSignIn();
     return;
   }
 
@@ -447,8 +402,6 @@ googleLoginButton.addEventListener('click', async () => {
     return;
   }
 
-  if (!nativeGoogleAttempt) {
-    isAuthInProgress = false;
-    setLoading(false, googleLoginButton);
-  }
+  isAuthInProgress = false;
+  setLoading(false, googleLoginButton);
 });
