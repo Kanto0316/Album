@@ -8,6 +8,7 @@ import { getNextLineNumber } from './next-line-number.js';
 import { formatMaterialHistoryAction, getMaterialHistoryHighlights } from './material-history.js';
 import { readLocalFallback, reportReadMode, updateLocalFallback } from './read-cache.js';
 import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
+import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
 (function () {
   const { StorageService, UiService } = window;
@@ -875,21 +876,32 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     try {
       const workbook = await workbookFactory();
       const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      const result = downloadExportFile({
+        fileName,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        bytes: buffer,
+        onAndroidResult: (detail) => showAndroidDownloadResult(detail, title),
       });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
-      UiService.showToast(`${title} lancé.`);
+      if (result.mode === 'browser') {
+        UiService.showToast(`${title} lancé.`);
+      }
     } catch (error) {
       console.error('Erreur export Excel :', error);
       UiService.showToast('Impossible de générer le fichier Excel.');
     }
+  }
+
+  function showAndroidDownloadResult(detail, title) {
+    if (detail.status === 'started') {
+      UiService.showToast(`Enregistrement de « ${detail.fileName || title} » en cours…`);
+      return;
+    }
+    if (detail.status === 'saved') {
+      UiService.showToast(`« ${detail.fileName || title} » enregistré.`);
+      return;
+    }
+    const reason = detail.error ? ` ${detail.error}` : '';
+    UiService.showToast(`Échec de l’enregistrement de « ${detail.fileName || title} ».${reason}`);
   }
 
   function formatExcelCellValue(value) {
@@ -2315,14 +2327,12 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
 
     function downloadSuFile(fileName, content) {
-      const blob = new Blob([content], { type: 'application/octet-stream' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+      return downloadExportFile({
+        fileName,
+        mimeType: 'application/json',
+        bytes: encodeUtf8(content),
+        onAndroidResult: (detail) => showAndroidDownloadResult(detail, 'Exportation des données'),
+      });
     }
 
     async function handleImportFile(fileInput) {
@@ -2352,8 +2362,10 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
     function exportAllData() {
       const payload = StorageService.exportData();
       const serialized = JSON.stringify(payload, null, 2);
-      downloadSuFile(formatExportFileName(), serialized);
-      UiService.showToast('Exportation des données lancée.');
+      const result = downloadSuFile(formatExportFileName(), serialized);
+      if (result.mode === 'browser') {
+        UiService.showToast('Exportation des données lancée.');
+      }
     }
 
     function openImportFilePicker() {
