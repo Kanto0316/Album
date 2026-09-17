@@ -14,6 +14,53 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
   const { StorageService, UiService } = window;
 
   const OFFLINE_WRITE_MESSAGE = 'Vérifiez votre connexion internet';
+  const AUTH_USER_STORAGE_KEY = 'suiviMateriel.authUser.v1';
+  const LOGIN_MEMO_STORAGE_KEY = 'suiviMateriel.loginMemo.v1';
+  const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
+  const AUTH_LOGOUT_IN_PROGRESS_KEY = 'suiviMateriel.authLogoutInProgress.v1';
+  const NATIVE_SIGN_OUT_TIMEOUT_MS = 10000;
+  let logoutInProgress = false;
+
+  function waitForNativeSignOut(requestId) {
+    return new Promise((resolve, reject) => {
+      let timeoutId;
+      const cleanup = () => {
+        window.removeEventListener('android-auth-signout-result', handleResult);
+        window.clearTimeout(timeoutId);
+      };
+      const handleResult = (event) => {
+        if (event?.detail?.requestId !== requestId) {
+          return;
+        }
+        cleanup();
+        if (event.detail.success === true) {
+          resolve();
+          return;
+        }
+        reject(new Error(event.detail.error || 'La déconnexion Google Android a échoué.'));
+      };
+
+      // L'écouteur doit être actif avant que le code natif puisse répondre.
+      window.addEventListener('android-auth-signout-result', handleResult);
+      timeoutId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("L’application Android n’a pas confirmé la déconnexion. Réessayez."));
+      }, NATIVE_SIGN_OUT_TIMEOUT_MS);
+
+      try {
+        window.AndroidAuth.signOut(requestId);
+      } catch (_error) {
+        cleanup();
+        reject(new Error('Impossible de demander la déconnexion à Android. Mettez à jour l’application puis réessayez.'));
+      }
+    });
+  }
+
+  function clearObsoleteAuthIdentity() {
+    window.localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    window.localStorage.removeItem(LOGIN_MEMO_STORAGE_KEY);
+    window.sessionStorage.removeItem(GOOGLE_WELCOME_KEY);
+  }
 
   function installOfflineFabProtection() {
     const fabIds = ['openCreateSite', 'openCreateItem', 'openDetailFormButton'];
@@ -654,7 +701,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     };
   }
 
-  const GOOGLE_WELCOME_KEY = 'suiviMateriel.googleWelcome.v1';
   const GOOGLE_WELCOME_MAX_AGE_MS = 5 * 60 * 1000;
 
   function readGoogleWelcomePayload() {
@@ -1460,16 +1506,44 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       });
 
     logoutButton.onclick = async () => {
+      if (logoutInProgress) {
+        return;
+      }
       await closeSheet();
       const shouldLogout = await askLogoutConfirmation();
       if (!shouldLogout) {
         return;
       }
+      logoutInProgress = true;
+      window.sessionStorage.setItem(AUTH_LOGOUT_IN_PROGRESS_KEY, '1');
+      logoutButton.disabled = true;
+
+      // La journalisation est utile, mais ne fait pas partie du contrat de déconnexion.
       try {
         await StorageService?.recordCurrentUserActivity?.();
+      } catch (error) {
+        console.warn("L’activité de déconnexion n’a pas pu être enregistrée.", error);
+      }
+
+      try {
+        if (window.AndroidAuth) {
+          if (typeof window.AndroidAuth.signOut !== 'function') {
+            throw new Error('Cette version de l’application ne permet pas la déconnexion Google. Mettez à jour l’application puis réessayez.');
+          }
+          const requestId = `signout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          await waitForNativeSignOut(requestId);
+        }
         await signOut(firebaseAuth);
-      } catch (_error) {
-        message.textContent = "Impossible de se déconnecter pour l'instant.";
+        clearObsoleteAuthIdentity();
+        window.sessionStorage.removeItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
+        window.location.replace('login.html');
+      } catch (error) {
+        window.sessionStorage.removeItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
+        message.textContent = error?.message || "Impossible de se déconnecter pour l'instant. Réessayez.";
+        logoutInProgress = false;
+        logoutButton.disabled = false;
+        overlay.hidden = false;
+        window.requestAnimationFrame(() => overlay.classList.add('is-open'));
       }
     };
 
