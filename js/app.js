@@ -7077,6 +7077,11 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
 
     itemForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      const isCreatingOut = itemDialogMode === ITEM_DIALOG_MODE_CREATE;
+      const createOutFirestorePath = `pages/page2/items/{auto-id} (compteur: pages/page1/items/${siteId})`;
+      if (isCreatingOut) {
+        console.info('[CREATE_OUT] début', { siteId, firestorePath: createOutFirestorePath });
+      }
       if (itemCreateSubmitButton.classList.contains('is-loading')) {
         return;
       }
@@ -7150,6 +7155,15 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
       itemCreateSubmitButton.disabled = true;
       itemCreateSubmitButton.classList.add('is-loading');
       try {
+        if (isCreatingOut) {
+          console.info('[CREATE_OUT] données préparées', {
+            siteId,
+            firestorePath: createOutFirestorePath,
+            numero: `OUT-${value}`,
+            magasin: resolveItemStoreValue(),
+          });
+          console.info('[CREATE_OUT] transaction démarrée', { siteId, firestorePath: createOutFirestorePath });
+        }
         const result = itemDialogMode === ITEM_DIALOG_MODE_EDIT
           ? await StorageService.updateItemName(siteId, editingItemId, value)
           : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
@@ -7175,6 +7189,9 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
           );
           return;
         }
+        if (isCreatingOut) {
+          console.info('[CREATE_OUT] succès', { siteId, firestorePath: createOutFirestorePath });
+        }
         if (itemDialogMode === ITEM_DIALOG_MODE_EDIT && result?.unchanged) {
           itemDialog.close();
           return;
@@ -7188,6 +7205,27 @@ import { isOnline, OFFLINE_WRITE_BLOCKED } from './connectivity.js';
           setActiveSiteTab('purchases');
         }
         UiService.showToast(itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT mis à jour.' : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE ? 'Achat matériel mis à jour.' : 'N° OUT ajouté .');
+      } catch (error) {
+        const errorCode = String(error?.code || '').replace(/^firestore\//, '');
+        const errorMessage = String(error?.message || '');
+        if (isCreatingOut) {
+          console.error('[CREATE_OUT] erreur', {
+            code: error?.code || '',
+            message: errorMessage,
+            siteId,
+            firestorePath: createOutFirestorePath,
+          }, error);
+        }
+        const userMessage = errorCode === 'permission-denied'
+          ? 'Création impossible : vous n’avez pas les autorisations nécessaires.'
+          : errorCode === 'unavailable'
+            ? 'Service temporairement indisponible. Vérifiez votre connexion et réessayez.'
+            : errorCode === 'failed-precondition'
+              ? 'Création impossible pour le moment. Rechargez la page puis réessayez.'
+              : errorCode === 'site_not_found' || errorMessage === 'site_not_found'
+                ? 'Création impossible : ce site est introuvable. Rechargez la page.'
+                : 'Une erreur est survenue pendant la création. Veuillez réessayer.';
+        showItemFormError(userMessage, 5000);
       } finally {
         if (itemDialog.open) {
           itemCreateSubmitButton.classList.remove('is-loading');
