@@ -9285,10 +9285,6 @@ body[data-page="item-detail"] .return-history__quantity-input {
 }
 
 @media (max-width: 767px) {
-  #siteDialog {
-    margin-block: max(0.5rem, env(safe-area-inset-top));
-  }
-
   #siteDialog .modal-content--site-create {
     max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
