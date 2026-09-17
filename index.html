@@ -149,6 +149,14 @@
               <span id="siteNameCounter" class="input-char-counter" aria-live="polite">0 / 0</span>
             </div>
           </label>
+          <label class="input-group input-group--site-create">
+            <span>Sécurité</span>
+            <select id="siteSecuritySelect" name="siteSecurity">
+              <option value="open" selected>Ouvert</option>
+              <option value="locked">Verrouillé</option>
+            </select>
+          </label>
+          <div id="siteCreateSecurityFields" class="site-create-security-fields" hidden></div>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
             <button id="siteCreateSubmitButton" type="submit" class="btn btn-success">
@@ -185,26 +193,28 @@
           <div class="modal-header">
             <h2>Créer un mot de passe</h2>
           </div>
-          <label class="input-group input-group--site-lock-create">
-            <span>Entrer un mot de passe</span>
-            <div class="password-wrap password-wrap--site-lock">
-              <input id="siteLockPasswordInput" type="text" autocomplete="new-password" />
-            </div>
-            <div id="siteLockStrengthIndicator" class="password-strength" hidden>
-              <div class="password-strength__track" aria-hidden="true">
-                <span id="siteLockStrengthBar" class="password-strength__bar"></span>
+          <div id="siteLockFields" class="site-lock-fields">
+            <label class="input-group input-group--site-lock-create">
+              <span>Mot de passe <span class="required-star" aria-hidden="true">*</span></span>
+              <div class="password-wrap password-wrap--site-lock">
+                <input id="siteLockPasswordInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" />
               </div>
-              <p id="siteLockStrengthLabel" class="password-strength__text">Force du mot de passe : faible</p>
-            </div>
-            <p id="siteLockPasswordError" class="form-error form-error--field" aria-live="polite"></p>
-          </label>
-          <label class="input-group input-group--site-lock-create">
-            <span>Confirmer</span>
-            <div class="password-wrap password-wrap--site-lock">
-              <input id="siteLockConfirmPasswordInput" type="text" autocomplete="new-password" />
-            </div>
-            <p id="siteLockConfirmPasswordError" class="form-error form-error--field" aria-live="polite"></p>
-          </label>
+              <div id="siteLockStrengthIndicator" class="password-strength" hidden>
+                <div class="password-strength__track" aria-hidden="true">
+                  <span id="siteLockStrengthBar" class="password-strength__bar"></span>
+                </div>
+                <p id="siteLockStrengthLabel" class="password-strength__text">Force du mot de passe : faible</p>
+              </div>
+              <p id="siteLockPasswordError" class="form-error form-error--field" aria-live="polite"></p>
+            </label>
+            <label class="input-group input-group--site-lock-create">
+              <span>Confirmer le mot de passe <span class="required-star" aria-hidden="true">*</span></span>
+              <div class="password-wrap password-wrap--site-lock">
+                <input id="siteLockConfirmPasswordInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" />
+              </div>
+              <p id="siteLockConfirmPasswordError" class="form-error form-error--field" aria-live="polite"></p>
+            </label>
+          </div>
           <div class="modal-actions modal-actions--password">
             <button type="button" class="btn" data-close-dialog>Annuler</button>
             <button type="submit" class="btn btn-success">Enregistrer</button>

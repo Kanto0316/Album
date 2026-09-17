@@ -1847,7 +1847,7 @@ function withoutId(payload) {
   return copy;
 }
 
-async function createSite(name) {
+async function createSite(name, security = {}) {
   const offlineError = blockOfflineWrite();
   if (offlineError) return offlineError;
   const siteName = sanitizeText(name, true);
@@ -1860,6 +1860,12 @@ async function createSite(name) {
 
   const timestamp = nowIso();
   const creatorName = await resolveCurrentUserName();
+  const shouldLockSite = security?.isLocked === true;
+  const passwordHash = sanitizeText(security?.passwordHash, false);
+  if (shouldLockSite && !passwordHash) {
+    return { ok: false, reason: 'invalid_password_hash' };
+  }
+  const creatorEmail = resolveCurrentUserEmail();
   const sitePayload = {
     nom: siteName,
     outCount: 0,
@@ -1868,6 +1874,14 @@ async function createSite(name) {
     createdByName: creatorName,
     dateCreation: timestamp,
     dateModification: timestamp,
+    isLocked: shouldLockSite,
+    ...(shouldLockSite ? {
+      passwordHash,
+      lockedAt: timestamp,
+      lockedBy: creatorEmail,
+      lockedByName: creatorName || 'Utilisateur inconnu',
+      unlockAttemptsRemaining: 3,
+    } : {}),
   };
   const created = await addDoc(makePageItemsCollection('page1'), sitePayload);
   const site = { id: created.id, ...sitePayload };
