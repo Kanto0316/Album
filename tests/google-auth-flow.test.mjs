@@ -30,6 +30,58 @@ test('Android est notifié et le navigateur conserve le popup', () => {
   assert.match(loginSource, /if \(window\.AndroidAuth\)/);
   assert.match(loginSource, /window\.AndroidAuth\.startGoogleSignIn\(\)/);
   assert.match(loginSource, /await signInWithPopup\(auth, provider\)/);
+  assert.match(loginSource, /provider\.setCustomParameters\(\{ prompt: 'select_account' \}\)/);
+});
+
+test('un jeton Android exige une nouvelle tentative interactive et est consommé une seule fois', () => {
+  const bridge = loginSource.slice(
+    loginSource.indexOf('window.firebaseLoginWithToken'),
+    loginSource.indexOf('function isInAppBrowser'),
+  );
+  assert.match(bridge, /if \(!attempt \|\| sessionStorage\.getItem\(AUTH_LOGOUT_IN_PROGRESS_KEY\)\)/);
+  assert.match(bridge, /code: 'auth\/no-interactive-attempt'/);
+  assert.match(bridge, /nativeGoogleAttempt = null/);
+  assert.match(loginSource, /NATIVE_LOGIN_TIMEOUT_MS/);
+});
+
+test('la WebView ne lance que le sélecteur natif au clic Google', () => {
+  const nativeBranch = loginSource.slice(
+    loginSource.indexOf('if (window.AndroidAuth)'),
+    loginSource.indexOf('// signInWithRedirect'),
+  );
+  assert.match(nativeBranch, /window\.AndroidAuth\.startGoogleSignIn\(\)/);
+  assert.doesNotMatch(nativeBranch, /signInWithPopup/);
+});
+
+test('la déconnexion Android attend le bon événement avant Firebase et la redirection', () => {
+  const nativeHelper = appSource.slice(
+    appSource.indexOf('function waitForNativeSignOut'),
+    appSource.indexOf('function clearObsoleteAuthIdentity'),
+  );
+  assert.match(nativeHelper, /addEventListener\('android-auth-signout-result'/);
+  assert.match(nativeHelper, /event\?\.detail\?\.requestId !== requestId/);
+  assert.match(nativeHelper, /window\.AndroidAuth\.signOut\(requestId\)/);
+  assert.match(nativeHelper, /NATIVE_SIGN_OUT_TIMEOUT_MS/);
+
+  const logoutFlow = appSource.slice(
+    appSource.indexOf('logoutButton.onclick = async'),
+    appSource.indexOf('overlay.onclick =', appSource.indexOf('logoutButton.onclick = async')),
+  );
+  assert.ok(logoutFlow.indexOf('await waitForNativeSignOut(requestId)') < logoutFlow.indexOf('await signOut(firebaseAuth)'));
+  assert.ok(logoutFlow.indexOf('await signOut(firebaseAuth)') < logoutFlow.indexOf("window.location.replace('login.html')"));
+  assert.match(logoutFlow, /typeof window\.AndroidAuth\.signOut !== 'function'/);
+  assert.match(logoutFlow, /logoutInProgress = false/);
+});
+
+test('la déconnexion ne supprime que les mémoires Auth applicatives', () => {
+  const cleanup = appSource.slice(
+    appSource.indexOf('function clearObsoleteAuthIdentity'),
+    appSource.indexOf('function installOfflineFabProtection'),
+  );
+  assert.match(cleanup, /removeItem\(AUTH_USER_STORAGE_KEY\)/);
+  assert.match(cleanup, /removeItem\(LOGIN_MEMO_STORAGE_KEY\)/);
+  assert.match(cleanup, /removeItem\(GOOGLE_WELCOME_KEY\)/);
+  assert.doesNotMatch(cleanup, /\.clear\(|indexedDB/);
 });
 
 test('les journaux Web Auth demandés sont présents sans donnée sensible', () => {
