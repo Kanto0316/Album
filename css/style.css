@@ -1736,20 +1736,20 @@ body[data-page="home"] #siteUnlockDialog #siteUnlockPasswordInput.is-shaking {
   animation: site-lock-input-shake 300ms ease-in-out 1;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-wrap--site-lock {
+.site-lock-fields .password-wrap--site-lock {
   position: relative;
   width: 100%;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-wrap--site-lock input {
+.site-lock-fields .password-wrap--site-lock input {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength {
+.site-lock-fields .password-strength {
   margin-top: 0.55rem;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength__track {
+.site-lock-fields .password-strength__track {
   width: 100%;
   height: 0.35rem;
   border-radius: 999px;
@@ -1757,7 +1757,7 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password
   overflow: hidden;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength__bar {
+.site-lock-fields .password-strength__bar {
   display: block;
   width: 0;
   height: 100%;
@@ -1766,7 +1766,7 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password
   transition: width 220ms ease, background-color 220ms ease;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength__text {
+.site-lock-fields .password-strength__text {
   margin: 0.38rem 0 0;
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -1774,34 +1774,34 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password
   transition: color 220ms ease;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='weak'] .password-strength__bar {
+.site-lock-fields .password-strength[data-strength='weak'] .password-strength__bar {
   width: 30%;
   background: #e53935;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='medium'] .password-strength__bar {
+.site-lock-fields .password-strength[data-strength='medium'] .password-strength__bar {
   width: 60%;
   background: #fb8c00;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='strong'] .password-strength__bar {
+.site-lock-fields .password-strength[data-strength='strong'] .password-strength__bar {
   width: 100%;
   background: #43a047;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='weak'] .password-strength__text {
+.site-lock-fields .password-strength[data-strength='weak'] .password-strength__text {
   color: #e53935;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='medium'] .password-strength__text {
+.site-lock-fields .password-strength[data-strength='medium'] .password-strength__text {
   color: #fb8c00;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .password-strength[data-strength='strong'] .password-strength__text {
+.site-lock-fields .password-strength[data-strength='strong'] .password-strength__text {
   color: #43a047;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .form-error--field {
+.site-lock-fields .form-error--field {
   margin-top: 0.1rem;
   min-height: 1rem;
   text-align: left;
@@ -1809,16 +1809,16 @@ body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog .form-err
   font-size: 0.82rem;
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockPasswordInput.is-error,
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockPasswordInput.is-error:focus,
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockConfirmPasswordInput.is-error,
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockConfirmPasswordInput.is-error:focus {
+#siteLockPasswordInput.is-error,
+#siteLockPasswordInput.is-error:focus,
+#siteLockConfirmPasswordInput.is-error,
+#siteLockConfirmPasswordInput.is-error:focus {
   border-color: #e57373;
   box-shadow: 0 0 0 3px rgba(229, 115, 115, 0.16);
 }
 
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockPasswordInput.is-shaking,
-body:is([data-page="home"], [data-page="site-detail"]) #siteLockDialog #siteLockConfirmPasswordInput.is-shaking {
+#siteLockPasswordInput.is-shaking,
+#siteLockConfirmPasswordInput.is-shaking {
   animation: site-lock-input-shake 300ms ease-in-out 1;
 }
 
@@ -9266,4 +9266,39 @@ body[data-page="item-detail"] .return-history__quantity-input {
 
 .offline-read-indicator[hidden] {
   display: none;
+}
+
+/* Le formulaire de création reste utilisable au-dessus du clavier mobile. */
+.site-create-security-fields[hidden] {
+  display: none;
+}
+
+.site-lock-fields {
+  margin-top: 0.35rem;
+}
+
+#siteDialog .modal-content--site-create {
+  max-height: min(90dvh, 42rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 767px) {
+  #siteDialog {
+    margin-block: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  #siteDialog .modal-content--site-create {
+    max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
+  }
+
+  #siteDialog .modal-actions--site-create {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding-top: 0.75rem;
+    background: inherit;
+  }
 }

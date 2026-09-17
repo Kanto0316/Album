@@ -1630,6 +1630,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const siteNameCounter = requireElement('siteNameCounter');
     const siteFormError = requireElement('siteFormError');
     const siteCreateSubmitButton = requireElement('siteCreateSubmitButton');
+    const siteSecuritySelect = requireElement('siteSecuritySelect');
+    const siteCreateSecurityFields = requireElement('siteCreateSecurityFields');
     const siteEditNameDialog = requireElement('siteEditNameDialog');
     const siteEditNameForm = requireElement('siteEditNameForm');
     const siteEditNameInput = requireElement('siteEditNameInput');
@@ -1656,6 +1658,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const sidebarItems = homeMenuPanel ? Array.from(homeMenuPanel.querySelectorAll('.sidebar-item')) : [];
     const siteLockDialog = requireElement('siteLockDialog');
     const siteLockForm = requireElement('siteLockForm');
+    const siteLockFields = requireElement('siteLockFields');
     const siteLockPasswordInput = requireElement('siteLockPasswordInput');
     const siteLockConfirmPasswordInput = requireElement('siteLockConfirmPasswordInput');
     const siteLockPasswordError = requireElement('siteLockPasswordError');
@@ -1858,7 +1861,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         return;
       }
       isSiteCreateInputValid = Boolean(isEnabled);
-      siteCreateSubmitButton.disabled = isSiteCreationPending;
+      siteCreateSubmitButton.disabled = isSiteCreationPending || !isSiteCreateInputValid;
     }
 
     function clearSiteNameAvailabilityMessage() {
@@ -2165,6 +2168,42 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         indicator: siteLockStrengthIndicator,
         label: siteLockStrengthLabel,
       });
+    }
+
+    function clearSiteLockCreationFields() {
+      siteLockPasswordInput.value = '';
+      siteLockConfirmPasswordInput.value = '';
+      siteLockPasswordInput.required = false;
+      siteLockConfirmPasswordInput.required = false;
+      clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+      clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
+      updateSiteLockStrengthIndicator();
+    }
+
+    function setSiteCreateSecurityMode(security = 'open') {
+      const isLocked = security === 'locked';
+      siteSecuritySelect.value = isLocked ? 'locked' : 'open';
+      siteCreateSecurityFields.hidden = !isLocked;
+      siteLockPasswordInput.required = isLocked;
+      siteLockConfirmPasswordInput.required = isLocked;
+      if (!isLocked) {
+        clearSiteLockCreationFields();
+      }
+    }
+
+    function resetSiteCreateForm() {
+      siteForm.reset();
+      if (siteLockFields.parentElement !== siteCreateSecurityFields) {
+        siteCreateSecurityFields.append(siteLockFields);
+      }
+      clearSiteLockCreationFields();
+      setSiteCreateSecurityMode('open');
+    }
+
+    function restoreSiteLockFields() {
+      clearSiteLockCreationFields();
+      const lockActions = siteLockForm.querySelector('.modal-actions');
+      siteLockForm.insertBefore(siteLockFields, lockActions);
     }
 
     async function loadUserNames() {
@@ -2781,6 +2820,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       ) {
         return;
       }
+      restoreSiteLockFields();
       siteIdPendingLock = siteId;
       siteLockPasswordInput.value = '';
       siteLockConfirmPasswordInput.value = '';
@@ -3022,7 +3062,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
             : `<span class="site-creator-name">${escapeHtml(createdBy)}</span>`;
           const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
-          const lockLabel = siteIsLocked ? 'Verrouillé' : 'Déverrouillé';
+          const lockLabel = siteIsLocked ? 'Verrouillé' : 'Ouvert';
           const isPendingCreatorDecision = Boolean(StorageService.isSitePendingInactivityDecision?.(site));
           const pendingDecisionBadge = isPendingCreatorDecision
             ? '<span class="list-card__pending-decision-badge">En attente de votre décision</span>'
@@ -3476,7 +3516,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         UiService.showToast('Action non autorisée.');
         return;
       }
-      siteForm.reset();
+      resetSiteCreateForm();
       clearTransientError(siteFormError);
       clearSiteNameErrorState();
       setSiteCreateLoadingState(false);
@@ -3485,6 +3525,13 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       updateSiteNameCounter();
       siteDialog.showModal();
       siteNameInput.focus();
+    });
+
+    siteSecuritySelect?.addEventListener('change', () => {
+      setSiteCreateSecurityMode(siteSecuritySelect.value);
+      if (siteSecuritySelect.value === 'locked') {
+        window.requestAnimationFrame(() => siteLockPasswordInput.focus({ preventScroll: true }));
+      }
     });
 
     searchInput.addEventListener('input', renderSites);
@@ -3550,6 +3597,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       clearSiteNameAvailabilityMessage();
       setSiteCreateSubmitEnabled(false);
       setSiteCreateLoadingState(false);
+      resetSiteCreateForm();
+      restoreSiteLockFields();
       updateSiteNameCounter();
     });
     siteEditNameDialog?.addEventListener('close', () => {
@@ -3560,7 +3609,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     });
 
     siteForm.addEventListener('submit', async (event) => {
-      console.log('site validation triggered');
       event.preventDefault();
       if (isSiteCreationPending) {
         return;
@@ -3587,9 +3635,47 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         return;
       }
 
+      const shouldLockSite = siteSecuritySelect.value === 'locked';
+      let passwordHash = '';
+      if (shouldLockSite) {
+        clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
+        clearSiteLockFieldErrorState(siteLockConfirmPasswordInput, siteLockConfirmPasswordError);
+        const passwordValue = siteLockPasswordInput.value;
+        const confirmValue = siteLockConfirmPasswordInput.value;
+        if (!passwordValue.trim()) {
+          showSiteLockFieldError(siteLockPasswordInput, siteLockPasswordError, 'Veuillez remplir ce champ');
+        }
+        if (!confirmValue.trim()) {
+          showSiteLockFieldError(siteLockConfirmPasswordInput, siteLockConfirmPasswordError, 'Veuillez remplir ce champ');
+        }
+        if (!passwordValue.trim() || !confirmValue.trim()) {
+          return;
+        }
+        if (passwordValue.length < 6 || passwordValue.length > 128) {
+          showSiteLockFieldError(
+            siteLockPasswordInput,
+            siteLockPasswordError,
+            'Le mot de passe doit contenir entre 6 et 128 caractères.',
+          );
+          return;
+        }
+        if (passwordValue !== confirmValue) {
+          showSiteLockFieldError(
+            siteLockConfirmPasswordInput,
+            siteLockConfirmPasswordError,
+            'Les mots de passe ne correspondent pas.',
+          );
+          return;
+        }
+        passwordHash = await hashPassword(passwordValue);
+      }
+
       try {
         setSiteCreateLoadingState(true);
-        const result = await StorageService.createSite(name);
+        const result = await StorageService.createSite(name, {
+          isLocked: shouldLockSite,
+          passwordHash,
+        });
         if (!result?.ok) {
           if (showOfflineWriteError(result)) return;
           showSiteNameError(
