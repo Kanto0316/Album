@@ -34,6 +34,16 @@ test('le changement de sécurité masque, vide et rend facultatifs les mots de p
   assert.match(app, /siteDialog\.addEventListener\('close',[\s\S]*?resetSiteCreateForm\(\);/);
 });
 
+test('les mots de passe sont visibles uniquement dans le formulaire de création', async () => {
+  const app = await readSource('../js/app.js');
+  const mode = app.slice(app.indexOf('function resetSiteCreateForm'), app.indexOf('async function loadUserNames'));
+
+  assert.match(mode, /function resetSiteCreateForm\(\)[\s\S]*?siteLockPasswordInput\.type = 'text'/);
+  assert.match(mode, /function resetSiteCreateForm\(\)[\s\S]*?siteLockConfirmPasswordInput\.type = 'text'/);
+  assert.match(mode, /function restoreSiteLockFields\(\)[\s\S]*?siteLockPasswordInput\.type = 'password'/);
+  assert.match(mode, /function restoreSiteLockFields\(\)[\s\S]*?siteLockConfirmPasswordInput\.type = 'password'/);
+});
+
 test('la création verrouillée valide les champs et ne transmet que le hachage', async () => {
   const app = await readSource('../js/app.js');
   const submit = app.slice(app.indexOf("siteForm.addEventListener('submit'"), app.indexOf("siteEditNameForm?.addEventListener('submit'"));
