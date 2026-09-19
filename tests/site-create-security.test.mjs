@@ -4,9 +4,9 @@ import test from 'node:test';
 
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
-test('le formulaire propose Ouvert par défaut et réutilise les champs de verrouillage', async () => {
+test('le formulaire propose Ouvert à tous par défaut et réutilise les champs de verrouillage', async () => {
   const html = await readSource('../index.html');
-  assert.match(html, /id="siteSecuritySelect"[\s\S]*?<option value="open" selected>Ouvert<\/option>[\s\S]*?<option value="locked">Verrouillé<\/option>/);
+  assert.match(html, /id="siteSecuritySelect"[\s\S]*?<option value="open" selected>Ouvert à tous<\/option>[\s\S]*?<option value="locked">Verrouillé<\/option>/);
   assert.equal((html.match(/id="siteLockPasswordInput"/g) || []).length, 1);
   assert.equal((html.match(/id="siteLockConfirmPasswordInput"/g) || []).length, 1);
   assert.match(html, /id="siteCreateSecurityFields"[^>]*hidden/);
