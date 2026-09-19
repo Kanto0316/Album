@@ -13,6 +13,16 @@ test('le formulaire propose Ouvert à tous par défaut et réutilise les champs 
   assert.match(html, /id="siteLockPasswordInput" type="password"[^>]*minlength="6"[^>]*maxlength="128"/);
 });
 
+test('les champs de verrouillage s’affichent entre l’accès et la confidentialité', async () => {
+  const html = await readSource('../index.html');
+  const accessPosition = html.indexOf('id="siteSecuritySelect"');
+  const securityFieldsPosition = html.indexOf('id="siteCreateSecurityFields"');
+  const privacyPosition = html.indexOf('id="sitePrivacySelect"');
+
+  assert.ok(accessPosition < securityFieldsPosition);
+  assert.ok(securityFieldsPosition < privacyPosition);
+});
+
 test('le changement de sécurité masque, vide et rend facultatifs les mots de passe', async () => {
   const app = await readSource('../js/app.js');
   const mode = app.slice(app.indexOf('function clearSiteLockCreationFields'), app.indexOf('async function loadUserNames'));
