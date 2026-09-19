@@ -49,6 +49,7 @@ const state = {
   db: null,
   userId: null,
   authUser: null,
+  canViewAllSites: false,
   sites: [],
   itemsBySite: new Map(),
   detailsByItem: new Map(),
@@ -1411,7 +1412,15 @@ function isSitePendingInactivityDecision(site, referenceDate = new Date()) {
 }
 
 function isSiteVisibleToCurrentUser(site, referenceDate = new Date()) {
-  return !isSitePendingInactivityDecision(site, referenceDate) || isCurrentUserSiteCreator(site);
+  const privacy = site?.privacy === 'private' ? 'private' : 'public';
+  const canViewForPrivacy = privacy === 'public' || state.canViewAllSites || isCurrentUserSiteCreator(site);
+  const canViewForInactivity = !isSitePendingInactivityDecision(site, referenceDate) || isCurrentUserSiteCreator(site);
+  return canViewForPrivacy && (state.canViewAllSites || canViewForInactivity);
+}
+
+function setSiteVisibilityAdmin(isAdmin) {
+  state.canViewAllSites = isAdmin === true;
+  emitAll();
 }
 
 function filterSitesVisibleToCurrentUser(sites = state.sites, referenceDate = new Date()) {
@@ -1861,6 +1870,10 @@ async function createSite(name, security = {}) {
   const timestamp = nowIso();
   const creatorName = await resolveCurrentUserName();
   const shouldLockSite = security?.isLocked === true;
+  const privacy = security?.privacy || 'public';
+  if (privacy !== 'public' && privacy !== 'private') {
+    return { ok: false, reason: 'invalid_privacy' };
+  }
   const passwordHash = sanitizeText(security?.passwordHash, false);
   if (shouldLockSite && !passwordHash) {
     return { ok: false, reason: 'invalid_password_hash' };
@@ -1872,6 +1885,7 @@ async function createSite(name, security = {}) {
     ownerId: state.userId,
     createdBy: state.userId,
     createdByName: creatorName,
+    privacy,
     dateCreation: timestamp,
     dateModification: timestamp,
     isLocked: shouldLockSite,
@@ -3246,6 +3260,7 @@ async function importData(payload) {
 window.StorageService = {
   init,
   getSites,
+  setSiteVisibilityAdmin,
   getSiteInactivityThresholdDays,
   isSitePendingInactivityDecision,
   refreshSiteInactivityStates,
