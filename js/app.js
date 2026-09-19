@@ -1631,6 +1631,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const siteFormError = requireElement('siteFormError');
     const siteCreateSubmitButton = requireElement('siteCreateSubmitButton');
     const siteSecuritySelect = requireElement('siteSecuritySelect');
+    const sitePrivacySelect = requireElement('sitePrivacySelect');
     const siteCreateSecurityFields = requireElement('siteCreateSecurityFields');
     const siteEditNameDialog = requireElement('siteEditNameDialog');
     const siteEditNameForm = requireElement('siteEditNameForm');
@@ -2193,6 +2194,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
     function resetSiteCreateForm() {
       siteForm.reset();
+      sitePrivacySelect.value = 'public';
       if (siteLockFields.parentElement !== siteCreateSecurityFields) {
         siteCreateSecurityFields.append(siteLockFields);
       }
@@ -3636,6 +3638,12 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       }
 
       const shouldLockSite = siteSecuritySelect.value === 'locked';
+      const privacy = sitePrivacySelect.value;
+      if (privacy !== 'public' && privacy !== 'private') {
+        showSiteNameError('Veuillez sélectionner une confidentialité valide.');
+        sitePrivacySelect.focus();
+        return;
+      }
       let passwordHash = '';
       if (shouldLockSite) {
         clearSiteLockFieldErrorState(siteLockPasswordInput, siteLockPasswordError);
@@ -3675,6 +3683,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         const result = await StorageService.createSite(name, {
           isLocked: shouldLockSite,
           passwordHash,
+          privacy,
         });
         if (!result?.ok) {
           if (showOfflineWriteError(result)) return;
@@ -10001,6 +10010,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     profile = resolveConnectedProfile(profile, isAuthenticated);
 
     const permissions = buildPermissions(profile);
+    StorageService.setSiteVisibilityAdmin(permissions.isAdmin);
     window.AppPermissions = permissions;
     window.dispatchEvent(new CustomEvent('app:permissions-ready', { detail: { permissions } }));
 
