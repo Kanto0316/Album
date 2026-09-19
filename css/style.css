@@ -6123,12 +6123,14 @@ body[data-page="home"] .list-card__title-row {
 }
 
 body[data-page="home"] .list-card__title-row .list-card__title {
+  flex: 1;
   min-width: 0;
 }
 
 body[data-page="home"] .list-card__privacy-badge {
   display: inline-flex;
   flex: 0 0 auto;
+  margin-left: auto;
   align-items: center;
   gap: 0.25rem;
   padding: 0.2rem 0.48rem;
