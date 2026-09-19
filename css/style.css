@@ -6145,6 +6145,12 @@ body[data-page="home"] .list-card__privacy-badge {
   white-space: nowrap;
 }
 
+body[data-page="home"] .list-card__privacy-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+  object-fit: contain;
+}
+
 body[data-page="home"] .list-card__meta {
   margin-top: 0.3rem;
   grid-template-columns: minmax(0, 1fr);

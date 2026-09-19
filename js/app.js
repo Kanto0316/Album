@@ -3156,7 +3156,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           const titleMarkup = site?.privacy === 'private'
             ? `<div class="site-header">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
-                <span class="list-card__privacy-badge" aria-label="Site privé"><span aria-hidden="true">🔒</span> Privé</span>
+                <span class="list-card__privacy-badge" aria-label="Site privé"><img src="Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> Privé</span>
               </div>`
             : `<h3 class="list-card__title">${escapeHtml(site.nom)}</h3>`;
           return `
