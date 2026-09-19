@@ -2274,12 +2274,16 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       if (siteLockFields.parentElement !== siteCreateSecurityFields) {
         siteCreateSecurityFields.append(siteLockFields);
       }
+      siteLockPasswordInput.type = 'text';
+      siteLockConfirmPasswordInput.type = 'text';
       clearSiteLockCreationFields();
       setSiteCreateSecurityMode('open');
     }
 
     function restoreSiteLockFields() {
       clearSiteLockCreationFields();
+      siteLockPasswordInput.type = 'password';
+      siteLockConfirmPasswordInput.type = 'password';
       const lockActions = siteLockForm.querySelector('.modal-actions');
       siteLockForm.insertBefore(siteLockFields, lockActions);
     }
