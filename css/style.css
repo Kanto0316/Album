@@ -6146,8 +6146,8 @@ body[data-page="home"] .list-card__privacy-badge {
 }
 
 body[data-page="home"] .list-card__privacy-icon {
-  width: 0.8rem;
-  height: 0.8rem;
+  width: 0.6rem;
+  height: 0.6rem;
   object-fit: contain;
 }
 
