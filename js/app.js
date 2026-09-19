@@ -1578,8 +1578,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           <div class="modal-header"><h2>Confidentialité du site</h2></div>
           <fieldset class="site-privacy-options">
             <legend>Qui peut voir ce site ?</legend>
-            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="public"><span aria-hidden="true">🌐</span><span>Tout le monde</span></label>
-            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="private"><span aria-hidden="true">🔒</span><span>Moi uniquement</span></label>
+            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="public"><span aria-hidden="true"></span><span>Tout le monde</span></label>
+            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="private"><span aria-hidden="true"></span><span>Moi uniquement</span></label>
           </fieldset>
           <p class="form-error" id="sitePrivacyError" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
