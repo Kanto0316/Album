@@ -3069,10 +3069,16 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           const pendingDecisionBadge = isPendingCreatorDecision
             ? '<span class="list-card__pending-decision-badge">En attente de votre décision</span>'
             : '';
+          const titleMarkup = site?.privacy === 'private'
+            ? `<div class="list-card__title-row">
+                <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
+                <span class="list-card__privacy-badge" aria-label="Site privé"><span aria-hidden="true">🔒</span> Privé</span>
+              </div>`
+            : `<h3 class="list-card__title">${escapeHtml(site.nom)}</h3>`;
           return `
             <article class="list-card ${isPendingCreatorDecision ? 'list-card--pending-decision' : ''}">
               <button class="list-card__button" type="button" data-site-open="${site.id}">
-                <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
+                ${titleMarkup}
                 ${pendingDecisionBadge}
                 <div class="list-card__meta">
                   <span class="list-card__meta-item list-card__meta-item--outs">

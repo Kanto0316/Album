@@ -38,3 +38,15 @@ test('les sites privés sont réservés au créateur et aux administrateurs', as
   assert.match(visibility, /privacy === 'public' \|\| state\.canViewAllSites \|\| isCurrentUserSiteCreator\(site\)/);
   assert.match(visibility, /state\.canViewAllSites \|\| canViewForInactivity/);
 });
+
+test('seules les cartes des sites privés affichent le badge « Privé »', async () => {
+  const app = await readSource('../js/app.js');
+  const renderSites = app.slice(app.indexOf('function renderSites()'), app.indexOf("siteList.querySelectorAll('[data-site-creator]')"));
+  const styles = await readSource('../css/style.css');
+
+  assert.match(renderSites, /site\?\.privacy === 'private'/);
+  assert.match(renderSites, /class="list-card__privacy-badge" aria-label="Site privé"/);
+  assert.match(renderSites, /<span aria-hidden="true">🔒<\/span> Privé/);
+  assert.match(renderSites, /: `<h3 class="list-card__title">\$\{escapeHtml\(site\.nom\)\}<\/h3>`/);
+  assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-badge \{/);
+});
