@@ -65,6 +65,30 @@ test('le menu réutilise l’icône de confidentialité et ouvre le dialogue de 
   assert.match(app, />Annuler<\/button>[\s\S]*?>Enregistrer<\/button>/);
 });
 
+test('la modification de confidentialité est réservée au créateur et aux administrateurs', async () => {
+  const app = await readSource('../js/app.js');
+  const permissionCheck = app.slice(
+    app.indexOf('function canCurrentUserManageOwnedSite('),
+    app.indexOf('function ensureSharedSiteActionSheet('),
+  );
+  const sharedMenuHandler = app.slice(
+    app.indexOf('privacy.onclick = () =>'),
+    app.indexOf('remove.onclick =', app.indexOf('privacy.onclick = () =>')),
+  );
+  const homeMenuHandler = app.slice(
+    app.indexOf('privacyButton.onclick = async () =>'),
+    app.indexOf('deleteButton.onclick =', app.indexOf('privacyButton.onclick = async () =>')),
+  );
+
+  assert.match(permissionCheck, /permissions\?\.isAdmin/);
+  assert.match(permissionCheck, /site\?\.createdBy \|\| site\?\.ownerId/);
+  assert.match(permissionCheck, /currentUserId === creatorId/);
+  assert.match(sharedMenuHandler, /canCurrentUserManageOwnedSite\(latestSite, permissions\)/);
+  assert.match(sharedMenuHandler, /UiService\.showToast\('Réservé au créateur du site'\);[\s\S]*?return;[\s\S]*?onPrivacy\?\.\(siteId\)/);
+  assert.match(homeMenuHandler, /canCurrentUserManageOwnedSite\(latestSiteState, currentPermissions\)/);
+  assert.match(homeMenuHandler, /UiService\.showToast\('Réservé au créateur du site'\);[\s\S]*?return;[\s\S]*?editSitePrivacy\(siteId\)/);
+});
+
 test('la modification écrit uniquement le champ privacy existant', async () => {
   const storage = await readSource('../js/storage.js');
   const updatePrivacy = storage.slice(storage.indexOf('async function updateSitePrivacy('), storage.indexOf('async function updateSiteCreator('));

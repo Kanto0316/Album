@@ -1501,13 +1501,17 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     });
   }
 
-  function canCurrentUserDeleteSiteForActions(site, permissions) {
+  function canCurrentUserManageOwnedSite(site, permissions) {
     if (permissions?.isAdmin) {
       return true;
     }
     const currentUserId = String(permissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
     const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
     return Boolean(currentUserId && creatorId && currentUserId === creatorId);
+  }
+
+  function canCurrentUserDeleteSiteForActions(site, permissions) {
+    return canCurrentUserManageOwnedSite(site, permissions);
   }
 
   function ensureSharedSiteActionSheet() {
@@ -1662,7 +1666,12 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     overlay.querySelector('#siteActionLockToggleButton').onclick = () => { close(); onLock(siteId); };
     edit.onclick = () => { close(); onEdit(siteId); };
     privacy.onclick = () => {
+      const latestSite = StorageService.getSite(siteId);
       close();
+      if (!latestSite || !canCurrentUserManageOwnedSite(latestSite, permissions)) {
+        UiService.showToast('Réservé au créateur du site');
+        return;
+      }
       window.setTimeout(() => onPrivacy?.(siteId), 300);
     };
     remove.onclick = () => { close(); onDelete(siteId); };
@@ -2577,12 +2586,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     }
 
     function canCurrentUserDeleteSite(site) {
-      if (currentPermissions?.isAdmin) {
-        return true;
-      }
-      const currentUserId = String(currentPermissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
-      const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
-      return Boolean(currentUserId && creatorId && currentUserId === creatorId);
+      return canCurrentUserManageOwnedSite(site, currentPermissions);
     }
 
     function showSiteDeleteForbiddenOverlay(site) {
@@ -3047,7 +3051,12 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         siteEditNameInput.focus();
       };
       privacyButton.onclick = async () => {
+        const latestSiteState = getLatestSiteState(siteId);
         await closeSheet();
+        if (!latestSiteState || !canCurrentUserManageOwnedSite(latestSiteState, currentPermissions)) {
+          UiService.showToast('Réservé au créateur du site');
+          return;
+        }
         editSitePrivacy(siteId);
       };
       deleteButton.onclick = async () => {
