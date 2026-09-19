@@ -1947,6 +1947,26 @@ async function updateSiteName(siteId, name) {
   return { ok: true };
 }
 
+async function updateSitePrivacy(siteId, privacy) {
+  const offlineError = blockOfflineWrite();
+  if (offlineError) return offlineError;
+  const siteIndex = state.sites.findIndex((site) => site.id === siteId);
+  if (siteIndex === -1) {
+    return { ok: false, reason: 'site_not_found' };
+  }
+  if (privacy !== 'public' && privacy !== 'private') {
+    return { ok: false, reason: 'invalid_privacy' };
+  }
+
+  // La confidentialité est volontairement le seul champ écrit : l'accès par
+  // mot de passe et le contenu du site ne doivent jamais être affectés ici.
+  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { privacy }, { merge: true });
+  state.sites[siteIndex] = { ...state.sites[siteIndex], privacy };
+  persistOfflineState();
+  emitAll();
+  return { ok: true };
+}
+
 async function updateSiteCreator(siteId, user) {
   const offlineError = blockOfflineWrite();
   if (offlineError) return offlineError;
@@ -3282,6 +3302,7 @@ window.StorageService = {
   getMaterialCodes,
   createSite,
   updateSiteName,
+  updateSitePrivacy,
   updateSiteCreator,
   setSiteLock,
   clearSiteLock,
