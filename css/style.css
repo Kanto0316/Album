@@ -1601,6 +1601,10 @@ body[data-page="history"] .list-grid {
   margin-top: 0.35rem;
 }
 
+#siteCreateSecurityFields + .input-group--site-create {
+  margin-top: 1.25rem;
+}
+
 #siteExportDialog .input-group + .input-group {
   margin-top: 1.25rem;
 }
