@@ -3070,7 +3070,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
             ? '<span class="list-card__pending-decision-badge">En attente de votre décision</span>'
             : '';
           const titleMarkup = site?.privacy === 'private'
-            ? `<div class="list-card__title-row">
+            ? `<div class="site-header">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
                 <span class="list-card__privacy-badge" aria-label="Site privé"><span aria-hidden="true">🔒</span> Privé</span>
               </div>`

@@ -45,8 +45,10 @@ test('seules les cartes des sites privés affichent le badge « Privé »', asyn
   const styles = await readSource('../css/style.css');
 
   assert.match(renderSites, /site\?\.privacy === 'private'/);
+  assert.match(renderSites, /<div class="site-header">[\s\S]*?<h3 class="list-card__title">/);
   assert.match(renderSites, /class="list-card__privacy-badge" aria-label="Site privé"/);
   assert.match(renderSites, /<span aria-hidden="true">🔒<\/span> Privé/);
   assert.match(renderSites, /: `<h3 class="list-card__title">\$\{escapeHtml\(site\.nom\)\}<\/h3>`/);
   assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-badge \{/);
+  assert.match(styles, /body\[data-page="home"\] \.site-header \{[\s\S]*?width: 100%;[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;[\s\S]*?align-items: center;/);
 });
