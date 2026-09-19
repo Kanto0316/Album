@@ -4,13 +4,13 @@ import test from 'node:test';
 
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
-test('le formulaire propose la confidentialité publique par défaut après l’accès', async () => {
+test('le formulaire propose la visibilité « Tout le monde » par défaut après l’accès', async () => {
   const html = await readSource('../index.html');
   const accessPosition = html.indexOf('id="siteSecuritySelect"');
   const privacyPosition = html.indexOf('id="sitePrivacySelect"');
 
   assert.ok(privacyPosition > accessPosition);
-  assert.match(html, /<span>Confidentialité<\/span>[\s\S]*?id="sitePrivacySelect"[\s\S]*?<option value="public" selected>Public<\/option>[\s\S]*?<option value="private">Moi uniquement<\/option>/);
+  assert.match(html, /<span>Qui peut voir le site \?<\/span>[\s\S]*?id="sitePrivacySelect"[\s\S]*?<option value="public" selected>Tout le monde<\/option>[\s\S]*?<option value="private">Moi uniquement<\/option>/);
 });
 
 test('la création valide et transmet la confidentialité sélectionnée', async () => {
