@@ -1527,6 +1527,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton"><img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span id="siteActionLockToggleLabel">Verrouiller</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
           <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton"><img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier le nom</span></button>
+          <div class="item-action-sheet__divider" id="siteActionDividerBeforePrivacy" aria-hidden="true"></div>
+          <button type="button" class="item-action-sheet__row" id="siteActionPrivacyButton"><img src="Icon/Confidentialité.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier la confidentialité</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerBeforeDelete" aria-hidden="true"></div>
           <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Supprimer</span></button>
         </div>
@@ -1560,7 +1562,65 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     });
   }
 
-  function openSiteActionSheet(siteId, { permissions, isAuthenticated, onExport, onLock, onEdit, onDelete }) {
+  function editSitePrivacy(siteId) {
+    const site = StorageService.getSite(siteId);
+    if (!site) {
+      UiService.showToast('Modification impossible.');
+      return;
+    }
+    let dialog = document.getElementById('sitePrivacyDialog');
+    if (!dialog) {
+      dialog = document.createElement('dialog');
+      dialog.id = 'sitePrivacyDialog';
+      dialog.className = 'modal-card site-privacy-dialog';
+      dialog.innerHTML = `
+        <form class="modal-content modal-content--site-create" id="sitePrivacyForm">
+          <div class="modal-header"><h2>Confidentialité du site</h2></div>
+          <fieldset class="site-privacy-options">
+            <legend>Qui peut voir ce site ?</legend>
+            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="public"><span aria-hidden="true">🌐</span><span>Tout le monde</span></label>
+            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="private"><span aria-hidden="true">🔒</span><span>Moi uniquement</span></label>
+          </fieldset>
+          <p class="form-error" id="sitePrivacyError" aria-live="polite"></p>
+          <div class="modal-actions modal-actions--split modal-actions--site-create">
+            <button type="button" class="btn btn-neutral" data-privacy-cancel>Annuler</button>
+            <button type="submit" class="btn btn-success" id="sitePrivacySubmitButton">Enregistrer</button>
+          </div>
+        </form>`;
+      document.body.appendChild(dialog);
+    }
+
+    const form = dialog.querySelector('#sitePrivacyForm');
+    const error = dialog.querySelector('#sitePrivacyError');
+    const submitButton = dialog.querySelector('#sitePrivacySubmitButton');
+    const selectedPrivacy = site.privacy === 'private' ? 'private' : 'public';
+    dialog.querySelector(`[name="sitePrivacyEdit"][value="${selectedPrivacy}"]`).checked = true;
+    error.textContent = '';
+    submitButton.disabled = false;
+    dialog.querySelector('[data-privacy-cancel]').onclick = () => dialog.close();
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      const privacy = new FormData(form).get('sitePrivacyEdit');
+      submitButton.disabled = true;
+      try {
+        const result = await StorageService.updateSitePrivacy(siteId, privacy);
+        if (!result?.ok) {
+          error.textContent = result?.reason === 'offline' ? 'Cette modification nécessite une connexion.' : 'Modification impossible.';
+          return;
+        }
+        dialog.close();
+        UiService.showToast('Confidentialité du site mise à jour.');
+      } catch (updateError) {
+        console.error('Erreur modification confidentialité :', updateError);
+        error.textContent = "Impossible d'enregistrer la confidentialité.";
+      } finally {
+        submitButton.disabled = false;
+      }
+    };
+    dialog.showModal();
+  }
+
+  function openSiteActionSheet(siteId, { permissions, isAuthenticated, onExport, onLock, onEdit, onPrivacy, onDelete }) {
     if (!isAuthenticated) return;
     const overlay = ensureSharedSiteActionSheet();
     const sheet = overlay.querySelector('#siteActionSheet');
@@ -1576,12 +1636,15 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const exportButton = overlay.querySelector('#siteActionExportButton');
     const dividerAfterExport = overlay.querySelector('#siteActionDividerAfterExport');
     const edit = overlay.querySelector('#siteActionEditNameButton');
+    const privacy = overlay.querySelector('#siteActionPrivacyButton');
     const remove = overlay.querySelector('#siteActionDeleteButton');
     exportButton.hidden = !canExport;
     dividerAfterExport.hidden = !canExport;
     edit.hidden = !canEdit;
+    privacy.hidden = !canEdit;
     remove.hidden = !canDelete;
     overlay.querySelector('#siteActionDividerAfterLock').hidden = isSiteDetailAction || (!canEdit && !canDelete);
+    overlay.querySelector('#siteActionDividerBeforePrivacy').hidden = !canEdit;
     overlay.querySelector('#siteActionDividerBeforeDelete').hidden = !canEdit || !canDelete;
     let historyEntry = false;
     const close = () => {
@@ -1598,6 +1661,10 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     };
     overlay.querySelector('#siteActionLockToggleButton').onclick = () => { close(); onLock(siteId); };
     edit.onclick = () => { close(); onEdit(siteId); };
+    privacy.onclick = () => {
+      close();
+      window.setTimeout(() => onPrivacy?.(siteId), 300);
+    };
     remove.onclick = () => { close(); onDelete(siteId); };
     overlay.onclick = (event) => { if (event.target === overlay) close(); };
     overlay.hidden = false;
@@ -2461,6 +2528,11 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
               <img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Modifier le nom</span>
             </button>
+            <div class="item-action-sheet__divider" id="siteActionDividerBeforePrivacy" aria-hidden="true"></div>
+            <button type="button" class="item-action-sheet__row" id="siteActionPrivacyButton">
+              <img src="Icon/Confidentialité.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <span>Modifier la confidentialité</span>
+            </button>
             <div class="item-action-sheet__divider" id="siteActionDividerBeforeDelete" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
               <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
@@ -2848,10 +2920,12 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       const lockToggleButton = overlay.querySelector('#siteActionLockToggleButton');
       const lockToggleLabel = overlay.querySelector('#siteActionLockToggleLabel');
       const editNameButton = overlay.querySelector('#siteActionEditNameButton');
+      const privacyButton = overlay.querySelector('#siteActionPrivacyButton');
       const deleteButton = overlay.querySelector('#siteActionDeleteButton');
       const dividerAfterLock = overlay.querySelector('#siteActionDividerAfterLock');
+      const dividerBeforePrivacy = overlay.querySelector('#siteActionDividerBeforePrivacy');
       const dividerBeforeDelete = overlay.querySelector('#siteActionDividerBeforeDelete');
-      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !editNameButton || !deleteButton || !dividerAfterLock || !dividerBeforeDelete) {
+      if (!sheet || !title || !lockToggleButton || !lockToggleLabel || !editNameButton || !privacyButton || !deleteButton || !dividerAfterLock || !dividerBeforePrivacy || !dividerBeforeDelete) {
         return;
       }
       const closeTransitionDurationMs = 280;
@@ -2865,11 +2939,15 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         title.textContent = String(latestSite.nom || '').trim() || 'Actions';
         const siteIsLocked = isSiteLocked(latestSite);
         const canDeleteSite = isAuthenticated && currentPermissions.canDelete && !siteIsLocked;
+        const canEditPrivacy = isAuthenticated && currentPermissions.canEdit;
         lockToggleLabel.textContent = siteIsLocked ? 'Déverrouiller' : 'Verrouiller';
         const canEditSiteName = !siteIsLocked;
         editNameButton.hidden = !canEditSiteName;
         editNameButton.style.display = canEditSiteName ? 'inline-flex' : 'none';
         editNameButton.disabled = !canEditSiteName;
+        privacyButton.hidden = !canEditPrivacy;
+        privacyButton.style.display = canEditPrivacy ? 'inline-flex' : 'none';
+        privacyButton.disabled = !canEditPrivacy;
         deleteButton.hidden = !canDeleteSite;
         deleteButton.style.display = canDeleteSite ? 'inline-flex' : 'none';
         deleteButton.disabled = !canDeleteSite;
@@ -2879,6 +2957,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
         dividerAfterLock.hidden = !showDividerAfterLock;
         dividerAfterLock.style.display = showDividerAfterLock ? '' : 'none';
+        dividerBeforePrivacy.hidden = !canEditPrivacy;
+        dividerBeforePrivacy.style.display = canEditPrivacy ? '' : 'none';
 
         dividerBeforeDelete.hidden = !showDividerBeforeDelete;
         dividerBeforeDelete.style.display = showDividerBeforeDelete ? '' : 'none';
@@ -2965,6 +3045,10 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         updateSiteEditNameCounter();
         siteEditNameDialog.showModal();
         siteEditNameInput.focus();
+      };
+      privacyButton.onclick = async () => {
+        await closeSheet();
+        editSitePrivacy(siteId);
       };
       deleteButton.onclick = async () => {
         const latestSiteState = getLatestSiteState(siteId);
@@ -4269,6 +4353,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       onExport: handleSiteExportAction,
       onLock: openLockAction,
       onEdit: openNameAction,
+      onPrivacy: editSitePrivacy,
       onDelete: deleteSiteAction,
     }));
 

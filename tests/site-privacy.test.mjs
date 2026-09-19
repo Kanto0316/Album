@@ -52,3 +52,23 @@ test('seules les cartes des sites privés affichent le badge « Privé »', asyn
   assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-badge \{/);
   assert.match(styles, /body\[data-page="home"\] \.site-header \{[\s\S]*?width: 100%;[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;[\s\S]*?align-items: center;/);
 });
+
+test('le menu réutilise l’icône de confidentialité et ouvre le dialogue de modification', async () => {
+  const app = await readSource('../js/app.js');
+
+  assert.match(app, /src="Icon\/Confidentialité\.png"[^>]*>[\s\S]*?Modifier la confidentialité/);
+  assert.match(app, /<h2>Confidentialité du site<\/h2>/);
+  assert.match(app, /<legend>Qui peut voir ce site \?<\/legend>/);
+  assert.match(app, /value="public"[^>]*>[\s\S]*?Tout le monde/);
+  assert.match(app, /value="private"[^>]*>[\s\S]*?Moi uniquement/);
+  assert.match(app, />Annuler<\/button>[\s\S]*?>Enregistrer<\/button>/);
+});
+
+test('la modification écrit uniquement le champ privacy existant', async () => {
+  const storage = await readSource('../js/storage.js');
+  const updatePrivacy = storage.slice(storage.indexOf('async function updateSitePrivacy('), storage.indexOf('async function updateSiteCreator('));
+
+  assert.match(updatePrivacy, /privacy !== 'public' && privacy !== 'private'/);
+  assert.match(updatePrivacy, /setDoc\([^]*?\{ privacy \}, \{ merge: true \}\)/);
+  assert.doesNotMatch(updatePrivacy, /dateModification|passwordHash|isLocked|articles/);
+});
