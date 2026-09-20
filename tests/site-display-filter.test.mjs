@@ -11,10 +11,24 @@ test('la page des sites propose les filtres Tous, Mes sites, Ouvert et Verrouill
   const listPosition = html.indexOf('id="siteList"');
 
   assert.ok(counterPosition < filtersPosition && filtersPosition < listPosition);
-  assert.match(html, /data-site-filter="all"[^>]*aria-pressed="true">Tous<\/button>/);
-  assert.match(html, /data-site-filter="mine"[^>]*aria-pressed="false">Mes sites<\/button>/);
-  assert.match(html, /data-site-filter="open"[^>]*aria-pressed="false">Ouvert<\/button>/);
-  assert.match(html, /data-site-filter="locked"[^>]*aria-pressed="false">Verrouillé<\/button>/);
+  assert.match(html, /data-site-filter="all"[^>]*aria-pressed="true"><span>Tous<\/span>/);
+  assert.match(html, /data-site-filter="mine"[^>]*aria-pressed="false"><span>Mes sites<\/span>/);
+  assert.match(html, /data-site-filter="open"[^>]*aria-pressed="false"><span>Ouvert<\/span>/);
+  assert.match(html, /data-site-filter="locked"[^>]*aria-pressed="false"><span>Verrouillé<\/span>/);
+  assert.equal((html.match(/data-site-filter-count hidden/g) || []).length, 4);
+});
+
+test('les compteurs des chips reflètent les sites visibles et masquent seulement les valeurs nulles', async () => {
+  const app = await readSource('../js/app.js');
+  const homePage = app.slice(app.indexOf('function initHomePage('), app.indexOf('function initSiteDetailPage('));
+  const updateCounts = homePage.slice(homePage.indexOf('function updateSiteFilterCounts('), homePage.indexOf('updateSiteFilterChips();'));
+
+  assert.match(updateCounts, /totals\.all \+= 1/);
+  assert.match(updateCounts, /creatorId === currentUserId/);
+  assert.match(updateCounts, /isSiteLocked\(site\) \? 'locked' : 'open'/);
+  assert.match(updateCounts, /countElement\.textContent = count > 0 \? String\(count\) : ''/);
+  assert.match(updateCounts, /countElement\.hidden = count === 0/);
+  assert.match(homePage, /function renderSites\(\)[\s\S]*?updateSiteFilterCounts\(currentUserId\)[\s\S]*?const sites = currentSites/);
 });
 
 test('Mes sites filtre la source déjà visible uniquement selon le créateur connecté', async () => {
