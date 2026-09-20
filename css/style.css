@@ -5505,7 +5505,8 @@ body[data-page="site-detail"] .filter-chip-group {
   gap: 0.5rem;
 }
 
-body[data-page="site-detail"] .filter-chip {
+body[data-page="site-detail"] .filter-chip,
+body[data-page="home"] .site-filter-chips .filter-chip {
   border: 1px solid #d5deea;
   background: #fff;
   color: #334155;
@@ -5516,18 +5517,21 @@ body[data-page="site-detail"] .filter-chip {
   transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-body[data-page="site-detail"] .filter-chip:hover {
+body[data-page="site-detail"] .filter-chip:hover,
+body[data-page="home"] .site-filter-chips .filter-chip:hover {
   border-color: var(--detail-primary-soft);
   background: var(--detail-primary-subtle);
 }
 
-body[data-page="site-detail"] .filter-chip:active {
+body[data-page="site-detail"] .filter-chip:active,
+body[data-page="home"] .site-filter-chips .filter-chip:active {
   transform: scale(0.98);
   border-color: var(--detail-primary);
   background: var(--detail-primary-subtle);
 }
 
-body[data-page="site-detail"] .filter-chip.is-active {
+body[data-page="site-detail"] .filter-chip.is-active,
+body[data-page="home"] .site-filter-chips .filter-chip.is-active {
   background: var(--chip-active-blue);
   border-color: var(--chip-active-blue);
   color: #fff;
@@ -5953,7 +5957,8 @@ body[data-page="site-detail"] #openCreateItem:hover {
 
 body[data-page="site-detail"] .fab-add:focus-visible,
 body[data-page="site-detail"] #openCreateItem:focus-visible,
-body[data-page="site-detail"] .filter-chip:focus-visible {
+body[data-page="site-detail"] .filter-chip:focus-visible,
+body[data-page="home"] .site-filter-chips .filter-chip:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--detail-primary-focus);
 }
@@ -6511,6 +6516,26 @@ body[data-page="home"] .site-label {
 body[data-page="home"] .site-count {
   color: #166534;
   font-weight: 700;
+}
+
+body[data-page="home"] .site-filter-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+body[data-page="home"] .site-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-page="home"] .site-filter-chips .filter-chip {
+  flex: 0 0 auto;
+  width: fit-content;
+  white-space: nowrap;
 }
 
 body[data-page="site-detail"] .app-header--detail {
