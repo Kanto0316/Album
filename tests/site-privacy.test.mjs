@@ -5,7 +5,7 @@ import test from 'node:test';
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('le formulaire propose la visibilité « Tout le monde » par défaut après l’accès', async () => {
-  const html = await readSource('../Html/index.html');
+  const html = await readSource('../index.html');
   const accessPosition = html.indexOf('id="siteSecuritySelect"');
   const privacyPosition = html.indexOf('id="sitePrivacySelect"');
 
@@ -55,7 +55,7 @@ test('seules les cartes des sites privés affichent le badge « Privé »', asyn
   assert.match(renderSites, /site\?\.privacy === 'private'/);
   assert.match(renderSites, /<div class="site-header">[\s\S]*?<h3 class="list-card__title">/);
   assert.match(renderSites, /class="list-card__privacy-badge" aria-label="Site privé"/);
-  assert.match(renderSites, /<img src="\.\.\/Icon\/Privé\.png" alt="" aria-hidden="true" class="list-card__privacy-icon" \/> Privé/);
+  assert.match(renderSites, /<img src="Icon\/Privé\.png" alt="" aria-hidden="true" class="list-card__privacy-icon" \/> Privé/);
   assert.match(renderSites, /: `<h3 class="list-card__title">\$\{escapeHtml\(site\.nom\)\}<\/h3>`/);
   assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-badge \{/);
   assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-icon \{[\s\S]*?width: 0\.8rem;[\s\S]*?height: 0\.8rem;/);
@@ -65,7 +65,7 @@ test('seules les cartes des sites privés affichent le badge « Privé »', asyn
 test('le menu réutilise l’icône de confidentialité et ouvre le dialogue de modification', async () => {
   const app = await readSource('../js/app.js');
 
-  assert.match(app, /src="\.\.\/Icon\/Confidentialité\.png"[^>]*>[\s\S]*?Modifier la confidentialité/);
+  assert.match(app, /src="Icon\/Confidentialité\.png"[^>]*>[\s\S]*?Modifier la confidentialité/);
   assert.match(app, /<h2>Confidentialité du site<\/h2>/);
   assert.match(app, /<legend>Qui peut voir ce site \?<\/legend>/);
   assert.match(app, /value="public"[^>]*>[\s\S]*?Tout le monde/);
