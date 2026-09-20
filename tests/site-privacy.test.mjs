@@ -10,7 +10,7 @@ test('le formulaire propose la visibilité « Tout le monde » par défaut aprè
   const privacyPosition = html.indexOf('id="sitePrivacySelect"');
 
   assert.ok(privacyPosition > accessPosition);
-  assert.match(html, /<span>Qui peut voir ce site \?<\/span>[\s\S]*?id="sitePrivacySelect"[\s\S]*?<option value="public" selected>Tout le monde<\/option>[\s\S]*?<option value="private">Moi uniquement<\/option>[\s\S]*?<option value="authorized">Utilisateurs autorisés<\/option>/);
+  assert.match(html, /<span>Qui peut voir le site \?<\/span>[\s\S]*?id="sitePrivacySelect"[\s\S]*?<option value="public" selected>Tout le monde<\/option>[\s\S]*?<option value="private">Moi uniquement<\/option>/);
 });
 
 test('la création valide et transmet la confidentialité sélectionnée', async () => {
@@ -34,16 +34,16 @@ test('la création journalise le site et la confidentialité avec les libellés 
   const storage = await readSource('../js/storage.js');
   const createSite = storage.slice(storage.indexOf('async function createSite('), storage.indexOf('async function updateSiteName('));
 
-  assert.match(createSite, /a créé le site « \$\{site\.nom\} » avec confidentialité « \$\{getSitePrivacyLabel\(privacy, allowedUsers\)\} »\./);
+  assert.match(createSite, /a créé le site « \$\{site\.nom\} » avec confidentialité « \$\{getSitePrivacyLabel\(privacy\)\} »\./);
   assert.match(createSite, /appendHistoryEntry\([^]*?\{ siteId: site\.id, siteName: site\.nom \}/);
 });
 
-test('les sites privés sont visibles par le créateur, les administrateurs et les utilisateurs autorisés', async () => {
+test('les sites privés sont réservés au créateur et aux administrateurs', async () => {
   const storage = await readSource('../js/storage.js');
   const visibility = storage.slice(storage.indexOf('function isSiteVisibleToCurrentUser('), storage.indexOf('function filterSitesVisibleToCurrentUser('));
 
   assert.match(visibility, /site\?\.privacy === 'private' \? 'private' : 'public'/);
-  assert.match(visibility, /privacy === 'public'[\s\S]*?state\.canViewAllSites[\s\S]*?isCurrentUserSiteCreator\(site\)[\s\S]*?allowedUsers\.includes/);
+  assert.match(visibility, /privacy === 'public' \|\| state\.canViewAllSites \|\| isCurrentUserSiteCreator\(site\)/);
   assert.match(visibility, /state\.canViewAllSites \|\| canViewForInactivity/);
 });
 
@@ -54,11 +54,11 @@ test('seules les cartes des sites privés affichent le badge « Privé »', asyn
 
   assert.match(renderSites, /site\?\.privacy === 'private'/);
   assert.match(renderSites, /<div class="site-header">[\s\S]*?<h3 class="list-card__title">/);
-  assert.match(renderSites, /class="list-card__privacy-badge" data-private-site=/);
+  assert.match(renderSites, /class="list-card__privacy-badge" aria-label="Site privé"/);
   assert.match(renderSites, /<img src="Icon\/Privé\.png" alt="" aria-hidden="true" class="list-card__privacy-icon" \/> Privé/);
   assert.match(renderSites, /: `<h3 class="list-card__title">\$\{escapeHtml\(site\.nom\)\}<\/h3>`/);
   assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-badge \{/);
-  assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-icon \{[\s\S]*?width: 0\.6rem;[\s\S]*?height: 0\.6rem;/);
+  assert.match(styles, /body\[data-page="home"\] \.list-card__privacy-icon \{[\s\S]*?width: 0\.8rem;[\s\S]*?height: 0\.8rem;/);
   assert.match(styles, /body\[data-page="home"\] \.site-header \{[\s\S]*?width: 100%;[\s\S]*?display: flex;[\s\S]*?justify-content: space-between;[\s\S]*?align-items: center;/);
 });
 
@@ -97,12 +97,12 @@ test('la modification de confidentialité est réservée au créateur et aux adm
   assert.match(homeMenuHandler, /UiService\.showToast\('Réservé au créateur du site'\);[\s\S]*?return;[\s\S]*?editSitePrivacy\(siteId\)/);
 });
 
-test('la modification écrit privacy et allowedUsers sans toucher au contenu du site', async () => {
+test('la modification écrit uniquement le champ privacy existant', async () => {
   const storage = await readSource('../js/storage.js');
   const updatePrivacy = storage.slice(storage.indexOf('async function updateSitePrivacy('), storage.indexOf('async function updateSiteCreator('));
 
   assert.match(updatePrivacy, /privacy !== 'public' && privacy !== 'private'/);
-  assert.match(updatePrivacy, /setDoc\([^]*?\{ privacy, allowedUsers: nextAllowedUsers \}, \{ merge: true \}\)/);
+  assert.match(updatePrivacy, /setDoc\([^]*?\{ privacy \}, \{ merge: true \}\)/);
   assert.doesNotMatch(updatePrivacy, /dateModification|passwordHash|isLocked|articles/);
 });
 
@@ -112,20 +112,7 @@ test('la modification de confidentialité journalise les anciennes et nouvelles 
 
   assert.match(updatePrivacy, /const previousPrivacy = site\?\.privacy === 'private' \? 'private' : 'public'/);
   assert.match(updatePrivacy, /privacy === previousPrivacy[\s\S]*?return \{ ok: true \}/);
-  assert.match(updatePrivacy, /a modifié la confidentialité du site « \$\{site\.nom\} » de « \$\{previousLabel\} » à « \$\{nextLabel\} »\./);
-  assert.match(updatePrivacy, /a modifié les utilisateurs autorisés du site/);
-});
-
-test('le partage privé gère une liste d’utilisateurs et conserve le badge Privé', async () => {
-  const app = await readSource('../js/app.js');
-  const storage = await readSource('../js/storage.js');
-
-  assert.match(app, /<h3>Utilisateurs autorisés<\/h3>/);
-  assert.match(app, /\+ Ajouter un utilisateur/);
-  assert.match(app, /value="authorized"[\s\S]*?Utilisateurs autorisés/);
-  assert.doesNotMatch(app, />Partagé</);
-  assert.match(storage, /const allowedUsers = Array\.isArray\(site\?\.allowedUsers\)/);
-  assert.match(storage, /allowedUsers: nextAllowedUsers/);
+  assert.match(updatePrivacy, /a modifié la confidentialité du site « \$\{site\.nom\} » de « \$\{getSitePrivacyLabel\(previousPrivacy\)\} » à « \$\{getSitePrivacyLabel\(privacy\)\} »\./);
 });
 
 test("les logs d'historique ignorent les administrateurs et utilisent l'horodatage serveur", async () => {

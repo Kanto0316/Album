@@ -1413,11 +1413,7 @@ function isSitePendingInactivityDecision(site, referenceDate = new Date()) {
 
 function isSiteVisibleToCurrentUser(site, referenceDate = new Date()) {
   const privacy = site?.privacy === 'private' ? 'private' : 'public';
-  const allowedUsers = Array.isArray(site?.allowedUsers) ? site.allowedUsers.map(String) : [];
-  const canViewForPrivacy = privacy === 'public'
-    || state.canViewAllSites
-    || isCurrentUserSiteCreator(site)
-    || allowedUsers.includes(String(state.userId || ''));
+  const canViewForPrivacy = privacy === 'public' || state.canViewAllSites || isCurrentUserSiteCreator(site);
   const canViewForInactivity = !isSitePendingInactivityDecision(site, referenceDate) || isCurrentUserSiteCreator(site);
   return canViewForPrivacy && (state.canViewAllSites || canViewForInactivity);
 }
@@ -1860,15 +1856,8 @@ function withoutId(payload) {
   return copy;
 }
 
-function normalizeAllowedUsers(value) {
-  return [...new Set((Array.isArray(value) ? value : [])
-    .map((userId) => String(userId || '').trim())
-    .filter(Boolean))];
-}
-
-function getSitePrivacyLabel(privacy, allowedUsers = []) {
-  if (privacy !== 'private') return 'Tout le monde';
-  return normalizeAllowedUsers(allowedUsers).length ? 'Utilisateurs autorisés' : 'Moi uniquement';
+function getSitePrivacyLabel(privacy) {
+  return privacy === 'private' ? 'Moi uniquement' : 'Tout le monde';
 }
 
 async function createSite(name, security = {}) {
@@ -1894,7 +1883,6 @@ async function createSite(name, security = {}) {
     return { ok: false, reason: 'invalid_password_hash' };
   }
   const creatorEmail = resolveCurrentUserEmail();
-  const allowedUsers = privacy === 'private' ? normalizeAllowedUsers(security?.allowedUsers) : [];
   const sitePayload = {
     nom: siteName,
     outCount: 0,
@@ -1902,7 +1890,6 @@ async function createSite(name, security = {}) {
     createdBy: state.userId,
     createdByName: creatorName,
     privacy,
-    allowedUsers,
     dateCreation: timestamp,
     dateModification: timestamp,
     isLocked: shouldLockSite,
@@ -1919,7 +1906,7 @@ async function createSite(name, security = {}) {
 
   state.sites.unshift(site);
   await appendHistoryEntry(
-    `a créé le site « ${site.nom} » avec confidentialité « ${getSitePrivacyLabel(privacy, allowedUsers)} ».`,
+    `a créé le site « ${site.nom} » avec confidentialité « ${getSitePrivacyLabel(privacy)} ».`,
     { siteId: site.id, siteName: site.nom },
   );
   persistOfflineState();
@@ -1967,7 +1954,7 @@ async function updateSiteName(siteId, name) {
   return { ok: true };
 }
 
-async function updateSitePrivacy(siteId, privacy, allowedUsers = []) {
+async function updateSitePrivacy(siteId, privacy) {
   const offlineError = blockOfflineWrite();
   if (offlineError) return offlineError;
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
@@ -1979,27 +1966,19 @@ async function updateSitePrivacy(siteId, privacy, allowedUsers = []) {
   }
 
   const site = state.sites[siteIndex];
-  if (!state.canViewAllSites && !isCurrentUserSiteCreator(site)) {
-    return { ok: false, reason: 'forbidden' };
-  }
   const previousPrivacy = site?.privacy === 'private' ? 'private' : 'public';
-  const previousAllowedUsers = normalizeAllowedUsers(site?.allowedUsers);
-  const nextAllowedUsers = privacy === 'private' ? normalizeAllowedUsers(allowedUsers) : [];
-  const allowedUsersChanged = JSON.stringify(previousAllowedUsers.slice().sort()) !== JSON.stringify(nextAllowedUsers.slice().sort());
-  if (privacy === previousPrivacy && !allowedUsersChanged) {
+  if (privacy === previousPrivacy) {
     return { ok: true };
   }
 
-  // Seuls les champs d'accès sont écrits : le mot de passe et le contenu du
-  // site ne doivent jamais être affectés par une modification de partage.
-  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { privacy, allowedUsers: nextAllowedUsers }, { merge: true });
-  state.sites[siteIndex] = { ...state.sites[siteIndex], privacy, allowedUsers: nextAllowedUsers };
-  const previousLabel = getSitePrivacyLabel(previousPrivacy, previousAllowedUsers);
-  const nextLabel = getSitePrivacyLabel(privacy, nextAllowedUsers);
-  const action = previousLabel === nextLabel && allowedUsersChanged
-    ? `a modifié les utilisateurs autorisés du site « ${site.nom} ».`
-    : `a modifié la confidentialité du site « ${site.nom} » de « ${previousLabel} » à « ${nextLabel} ».`;
-  await appendHistoryEntry(action, { siteId, siteName: site.nom });
+  // La confidentialité est volontairement le seul champ écrit : l'accès par
+  // mot de passe et le contenu du site ne doivent jamais être affectés ici.
+  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { privacy }, { merge: true });
+  state.sites[siteIndex] = { ...state.sites[siteIndex], privacy };
+  await appendHistoryEntry(
+    `a modifié la confidentialité du site « ${site.nom} » de « ${getSitePrivacyLabel(previousPrivacy)} » à « ${getSitePrivacyLabel(privacy)} ».`,
+    { siteId, siteName: site.nom },
+  );
   persistOfflineState();
   emitAll();
   return { ok: true };
