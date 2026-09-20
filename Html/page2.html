@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Détail liste - Suivi Matériel</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
   </head>
   <body data-page="site-detail" class="page2">
     <div class="app-shell">
       <header class="app-header app-header--detail page2-header">
         <div class="app-header__side app-header__side--left">
-          <button class="back-button back-btn" type="button" data-back="index.html" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+          <button class="back-button back-btn" type="button" data-back="index.html" aria-label="Retour"><img src="../Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
           <button class="btn-export-header page2-search-close-button" type="button" id="page2SearchCloseButton" aria-label="Fermer la recherche" hidden></button>
         </div>
         <div class="app-header__center page2-header-center">
@@ -20,16 +20,16 @@
         </div>
         <div class="app-header__side app-header__side--right">
           <button class="btn-export-header page2-search-open-button" type="button" id="page2SearchOpenButton" aria-label="Ouvrir la recherche" aria-controls="page2SearchFilterBar" aria-expanded="false">
-            <img src="Icon/Recherche.png" alt="" aria-hidden="true" />
+            <img src="../Icon/Recherche.png" alt="" aria-hidden="true" />
           </button>
           <button class="btn-export-header page2-site-menu-button" type="button" id="page2SiteMenuButton" aria-label="Plus d’actions pour ce site" title="Plus d’actions" hidden>
-            <img src="Icon/Trois point.png" alt="" aria-hidden="true" class="page2-site-menu-icon" />
+            <img src="../Icon/Trois point.png" alt="" aria-hidden="true" class="page2-site-menu-icon" />
           </button>
         </div>
         <div class="page2-search-filter-bar" id="page2SearchFilterBar" hidden>
           <label class="input-group">
               <span class="sr-only">Rechercher (OUT ou article)</span>
-              <span class="site-search-icon-wrap" aria-hidden="true"><img src="Icon/Recherche.png" alt="" class="site-search-icon" /></span>
+              <span class="site-search-icon-wrap" aria-hidden="true"><img src="../Icon/Recherche.png" alt="" class="site-search-icon" /></span>
               <input
                 id="itemSearchInput"
                 class="search-input"
@@ -40,7 +40,7 @@
           </label>
           <div class="page2-filter-menu-wrap">
               <button type="button" id="itemStatusFilterButton" class="page2-filter-button" aria-label="Filtrer les OUT par statut" aria-haspopup="true" aria-expanded="false" aria-controls="itemStatusFilterMenu">
-                <img src="Icon/filtre.png" alt="" aria-hidden="true" class="page2-filter-button__icon" />
+                <img src="../Icon/filtre.png" alt="" aria-hidden="true" class="page2-filter-button__icon" />
               </button>
               <div id="itemStatusFilterMenu" class="page2-filter-menu" role="menu" hidden>
                 <button type="button" class="page2-filter-option is-active" data-item-status-filter="all" role="menuitemradio" aria-checked="true"><span class="page2-filter-option__label">Tous</span><span class="page2-filter-option__count">0</span></button>
@@ -275,7 +275,7 @@
           </label>
           <label class="input-group input-group--site-create">
             <span>Photo</span>
-            <input id="purchasePhotoInput" type="file" accept="image/*" />
+            <input id="purchasePhotoInput" type="file" accept="../image/*" />
           </label>
           <div id="purchasePhotoPreviewWrap" class="purchase-photo-preview hidden" aria-live="polite">
             <img id="purchasePhotoPreview" alt="Aperçu de la photo sélectionnée" />
@@ -415,7 +415,7 @@
                 type="button"
                 aria-label="Afficher le mot de passe"
               >
-                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
+                <img src="../Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
               </button>
             </div>
             <p id="siteLockManageAttemptsInfo" class="form-info form-info--attempts" aria-live="polite" hidden></p>
@@ -431,7 +431,7 @@
                 type="button"
                 aria-label="Afficher le mot de passe"
               >
-                <img src="Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
+                <img src="../Icon/Eye_OFF.png" alt="Afficher/Cacher le mot de passe" />
               </button>
             </div>
             <p id="siteLockNewPasswordError" class="form-error form-error--field" aria-live="polite"></p>
@@ -459,16 +459,16 @@
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
-    <script type="module" src="js/maintenance-banner.js"></script>
-    <script src="js/ui.js"></script>
-    <script type="module" src="js/offline-sync.js"></script>
-    <script type="module" src="js/offline-id-mapper.js"></script>
-    <script type="module" src="js/offline-adapter.js"></script>
-    <script type="module" src="js/material-offline-adapter.js"></script>
-    <script type="module" src="js/offline-action-builder.js"></script>
-    <script type="module" src="js/sync-manager.js"></script>
-    <script type="module" src="js/storage.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="../js/maintenance-banner.js"></script>
+    <script src="../js/ui.js"></script>
+    <script type="module" src="../js/offline-sync.js"></script>
+    <script type="module" src="../js/offline-id-mapper.js"></script>
+    <script type="module" src="../js/offline-adapter.js"></script>
+    <script type="module" src="../js/material-offline-adapter.js"></script>
+    <script type="module" src="../js/offline-action-builder.js"></script>
+    <script type="module" src="../js/sync-manager.js"></script>
+    <script type="module" src="../js/storage.js"></script>
+    <script type="module" src="../js/app.js"></script>
 
   </body>
 </html>

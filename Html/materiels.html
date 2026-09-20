@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Demande matériels - Suivi Matériel</title>
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
       .materials-page .search-panel .input-group {
@@ -401,7 +401,7 @@
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
         <div class="app-header__side app-header__side--left">
-          <button class="back-button" type="button" id="materialsBackButton" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+          <button class="back-button" type="button" id="materialsBackButton" aria-label="Retour"><img src="../Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
         <div class="app-header__center">
           <div class="header-title header-title--stacked">
@@ -437,7 +437,7 @@
           <div class="search-panel search-panel--inline">
             <label class="input-group">
               <span class="search-input__icon-wrap" aria-hidden="true">
-                <img src="Icon/Recherche.png" alt="" class="search-input__icon" />
+                <img src="../Icon/Recherche.png" alt="" class="search-input__icon" />
               </span>
               <input id="materialsSearchInput" class="search-input" type="text" placeholder="Rechercher un matériel..." autocomplete="off" />
               <button id="materialsClearSearchBtn" class="clear-search-btn" type="button" aria-label="Effacer la recherche">×</button>
@@ -461,7 +461,7 @@
       </main>
 
       <button id="materialCartFab" class="fab fab-add cart-fab" type="button" aria-label="Voir la demande matériel">
-        <img src="Icon/chariot-a-plat.png" alt="" aria-hidden="true" class="cart-fab-icon" />
+        <img src="../Icon/chariot-a-plat.png" alt="" aria-hidden="true" class="cart-fab-icon" />
         <span id="materialCartBadge" class="cart-badge">0</span>
       </button>
 
@@ -546,17 +546,17 @@
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
-    <script type="module" src="js/maintenance-banner.js"></script>
-    <script src="js/ui.js"></script>
-    <script type="module" src="js/offline-sync.js"></script>
-    <script type="module" src="js/offline-id-mapper.js"></script>
-    <script type="module" src="js/offline-adapter.js"></script>
-    <script type="module" src="js/material-offline-adapter.js"></script>
-    <script type="module" src="js/offline-action-builder.js"></script>
-    <script type="module" src="js/sync-manager.js"></script>
-    <script type="module" src="js/storage.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="../js/maintenance-banner.js"></script>
+    <script src="../js/ui.js"></script>
+    <script type="module" src="../js/offline-sync.js"></script>
+    <script type="module" src="../js/offline-id-mapper.js"></script>
+    <script type="module" src="../js/offline-adapter.js"></script>
+    <script type="module" src="../js/material-offline-adapter.js"></script>
+    <script type="module" src="../js/offline-action-builder.js"></script>
+    <script type="module" src="../js/sync-manager.js"></script>
+    <script type="module" src="../js/storage.js"></script>
+    <script type="module" src="../js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script type="module" src="js/materiels.js"></script>
+    <script type="module" src="../js/materiels.js"></script>
   </body>
 </html>

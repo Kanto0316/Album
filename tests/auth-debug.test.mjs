@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const html = await readFile(new URL('../login.html', import.meta.url), 'utf8');
-const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const html = await readFile(new URL('../Html/login.html', import.meta.url), 'utf8');
+const indexHtml = await readFile(new URL('../Html/index.html', import.meta.url), 'utf8');
 const loginCss = await readFile(new URL('../css/login.css', import.meta.url), 'utf8');
 const script = await readFile(new URL('../js/auth-debug.js', import.meta.url), 'utf8');
 
@@ -11,7 +11,7 @@ test('les cartes de diagnostic et leurs styles ne sont pas exposés dans l’int
   assert.doesNotMatch(html, /Diagnostic Auth Android|id="authDebugCard"|class="auth-debug-card/);
   assert.doesNotMatch(indexHtml, /Diagnostic Firebase Auth|class="firebase-diagnostic-card/);
   assert.doesNotMatch(loginCss, /\.auth-debug-card|#authDebugStatus/);
-  assert.match(html, /<script src="js\/auth-debug\.js"><\/script>/);
+  assert.match(html, /<script src="\.\.\/js\/auth-debug\.js"><\/script>/);
 });
 
 test('le diagnostic expose tous les statuts du pont natif', () => {
