@@ -5,7 +5,7 @@ import test from 'node:test';
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('la page des sites propose les filtres Tous, Mes sites, Ouvert et Verrouillé sous le compteur', async () => {
-  const html = await readSource('../index.html');
+  const html = await readSource('../Html/index.html');
   const counterPosition = html.indexOf('id="siteCount"');
   const filtersPosition = html.indexOf('class="filter-chip-group filter-chips-container site-filter-chips"');
   const listPosition = html.indexOf('id="siteList"');

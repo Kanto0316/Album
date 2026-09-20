@@ -5,7 +5,7 @@ import test from 'node:test';
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('le formulaire propose Ouvert à tous par défaut et réutilise les champs de verrouillage', async () => {
-  const html = await readSource('../index.html');
+  const html = await readSource('../Html/index.html');
   assert.match(html, /id="siteSecuritySelect"[\s\S]*?<option value="open" selected>Ouvert à tous<\/option>[\s\S]*?<option value="locked">Verrouillé<\/option>/);
   assert.equal((html.match(/id="siteLockPasswordInput"/g) || []).length, 1);
   assert.equal((html.match(/id="siteLockConfirmPasswordInput"/g) || []).length, 1);
@@ -14,7 +14,7 @@ test('le formulaire propose Ouvert à tous par défaut et réutilise les champs 
 });
 
 test('les champs de verrouillage s’affichent entre l’accès et la confidentialité', async () => {
-  const html = await readSource('../index.html');
+  const html = await readSource('../Html/index.html');
   const accessPosition = html.indexOf('id="siteSecuritySelect"');
   const securityFieldsPosition = html.indexOf('id="siteCreateSecurityFields"');
   const privacyPosition = html.indexOf('id="sitePrivacySelect"');
