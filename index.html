@@ -169,8 +169,10 @@
             <select id="sitePrivacySelect" name="sitePrivacy" required>
               <option value="public" selected>Tout le monde</option>
               <option value="private">Moi uniquement</option>
+              <option value="authorized">Utilisateurs autorisés</option>
             </select>
           </label>
+          <div id="siteCreateAllowedUsers" class="allowed-users-section" hidden></div>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
             <button id="siteCreateSubmitButton" type="submit" class="btn btn-success">
