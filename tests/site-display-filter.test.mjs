@@ -29,7 +29,15 @@ test('Mes sites filtre la source déjà visible uniquement selon le créateur co
 
 test('les chips de la page 1 reprennent les états visuels des chips de la page 2', async () => {
   const styles = await readSource('../css/style.css');
+  const homeChipContainer = styles.slice(
+    styles.indexOf('body[data-page="home"] .site-filter-chips {'),
+    styles.indexOf('body[data-page="home"] .site-filter-chips::-webkit-scrollbar'),
+  );
 
   assert.match(styles, /body\[data-page="home"\] \.site-filter-chips \.filter-chip \{[^]*?border-radius: 999px;/);
   assert.match(styles, /body\[data-page="home"\] \.site-filter-chips \.filter-chip\.is-active \{[^]*?background: var\(--chip-active-blue\);/);
+  assert.match(homeChipContainer, /display: flex;/);
+  assert.match(homeChipContainer, /visibility: visible;/);
+  assert.match(homeChipContainer, /opacity: 1;/);
+  assert.match(homeChipContainer, /min-height: 2\.15rem;/);
 });
