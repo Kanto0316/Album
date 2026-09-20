@@ -3138,11 +3138,17 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       const currentUserId = String(currentPermissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
       const sites = currentSites
         .filter((site) => {
-          if (activeSiteFilter !== 'mine') {
-            return true;
+          if (activeSiteFilter === 'mine') {
+            const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
+            return Boolean(currentUserId && creatorId === currentUserId);
           }
-          const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
-          return Boolean(currentUserId && creatorId === currentUserId);
+          if (activeSiteFilter === 'open') {
+            return !isSiteLocked(site);
+          }
+          if (activeSiteFilter === 'locked') {
+            return isSiteLocked(site);
+          }
+          return true;
         })
         .filter((site) => String(site.nom || '').toUpperCase().includes(query))
         .sort(compareSitesByName);
@@ -3159,6 +3165,10 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
             ? 'Aucun site ne correspond à votre recherche.'
             : activeSiteFilter === 'mine'
               ? "Vous n'avez créé aucun site pour le moment."
+              : activeSiteFilter === 'open'
+                ? 'Aucun site ouvert pour le moment.'
+                : activeSiteFilter === 'locked'
+                  ? 'Aucun site verrouillé pour le moment.'
               : 'Aucun site enregistré pour le moment.',
         );
         return;
@@ -3657,7 +3667,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
     siteFilterButtons.forEach((chip) => {
       chip.addEventListener('click', () => {
-        activeSiteFilter = chip.dataset.siteFilter === 'mine' ? 'mine' : 'all';
+        const selectedFilter = chip.dataset.siteFilter;
+        activeSiteFilter = ['all', 'mine', 'open', 'locked'].includes(selectedFilter) ? selectedFilter : 'all';
         siteFilterButtons.forEach((button) => {
           const isActive = button.dataset.siteFilter === activeSiteFilter;
           button.classList.toggle('is-active', isActive);
