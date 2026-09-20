@@ -6400,6 +6400,19 @@ body[data-page="home"] .item-action-sheet__icon {
   accent-color: #287fc5;
 }
 
+.allowed-users-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.allowed-users-section h3 { margin: 0 0 0.75rem; font-size: 1rem; color: #24364b; }
+.allowed-users-add { display: grid; gap: 0.6rem; grid-template-columns: 1fr auto; }
+.allowed-users-add select { min-width: 0; }
+.allowed-users-list { display: grid; gap: 0.5rem; margin: 0.75rem 0 0; padding: 0; list-style: none; }
+.allowed-users-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.75rem; border-radius: 10px; background: #f8fafc; }
+.allowed-users-list button { border: 0; background: transparent; color: #c62828; font-size: 1.4rem; cursor: pointer; }
+
 @media (prefers-reduced-motion: reduce) {
   body[data-page="home"] .item-action-sheet-overlay,
   body[data-page="home"] .item-action-sheet,
