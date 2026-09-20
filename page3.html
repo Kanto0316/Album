@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Détail complet - Suivi Matériel</title>
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8A6NfA5RkXU4Q9z+7A8R2f2Y6xQfHXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
   <body data-page="item-detail" class="page3">
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
         <div class="app-header__side app-header__side--left">
-          <button class="back-button" type="button" id="itemBackButton" aria-label="Retour"><img src="../Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+          <button class="back-button" type="button" id="itemBackButton" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
         <div class="app-header__center">
           <div class="header-title header-title--stacked">
@@ -29,7 +29,7 @@
                 <h2 class="section-title">Tableau des données</h2>
               </div>
               <button type="button" id="exportDetailsButton" class="btn btn-success export-details-button btn-export">
-                <img src="../Icon/Exel.png" alt="" class="export-details-button__icon" aria-hidden="true" />
+                <img src="Icon/Exel.png" alt="" class="export-details-button__icon" aria-hidden="true" />
                 <span>Exporter</span>
               </button>
             </div>
@@ -45,14 +45,14 @@
           <div class="search-panel search-panel--inline page2-search-filter-bar">
             <label class="input-group">
               <span class="site-search-icon-wrap" aria-hidden="true">
-                <img src="../Icon/Recherche.png" alt="" class="site-search-icon" />
+                <img src="Icon/Recherche.png" alt="" class="site-search-icon" />
               </span>
               <input id="detailSearchInput" class="search-input" type="text" placeholder="Recherche" autocomplete="off" />
               <button id="clearSearchBtn" class="clear-search-btn" type="button" aria-label="Effacer la recherche">×</button>
             </label>
             <div class="page2-filter-menu-wrap page3-filter-menu-wrap">
               <button type="button" id="detailFilterButton" class="page2-filter-button" aria-label="Filtrer le tableau" aria-haspopup="true" aria-expanded="false" aria-controls="detailFilterMenu">
-                <img src="../Icon/filtre.png" alt="" aria-hidden="true" class="page2-filter-button__icon" />
+                <img src="Icon/filtre.png" alt="" aria-hidden="true" class="page2-filter-button__icon" />
               </button>
               <div id="detailFilterMenu" class="page3-filter-menu" role="menu" hidden>
                 <button type="button" class="page3-filter-option is-active" data-detail-filter="all" role="menuitemradio" aria-checked="true"><span class="page3-filter-option__label">Tous</span><span class="page3-filter-option__count">0</span></button>
@@ -233,16 +233,16 @@
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
 
-    <script type="module" src="../js/maintenance-banner.js"></script>
-    <script src="../js/ui.js"></script>
-    <script type="module" src="../js/offline-sync.js"></script>
-    <script type="module" src="../js/offline-id-mapper.js"></script>
-    <script type="module" src="../js/offline-adapter.js"></script>
-    <script type="module" src="../js/material-offline-adapter.js"></script>
-    <script type="module" src="../js/offline-action-builder.js"></script>
-    <script type="module" src="../js/sync-manager.js"></script>
-    <script type="module" src="../js/storage.js"></script>
-    <script type="module" src="../js/app.js"></script>
+    <script type="module" src="js/maintenance-banner.js"></script>
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/offline-sync.js"></script>
+    <script type="module" src="js/offline-id-mapper.js"></script>
+    <script type="module" src="js/offline-adapter.js"></script>
+    <script type="module" src="js/material-offline-adapter.js"></script>
+    <script type="module" src="js/offline-action-builder.js"></script>
+    <script type="module" src="js/sync-manager.js"></script>
+    <script type="module" src="js/storage.js"></script>
+    <script type="module" src="js/app.js"></script>
 
   </body>
 </html>

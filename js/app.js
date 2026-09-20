@@ -150,7 +150,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     return `${firstLetter}${'*'.repeat(hiddenLength)}${finalLocalPart}${domainPart}`;
   }
 
-  const DEFAULT_PURCHASE_IMAGE_SRC = '../Icon/Image.png';
+  const DEFAULT_PURCHASE_IMAGE_SRC = 'Icon/Image.png';
 
   const EXPORT_FILE_NAME_HISTORY_KEY = 'suiviMateriel.exportFileNames.v1';
   const EXPORT_FILE_NAME_HISTORY_LIMIT = 24;
@@ -1304,7 +1304,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           <p class="bottom-sheet__name" id="avatarSheetName">Utilisateur</p>
           <p class="bottom-sheet__email" id="avatarSheetEmail"></p>
           <button type="button" class="bottom-sheet__action" id="avatarSheetLogout">
-            <img src="../Icon/se-deconnecter.png" alt="" class="bottom-sheet__action-icon" aria-hidden="true">
+            <img src="Icon/se-deconnecter.png" alt="" class="bottom-sheet__action-icon" aria-hidden="true">
             <span>Déconnexion</span>
           </button>
           <p id="avatarSheetMessage" class="form-error" aria-live="polite"></p>
@@ -1526,15 +1526,15 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         <div class="bottom-sheet__handle" aria-hidden="true"></div>
         <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
         <div class="item-action-sheet__content">
-          <button type="button" class="item-action-sheet__row" id="siteActionExportButton"><img src="../Icon/Exel.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Exporter</span></button>
+          <button type="button" class="item-action-sheet__row" id="siteActionExportButton"><img src="Icon/Exel.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Exporter</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerAfterExport" aria-hidden="true"></div>
-          <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton"><img src="../Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span id="siteActionLockToggleLabel">Verrouiller</span></button>
+          <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton"><img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span id="siteActionLockToggleLabel">Verrouiller</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
-          <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton"><img src="../Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier le nom</span></button>
+          <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton"><img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier le nom</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerBeforePrivacy" aria-hidden="true"></div>
-          <button type="button" class="item-action-sheet__row" id="siteActionPrivacyButton"><img src="../Icon/Confidentialité.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier la confidentialité</span></button>
+          <button type="button" class="item-action-sheet__row" id="siteActionPrivacyButton"><img src="Icon/Confidentialité.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Modifier la confidentialité</span></button>
           <div class="item-action-sheet__divider" id="siteActionDividerBeforeDelete" aria-hidden="true"></div>
-          <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton"><img src="../Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Supprimer</span></button>
+          <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" /><span>Supprimer</span></button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -1690,7 +1690,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     inputElement.type = isVisible ? 'text' : 'password';
     toggleButton.setAttribute('aria-label', isVisible ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
     if (iconElement) {
-      iconElement.src = isVisible ? '../Icon/Eye_ON.png' : '../Icon/Eye_OFF.png';
+      iconElement.src = isVisible ? 'Icon/Eye_ON.png' : 'Icon/Eye_OFF.png';
     }
   }
 
@@ -2559,22 +2559,22 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           <p class="item-action-sheet__title" id="siteActionSheetTitle">Actions</p>
           <div class="item-action-sheet__content">
             <button type="button" class="item-action-sheet__row" id="siteActionLockToggleButton">
-              <img src="../Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <img src="Icon/cle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span id="siteActionLockToggleLabel">Verrouiller</span>
             </button>
             <div class="item-action-sheet__divider" id="siteActionDividerAfterLock" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row" id="siteActionEditNameButton">
-              <img src="../Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Modifier le nom</span>
             </button>
             <div class="item-action-sheet__divider" id="siteActionDividerBeforePrivacy" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row" id="siteActionPrivacyButton">
-              <img src="../Icon/Confidentialité.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <img src="Icon/Confidentialité.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Modifier la confidentialité</span>
             </button>
             <div class="item-action-sheet__divider" id="siteActionDividerBeforeDelete" aria-hidden="true"></div>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="siteActionDeleteButton">
-              <img src="../Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
             </button>
           </div>
@@ -3207,7 +3207,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           const creatorMarkup = canChangeCreator
             ? `<span class="site-creator-name site-creator-edit" data-site-creator="${escapeHtml(site.id)}" role="button" tabindex="0" title="Modifier le créateur" aria-label="Modifier le créateur du site ${escapeHtml(site.nom)}">${escapeHtml(createdBy)}</span>`
             : `<span class="site-creator-name">${escapeHtml(createdBy)}</span>`;
-          const lockIconSrc = isSiteLocked(site) ? '../Icon/Cadenas_close.png' : '../Icon/Cadenas_Open.png';
+          const lockIconSrc = isSiteLocked(site) ? 'Icon/Cadenas_close.png' : 'Icon/Cadenas_Open.png';
           const siteIsLocked = isSiteLocked(site);
           const lockLabel = siteIsLocked ? 'Verrouillé' : 'Ouvert';
           const isPendingCreatorDecision = Boolean(StorageService.isSitePendingInactivityDecision?.(site));
@@ -3217,7 +3217,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           const titleMarkup = site?.privacy === 'private'
             ? `<div class="site-header">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
-                <span class="list-card__privacy-badge" aria-label="Site privé"><img src="../Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> Privé</span>
+                <span class="list-card__privacy-badge" aria-label="Site privé"><img src="Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> Privé</span>
               </div>`
             : `<h3 class="list-card__title">${escapeHtml(site.nom)}</h3>`;
           return `
@@ -3227,15 +3227,15 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
                 ${pendingDecisionBadge}
                 <div class="list-card__meta">
                   <span class="list-card__meta-item list-card__meta-item--outs">
-                    <img src="../Icon/OUT.png" alt="" aria-hidden="true" class="icon" />
+                    <img src="Icon/OUT.png" alt="" aria-hidden="true" class="icon" />
                     <span class="outs-count"><span class="outs-number">${outCount}</span><span class="outs-label">OUT${outCount > 1 ? 'S' : ''}</span></span>
                   </span>
                   <span class="list-card__meta-item">
-                    <img src="../Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" />
+                    <img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" />
                     <span>Créé le ${escapeHtml(createdDateTime)}</span>
                   </span>
                   <span class="list-card__meta-item">
-                    <img src="../Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" />
+                    <img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" />
                     ${creatorMarkup}
                   </span>
                 </div>
@@ -5307,11 +5307,11 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           <p class="item-action-sheet__title" id="itemActionSheetTitle">Actions</p>
           <div class="item-action-sheet__content">
             <button type="button" class="item-action-sheet__row" id="itemActionEditNameButton">
-              <img src="../Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <img src="Icon/crayon-de-blog.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Modifier le nom</span>
             </button>
             <button type="button" class="item-action-sheet__row item-action-sheet__row--danger" id="itemActionDeleteButton">
-              <img src="../Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
+              <img src="Icon/poubelle.png" alt="" aria-hidden="true" class="item-action-sheet__icon" />
               <span>Supprimer</span>
             </button>
           </div>
@@ -5747,14 +5747,14 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         if (query) {
           itemList.innerHTML = `
             <div class="empty-state empty-search-state">
-              <img src="../Icon/Stikers.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+              <img src="Icon/Stikers.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
               <div class="empty-text">Aucun N° OUT Ou Article correspond à votre recherche.</div>
             </div>
           `;
         } else {
           itemList.innerHTML = `
             <div class="empty-state empty-state--page2" role="status" aria-live="polite">
-              <img src="../Icon/boite.png" alt="" aria-hidden="true" loading="lazy" decoding="async" class="empty-state__icon" />
+              <img src="Icon/boite.png" alt="" aria-hidden="true" loading="lazy" decoding="async" class="empty-state__icon" />
               <div class="empty-text">Aucune Article Disponible.</div>
             </div>
           `;
@@ -5783,13 +5783,13 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         const unreadClassName = (isCursorFilterUnread || isSearchUnread) ? ' list-card--search-unread' : '';
         htmlParts.push(`
             <article class="list-card${unreadClassName}${isDeletingItem ? ' list-card--deleting' : ''}" data-search-match="true" data-item-id="${escapeHtml(item.id)}" aria-busy="${isDeletingItem}">
-              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions" ${isDeletingItem ? 'disabled' : ''}><img src="../Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
+              ${permissions.canDelete && !permissions.isLecture ? `<button class="list-card__menu-button" type="button" data-item-menu="${item.id}" aria-label="Plus d'actions" title="Plus d'actions" ${isDeletingItem ? 'disabled' : ''}><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
               <button class="list-card__button" type="button" data-item-open="${item.id}" ${isDeletingItem ? 'disabled' : ''}>
                 <h3 class="list-card__title">${escapeHtml(item.numero)}</h3>
                 <div class="list-card__meta">
-                  <span class="list-card__meta-item list-card__meta-item--article"><img src="../Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountForCard}</span><span class="outs-label">Article${detailCountForCard > 1 ? 's' : ''}</span></span></span>
-                  <span class="list-card__meta-item"><img src="../Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(createdLabel)}</span></span>
-                  <span class="list-card__meta-item"><img src="../Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(createdBy)}</span></span>
+                  <span class="list-card__meta-item list-card__meta-item--article"><img src="Icon/Article.png" alt="" aria-hidden="true" class="icon" /><span class="outs-count"><span class="outs-number">${detailCountForCard}</span><span class="outs-label">Article${detailCountForCard > 1 ? 's' : ''}</span></span></span>
+                  <span class="list-card__meta-item"><img src="Icon/Date et Heure.png" alt="" aria-hidden="true" class="icon" /><span>Créé le ${escapeHtml(createdLabel)}</span></span>
+                  <span class="list-card__meta-item"><img src="Icon/Utilisateur.png" alt="" aria-hidden="true" class="icon" /><span>${escapeHtml(createdBy)}</span></span>
                 </div>
               </button>
             </article>
@@ -6330,7 +6330,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         previousLabel = currentLabel;
         htmlParts.push(`
           <article class="list-card purchase-card" data-purchase-open="${escapeHtml(purchase.id)}" tabindex="0" role="button" aria-label="Voir le détail de ${escapeHtml(purchase?.designation || 'cet achat matériel')}">
-            ${permissions.canDelete && !permissions.isLecture && canCurrentUserEditPurchase(purchase) ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="../Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
+            ${permissions.canDelete && !permissions.isLecture && canCurrentUserEditPurchase(purchase) ? `<button class="list-card__menu-button" type="button" data-purchase-menu="${purchase.id}" aria-label="Plus d'actions" title="Plus d'actions"><img src="Icon/Trois point.png" alt="" aria-hidden="true" class="list-card__menu-icon" /></button>` : ''}
             <div class="list-card__button">
               <div class="purchase-card__content">
                 <div class="purchase-card__media" aria-hidden="true">
@@ -8428,7 +8428,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     function renderReturnHistory(detail) {
       const returns = getSortedDetailReturns(detail);
       returnHistoryList.innerHTML = returns.length
-        ? returns.map((entry) => `<article class="return-history__item"><div class="return-history__item-header"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><button class="table-delete-icon-button return-history__delete-button" type="button" data-return-delete="${escapeHtml(entry.id)}" aria-label="Supprimer ce retour" title="Supprimer ce retour"><img src="../Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button></div><span><span class="return-history__quantity" data-return-edit="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-label="Modifier la quantité retournée">${escapeHtml(formatEditableQuantityValue(entry.quantity))}</span> unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
+        ? returns.map((entry) => `<article class="return-history__item"><div class="return-history__item-header"><strong>${escapeHtml(formatReturnDate(entry.date))}</strong><button class="table-delete-icon-button return-history__delete-button" type="button" data-return-delete="${escapeHtml(entry.id)}" aria-label="Supprimer ce retour" title="Supprimer ce retour"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button></div><span><span class="return-history__quantity" data-return-edit="${escapeHtml(entry.id)}" tabindex="0" role="button" aria-label="Modifier la quantité retournée">${escapeHtml(formatEditableQuantityValue(entry.quantity))}</span> unité(s)</span>${entry.note ? `<span>${escapeHtml(entry.note)}</span>` : ''}</article>`).join('')
         : '<p class="return-history__empty">Aucun retour enregistré.</p>';
       returnHistoryTotal.innerHTML = `Total retourné : <span class="return-history__total-value">${escapeHtml(formatEditableQuantityValue(getTotalReturnQuantity(detail)))}</span>`;
     }
@@ -8663,7 +8663,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
               <td><span class="meta-value">${getHighlightedHtml(UiService.formatDate(detail.dateModification), searchQuery)}</span></td>
               <td>
                 ${permissions.canDelete && !permissions.isLecture
-      ? `<button class="table-delete-icon-button" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer"><img src="../Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`
+      ? `<button class="table-delete-icon-button" type="button" data-detail-delete="${detail.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`
       : ""}
               </td>
             </tr>
@@ -9478,7 +9478,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
             <td>
               ${cleanText(user.email).toLowerCase() === 'andrainaaina@gmail.com'
       ? '<span class="table-action-disabled">-</span>'
-      : `<button type="button" class="table-delete-icon-button" data-delete-user="${user.id}" aria-label="Supprimer" title="Supprimer"><img src="../Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`}
+      : `<button type="button" class="table-delete-icon-button" data-delete-user="${user.id}" aria-label="Supprimer" title="Supprimer"><img src="Icon/poubelle.png" alt="" aria-hidden="true" class="table-delete-icon-button__icon" /></button>`}
             </td>
           </tr>
         `)

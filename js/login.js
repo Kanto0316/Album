@@ -346,7 +346,7 @@ passwordInput.addEventListener('input', () => {
 togglePasswordButton.addEventListener('click', () => {
   const nextIsVisible = passwordInput.type === 'password';
   passwordInput.type = nextIsVisible ? 'text' : 'password';
-  togglePasswordIcon.src = nextIsVisible ? '../Icon/Eye_ON.png' : '../Icon/Eye_OFF.png';
+  togglePasswordIcon.src = nextIsVisible ? 'Icon/Eye_ON.png' : 'Icon/Eye_OFF.png';
   togglePasswordButton.setAttribute('aria-label', nextIsVisible ? 'Cacher le mot de passe' : 'Afficher le mot de passe');
 });
 

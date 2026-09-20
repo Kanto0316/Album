@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Gestion des utilisateurs - Suivi Matériel</title>
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="css/style.css" />
     <style>
       body[data-page="users-management"] .table-wrapper--users {
         box-sizing: border-box;
@@ -16,7 +16,7 @@
     <div class="app-shell app-shell--wide">
       <header class="app-header app-header--detail">
         <div class="app-header__side app-header__side--left">
-          <button id="usersBackButton" class="back-button" type="button" aria-label="Retour"><img src="../Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
+          <button id="usersBackButton" class="back-button" type="button" aria-label="Retour"><img src="Icon/btn-retour.png" alt="retour" class="btn-retour" /></button>
         </div>
         <div class="app-header__center">
           <div class="header-title"><h1>Gestion Admin</h1></div>
@@ -121,16 +121,16 @@
       </main>
       <div id="toast" class="toast" aria-live="polite"></div>
     </div>
-    <script type="module" src="../js/maintenance-banner.js"></script>
-    <script src="../js/ui.js"></script>
-    <script type="module" src="../js/offline-sync.js"></script>
-    <script type="module" src="../js/offline-id-mapper.js"></script>
-    <script type="module" src="../js/offline-adapter.js"></script>
-    <script type="module" src="../js/material-offline-adapter.js"></script>
-    <script type="module" src="../js/offline-action-builder.js"></script>
-    <script type="module" src="../js/sync-manager.js"></script>
-    <script type="module" src="../js/storage.js"></script>
-    <script type="module" src="../js/app.js"></script>
+    <script type="module" src="js/maintenance-banner.js"></script>
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/offline-sync.js"></script>
+    <script type="module" src="js/offline-id-mapper.js"></script>
+    <script type="module" src="js/offline-adapter.js"></script>
+    <script type="module" src="js/material-offline-adapter.js"></script>
+    <script type="module" src="js/offline-action-builder.js"></script>
+    <script type="module" src="js/sync-manager.js"></script>
+    <script type="module" src="js/storage.js"></script>
+    <script type="module" src="js/app.js"></script>
     <script type="module">
       import { addDoc, collection, onSnapshot, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
       import { firebaseDb } from './js/firebase-core.js';
