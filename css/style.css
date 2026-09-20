@@ -6541,10 +6541,15 @@ body[data-page="home"] .site-filter-chips .filter-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
   flex: 0 0 auto;
   width: fit-content;
   min-height: 2.15rem;
   white-space: nowrap;
+}
+
+body[data-page="home"] .site-filter-chips .filter-chip__count[hidden] {
+  display: none;
 }
 
 body[data-page="site-detail"] .app-header--detail {
