@@ -1566,7 +1566,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     });
   }
 
-  async function editSitePrivacy(siteId) {
+  function editSitePrivacy(siteId) {
     const site = StorageService.getSite(siteId);
     if (!site) {
       UiService.showToast('Modification impossible.');
@@ -1584,14 +1584,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
             <legend>Qui peut voir ce site ?</legend>
             <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="public"><span aria-hidden="true"></span><span>Tout le monde</span></label>
             <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="private"><span aria-hidden="true"></span><span>Moi uniquement</span></label>
-            <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="restricted"><span aria-hidden="true"></span><span>Utilisateurs autorisés</span></label>
           </fieldset>
-          <section class="site-allowed-users" id="siteAllowedUsersSection" hidden>
-            <h3>Utilisateurs autorisés</h3>
-            <button type="button" class="btn btn-neutral site-allowed-users__add" id="siteAllowedUserAdd">+ Ajouter un utilisateur</button>
-            <div class="site-allowed-users__picker" id="siteAllowedUserPicker" hidden></div>
-            <ul class="site-allowed-users__list" id="siteAllowedUsersList"></ul>
-          </section>
           <p class="form-error" id="sitePrivacyError" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button type="button" class="btn btn-neutral" data-privacy-cancel>Annuler</button>
@@ -1604,49 +1597,17 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const form = dialog.querySelector('#sitePrivacyForm');
     const error = dialog.querySelector('#sitePrivacyError');
     const submitButton = dialog.querySelector('#sitePrivacySubmitButton');
-    const selectedPrivacy = ['private', 'restricted'].includes(site.privacy) ? site.privacy : 'public';
-    let selectedUserIds = new Set(Array.isArray(site.allowedUsers) ? site.allowedUsers.map(String) : []);
-    let users = [];
-    try {
-      users = (await StorageService.listUsers()).filter((user) => String(user?.id || '') !== String(site.createdBy || site.ownerId || ''));
-    } catch (_error) {
-      error.textContent = 'La liste des utilisateurs est momentanément indisponible.';
-    }
-    const allowedSection = dialog.querySelector('#siteAllowedUsersSection');
-    const picker = dialog.querySelector('#siteAllowedUserPicker');
-    const list = dialog.querySelector('#siteAllowedUsersList');
-    const renderAllowedUsers = () => {
-      const restricted = dialog.querySelector('[name="sitePrivacyEdit"]:checked')?.value === 'restricted';
-      allowedSection.hidden = !restricted;
-      picker.innerHTML = users
-        .filter((user) => !selectedUserIds.has(String(user.id)))
-        .map((user) => `<button type="button" data-allowed-user-add="${escapeHtml(user.id)}">${escapeHtml(user.username || user.displayName || user.name || user.email || 'Utilisateur')}</button>`)
-        .join('');
-      list.innerHTML = [...selectedUserIds].map((userId) => {
-        const user = users.find((candidate) => String(candidate.id) === userId);
-        const name = user?.username || user?.displayName || user?.name || user?.email || userId;
-        return `<li><span>${escapeHtml(name)}</span><button type="button" data-allowed-user-remove="${escapeHtml(userId)}" aria-label="Retirer ${escapeHtml(name)}">×</button></li>`;
-      }).join('');
-      picker.querySelectorAll('[data-allowed-user-add]').forEach((button) => {
-        button.onclick = () => { selectedUserIds.add(button.dataset.allowedUserAdd); picker.hidden = true; renderAllowedUsers(); };
-      });
-      list.querySelectorAll('[data-allowed-user-remove]').forEach((button) => {
-        button.onclick = () => { selectedUserIds.delete(button.dataset.allowedUserRemove); renderAllowedUsers(); };
-      });
-    };
+    const selectedPrivacy = site.privacy === 'private' ? 'private' : 'public';
     dialog.querySelector(`[name="sitePrivacyEdit"][value="${selectedPrivacy}"]`).checked = true;
     error.textContent = '';
     submitButton.disabled = false;
     dialog.querySelector('[data-privacy-cancel]').onclick = () => dialog.close();
-    dialog.querySelectorAll('[name="sitePrivacyEdit"]').forEach((radio) => { radio.onchange = renderAllowedUsers; });
-    dialog.querySelector('#siteAllowedUserAdd').onclick = () => { picker.hidden = !picker.hidden; };
-    renderAllowedUsers();
     form.onsubmit = async (event) => {
       event.preventDefault();
       const privacy = new FormData(form).get('sitePrivacyEdit');
       submitButton.disabled = true;
       try {
-        const result = await StorageService.updateSitePrivacy(siteId, privacy, [...selectedUserIds]);
+        const result = await StorageService.updateSitePrivacy(siteId, privacy);
         if (!result?.ok) {
           error.textContent = result?.reason === 'offline' ? 'Cette modification nécessite une connexion.' : 'Modification impossible.';
           return;
@@ -1660,25 +1621,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         submitButton.disabled = false;
       }
     };
-    dialog.showModal();
-  }
-
-  function showSiteAccess(site, usersById = {}) {
-    let dialog = document.getElementById('siteAccessDialog');
-    if (!dialog) {
-      dialog = document.createElement('dialog');
-      dialog.id = 'siteAccessDialog';
-      dialog.className = 'modal-card site-privacy-dialog';
-      dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>Accès au site</h2></div><div id="siteAccessContent"></div><div class="modal-actions"><button type="button" class="btn btn-neutral">Fermer</button></div></div>`;
-      document.body.appendChild(dialog);
-      dialog.querySelector('button').onclick = () => dialog.close();
-    }
-    const creator = String(site?.createdByName || usersById[site?.createdBy] || 'Utilisateur inconnu');
-    const allowedUsers = Array.isArray(site?.allowedUsers) ? site.allowedUsers : [];
-    dialog.querySelector('#siteAccessContent').innerHTML = `
-      <p><strong>Créateur :</strong><br>${escapeHtml(creator)}</p>
-      <h3>Utilisateurs autorisés :</h3>
-      <ul class="site-access-list">${allowedUsers.map((id) => `<li>${escapeHtml(usersById[id] || id)}</li>`).join('') || '<li>Aucun utilisateur</li>'}</ul>`;
     dialog.showModal();
   }
 
@@ -1767,8 +1709,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const siteCreateSubmitButton = requireElement('siteCreateSubmitButton');
     const siteSecuritySelect = requireElement('siteSecuritySelect');
     const sitePrivacySelect = requireElement('sitePrivacySelect');
-    const siteCreateAllowedUsers = requireElement('siteCreateAllowedUsers');
-    const siteCreateAllowedUsersSelect = requireElement('siteCreateAllowedUsersSelect');
     const siteCreateSecurityFields = requireElement('siteCreateSecurityFields');
     const siteEditNameDialog = requireElement('siteEditNameDialog');
     const siteEditNameForm = requireElement('siteEditNameForm');
@@ -2357,8 +2297,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     function resetSiteCreateForm() {
       siteForm.reset();
       sitePrivacySelect.value = 'public';
-      siteCreateAllowedUsers.hidden = true;
-      Array.from(siteCreateAllowedUsersSelect.options).forEach((option) => { option.selected = false; });
       if (siteLockFields.parentElement !== siteCreateSecurityFields) {
         siteCreateSecurityFields.append(siteLockFields);
       }
@@ -2380,10 +2318,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       try {
         const users = await StorageService.listUsers();
         activeUsers = users;
-        siteCreateAllowedUsersSelect.innerHTML = users
-          .filter((user) => String(user?.id || '') !== String(firebaseAuth.currentUser?.uid || ''))
-          .map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.username || user.displayName || user.name || user.email || 'Utilisateur')}</option>`)
-          .join('');
         userNamesById = users.reduce((accumulator, user) => {
           if (user?.id) {
             accumulator[user.id] = user.username || user.displayName || user.name || 'Utilisateur';
@@ -3280,15 +3214,12 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           const pendingDecisionBadge = isPendingCreatorDecision
             ? '<span class="list-card__pending-decision-badge">En attente de votre décision</span>'
             : '';
-          const privacy = ['private', 'restricted'].includes(site?.privacy) ? site.privacy : 'public';
-          const privacyLabel = privacy === 'private' ? 'Privé' : privacy === 'restricted' ? 'Partagé' : 'Public';
-          const sharedAttributes = privacy === 'restricted'
-            ? `data-site-access="${escapeHtml(site.id)}" role="button" tabindex="0" title="Afficher les accès"`
-            : '';
-          const titleMarkup = `<div class="site-header">
-              <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
-              <span class="list-card__privacy-badge list-card__privacy-badge--${privacy}" aria-label="Site ${privacyLabel.toLowerCase()}" ${sharedAttributes}><img src="Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> ${privacyLabel}</span>
-            </div>`;
+          const titleMarkup = site?.privacy === 'private'
+            ? `<div class="site-header">
+                <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
+                <span class="list-card__privacy-badge" aria-label="Site privé"><img src="Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> Privé</span>
+              </div>`
+            : `<h3 class="list-card__title">${escapeHtml(site.nom)}</h3>`;
           return `
             <article class="list-card ${isPendingCreatorDecision ? 'list-card--pending-decision' : ''}">
               <button class="list-card__button" type="button" data-site-open="${site.id}">
@@ -3378,19 +3309,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           if (event.key === 'Enter' || event.key === ' ') {
             openCreatorSelect(event);
           }
-        });
-      });
-
-      siteList.querySelectorAll('[data-site-access]').forEach((badge) => {
-        const openAccess = (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const site = getLatestSiteState(badge.dataset.siteAccess);
-          if (site) showSiteAccess(site, userNamesById);
-        };
-        badge.addEventListener('click', openAccess);
-        badge.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') openAccess(event);
         });
       });
 
@@ -3853,10 +3771,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       updateSiteEditNameCounter();
     });
 
-    sitePrivacySelect.addEventListener('change', () => {
-      siteCreateAllowedUsers.hidden = sitePrivacySelect.value !== 'restricted';
-    });
-
     siteForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (isSiteCreationPending) {
@@ -3886,7 +3800,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
       const shouldLockSite = siteSecuritySelect.value === 'locked';
       const privacy = sitePrivacySelect.value;
-      if (!['public', 'private', 'restricted'].includes(privacy)) {
+      if (privacy !== 'public' && privacy !== 'private') {
         showSiteNameError('Veuillez sélectionner une confidentialité valide.');
         sitePrivacySelect.focus();
         return;
@@ -3931,9 +3845,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           isLocked: shouldLockSite,
           passwordHash,
           privacy,
-          allowedUsers: privacy === 'restricted'
-            ? Array.from(siteCreateAllowedUsersSelect.selectedOptions, (option) => option.value)
-            : [],
         });
         if (!result?.ok) {
           if (showOfflineWriteError(result)) return;

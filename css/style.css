@@ -6400,23 +6400,6 @@ body[data-page="home"] .item-action-sheet__icon {
   accent-color: #287fc5;
 }
 
-.site-allowed-users {
-  margin-top: 1rem;
-  padding: 0.9rem;
-  border: 1px solid #d7e0ea;
-  border-radius: 12px;
-  background: #f8fafc;
-}
-
-.site-allowed-users h3 { margin: 0 0 0.75rem; font-size: 1rem; }
-.site-allowed-users__picker { display: grid; gap: 0.35rem; margin-top: 0.5rem; }
-.site-allowed-users__picker button { padding: 0.55rem; border: 1px solid #d7e0ea; border-radius: 8px; background: #fff; text-align: left; }
-.site-allowed-users__list, .site-access-list { margin: 0.75rem 0 0; padding: 0; list-style: none; }
-.site-allowed-users__list li { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e3e8ef; }
-.site-allowed-users__list button { border: 0; background: transparent; color: #c2363b; font-size: 1.35rem; cursor: pointer; }
-.list-card__privacy-badge--restricted { border-color: #91c5f2; background: #eef7ff; color: #2475b7; cursor: pointer; }
-.list-card__privacy-badge--public { border-color: #a8d5bb; background: #effaf3; color: #287a4b; }
-
 @media (prefers-reduced-motion: reduce) {
   body[data-page="home"] .item-action-sheet-overlay,
   body[data-page="home"] .item-action-sheet,

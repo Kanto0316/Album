@@ -1412,13 +1412,8 @@ function isSitePendingInactivityDecision(site, referenceDate = new Date()) {
 }
 
 function isSiteVisibleToCurrentUser(site, referenceDate = new Date()) {
-  // Les sites historiques sans champ privacy conservent leur comportement public.
-  const privacy = ['private', 'restricted'].includes(site?.privacy) ? site.privacy : 'public';
-  const allowedUsers = Array.isArray(site?.allowedUsers) ? site.allowedUsers.map(String) : [];
-  const canViewForPrivacy = privacy === 'public'
-    || state.canViewAllSites
-    || isCurrentUserSiteCreator(site)
-    || (privacy === 'restricted' && allowedUsers.includes(String(state.userId || '')));
+  const privacy = site?.privacy === 'private' ? 'private' : 'public';
+  const canViewForPrivacy = privacy === 'public' || state.canViewAllSites || isCurrentUserSiteCreator(site);
   const canViewForInactivity = !isSitePendingInactivityDecision(site, referenceDate) || isCurrentUserSiteCreator(site);
   return canViewForPrivacy && (state.canViewAllSites || canViewForInactivity);
 }
@@ -1862,9 +1857,7 @@ function withoutId(payload) {
 }
 
 function getSitePrivacyLabel(privacy) {
-  if (privacy === 'private') return 'Moi uniquement';
-  if (privacy === 'restricted') return 'Utilisateurs autorisés';
-  return 'Tout le monde';
+  return privacy === 'private' ? 'Moi uniquement' : 'Tout le monde';
 }
 
 async function createSite(name, security = {}) {
@@ -1882,12 +1875,9 @@ async function createSite(name, security = {}) {
   const creatorName = await resolveCurrentUserName();
   const shouldLockSite = security?.isLocked === true;
   const privacy = security?.privacy || 'public';
-  if (!['public', 'private', 'restricted'].includes(privacy)) {
+  if (privacy !== 'public' && privacy !== 'private') {
     return { ok: false, reason: 'invalid_privacy' };
   }
-  const allowedUsers = privacy === 'restricted'
-    ? [...new Set((Array.isArray(security?.allowedUsers) ? security.allowedUsers : []).map((id) => String(id || '').trim()).filter(Boolean))]
-    : [];
   const passwordHash = sanitizeText(security?.passwordHash, false);
   if (shouldLockSite && !passwordHash) {
     return { ok: false, reason: 'invalid_password_hash' };
@@ -1900,7 +1890,6 @@ async function createSite(name, security = {}) {
     createdBy: state.userId,
     createdByName: creatorName,
     privacy,
-    allowedUsers,
     dateCreation: timestamp,
     dateModification: timestamp,
     isLocked: shouldLockSite,
@@ -1965,34 +1954,27 @@ async function updateSiteName(siteId, name) {
   return { ok: true };
 }
 
-async function updateSitePrivacy(siteId, privacy, allowedUsers = []) {
+async function updateSitePrivacy(siteId, privacy) {
   const offlineError = blockOfflineWrite();
   if (offlineError) return offlineError;
   const siteIndex = state.sites.findIndex((site) => site.id === siteId);
   if (siteIndex === -1) {
     return { ok: false, reason: 'site_not_found' };
   }
-  if (!['public', 'private', 'restricted'].includes(privacy)) {
+  if (privacy !== 'public' && privacy !== 'private') {
     return { ok: false, reason: 'invalid_privacy' };
   }
 
   const site = state.sites[siteIndex];
-  if (!state.canViewAllSites && !isCurrentUserSiteCreator(site)) {
-    return { ok: false, reason: 'forbidden' };
-  }
-  const previousPrivacy = ['private', 'restricted'].includes(site?.privacy) ? site.privacy : 'public';
-  const normalizedAllowedUsers = privacy === 'restricted'
-    ? [...new Set((Array.isArray(allowedUsers) ? allowedUsers : []).map((id) => String(id || '').trim()).filter(Boolean))]
-    : [];
-  const previousAllowedUsers = Array.isArray(site?.allowedUsers) ? site.allowedUsers.map(String) : [];
-  if (privacy === previousPrivacy && JSON.stringify(normalizedAllowedUsers.slice().sort()) === JSON.stringify(previousAllowedUsers.slice().sort())) {
+  const previousPrivacy = site?.privacy === 'private' ? 'private' : 'public';
+  if (privacy === previousPrivacy) {
     return { ok: true };
   }
 
   // La confidentialité est volontairement le seul champ écrit : l'accès par
   // mot de passe et le contenu du site ne doivent jamais être affectés ici.
-  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { privacy, allowedUsers: normalizedAllowedUsers }, { merge: true });
-  state.sites[siteIndex] = { ...state.sites[siteIndex], privacy, allowedUsers: normalizedAllowedUsers };
+  await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { privacy }, { merge: true });
+  state.sites[siteIndex] = { ...state.sites[siteIndex], privacy };
   await appendHistoryEntry(
     `a modifié la confidentialité du site « ${site.nom} » de « ${getSitePrivacyLabel(previousPrivacy)} » à « ${getSitePrivacyLabel(privacy)} ».`,
     { siteId, siteName: site.nom },
