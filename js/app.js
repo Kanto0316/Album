@@ -1700,6 +1700,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const searchInput = requireElement('searchInput');
     const siteList = requireElement('siteList');
     const siteCount = requireElement('siteCount');
+    const siteFilterButtons = Array.from(document.querySelectorAll('[data-site-filter]'));
     const siteDialog = requireElement('siteDialog');
     const siteForm = requireElement('siteForm');
     const siteNameInput = requireElement('siteNameInput');
@@ -1765,6 +1766,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const siteLockManageUnlockButton = requireElement('siteLockManageUnlockButton');
 
     let currentSites = [];
+    let activeSiteFilter = 'all';
     let itemCountsBySite = {};
     let userNamesById = {};
     let userNamesByEmail = {};
@@ -3133,7 +3135,15 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
+      const currentUserId = String(currentPermissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
       const sites = currentSites
+        .filter((site) => {
+          if (activeSiteFilter !== 'mine') {
+            return true;
+          }
+          const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
+          return Boolean(currentUserId && creatorId === currentUserId);
+        })
         .filter((site) => String(site.nom || '').toUpperCase().includes(query))
         .sort(compareSitesByName);
       const siteCountLabel = document.getElementById('siteCountLabel');
@@ -3145,7 +3155,11 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       if (!sites.length) {
         UiService.renderEmptyState(
           siteList,
-          query ? 'Aucun site ne correspond à votre recherche.' : 'Aucun site enregistré pour le moment.',
+          query
+            ? 'Aucun site ne correspond à votre recherche.'
+            : activeSiteFilter === 'mine'
+              ? "Vous n'avez créé aucun site pour le moment."
+              : 'Aucun site enregistré pour le moment.',
         );
         return;
       }
@@ -3640,6 +3654,18 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     });
 
     searchInput.addEventListener('input', renderSites);
+
+    siteFilterButtons.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        activeSiteFilter = chip.dataset.siteFilter === 'mine' ? 'mine' : 'all';
+        siteFilterButtons.forEach((button) => {
+          const isActive = button.dataset.siteFilter === activeSiteFilter;
+          button.classList.toggle('is-active', isActive);
+          button.setAttribute('aria-pressed', String(isActive));
+        });
+        renderSites();
+      });
+    });
 
     siteNameInput.addEventListener('beforeinput', (event) => {
       const maxLength = getSiteNameMaxLength();
