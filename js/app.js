@@ -4527,8 +4527,9 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       hasHistoryEntry: false,
       ignoreNextPopstate: false,
     };
-    const dateFilterStorageKey = `site-detail:item-date-filter:${siteId}`;
-    const searchStorageKey = `site-detail:item-search:${siteId}`;
+    const page2SearchOpenStorageKey = 'page2SearchOpen';
+    const page2SearchTextStorageKey = 'page2SearchText';
+    const page2DateFilterStorageKey = 'page2DateFilter';
     const searchReadIdsStorageKey = 'page2_search_read_ids';
     const cursorFilterReadOutsStorageKey = 'page2_cursor_filter_read_outs';
     const cursorFilterActiveStorageKey = 'page2_cursor_filter_active';
@@ -4548,7 +4549,18 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const itemProgressTodoFill = document.getElementById('itemProgressTodoFill');
     const itemProgressFixFill = document.getElementById('itemProgressFixFill');
     const itemProgressKoFill = document.getElementById('itemProgressKoFill');
-    let selectedDateFilter = window.localStorage.getItem(dateFilterStorageKey) || 'all';
+    const dateFilterStorageValueByKey = {
+      all: 'tous',
+      today: "aujourd'hui",
+      yesterday: 'hier',
+      lastMonth: 'plus-ancien',
+    };
+    const dateFilterKeyByStorageValue = Object.fromEntries(
+      Object.entries(dateFilterStorageValueByKey).map(([key, value]) => [value, key]),
+    );
+    let selectedDateFilter = dateFilterKeyByStorageValue[
+      window.localStorage.getItem(page2DateFilterStorageKey)
+    ] || 'all';
     const statusFilterKeyByLabel = {
       'Tous': 'all',
       'À faire': 'todo',
@@ -4567,8 +4579,11 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     let activeStatusFilter = statusFilterKeyByLabel[storedCursorFilterLabel] || 'all';
     let isSearchOpen = false;
 
-    const setSearchOpen = (shouldOpen) => {
+    const setSearchOpen = (shouldOpen, persist = true) => {
       isSearchOpen = shouldOpen;
+      if (persist) {
+        window.localStorage.setItem(page2SearchOpenStorageKey, String(isSearchOpen));
+      }
       page2SearchFilterBar.closest('.page2-header')?.classList.toggle('is-search-open', isSearchOpen);
       page2SearchFilterBar.hidden = !isSearchOpen;
       page2SearchOpenButton.hidden = isSearchOpen;
@@ -4585,7 +4600,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     page2SearchOpenButton.addEventListener('click', () => setSearchOpen(true));
     page2SearchCloseButton.addEventListener('click', () => setSearchOpen(false));
     const readCursorFilterOuts = new Set();
-    itemSearchInput.value = window.localStorage.getItem(searchStorageKey) || '';
+    itemSearchInput.value = window.localStorage.getItem(page2SearchTextStorageKey) || '';
+    setSearchOpen(window.localStorage.getItem(page2SearchOpenStorageKey) === 'true', false);
     try {
       const initialPage2SearchValue = String(itemSearchInput.value || '');
       if (initialPage2SearchValue) {
@@ -6424,7 +6440,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       purchasesTabContent?.classList.toggle('hidden', safeTabName !== 'purchases');
       itemSearchInput.placeholder = safeTabName === 'outs' ? OUT_SEARCH_PLACEHOLDER : PURCHASE_SEARCH_PLACEHOLDER;
       itemSearchInput.value = safeTabName === 'outs'
-        ? (window.localStorage.getItem(searchStorageKey) || '')
+        ? (window.localStorage.getItem(page2SearchTextStorageKey) || '')
         : '';
       if (safeTabName === 'outs') {
         const normalizedQuery = (itemSearchInput.value || '').trim().toUpperCase();
@@ -7129,11 +7145,10 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       const isOutSearchInput = activeSiteTab === 'outs';
       if (isOutSearchInput) {
         const searchValue = itemSearchInput.value;
+        window.localStorage.setItem(page2SearchTextStorageKey, searchValue);
         if (searchValue) {
-          window.localStorage.setItem(searchStorageKey, searchValue);
           window.localStorage.setItem('page2_search_value', searchValue);
         } else {
-          window.localStorage.removeItem(searchStorageKey);
           window.localStorage.removeItem('page2_search_value');
         }
         const normalizedQuery = (searchValue || '').trim().toUpperCase();
@@ -7204,14 +7219,14 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           selectedDateFilter = nextFilter;
           siteDetailHistoryLogger.recordFilter(chip.textContent || 'Tous');
           itemDateFilter.value = selectedDateFilter;
-          window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
+          window.localStorage.setItem(page2DateFilterStorageKey, dateFilterStorageValueByKey[selectedDateFilter]);
           updateFilterChipsState();
           renderActiveTabContent();
         });
       });
       itemDateFilter.addEventListener('change', () => {
         selectedDateFilter = itemDateFilter.value || 'all';
-        window.localStorage.setItem(dateFilterStorageKey, selectedDateFilter);
+        window.localStorage.setItem(page2DateFilterStorageKey, dateFilterStorageValueByKey[selectedDateFilter]);
         updateFilterChipsState();
         renderActiveTabContent();
       });
