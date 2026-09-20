@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
-test('la page des sites propose les filtres Tous et Mes sites sous le compteur', async () => {
+test('la page des sites propose les filtres Tous, Mes sites, Ouvert et Verrouillé sous le compteur', async () => {
   const html = await readSource('../index.html');
   const counterPosition = html.indexOf('id="siteCount"');
   const filtersPosition = html.indexOf('class="filter-chip-group filter-chips-container site-filter-chips"');
@@ -13,6 +13,8 @@ test('la page des sites propose les filtres Tous et Mes sites sous le compteur',
   assert.ok(counterPosition < filtersPosition && filtersPosition < listPosition);
   assert.match(html, /data-site-filter="all"[^>]*aria-pressed="true">Tous<\/button>/);
   assert.match(html, /data-site-filter="mine"[^>]*aria-pressed="false">Mes sites<\/button>/);
+  assert.match(html, /data-site-filter="open"[^>]*aria-pressed="false">Ouvert<\/button>/);
+  assert.match(html, /data-site-filter="locked"[^>]*aria-pressed="false">Verrouillé<\/button>/);
 });
 
 test('Mes sites filtre la source déjà visible uniquement selon le créateur connecté', async () => {
@@ -22,9 +24,19 @@ test('Mes sites filtre la source déjà visible uniquement selon le créateur co
 
   assert.match(creatorFilter, /currentPermissions\?\.userId \|\| firebaseAuth\.currentUser\?\.uid/);
   assert.match(creatorFilter, /site\?\.createdBy \|\| site\?\.ownerId/);
-  assert.match(creatorFilter, /activeSiteFilter !== 'mine'/);
+  assert.match(creatorFilter, /activeSiteFilter === 'mine'/);
   assert.match(creatorFilter, /creatorId === currentUserId/);
   assert.doesNotMatch(creatorFilter, /privacy|isAdmin|canViewAllSites/);
+});
+
+test('Ouvert et Verrouillé filtrent la source déjà visible selon le statut d’accès', async () => {
+  const app = await readSource('../js/app.js');
+  const renderSites = app.slice(app.indexOf('function renderSites()'), app.indexOf("siteList.querySelectorAll('[data-site-creator]')"));
+  const accessFilter = renderSites.slice(renderSites.indexOf('const sites = currentSites'), renderSites.indexOf('.sort(compareSitesByName)'));
+
+  assert.match(accessFilter, /activeSiteFilter === 'open'[\s\S]*?return !isSiteLocked\(site\)/);
+  assert.match(accessFilter, /activeSiteFilter === 'locked'[\s\S]*?return isSiteLocked\(site\)/);
+  assert.doesNotMatch(accessFilter, /privacy|isAdmin|canViewAllSites/);
 });
 
 test('les chips de la page 1 reprennent les états visuels des chips de la page 2', async () => {
