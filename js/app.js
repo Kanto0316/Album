@@ -1766,7 +1766,31 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const siteLockManageUnlockButton = requireElement('siteLockManageUnlockButton');
 
     let currentSites = [];
-    let activeSiteFilter = 'all';
+    const siteFilterStorageKey = 'siteFilter';
+    const siteFilterByStoredValue = {
+      tous: 'all',
+      'mes-sites': 'mine',
+      ouvert: 'open',
+      verrouille: 'locked',
+    };
+    const storedValueBySiteFilter = {
+      all: 'tous',
+      mine: 'mes-sites',
+      open: 'ouvert',
+      locked: 'verrouille',
+    };
+    const savedFilter = window.localStorage.getItem(siteFilterStorageKey) || 'tous';
+    let activeSiteFilter = siteFilterByStoredValue[savedFilter] || 'all';
+
+    function updateSiteFilterChips() {
+      siteFilterButtons.forEach((button) => {
+        const isActive = button.dataset.siteFilter === activeSiteFilter;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+      });
+    }
+
+    updateSiteFilterChips();
     let itemCountsBySite = {};
     let userNamesById = {};
     let userNamesByEmail = {};
@@ -3669,11 +3693,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       chip.addEventListener('click', () => {
         const selectedFilter = chip.dataset.siteFilter;
         activeSiteFilter = ['all', 'mine', 'open', 'locked'].includes(selectedFilter) ? selectedFilter : 'all';
-        siteFilterButtons.forEach((button) => {
-          const isActive = button.dataset.siteFilter === activeSiteFilter;
-          button.classList.toggle('is-active', isActive);
-          button.setAttribute('aria-pressed', String(isActive));
-        });
+        window.localStorage.setItem(siteFilterStorageKey, storedValueBySiteFilter[activeSiteFilter]);
+        updateSiteFilterChips();
         renderSites();
       });
     });
