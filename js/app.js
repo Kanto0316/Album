@@ -1514,31 +1514,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     return canCurrentUserManageOwnedSite(site, permissions);
   }
 
-  function getUserDisplayName(user) {
-    return String(user?.username || user?.displayName || user?.name || user?.email || 'Utilisateur').trim();
-  }
-
-  async function setupAllowedUsersPicker(container, selectedIds = []) {
-    const users = await StorageService.listUsers();
-    const currentUserId = String(firebaseAuth.currentUser?.uid || '');
-    const availableUsers = users.filter((user) => String(user.id) !== currentUserId);
-    const selected = new Set((Array.isArray(selectedIds) ? selectedIds : []).map(String));
-    container.innerHTML = `<h3>Utilisateurs autorisés</h3><div class="allowed-users-add"><select aria-label="Sélectionner un utilisateur"><option value="">Sélectionner un utilisateur</option></select><button type="button" class="btn btn-neutral">+ Ajouter un utilisateur</button></div><ul class="allowed-users-list"></ul>`;
-    const select = container.querySelector('select');
-    const list = container.querySelector('.allowed-users-list');
-    availableUsers.forEach((user) => select.add(new Option(getUserDisplayName(user), user.id)));
-    const render = () => {
-      list.innerHTML = [...selected].map((id) => {
-        const user = availableUsers.find((candidate) => String(candidate.id) === id);
-        return `<li><span>${escapeHtml(getUserDisplayName(user) || id)}</span><button type="button" data-remove-user="${escapeHtml(id)}" aria-label="Retirer ${escapeHtml(getUserDisplayName(user) || id)}">×</button></li>`;
-      }).join('');
-      list.querySelectorAll('[data-remove-user]').forEach((button) => { button.onclick = () => { selected.delete(button.dataset.removeUser); render(); }; });
-    };
-    container.querySelector('.allowed-users-add button').onclick = () => { if (select.value) { selected.add(select.value); select.value = ''; render(); } };
-    render();
-    return () => [...selected];
-  }
-
   function ensureSharedSiteActionSheet() {
     let overlay = document.getElementById('siteActionSheetOverlay');
     if (overlay) return overlay;
@@ -1591,7 +1566,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     });
   }
 
-  async function editSitePrivacy(siteId) {
+  function editSitePrivacy(siteId) {
     const site = StorageService.getSite(siteId);
     if (!site) {
       UiService.showToast('Modification impossible.');
@@ -1609,9 +1584,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
             <legend>Qui peut voir ce site ?</legend>
             <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="public"><span aria-hidden="true"></span><span>Tout le monde</span></label>
             <label class="site-privacy-option"><input type="radio" name="sitePrivacyEdit" value="private"><span aria-hidden="true"></span><span>Moi uniquement</span></label>
-            <label class="site-privacy-option" data-authorized-option><input type="radio" name="sitePrivacyEdit" value="authorized"><span aria-hidden="true"></span><span>Utilisateurs autorisés</span></label>
           </fieldset>
-          <div class="allowed-users-section" data-allowed-users hidden></div>
           <p class="form-error" id="sitePrivacyError" aria-live="polite"></p>
           <div class="modal-actions modal-actions--split modal-actions--site-create">
             <button type="button" class="btn btn-neutral" data-privacy-cancel>Annuler</button>
@@ -1624,38 +1597,17 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const form = dialog.querySelector('#sitePrivacyForm');
     const error = dialog.querySelector('#sitePrivacyError');
     const submitButton = dialog.querySelector('#sitePrivacySubmitButton');
-    const selectedPrivacy = site.privacy === 'private'
-      ? (Array.isArray(site.allowedUsers) && site.allowedUsers.length ? 'authorized' : 'private')
-      : 'public';
-    const authorizedOption = dialog.querySelector('[data-authorized-option]');
-    authorizedOption.hidden = site.privacy !== 'private';
+    const selectedPrivacy = site.privacy === 'private' ? 'private' : 'public';
     dialog.querySelector(`[name="sitePrivacyEdit"][value="${selectedPrivacy}"]`).checked = true;
-    const allowedUsersContainer = dialog.querySelector('[data-allowed-users]');
-    allowedUsersContainer.hidden = selectedPrivacy !== 'authorized';
-    let getAllowedUsers = () => [];
-    try {
-      getAllowedUsers = await setupAllowedUsersPicker(allowedUsersContainer, site.allowedUsers);
-    } catch (_error) {
-      error.textContent = 'Impossible de charger les utilisateurs.';
-    }
-    form.querySelectorAll('[name="sitePrivacyEdit"]').forEach((radio) => {
-      radio.onchange = () => { allowedUsersContainer.hidden = radio.value !== 'authorized' || !radio.checked; };
-    });
     error.textContent = '';
     submitButton.disabled = false;
     dialog.querySelector('[data-privacy-cancel]').onclick = () => dialog.close();
     form.onsubmit = async (event) => {
       event.preventDefault();
-      const privacyChoice = new FormData(form).get('sitePrivacyEdit');
-      const privacy = privacyChoice === 'public' ? 'public' : 'private';
-      const allowedUsers = privacyChoice === 'authorized' ? getAllowedUsers() : [];
-      if (privacyChoice === 'authorized' && !allowedUsers.length) {
-        error.textContent = 'Ajoutez au moins un utilisateur autorisé.';
-        return;
-      }
+      const privacy = new FormData(form).get('sitePrivacyEdit');
       submitButton.disabled = true;
       try {
-        const result = await StorageService.updateSitePrivacy(siteId, privacy, allowedUsers);
+        const result = await StorageService.updateSitePrivacy(siteId, privacy);
         if (!result?.ok) {
           error.textContent = result?.reason === 'offline' ? 'Cette modification nécessite une connexion.' : 'Modification impossible.';
           return;
@@ -1757,7 +1709,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const siteCreateSubmitButton = requireElement('siteCreateSubmitButton');
     const siteSecuritySelect = requireElement('siteSecuritySelect');
     const sitePrivacySelect = requireElement('sitePrivacySelect');
-    const siteCreateAllowedUsers = requireElement('siteCreateAllowedUsers');
     const siteCreateSecurityFields = requireElement('siteCreateSecurityFields');
     const siteEditNameDialog = requireElement('siteEditNameDialog');
     const siteEditNameForm = requireElement('siteEditNameForm');
@@ -2346,9 +2297,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     function resetSiteCreateForm() {
       siteForm.reset();
       sitePrivacySelect.value = 'public';
-      siteCreateAllowedUsers.hidden = true;
-      siteCreateAllowedUsers.innerHTML = '';
-      getCreateAllowedUsers = () => [];
       if (siteLockFields.parentElement !== siteCreateSecurityFields) {
         siteCreateSecurityFields.append(siteLockFields);
       }
@@ -3269,7 +3217,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           const titleMarkup = site?.privacy === 'private'
             ? `<div class="site-header">
                 <h3 class="list-card__title">${escapeHtml(site.nom)}</h3>
-                <span class="list-card__privacy-badge" data-private-site="${escapeHtml(site.id)}" role="button" tabindex="0" aria-label="Afficher la confidentialité du site privé"><img src="Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> Privé</span>
+                <span class="list-card__privacy-badge" aria-label="Site privé"><img src="Icon/Privé.png" alt="" aria-hidden="true" class="list-card__privacy-icon" /> Privé</span>
               </div>`
             : `<h3 class="list-card__title">${escapeHtml(site.nom)}</h3>`;
           return `
@@ -3303,30 +3251,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           `;
         })
         .join('');
-
-      siteList.querySelectorAll('[data-private-site]').forEach((badge) => {
-        const showPrivacyDetails = (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const site = getLatestSiteState(badge.dataset.privateSite);
-          if (!site) return;
-          const allowedNames = (Array.isArray(site.allowedUsers) ? site.allowedUsers : [])
-            .map((id) => userNamesById[id] || id)
-            .filter(Boolean);
-          let dialog = document.getElementById('sitePrivacyDetailsDialog');
-          if (!dialog) {
-            dialog = document.createElement('dialog');
-            dialog.id = 'sitePrivacyDetailsDialog';
-            dialog.className = 'modal-card site-privacy-dialog';
-            document.body.appendChild(dialog);
-          }
-          dialog.innerHTML = `<div class="modal-content"><div class="modal-header"><h2>Confidentialité du site</h2></div><p>Qui peut voir ce site ?</p><ul><li>Créateur du site</li>${allowedNames.length ? `<li>Utilisateurs autorisés : ${allowedNames.map(escapeHtml).join(', ')}</li>` : ''}</ul><div class="modal-actions"><button type="button" class="btn btn-neutral">Fermer</button></div></div>`;
-          dialog.querySelector('button').onclick = () => dialog.close();
-          dialog.showModal();
-        };
-        badge.onclick = showPrivacyDetails;
-        badge.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') showPrivacyDetails(event); };
-      });
 
 
       siteList.querySelectorAll('[data-site-creator]').forEach((creatorElement) => {
@@ -3763,19 +3687,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       }
     });
 
-    let getCreateAllowedUsers = () => [];
-    sitePrivacySelect.addEventListener('change', async () => {
-      const showAllowedUsers = sitePrivacySelect.value === 'authorized';
-      siteCreateAllowedUsers.hidden = !showAllowedUsers;
-      if (showAllowedUsers) {
-        try {
-          getCreateAllowedUsers = await setupAllowedUsersPicker(siteCreateAllowedUsers, getCreateAllowedUsers());
-        } catch (_error) {
-          showSiteNameError('Impossible de charger les utilisateurs.');
-        }
-      }
-    });
-
     searchInput.addEventListener('input', renderSites);
 
     siteFilterButtons.forEach((chip) => {
@@ -3888,16 +3799,10 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       }
 
       const shouldLockSite = siteSecuritySelect.value === 'locked';
-      const privacyChoice = sitePrivacySelect.value;
-      const privacy = privacyChoice === 'authorized' ? 'private' : privacyChoice;
+      const privacy = sitePrivacySelect.value;
       if (privacy !== 'public' && privacy !== 'private') {
         showSiteNameError('Veuillez sélectionner une confidentialité valide.');
         sitePrivacySelect.focus();
-        return;
-      }
-      const allowedUsers = privacyChoice === 'authorized' ? getCreateAllowedUsers() : [];
-      if (privacyChoice === 'authorized' && !allowedUsers.length) {
-        showSiteNameError('Ajoutez au moins un utilisateur autorisé.');
         return;
       }
       let passwordHash = '';
@@ -3940,7 +3845,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           isLocked: shouldLockSite,
           passwordHash,
           privacy,
-          allowedUsers,
         });
         if (!result?.ok) {
           if (showOfflineWriteError(result)) return;
