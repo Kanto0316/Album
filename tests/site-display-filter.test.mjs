@@ -39,6 +39,21 @@ test('Ouvert et Verrouillé filtrent la source déjà visible selon le statut d�
   assert.doesNotMatch(accessFilter, /privacy|isAdmin|canViewAllSites/);
 });
 
+test('le filtre actif est restauré depuis localStorage et sauvegardé à chaque clic', async () => {
+  const app = await readSource('../js/app.js');
+  const homePage = app.slice(app.indexOf('function initHomePage('), app.indexOf('function initSiteDetailPage('));
+
+  assert.match(homePage, /const siteFilterStorageKey = 'siteFilter'/);
+  assert.match(homePage, /tous: 'all'/);
+  assert.match(homePage, /'mes-sites': 'mine'/);
+  assert.match(homePage, /ouvert: 'open'/);
+  assert.match(homePage, /verrouille: 'locked'/);
+  assert.match(homePage, /localStorage\.getItem\(siteFilterStorageKey\) \|\| 'tous'/);
+  assert.match(homePage, /let activeSiteFilter = siteFilterByStoredValue\[savedFilter\] \|\| 'all'/);
+  assert.match(homePage, /localStorage\.setItem\(siteFilterStorageKey, storedValueBySiteFilter\[activeSiteFilter\]\)/);
+  assert.match(homePage, /updateSiteFilterChips\(\);[\s\S]*?renderSites\(\);/);
+});
+
 test('les chips de la page 1 reprennent les états visuels des chips de la page 2', async () => {
   const styles = await readSource('../css/style.css');
   const homeChipContainer = styles.slice(
