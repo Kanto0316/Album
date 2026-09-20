@@ -1790,28 +1790,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       });
     }
 
-    function updateSiteFilterCounts(currentUserId) {
-      const counts = currentSites.reduce((totals, site) => {
-        totals.all += 1;
-        const creatorId = String(site?.createdBy || site?.ownerId || '').trim();
-        if (currentUserId && creatorId === currentUserId) {
-          totals.mine += 1;
-        }
-        totals[isSiteLocked(site) ? 'locked' : 'open'] += 1;
-        return totals;
-      }, { all: 0, mine: 0, open: 0, locked: 0 });
-
-      siteFilterButtons.forEach((button) => {
-        const count = counts[button.dataset.siteFilter] || 0;
-        const countElement = button.querySelector('[data-site-filter-count]');
-        if (!countElement) {
-          return;
-        }
-        countElement.textContent = count > 0 ? String(count) : '';
-        countElement.hidden = count === 0;
-      });
-    }
-
     updateSiteFilterChips();
     let itemCountsBySite = {};
     let userNamesById = {};
@@ -3182,7 +3160,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     function renderSites() {
       const query = searchInput.value.trim().toUpperCase();
       const currentUserId = String(currentPermissions?.userId || firebaseAuth.currentUser?.uid || '').trim();
-      updateSiteFilterCounts(currentUserId);
       const sites = currentSites
         .filter((site) => {
           if (activeSiteFilter === 'mine') {
