@@ -30,6 +30,14 @@ test('Firestore enregistre public ou private et refuse toute autre valeur', asyn
   assert.match(createSite, /createdBy: state\.userId,[\s\S]*?privacy,/);
 });
 
+test('la création journalise le site et la confidentialité avec les libellés affichés', async () => {
+  const storage = await readSource('../js/storage.js');
+  const createSite = storage.slice(storage.indexOf('async function createSite('), storage.indexOf('async function updateSiteName('));
+
+  assert.match(createSite, /a créé le site « \$\{site\.nom\} » avec confidentialité « \$\{getSitePrivacyLabel\(privacy\)\} »\./);
+  assert.match(createSite, /appendHistoryEntry\([^]*?\{ siteId: site\.id, siteName: site\.nom \}/);
+});
+
 test('les sites privés sont réservés au créateur et aux administrateurs', async () => {
   const storage = await readSource('../js/storage.js');
   const visibility = storage.slice(storage.indexOf('function isSiteVisibleToCurrentUser('), storage.indexOf('function filterSitesVisibleToCurrentUser('));
@@ -96,4 +104,22 @@ test('la modification écrit uniquement le champ privacy existant', async () => 
   assert.match(updatePrivacy, /privacy !== 'public' && privacy !== 'private'/);
   assert.match(updatePrivacy, /setDoc\([^]*?\{ privacy \}, \{ merge: true \}\)/);
   assert.doesNotMatch(updatePrivacy, /dateModification|passwordHash|isLocked|articles/);
+});
+
+test('la modification de confidentialité journalise les anciennes et nouvelles valeurs', async () => {
+  const storage = await readSource('../js/storage.js');
+  const updatePrivacy = storage.slice(storage.indexOf('async function updateSitePrivacy('), storage.indexOf('async function updateSiteCreator('));
+
+  assert.match(updatePrivacy, /const previousPrivacy = site\?\.privacy === 'private' \? 'private' : 'public'/);
+  assert.match(updatePrivacy, /privacy === previousPrivacy[\s\S]*?return \{ ok: true \}/);
+  assert.match(updatePrivacy, /a modifié la confidentialité du site « \$\{site\.nom\} » de « \$\{getSitePrivacyLabel\(previousPrivacy\)\} » à « \$\{getSitePrivacyLabel\(privacy\)\} »\./);
+});
+
+test("les logs d'historique ignorent les administrateurs et utilisent l'horodatage serveur", async () => {
+  const storage = await readSource('../js/storage.js');
+  const appendHistory = storage.slice(storage.indexOf('async function appendHistoryEntry('), storage.indexOf('async function pruneHistoryEntries('));
+
+  assert.match(appendHistory, /normalizeRole\(profile\?\.role\) === 'admin'[\s\S]*?return/);
+  assert.match(appendHistory, /userName: username/);
+  assert.match(appendHistory, /createdAt: serverTimestamp\(\)/);
 });

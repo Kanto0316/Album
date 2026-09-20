@@ -1856,6 +1856,10 @@ function withoutId(payload) {
   return copy;
 }
 
+function getSitePrivacyLabel(privacy) {
+  return privacy === 'private' ? 'Moi uniquement' : 'Tout le monde';
+}
+
 async function createSite(name, security = {}) {
   const offlineError = blockOfflineWrite();
   if (offlineError) return offlineError;
@@ -1901,7 +1905,10 @@ async function createSite(name, security = {}) {
   const site = { id: created.id, ...sitePayload };
 
   state.sites.unshift(site);
-  await appendHistoryEntry(`a créé le site ${site.nom}`, { siteId: site.id, siteName: site.nom });
+  await appendHistoryEntry(
+    `a créé le site « ${site.nom} » avec confidentialité « ${getSitePrivacyLabel(privacy)} ».`,
+    { siteId: site.id, siteName: site.nom },
+  );
   persistOfflineState();
   emitAll();
   return { ok: true, id: site.id };
@@ -1958,10 +1965,20 @@ async function updateSitePrivacy(siteId, privacy) {
     return { ok: false, reason: 'invalid_privacy' };
   }
 
+  const site = state.sites[siteIndex];
+  const previousPrivacy = site?.privacy === 'private' ? 'private' : 'public';
+  if (privacy === previousPrivacy) {
+    return { ok: true };
+  }
+
   // La confidentialité est volontairement le seul champ écrit : l'accès par
   // mot de passe et le contenu du site ne doivent jamais être affectés ici.
   await setDoc(doc(state.db, 'pages', 'page1', 'items', siteId), { privacy }, { merge: true });
   state.sites[siteIndex] = { ...state.sites[siteIndex], privacy };
+  await appendHistoryEntry(
+    `a modifié la confidentialité du site « ${site.nom} » de « ${getSitePrivacyLabel(previousPrivacy)} » à « ${getSitePrivacyLabel(privacy)} ».`,
+    { siteId, siteName: site.nom },
+  );
   persistOfflineState();
   emitAll();
   return { ok: true };
