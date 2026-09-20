@@ -4,15 +4,13 @@ import test from 'node:test';
 
 const readSource = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
-test('la création publique ne propose pas les utilisateurs autorisés', async () => {
+test('le formulaire propose la visibilité « Tout le monde » par défaut après l’accès', async () => {
   const html = await readSource('../index.html');
   const accessPosition = html.indexOf('id="siteSecuritySelect"');
   const privacyPosition = html.indexOf('id="sitePrivacySelect"');
-  const privacySelect = html.slice(privacyPosition, html.indexOf('</select>', privacyPosition));
 
   assert.ok(privacyPosition > accessPosition);
-  assert.match(privacySelect, /<option value="public" selected>Tout le monde<\/option>[\s\S]*?<option value="private">Moi uniquement<\/option>/);
-  assert.doesNotMatch(privacySelect, /value="authorized"/);
+  assert.match(html, /<span>Qui peut voir ce site \?<\/span>[\s\S]*?id="sitePrivacySelect"[\s\S]*?<option value="public" selected>Tout le monde<\/option>[\s\S]*?<option value="private">Moi uniquement<\/option>[\s\S]*?<option value="authorized">Utilisateurs autorisés<\/option>/);
 });
 
 test('la création valide et transmet la confidentialité sélectionnée', async () => {
@@ -73,17 +71,6 @@ test('le menu réutilise l’icône de confidentialité et ouvre le dialogue de 
   assert.match(app, /value="public"[^>]*>[\s\S]*?Tout le monde/);
   assert.match(app, /value="private"[^>]*>[\s\S]*?Moi uniquement/);
   assert.match(app, />Annuler<\/button>[\s\S]*?>Enregistrer<\/button>/);
-});
-
-test('les utilisateurs autorisés ne sont proposés que pour un site déjà privé', async () => {
-  const app = await readSource('../js/app.js');
-  const editPrivacy = app.slice(
-    app.indexOf('async function editSitePrivacy('),
-    app.indexOf('function openSiteActionSheet('),
-  );
-
-  assert.match(editPrivacy, /data-authorized-option[^>]*>[\s\S]*?value="authorized"[\s\S]*?Utilisateurs autorisés/);
-  assert.match(editPrivacy, /authorizedOption\.hidden = site\.privacy !== 'private'/);
 });
 
 test('la modification de confidentialité est réservée au créateur et aux administrateurs', async () => {
