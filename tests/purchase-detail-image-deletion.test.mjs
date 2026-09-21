@@ -16,15 +16,36 @@ test('la page détail propose une action de suppression près de l’édition', 
   assert.ok(page.indexOf('purchaseDetailImageDeleteButton') < page.indexOf('purchaseDetailImageEditButton'));
 });
 
-test('la suppression demande confirmation puis efface uniquement les références Firestore', () => {
+test('la suppression demande confirmation et exige un identifiant Cloudinary', () => {
   assert.match(deletion, /window\.confirm\('Voulez-vous supprimer cette image \?'\)/);
-  assert.match(deletion, /imageUrl: null/);
-  assert.match(deletion, /imageUpdates\.imagePublicId = null/);
-  assert.match(deletion, /updateDoc\(doc\(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId\), updates\)/);
-  assert.doesNotMatch(deletion, /cloudinary\.com|fetch\s*\(/i);
+  assert.match(deletion, /const imagePublicId = String\(currentPurchase\.imagePublicId \|\| ''\)\.trim\(\)/);
+  assert.match(deletion, /if \(!imagePublicId\)/);
+});
+
+test('Cloudinary est supprimé via Render avant de nettoyer Firestore', () => {
+  const backendCall = deletion.indexOf("fetch('https://back-end-serveur-1.onrender.com/api/cloudinary/delete'");
+  const firestoreUpdate = deletion.indexOf("updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId), updates)");
+
+  assert.ok(backendCall >= 0);
+  assert.ok(firestoreUpdate > backendCall);
+  assert.match(deletion, /method: 'POST'/);
+  assert.match(deletion, /'Content-Type': 'application\/json'/);
+  assert.match(deletion, /JSON\.stringify\(\{ publicId: imagePublicId \}\)/);
+  assert.match(deletion, /!response\.ok \|\| result\?\.success !== true/);
+  assert.match(deletion, /imageUrl: null,[\s\S]*imagePublicId: null/);
 });
 
 test('le bouton disparaît avec l’image après le nouveau rendu', () => {
   assert.match(app, /imageDeleteButton\.hidden = !canEditPurchase \|\| !imageUrl/);
   assert.match(deletion, /currentPurchase = \{ \.\.\.currentPurchase, \.\.\.updates \};[\s\S]*renderPurchaseDetail\(currentPurchase\)/);
+});
+
+test('un échec Cloudinary conserve les références Firestore et affiche une erreur', () => {
+  const successGuard = deletion.indexOf("if (!response.ok || result?.success !== true)");
+  const firestoreUpdate = deletion.indexOf("updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId), updates)");
+
+  assert.ok(successGuard >= 0);
+  assert.ok(firestoreUpdate > successGuard);
+  assert.match(deletion, /currentPurchase = previousPurchase;[\s\S]*renderPurchaseDetail\(previousPurchase\)/);
+  assert.match(deletion, /Impossible de supprimer l’image\. Veuillez réessayer\./);
 });
