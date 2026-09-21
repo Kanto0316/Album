@@ -9873,15 +9873,28 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
       const previousPurchase = { ...currentPurchase };
       const firestorePurchaseId = String(currentPurchase.id || purchaseId).trim();
-      const imageUpdates = { imageUrl: null };
-      if (Object.prototype.hasOwnProperty.call(currentPurchase, 'imagePublicId')) {
-        imageUpdates.imagePublicId = null;
+      const imagePublicId = String(currentPurchase.imagePublicId || '').trim();
+      if (!imagePublicId) {
+        UiService.showToast?.('Impossible de supprimer l’image : identifiant Cloudinary manquant.');
+        return;
       }
 
       setPurchaseSaving(true);
       try {
-        const updates = addPurchaseUpdateMetadata(imageUpdates);
-        // Suppression Cloudinary volontairement différée : un backend Render s'en chargera ultérieurement.
+        const response = await fetch('https://back-end-serveur-1.onrender.com/api/cloudinary/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ publicId: imagePublicId }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result?.success !== true) {
+          throw new Error(result?.error || result?.message || 'Suppression Cloudinary échouée');
+        }
+
+        const updates = addPurchaseUpdateMetadata({
+          imageUrl: null,
+          imagePublicId: null,
+        });
         await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId), updates);
         currentPurchase = { ...currentPurchase, ...updates };
         renderPurchaseDetail(currentPurchase);
@@ -9889,7 +9902,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         console.error('Erreur suppression image achat matériel :', error);
         currentPurchase = previousPurchase;
         renderPurchaseDetail(previousPurchase);
-        UiService.showToast?.('Erreur lors de la suppression de l’image.');
+        UiService.showToast?.('Impossible de supprimer l’image. Veuillez réessayer.');
       } finally {
         setPurchaseSaving(false);
       }
