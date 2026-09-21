@@ -7688,7 +7688,7 @@ body[data-page="purchase-detail"] .purchase-detail-image-frame {
 
 body[data-page="purchase-detail"] .purchase-detail-image-button[hidden],
 body[data-page="purchase-detail"] .purchase-detail-image[hidden],
-body[data-page="purchase-detail"] .purchase-detail-image-edit[hidden] {
+body[data-page="purchase-detail"] .purchase-detail-image-action[hidden] {
   display: none;
 }
 
@@ -7715,10 +7715,17 @@ body[data-page="purchase-detail"] .purchase-detail-image {
 }
 
 
-body[data-page="purchase-detail"] .purchase-detail-image-edit {
+body[data-page="purchase-detail"] .purchase-detail-image-actions {
   position: absolute;
   right: 0.6rem;
   bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+body[data-page="purchase-detail"] .purchase-detail-image-action {
   width: 38px;
   height: 38px;
   min-width: 38px;
@@ -7730,15 +7737,26 @@ body[data-page="purchase-detail"] .purchase-detail-image-edit {
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  z-index: 2;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.24);
 }
 
-body[data-page="purchase-detail"] .purchase-detail-image-edit:hover {
+body[data-page="purchase-detail"] .purchase-detail-image-delete {
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+body[data-page="purchase-detail"] .purchase-detail-image-delete img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+body[data-page="purchase-detail"] .purchase-detail-image-action:hover {
   transform: scale(1.04);
 }
 
-body[data-page="purchase-detail"] .purchase-detail-image-edit:active {
+body[data-page="purchase-detail"] .purchase-detail-image-action:active {
   transform: scale(0.95);
 }
 
@@ -7947,9 +7965,12 @@ body[data-page="purchase-detail"] .purchase-detail-image {
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.13);
 }
 
-body[data-page="purchase-detail"] .purchase-detail-image-edit {
+body[data-page="purchase-detail"] .purchase-detail-image-actions {
   right: 0.75rem;
   bottom: 0.75rem;
+}
+
+body[data-page="purchase-detail"] .purchase-detail-image-action {
   width: 46px;
   height: 46px;
   min-width: 46px;

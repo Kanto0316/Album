@@ -39,7 +39,12 @@
                 <img id="purchaseDetailImage" class="purchase-detail-image" alt="Photo achat matériel" />
               </button>
               <img id="purchaseDetailImagePlaceholder" class="purchase-detail-image purchase-detail-image--placeholder" src="Icon/Image.png" alt="" aria-hidden="true" />
-              <button id="purchaseDetailImageEditButton" class="purchase-detail-image-edit fab" type="button" aria-label="Modifier l’image" hidden>✏️</button>
+              <div class="purchase-detail-image-actions">
+                <button id="purchaseDetailImageDeleteButton" class="purchase-detail-image-action purchase-detail-image-delete" type="button" aria-label="Supprimer l’image" title="Supprimer l’image" hidden>
+                  <img src="Icon/Corbeille.png" alt="" aria-hidden="true" />
+                </button>
+                <button id="purchaseDetailImageEditButton" class="purchase-detail-image-action purchase-detail-image-edit fab" type="button" aria-label="Modifier l’image" hidden>✏️</button>
+              </div>
               <input id="purchaseDetailImageInput" class="purchase-detail-image-input" type="file" accept="image/*" hidden />
             </div>
           </div>
