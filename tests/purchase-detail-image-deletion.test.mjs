@@ -16,10 +16,11 @@ test('la page détail propose une action de suppression près de l’édition', 
   assert.ok(page.indexOf('purchaseDetailImageDeleteButton') < page.indexOf('purchaseDetailImageEditButton'));
 });
 
-test('la suppression demande confirmation et exige un identifiant Cloudinary', () => {
+test('la suppression demande confirmation et récupère les références de l’image', () => {
   assert.match(deletion, /window\.confirm\('Voulez-vous supprimer cette image \?'\)/);
+  assert.match(deletion, /const imageUrl = String\(currentPurchase\.imageUrl \|\| ''\)\.trim\(\)/);
+  assert.match(deletion, /const firestorePurchaseId = String\(currentPurchase\.id \|\| purchaseId\)\.trim\(\)/);
   assert.match(deletion, /const imagePublicId = String\(currentPurchase\.imagePublicId \|\| ''\)\.trim\(\)/);
-  assert.match(deletion, /if \(!imagePublicId\)/);
 });
 
 test('Cloudinary est supprimé via Render avant de nettoyer Firestore', () => {
@@ -34,6 +35,19 @@ test('Cloudinary est supprimé via Render avant de nettoyer Firestore', () => {
   assert.match(deletion, /JSON\.stringify\(\{ publicId: imagePublicId \}\)/);
   assert.match(deletion, /!response\.ok \|\| result\?\.success !== true/);
   assert.match(deletion, /imageUrl: null,[\s\S]*imagePublicId: null/);
+});
+
+test('sans identifiant Cloudinary, seule la référence Firestore est nettoyée', () => {
+  assert.match(deletion, /if \(imagePublicId\) \{[\s\S]*fetch\(CLOUDINARY_DELETE_ENDPOINT/);
+  assert.doesNotMatch(deletion, /if \(!imagePublicId\)[\s\S]*return/);
+
+  const cloudinaryGuard = deletion.indexOf('if (imagePublicId)');
+  const firestoreUpdate = deletion.indexOf("updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId), updates)");
+  const guardedBlockEnd = deletion.indexOf('\n        }', deletion.indexOf("throw new Error(result?.error", cloudinaryGuard));
+
+  assert.ok(cloudinaryGuard >= 0);
+  assert.ok(guardedBlockEnd > cloudinaryGuard);
+  assert.ok(firestoreUpdate > guardedBlockEnd);
 });
 
 test('le bouton disparaît avec l’image après le nouveau rendu', () => {
