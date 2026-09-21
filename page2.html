@@ -186,6 +186,17 @@
               <span id="itemStoreOtherCounter" class="input-char-counter" aria-live="polite">0 / 15</span>
             </div>
           </label>
+          <section id="outImagePicker" class="out-image-picker" hidden aria-labelledby="outImagePickerLabel">
+            <span id="outImagePickerLabel" class="out-image-picker__label">Image du OUT (facultative)</span>
+            <input id="outImageInput" class="out-image-picker__input" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+            <button id="outImageSelectButton" class="btn btn-neutral out-image-picker__button" type="button">Ajouter une image</button>
+            <div id="outImagePreviewWrap" class="out-image-picker__preview" hidden>
+              <img id="outImagePreview" alt="Prévisualisation de l’image du OUT" />
+              <button id="outImageClearButton" type="button" class="out-image-picker__clear">Retirer</button>
+            </div>
+            <p id="outImageError" class="form-error form-error--field" aria-live="polite"></p>
+            <p class="out-image-picker__help">JPG, JPEG, PNG ou WEBP — 5 Mo maximum.</p>
+          </section>
           <div class="modal-actions modal-actions--split modal-actions--site-create modal-actions--item-create">
             <button type="button" class="btn btn-neutral" data-close-dialog>Annuler</button>
             <button id="itemCreateSubmitButton" type="submit" class="btn btn-success">
