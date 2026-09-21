@@ -15,31 +15,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
   const OFFLINE_WRITE_MESSAGE = 'Vérifiez votre connexion internet';
   const CLOUDINARY_DELETE_ENDPOINT = 'https://back-end-serveur-1.onrender.com/api/cloudinary/delete';
-  const OUT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-  const OUT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-
-  async function verifyCurrentUserIsOutImageAdmin() {
-    const user = firebaseAuth.currentUser;
-    if (!user?.uid) return false;
-    try {
-      const snapshot = await getDocFromServer(doc(firebaseDb, 'users', user.uid));
-      const data = snapshot.exists() ? snapshot.data() : {};
-      const role = String(data?.role || '').trim().toLowerCase();
-      const username = String(data?.username || data?.displayName || data?.name || '').trim();
-      const email = String(data?.email || user.email || '').trim().toLowerCase();
-      return role === 'admin' || username === 'Admin' || email === 'andrainaaina@gmail.com';
-    } catch (error) {
-      console.error('[OUT image] Impossible de vérifier le rôle administrateur.', error);
-      return false;
-    }
-  }
-
-  function getOptimizedCloudinaryUrl(imageUrl) {
-    const url = String(imageUrl || '').trim();
-    return url.includes('/upload/')
-      ? url.replace('/upload/', '/upload/f_auto,q_auto,w_1600,c_limit/')
-      : url;
-  }
 
   function installOfflineFabProtection() {
     const fabIds = ['openCreateSite', 'openCreateItem', 'openDetailFormButton'];
@@ -1191,7 +1166,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const isAdmin = username === 'Admin' || role === 'admin' || isAdjointAdmin;
     const isStandard = isAdjointAdmin;
     const isLecture = role === 'lecture';
-    const isOutImageAdmin = role === 'admin' || username === 'Admin';
     if (isAdmin) {
       return {
         canCreate: true,
@@ -1200,7 +1174,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         userId,
         username,
         isAdmin: true,
-        isOutImageAdmin,
         isStandard: false,
         canManageUsers: true,
         canImportExport: true,
@@ -1214,7 +1187,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       userId,
       username,
       isAdmin: false,
-      isOutImageAdmin,
       isStandard,
       canManageUsers: isStandard,
       canImportExport: isStandard,
@@ -4644,40 +4616,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     let hasPendingOutScrollRestore = true;
     let selectedPurchasePhotoFile = null;
     let selectedPurchasePhotoPreviewUrl = '';
-    const outImagePicker = document.getElementById('outImagePicker');
-    const outImageInput = document.getElementById('outImageInput');
-    const outImageSelectButton = document.getElementById('outImageSelectButton');
-    const outImagePreviewWrap = document.getElementById('outImagePreviewWrap');
-    const outImagePreview = document.getElementById('outImagePreview');
-    const outImageClearButton = document.getElementById('outImageClearButton');
-    const outImageError = document.getElementById('outImageError');
-    let selectedOutImageFile = null;
-    let selectedOutImagePreviewUrl = '';
-
-    function clearOutImageSelection() {
-      selectedOutImageFile = null;
-      if (selectedOutImagePreviewUrl) URL.revokeObjectURL(selectedOutImagePreviewUrl);
-      selectedOutImagePreviewUrl = '';
-      if (outImageInput) outImageInput.value = '';
-      if (outImagePreview) outImagePreview.removeAttribute('src');
-      if (outImagePreviewWrap) outImagePreviewWrap.hidden = true;
-      if (outImageError) outImageError.textContent = '';
-    }
-
-    function validateOutImage(file) {
-      if (!file) return '';
-      if (!OUT_IMAGE_TYPES.has(String(file.type || '').toLowerCase())) {
-        return 'Format invalide. Sélectionnez une image JPG, JPEG, PNG ou WEBP.';
-      }
-      if (file.size > OUT_IMAGE_MAX_BYTES) return 'L’image ne doit pas dépasser 5 Mo.';
-      return '';
-    }
-
-    function updateOutImagePickerVisibility() {
-      const visible = Boolean(permissions?.isOutImageAdmin) && itemDialogMode === ITEM_DIALOG_MODE_CREATE;
-      if (outImagePicker) outImagePicker.hidden = !visible;
-      if (!visible) clearOutImageSelection();
-    }
 
     function persistOutPageScrollPosition() {
       if (activeSiteTab !== 'outs') {
@@ -4746,7 +4684,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       };
     }
 
-    async function uploadPurchaseImageToCloudinary(file, outId = '') {
+    async function uploadPurchaseImageToCloudinary(file) {
       if (!file) {
         return null;
       }
@@ -4754,10 +4692,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
-      if (outId) {
-        formData.append('public_id', `outs/${outId}-${Date.now()}`);
-        formData.append('context', `outId=${outId}`);
-      }
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
@@ -6784,7 +6718,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         hideItemStoreOtherField({ immediate: true });
       }
       itemStoreOtherGroup?.toggleAttribute('hidden', !isCreateMode);
-      updateOutImagePickerVisibility();
       updateItemNumberCounter();
     }
 
@@ -6825,7 +6758,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       }
       setItemDialogMode(ITEM_DIALOG_MODE_CREATE);
       itemForm.reset();
-      clearOutImageSelection();
       clearItemFormError();
       clearItemNumberErrorState();
       hasBlockingItemNumberError = false;
@@ -6840,28 +6772,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       updateItemStoreOtherVisibility({ immediate: true });
       itemDialog.showModal();
       itemNumberInput.focus();
-    });
-
-    outImageSelectButton?.addEventListener('click', () => outImageInput?.click());
-    outImageClearButton?.addEventListener('click', clearOutImageSelection);
-    outImageInput?.addEventListener('change', () => {
-      const file = outImageInput.files?.[0] || null;
-      if (selectedOutImagePreviewUrl) URL.revokeObjectURL(selectedOutImagePreviewUrl);
-      selectedOutImageFile = null;
-      selectedOutImagePreviewUrl = '';
-      if (outImagePreviewWrap) outImagePreviewWrap.hidden = true;
-      if (outImageError) outImageError.textContent = '';
-      const error = validateOutImage(file);
-      if (error) {
-        if (outImageError) outImageError.textContent = error;
-        outImageInput.value = '';
-        return;
-      }
-      if (!file) return;
-      selectedOutImageFile = file;
-      selectedOutImagePreviewUrl = URL.createObjectURL(file);
-      if (outImagePreview) outImagePreview.src = selectedOutImagePreviewUrl;
-      if (outImagePreviewWrap) outImagePreviewWrap.hidden = false;
     });
 
     cancelPurchaseBtn?.addEventListener('click', () => {
@@ -7156,7 +7066,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     updateItemStoreOtherCounter();
 
     itemDialog.addEventListener('close', () => {
-      clearOutImageSelection();
       clearItemFormError();
       clearItemNumberErrorState();
       clearItemStoreErrorState();
@@ -7396,18 +7305,9 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         showItemFormError('Action non autorisée.');
         return;
       }
-      if (selectedOutImageFile && (!permissions.isOutImageAdmin || !(await verifyCurrentUserIsOutImageAdmin()))) {
-        clearOutImageSelection();
-        showItemFormError('Seul un administrateur peut ajouter une image.');
-        return;
-      }
       itemCreateSubmitButton.disabled = true;
       itemCreateSubmitButton.classList.add('is-loading');
-      let uploadedOutImage = null;
       try {
-        if (itemDialogMode === ITEM_DIALOG_MODE_CREATE && selectedOutImageFile) {
-          uploadedOutImage = await uploadPurchaseImageToCloudinary(selectedOutImageFile, `OUT-${value}`);
-        }
         const result = itemDialogMode === ITEM_DIALOG_MODE_EDIT
           ? await StorageService.updateItemName(siteId, editingItemId, value)
           : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE
@@ -7421,21 +7321,8 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
                 ? updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', editingItemId), updates).then(() => ({ ok: true }))
                 : Promise.resolve({ ok: true, unchanged: true });
             })()
-            : await StorageService.createItem(siteId, value, {
-              magasin: resolveItemStoreValue(),
-              imageUrl: uploadedOutImage?.imageUrl || '',
-              imagePublicId: uploadedOutImage?.publicId || '',
-              imageCreatedBy: firebaseAuth.currentUser?.uid || '',
-              imageCreatedAt: uploadedOutImage ? serverTimestamp() : null,
-            });
+            : await StorageService.createItem(siteId, value, { magasin: resolveItemStoreValue() });
         if (!result?.ok) {
-          if (uploadedOutImage?.publicId) {
-            fetch(CLOUDINARY_DELETE_ENDPOINT, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ publicId: uploadedOutImage.publicId }),
-            }).catch(() => {});
-          }
           if (showOfflineWriteError(result)) return;
           showItemFormError(
             result?.reason === 'duplicate_out'
@@ -7459,16 +7346,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
           setActiveSiteTab('purchases');
         }
         UiService.showToast(itemDialogMode === ITEM_DIALOG_MODE_EDIT ? 'Nom OUT mis à jour.' : itemDialogMode === ITEM_DIALOG_MODE_EDIT_PURCHASE ? 'Achat matériel mis à jour.' : 'N° OUT ajouté .');
-      } catch (error) {
-        console.error('[OUT image] Création impossible.', error);
-        if (uploadedOutImage?.publicId) {
-          fetch(CLOUDINARY_DELETE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ publicId: uploadedOutImage.publicId }),
-          }).catch(() => {});
-        }
-        showItemFormError('Création impossible. Vérifiez l’image et réessayez.');
       } finally {
         if (itemDialog.open) {
           itemCreateSubmitButton.classList.remove('is-loading');
@@ -7569,9 +7446,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const detailCreateSubmitButton = requireElement('detailCreateSubmitButton');
     const detailCount = requireElement('detailCount');
     const detailStore = requireElement('detailStore');
-    const outDetailImageSection = document.getElementById('outDetailImageSection');
-    const outDetailImage = document.getElementById('outDetailImage');
-    const outDetailImageDeleteButton = document.getElementById('outDetailImageDeleteButton');
     const detailTableBody = requireElement('detailTableBody');
     const detailSearchInput = requireElement('detailSearchInput');
     const clearSearchBtn = document.querySelector('#clearSearchBtn');
@@ -7603,7 +7477,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     let currentSite = StorageService.getSite(siteId);
     const detailHistoryLogger = createSearchAndFilterHistoryLogger(siteId, () => currentSite?.nom || '');
     let currentItem = StorageService.getItem(siteId, itemId);
-    let isVerifiedOutImageAdmin = false;
     let currentDetails = [];
     const deletingDetailIds = new Set();
     let hasResolvedInitialDetails = false;
@@ -8070,7 +7943,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     onAuthStateChanged(firebaseAuth, (user) => {
       updateDetailCreateButtonVisibility(user || null);
       updateDetailExportButtonState(user || null);
-      refreshOutImageAuthorization();
     });
 
     function renderTitle() {
@@ -8121,61 +7993,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       storeBadge.textContent = displayValue;
       detailStore.append(storeLabel, storeBadge);
     }
-
-    function renderOutImage() {
-      const imageUrl = String(currentItem?.imageUrl || '').trim();
-      const shouldDisplay = isVerifiedOutImageAdmin && Boolean(imageUrl);
-      if (outDetailImageSection) outDetailImageSection.hidden = !shouldDisplay;
-      if (outDetailImage) {
-        if (shouldDisplay) outDetailImage.src = getOptimizedCloudinaryUrl(imageUrl);
-        else outDetailImage.removeAttribute('src');
-      }
-      if (outDetailImageDeleteButton) outDetailImageDeleteButton.hidden = !shouldDisplay;
-    }
-
-    async function refreshOutImageAuthorization() {
-      isVerifiedOutImageAdmin = Boolean(permissions?.isOutImageAdmin)
-        && await verifyCurrentUserIsOutImageAdmin();
-      renderOutImage();
-    }
-
-    outDetailImageDeleteButton?.addEventListener('click', async () => {
-      if (!currentItem?.imageUrl || !window.confirm('Voulez-vous supprimer cette image ?')) return;
-      if (!permissions?.isOutImageAdmin || !(await verifyCurrentUserIsOutImageAdmin())) {
-        isVerifiedOutImageAdmin = false;
-        renderOutImage();
-        UiService.showToast('Action réservée aux administrateurs.');
-        return;
-      }
-      outDetailImageDeleteButton.disabled = true;
-      try {
-        const publicId = String(currentItem.imagePublicId || '').trim();
-        if (publicId) {
-          const response = await fetch(CLOUDINARY_DELETE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ publicId }),
-          });
-          const result = await response.json().catch(() => ({}));
-          if (!response.ok || result?.success !== true) throw new Error('Suppression Cloudinary refusée');
-        }
-        await updateDoc(doc(firebaseDb, 'pages', 'page2', 'items', itemId), {
-          imageUrl: null,
-          imagePublicId: null,
-          imageCreatedBy: null,
-          imageCreatedAt: null,
-          dateModification: new Date().toISOString(),
-        });
-        currentItem = { ...currentItem, imageUrl: null, imagePublicId: null, imageCreatedBy: null, imageCreatedAt: null };
-        renderOutImage();
-        UiService.showToast('Image supprimée.');
-      } catch (error) {
-        console.error('[OUT image] Suppression impossible.', error);
-        UiService.showToast('Impossible de supprimer l’image. Veuillez réessayer.');
-      } finally {
-        outDetailImageDeleteButton.disabled = false;
-      }
-    });
 
     function getSearchQuery() {
       return detailSearchInput ? detailSearchInput.value.trim().toLowerCase() : '';
@@ -9441,7 +9258,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       }
       renderTitle();
       renderStoreLabel();
-      renderOutImage();
     });
 
     StorageService.subscribeDetails(
@@ -9470,7 +9286,6 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
     renderTitle();
     renderStoreLabel();
-    refreshOutImageAuthorization();
     updateDetailInputCounters();
     refreshCodeSuggestionSource();
   }
