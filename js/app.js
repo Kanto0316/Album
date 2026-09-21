@@ -9753,6 +9753,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     const image = requireElement('purchaseDetailImage');
     const imagePlaceholder = requireElement('purchaseDetailImagePlaceholder');
     const imageEditButton = requireElement('purchaseDetailImageEditButton');
+    const imageDeleteButton = requireElement('purchaseDetailImageDeleteButton');
     const imageInput = requireElement('purchaseDetailImageInput');
     const qty = requireElement('purchaseDetailQty');
     const qtyDisplay = requireElement('purchaseDetailQtyDisplay');
@@ -9862,6 +9863,34 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
         if (imageInput) {
           imageInput.value = '';
         }
+        setPurchaseSaving(false);
+      }
+    }
+
+    async function deletePurchaseImage() {
+      if (!canEditPurchase || !currentPurchase || isSavingPurchase || !currentPurchase.imageUrl) return;
+      if (!window.confirm('Voulez-vous supprimer cette image ?')) return;
+
+      const previousPurchase = { ...currentPurchase };
+      const firestorePurchaseId = String(currentPurchase.id || purchaseId).trim();
+      const imageUpdates = { imageUrl: null };
+      if (Object.prototype.hasOwnProperty.call(currentPurchase, 'imagePublicId')) {
+        imageUpdates.imagePublicId = null;
+      }
+
+      setPurchaseSaving(true);
+      try {
+        const updates = addPurchaseUpdateMetadata(imageUpdates);
+        // Suppression Cloudinary volontairement différée : un backend Render s'en chargera ultérieurement.
+        await updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId), updates);
+        currentPurchase = { ...currentPurchase, ...updates };
+        renderPurchaseDetail(currentPurchase);
+      } catch (error) {
+        console.error('Erreur suppression image achat matériel :', error);
+        currentPurchase = previousPurchase;
+        renderPurchaseDetail(previousPurchase);
+        UiService.showToast?.('Erreur lors de la suppression de l’image.');
+      } finally {
         setPurchaseSaving(false);
       }
     }
@@ -10020,6 +10049,9 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       if (imageEditButton) {
         imageEditButton.hidden = !canEditPurchase;
       }
+      if (imageDeleteButton) {
+        imageDeleteButton.hidden = !canEditPurchase || !imageUrl;
+      }
     }
 
     bindInlinePurchaseField(summaryName, 'designation');
@@ -10050,6 +10082,11 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
       event.stopPropagation();
       if (!canEditPurchase || isSavingPurchase) return;
       imageInput?.click();
+    });
+    imageDeleteButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      deletePurchaseImage();
     });
     imageInput?.addEventListener('change', () => {
       const file = imageInput.files?.[0];
