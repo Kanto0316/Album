@@ -2344,12 +2344,6 @@ async function createItem(siteId, numberValue, options = {}) {
     dateCreation: timestamp,
     dateModification: timestamp,
   };
-  if (options?.imageUrl && options?.imagePublicId) {
-    itemPayload.imageUrl = sanitizeText(options.imageUrl, true);
-    itemPayload.imagePublicId = sanitizeText(options.imagePublicId, true);
-    itemPayload.imageCreatedBy = sanitizeText(options.imageCreatedBy || state.userId, true);
-    itemPayload.imageCreatedAt = options.imageCreatedAt || serverTimestamp();
-  }
   const itemRef = doc(makePageItemsCollection('page2'));
   const nextOutCount = await createOutAndIncrementCounter({
     runTransaction,
