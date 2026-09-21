@@ -9869,27 +9869,28 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
     }
 
     async function deletePurchaseImage() {
-      if (!canEditPurchase || !currentPurchase || isSavingPurchase || !currentPurchase.imageUrl) return;
+      if (!canEditPurchase || !currentPurchase || isSavingPurchase) return;
+
+      const imageUrl = String(currentPurchase.imageUrl || '').trim();
+      if (!imageUrl) return;
       if (!window.confirm('Voulez-vous supprimer cette image ?')) return;
 
       const previousPurchase = { ...currentPurchase };
       const firestorePurchaseId = String(currentPurchase.id || purchaseId).trim();
       const imagePublicId = String(currentPurchase.imagePublicId || '').trim();
-      if (!imagePublicId) {
-        UiService.showToast?.('Impossible de supprimer l’image : identifiant Cloudinary manquant.');
-        return;
-      }
 
       setPurchaseSaving(true);
       try {
-        const response = await fetch(CLOUDINARY_DELETE_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ publicId: imagePublicId }),
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok || result?.success !== true) {
-          throw new Error(result?.error || result?.message || 'Suppression Cloudinary échouée');
+        if (imagePublicId) {
+          const response = await fetch(CLOUDINARY_DELETE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicId: imagePublicId }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || result?.success !== true) {
+            throw new Error(result?.error || result?.message || 'Suppression Cloudinary échouée');
+          }
         }
 
         const updates = addPurchaseUpdateMetadata({
