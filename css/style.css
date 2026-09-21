@@ -9433,3 +9433,48 @@ body[data-page="item-detail"] .return-history__quantity-input {
     background: inherit;
   }
 }
+
+/* Images OUT — la visibilité est également contrôlée après vérification du rôle côté données. */
+.out-image-picker {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.85rem;
+  background: #f8fafc;
+}
+.out-image-picker[hidden],
+.out-image-picker__preview[hidden],
+.out-detail-image[hidden],
+.out-detail-image__delete[hidden] { display: none !important; }
+.out-image-picker__label { font-weight: 700; color: #334155; }
+.out-image-picker__input { display: none; }
+.out-image-picker__button { justify-self: start; }
+.out-image-picker__preview { position: relative; max-width: 22rem; }
+.out-image-picker__preview img {
+  display: block;
+  width: 100%;
+  max-height: 15rem;
+  object-fit: contain;
+  border-radius: 0.7rem;
+  background: #e2e8f0;
+}
+.out-image-picker__clear { margin-top: 0.45rem; border: 0; background: transparent; color: var(--danger); font-weight: 700; cursor: pointer; }
+.out-image-picker__help { margin: 0; color: #64748b; font-size: 0.82rem; }
+.out-detail-image {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+.out-detail-image img {
+  display: block;
+  width: min(100%, 48rem);
+  max-height: 32rem;
+  object-fit: contain;
+  border-radius: 0.8rem;
+  background: #e2e8f0;
+}
