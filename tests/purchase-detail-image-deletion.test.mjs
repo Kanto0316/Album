@@ -11,7 +11,7 @@ const deletion = app.slice(
 );
 
 test('la page détail propose une action de suppression près de l’édition', () => {
-  assert.match(page, /purchaseDetailImageDeleteButton/);
+  assert.match(page, /id="purchaseDetailImageDeleteButton"[^>]*hidden/);
   assert.match(page, /Icon\/Corbeille\.png/);
   assert.ok(page.indexOf('purchaseDetailImageDeleteButton') < page.indexOf('purchaseDetailImageEditButton'));
 });
@@ -23,11 +23,12 @@ test('la suppression demande confirmation et exige un identifiant Cloudinary', (
 });
 
 test('Cloudinary est supprimé via Render avant de nettoyer Firestore', () => {
-  const backendCall = deletion.indexOf("fetch('https://back-end-serveur-1.onrender.com/api/cloudinary/delete'");
+  const backendCall = deletion.indexOf('fetch(CLOUDINARY_DELETE_ENDPOINT');
   const firestoreUpdate = deletion.indexOf("updateDoc(doc(firebaseDb, 'sites', siteId, 'achatsMateriels', firestorePurchaseId), updates)");
 
   assert.ok(backendCall >= 0);
   assert.ok(firestoreUpdate > backendCall);
+  assert.match(app, /const CLOUDINARY_DELETE_ENDPOINT = 'https:\/\/back-end-serveur-1\.onrender\.com\/api\/cloudinary\/delete'/);
   assert.match(deletion, /method: 'POST'/);
   assert.match(deletion, /'Content-Type': 'application\/json'/);
   assert.match(deletion, /JSON\.stringify\(\{ publicId: imagePublicId \}\)/);

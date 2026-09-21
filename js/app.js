@@ -14,6 +14,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
   const { StorageService, UiService } = window;
 
   const OFFLINE_WRITE_MESSAGE = 'Vérifiez votre connexion internet';
+  const CLOUDINARY_DELETE_ENDPOINT = 'https://back-end-serveur-1.onrender.com/api/cloudinary/delete';
 
   function installOfflineFabProtection() {
     const fabIds = ['openCreateSite', 'openCreateItem', 'openDetailFormButton'];
@@ -9881,7 +9882,7 @@ import { downloadExportFile, encodeUtf8 } from './export-download.js';
 
       setPurchaseSaving(true);
       try {
-        const response = await fetch('https://back-end-serveur-1.onrender.com/api/cloudinary/delete', {
+        const response = await fetch(CLOUDINARY_DELETE_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ publicId: imagePublicId }),
